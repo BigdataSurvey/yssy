@@ -1,0 +1,108 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.zywl.app.defaultx.mapper.AdminMenuMapper">
+
+   <insert id="insert" parameterType="AdminMenu" useGeneratedKeys="true" keyProperty="id" keyColumn="id">
+		insert into t_admin_menu
+		(
+               `id`,
+               `menu_id`,
+               `parent_id`,
+               `menu_type`,
+               `menu_key`,
+               `menu_name`,
+               `auth_rule`,
+               `sort_id`,
+		)
+		values
+		(
+               #{id},
+               #{menuId},
+               #{parentId},
+               #{menuType},
+               #{menuKey},
+               #{menuName},
+               #{authRule},
+               #{sortId}
+		)
+	</insert>
+
+    <sql id="conditions">
+        <if test="id != null">
+            and id=#{id}
+        </if>
+        <if test="parentId != null">
+            and parent_id=#{parentId}
+        </if>
+        <if test="menuType  != null">
+            and menu_type =#{menuType}
+        </if>
+        <if test="menuId != null">
+            and menu_id=#{menuId}
+        </if>
+        <if test="menuKey != null">
+            and menu_key=#{menuKey}
+        </if>
+        <if test="menuName != null">
+            and menu_name=#{menuName}
+        </if>
+        <if test="authRule != null">
+            and auth_rule=#{authRule}
+        </if>
+    </sql>
+
+    <select id="countByConditions" resultType="Long">
+        select count(1) from t_admin_menu
+        <where>
+            <include refid="conditions"></include>
+        </where>
+    </select>
+
+    <select id="findByConditions" resultType="AdminMenu">
+        select * from t_admin_menu
+        <where>
+            <include refid="conditions"></include>
+        </where>
+
+        ORDER BY create_time desc
+        <if test="start != null and limit != null">
+            limit #{start}, #{limit}
+        </if>
+    </select>
+	
+	<select id="findAll" resultType="AdminMenu">
+	    select * from t_admin_menu
+	</select>
+
+    <update id="loginSuccess" parameterType="AdminMenu">
+
+        update t_admin_menu
+        <set>
+            <if test="parentId != null">
+                and parent_id=#{parentId}
+            </if>
+            <if test="menuType  != null">
+                and menu_type =#{menuType}
+            </if>
+            <if test="menuId != null">
+                and menu_id=#{menuId}
+            </if>
+            <if test="menuKey != null">
+                and menu_key=#{menuKey}
+            </if>
+            <if test="menuName != null">
+                and menu_name=#{menuName}
+            </if>
+            <if test="authRule != null">
+                and auth_rule=#{authRule}
+            </if>
+        </set>
+        where id=#{id}
+    </update>
+
+    <delete id="delete">
+        delete from t_admin_menu where id= #{id}
+    </delete>
+	
+
+</mapper>

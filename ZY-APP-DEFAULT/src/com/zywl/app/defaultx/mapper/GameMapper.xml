@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.zywl.app.defaultx.mapper.GameMapper">
+
+   <insert id="insert" parameterType="Game" useGeneratedKeys="true" keyProperty="id" keyColumn="id">
+		insert into l_game
+		(
+               `name`,
+               `status`,
+               `game_setting`
+               
+		)
+		values
+		(
+               #{name},
+               #{status},
+               #{gameSetting}
+             
+             
+             
+		)
+	</insert>
+	
+	
+	
+	<select id="findOne" resultType="Game">
+	    select * from l_game where id = #{id}
+	</select>
+	
+	<select id="findAll" resultType="Game">
+	    select * from l_game
+	</select>
+	
+	<sql id="conditions">
+   		
+   	
+   	<if test="gameId != null">
+   		  and game_id = #{gameId}
+   	</if>
+   	
+	</sql>
+	
+	<select id="countByConditions" resultType="Long">
+		select count(1) from l_game
+		<where>
+			<include refid="conditions"></include>
+		</where>
+	</select>
+	
+	
+	<select id="findByConditions" resultType="Game">
+	    select * from l_game
+	    <where>
+	    	<include refid="conditions"></include>
+	    </where>
+	    
+		ORDER BY id desc 
+		<if test="start != null and limit != null">
+	   	 limit #{start}, #{limit} 
+	   	</if>
+	</select>
+
+
+
+	<update id="updateGameStatus" parameterType="Guild">
+		update l_game
+		<set>
+			status = ${status},
+		</set>
+		where id= #{id}
+	</update>
+	
+	
+	
+	
+
+</mapper>

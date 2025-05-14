@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.zywl.app.defaultx.mapper.WSMapper">
+
+   <insert id="insert" parameterType="WsidBean" >
+		insert into t_ws
+		(
+               `user_id`,
+               `ws_id`,
+               `ws_private_key`,
+               `version_id`,
+                `auth_server_address`,
+                 `auth_server_host`,
+                 `timeout`
+		)
+		values
+		(
+               #{userId},
+               #{wsId},
+               #{wsPrivateKey},
+                 #{versionId},
+                   #{authServerAddress},
+                     #{authServerHost},
+                       #{timeout}
+             
+             
+		)
+	</insert>
+	
+	<delete id="delete">
+		delete from t_ws where  user_id= #{userId}         
+	</delete>
+	
+	<select id="findOne" resultType="WsidBean">
+	    select * from t_ws where ws_id = #{wsId}
+	</select>
+	
+	
+	
+	<select id="findWsByUserId" resultType="WsidBean">
+	    select * from t_ws where ws_id = #{wsId}
+	</select>
+	
+	
+	
+	
+</mapper>

@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.zywl.app.defaultx.mapper.ExchangeRecordMapper">
+
+   <insert id="insert" parameterType="ExchangeRecord" useGeneratedKeys="true" keyProperty="id" keyColumn="id">
+		insert into r_exchange_record
+		(
+               `user_id`,
+               `order_no`,
+               `product_id`,
+               `spent_amount`,
+               `status`,
+               `track_no`,
+               `create_time`,
+               `update_time`
+               
+		)
+		values
+		(
+               #{userId},
+               #{orderNo},
+               #{productId},
+               #{spentAmount},
+               #{status},
+               #{trackNo},
+               #{createTime},
+               #{updateTime}
+        
+		)
+	</insert>
+	
+	<update id="updateRecord" parameterType="ExchangeRecord">
+		update r_exchange_record set status = #{status},track_no=#{trackNo}  where  order_no=#{orderNo}            
+	</update>
+	
+	<delete id="delete">
+		delete from r_exchange_record where  id= #{id}               
+	</delete>
+	
+	<select id="findOne" resultType="ExchangeRecord">
+	    select * from r_exchange_record where id = #{id} and status=1
+	</select>
+	
+	
+	
+	<select id="findAll" resultType="ExchangeRecord">
+	    select * from r_exchange_record
+	</select>
+	
+</mapper>

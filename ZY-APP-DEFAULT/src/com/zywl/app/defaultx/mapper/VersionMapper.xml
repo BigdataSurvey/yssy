@@ -1,0 +1,109 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.zywl.app.defaultx.mapper.VersionMapper">
+
+   <insert id="insert" parameterType="Version">
+		insert into t_version
+		(
+               id,
+               description,
+               versionName,
+               versionNo,
+               downloadUrl,
+               updateUrl,
+               fc,
+               updateTime,
+               `release`,
+               type
+		)
+		values
+		(
+               #{id},
+               #{description},
+               #{versionName},
+               #{versionNo},
+               #{downloadUrl},
+               #{updateUrl},
+               #{fc},
+               #{updateTime},
+               #{release},
+               #{type}
+		)
+	</insert>
+	
+	<update id="update" parameterType="Version">
+		update t_version
+		<set >
+     		<if test="description != null">
+     		description= #{description},
+     		</if>
+     		<if test="versionName != null">
+     		versionName= #{versionName},
+     		</if>
+     		<if test="versionNo != null">
+     		versionNo= #{versionNo},
+     		</if>
+     		<if test="downloadUrl != null">
+     		downloadUrl= #{downloadUrl},
+     		</if>
+     		<if test="updateUrl != null">
+     		updateUrl= #{updateUrl},
+     		</if>
+     		<if test="fc != null">
+     		fc = #{fc},
+     		</if>
+     		<if test="updateTime != null">
+     		updateTime = #{updateTime},
+     		</if>
+     		<if test="release != null">
+     		`release` = #{release},
+     		</if>
+     		<if test="type != null">
+     		type=#{type}
+     		</if>
+    	</set>
+		where  id= #{id}             
+	</update>
+	
+	<delete id="delete">
+		delete from t_version where  id= #{id} 
+	</delete>
+	
+	<select id="findAll" resultType="Version">
+	    select * from t_version order by versionNo DESC, updateTime DESC
+	</select>
+	
+	<select id="findOne" resultType="Version">
+	    select * from t_version where id = #{id}
+	</select>
+	
+	<select id="findByConditions" resultType="Version">
+	    select * from t_version 
+	    <where>
+     		<if test="description != null">
+     		 and description= #{description}
+     		</if>
+     		<if test="versionName != null">
+     		 and versionName= #{versionName}
+     		</if>
+     		<if test="versionNo != null">
+     		 and versionNo= #{versionNo}
+     		</if>
+     		<if test="updateUrl != null">
+     		 and updateUrl= #{updateUrl}
+     		</if>
+     		<if test="fc != null">
+     		 and fc= #{fc}
+     		</if>
+     		<if test="updateTime != null">
+     		 and updateTime= #{updateTime}
+     		</if>
+     		<if test="release != null">
+     		 and `release` = #{release}
+     		</if>
+     		<if test="type != null">
+     		 and type=#{type}
+     		</if>
+	    </where>
+	</select>
+</mapper>

@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.zywl.app.defaultx.mapper.UserDzPeriodsMapper">
+
+	<!--自定义sql实现-->
+	<!--获取最新期数，可理解为获取上一次期数的详情，展示用-->
+	<select id="findOne" resultType="UserDzPeriods">
+		select * from t_user_dz_periods order by id desc limit 1
+	</select>
+	<!--插入单条记录-->
+	<insert id="insert" parameterType="UserDzPeriods" useGeneratedKeys="true" keyProperty="id" keyColumn="id">
+		insert into t_user_dz_periods
+		    (periods,user_dz_num,user_dk_num,dz_money_all,dz_money_return,user_id,status,cu_money,return_money,create_time,update_time)
+		values
+		    (
+		     #{periods},#{userDZNum},#{userDkNum},#{dzMoneyAll},#{dzMoneyReturn},#{userId},#{status},#{cuMoney},#{returnMoney},#{createTime},#{updateTime}
+			)
+	</insert>
+	<select id="findAll" resultType="UserDzPeriods">
+		select * from t_user_dz_periods
+	</select>
+
+</mapper>

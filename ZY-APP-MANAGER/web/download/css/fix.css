@@ -1,0 +1,43 @@
+a.navbar-brand{color: #fff;}
+.navbar-brand img{margin-right: .5rem; height: 60px;}
+.btn2{display:inline-block;font-weight:400;text-align: center;white-space:nowrap;vertical-align:middle;-webkit-user-select:none;-moz-user-select:none;-ms-user-select:none;user-select:none;border:1px solid #232323;padding:.8rem 2rem;font-size: 1.25rem;line-height:1.5;border-radius:.25rem;transition:color .15s ease-in-out,background-color .15s ease-in-out,border-color .15s ease-in-out,box-shadow .15s ease-in-out;color:#fff;border-color:#232323;width: 15rem;background: #232323;letter-spacing: 1px;text-transform:none;}
+.btn2:not(:disabled):not(.disabled){cursor:pointer}
+.btn2 i{width: 2rem; height: 2rem; float: left; display: inline-block;background-size: 100%;background-position: center center; background-repeat: no-repeat;margin-right: .5rem;}
+.btn-ios{margin-bottom: 1rem; margin-top: 1rem;}
+a.btn2{color:#fff;}
+.nav-menu{color:#fff;font-size: 22px;}
+.footer-logo{color:#fff;}
+.footer-logo img{height: 60px; margint: .5rem;}
+.main-nav{background: #ff5b9d;}
+.large{padding-top: 10px; padding-bottom: 10px;}
+.btn-ios i{background-image: url(//resource.mitaotv.live/files/assets/images/iphone.png);}
+.btn-android i{background-image: url(//resource.mitaotv.live/files/assets/images/android.png);}
+.wxtip{background: rgba(0,0,0,0.8); text-align: center; position: fixed; left:0; top: 0; width: 100%; height: 100%; z-index: 99998; display: none;}
+.wxtip-icon{width: 52px; height: 67px; background: url(//resource.mitaotv.live/download/images/weixin-tip.png) no-repeat; display: block; position: absolute; right: 20px; top: 20px;}
+.wxtip-txt{margin-top: 107px; color: #fff; font-size: 16px; line-height: 1.5;}
+.iphone-tips{position: fixed;top: 0;left: 0; right: 0; bottom: 0;background: #fff;z-index: 9999;display: none;}
+.iphone-tips .body-top{display:flex;justify-content: center; align-items: center; flex-direction: column;position: absolute;top: 0;left: 0;right: 0;bottom: 15rem;}
+.iphone-tips .body-top .logo-text{margin-top: .5rem;font-size: 1rem;color: #FF5B9D;}
+.iphone-tips .body-top .tips-text{margin-top: .3rem;font-size: .875rem;color: #666;}
+.iphone-tips .body-bottom{position: absolute;bottom: 0;left: 0;right: 0;padding: 1rem;background: #f1f1f1;}
+.iphone-tips .body-bottom h6{font-weight: 800; margin-bottom: .8rem;}
+.iphone-tips .setting{display: inline-block;font-size:1rem;color:#999;}
+.iphone-tips .setting i{background: url(//resource.mitaotv.live/download/images/setting_1.png) no-repeat;width: 1.375rem;height: 1.375rem;float: left;background-position: center;background-size: 100%;margin: 0 .3rem;}
+.iphone-tips .common{display: inline-block;font-size:1rem;color:#999;margin-right: .3rem;}
+.iphone-tips .common i{background: url(//resource.mitaotv.live/download/images/common_1.png) no-repeat;width: 1.375rem;height: 1.375rem;float: left;background-position: center;background-size: 100%;margin: 0 .3rem;}
+.iphone-tips .logo-img img{width:100px;}
+.loader-block{display: none;text-align: center;}
+#loader2 {width: 60px;height: 60px;display: block;-webkit-transform-origin: 50% 50%;transform-origin: 50% 50%;top: calc(50% - 50px);left: calc(50% - 50px);-webkit-animation: spin 1s linear infinite;animation: spin 1s linear infinite;margin: 0 auto;}
+#circle-loader2 {fill: none;stroke: #fff;stroke-width: 4;-webkit-animation: draw 3s ease-in-out infinite;animation: draw 3s ease-in-out infinite;}
+@-webkit-keyframes draw {0% {stroke-dasharray: 20, 282.6;}50% {stroke-dasharray: 200, 282.6;}100% {stroke-dasharray: 20, 282.6;}}
+@keyframes draw {0% {stroke-dasharray: 20, 282.6;}50% {stroke-dasharray: 200, 282.6;}100% {stroke-dasharray: 20, 282.6;}}
+@-webkit-keyframes spin {to {-webkit-transform: rotate(360deg);transform: rotate(360deg);}}
+@keyframes spin {to {-webkit-transform: rotate(360deg);transform: rotate(360deg);}}
+@media only screen and (max-width: 576px){
+    .banner .content-block h1{font-size: 18px; line-height: 30px; margin-bottom: 15px;}
+    .banner .content-block h5{font-size: 14px; margin-bottom: 50px;}
+}
+@media only screen and (max-width: 768px){
+    .banner{}
+}
+

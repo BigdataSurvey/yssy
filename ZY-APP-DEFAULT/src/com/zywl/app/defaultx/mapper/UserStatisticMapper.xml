@@ -1,0 +1,361 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.zywl.app.defaultx.mapper.UserStatisticMapper">
+
+    <insert id="insert" parameterType="UserStatistic" useGeneratedKeys="true" keyProperty="id" keyColumn="id">
+        insert into t_user_statistic
+        (`user_id`,
+         `acquire_rmb`,
+         `cash_rmb`,
+         `cash_times`,
+         `acquire_money`,
+         `expend_money`,
+         `advert_times`,
+         `login_times`,
+         `one_junior_num`,
+         `two_junior_num`,
+         `create_sw`,
+         `create_anima`,
+         `create_anima2`,
+         `create_grandfa_anima`,
+         `create_grandfa_anima2`,
+         `get_anima`,
+         `get_anima2`,
+         `create_income`,
+         `create_grandfa_income`,
+         `get_income`,
+         `get_all_income`,
+         `channel_income`,
+         `now_channel_income`)
+        values (#{userId},
+                #{acquireRmb},
+                #{cashRmb},
+                #{cashTimes},
+                #{acquireMoney},
+                #{expendMoney},
+                #{advertTimes},
+                #{loginTimes},
+                #{oneJuniorNum},
+                #{twoJuniorNum},
+                #{createSw},
+                #{createAnima},
+                #{createAnima2},
+                #{createGrandfaAnima},
+                #{createGrandfaAnima2},
+                #{getAnima},
+                #{getAnima2},
+                #{createIncome},
+                #{createGrandfaIncome},
+                #{getIncome},
+                #{getAllIncome},
+                #{channelIncome},
+                #{nowChannelIncome})
+    </insert>
+
+
+    <select id="findOne" resultType="UserStatistic">
+        select *
+        from t_user_statistic
+        where id = #{id}
+    </select>
+
+    <select id="findOneByUserId" resultType="UserStatistic">
+        select *
+        from t_user_statistic
+        where user_id = #{userId}
+    </select>
+
+    <select id="findByIds" resultType="UserStatistic">
+        select * from t_user_statistic where user_id in
+        <foreach collection="ids" index="index" item="item" open="(" separator="," close=")">
+            #{item}
+        </foreach>
+
+    </select>
+
+    <select id="findCreateAnimaByUserId" resultType="UserStatistic">
+        select user_id, create_anima, create_grandfa_anima
+        from t_user_statistic
+        where user_id = #{userId}
+    </select>
+
+
+    <select id="findHisAllFriend" resultType="BigDecimal">
+        SELECT sum(create_grandfa_anima) FROM `t_user_statistic` t1 , (SELECT * from t_user where parent_id = #{userId}) t2 where t1.user_id = t2.id;
+    </select>
+
+    <select id="findCreateAnima2ByUserId" resultType="UserStatistic">
+        select user_id, create_anima2, create_grandfa_anima2
+        from t_user_statistic
+        where user_id = #{userId}
+    </select>
+
+    <select id="findToByAnima" resultType="AnimaTopVo">
+        select t1.get_anima      getAnima,
+               t1.user_id        userId,
+               t2.user_no        userNo,
+               t2.`name` as      userName,
+               t2.head_image_url userHeadImg
+        from t_user_statistic t1,
+             t_user t2
+        where t1.user_id = t2.id
+        order by get_anima desc limit 0,50
+    </select>
+
+    <select id="findToByJuniorNum" resultType="OneJuniorNumTopVo">
+        select t1.one_junior_num num,
+               t1.two_junior_num num2,
+               t1.user_id        userId,
+               t2.user_no        userNo,
+               t2.`name` as      userName,
+               t2.head_image_url userHeadImg,
+               t2.role_id        roleId
+        from t_user_statistic t1,
+             t_user t2
+        where t1.user_id = t2.id
+        order by one_junior_num+two_junior_num desc limit 0,50
+    </select>
+
+    <select id="findMyJuniorNum" resultType="OneJuniorNumTopVo">
+        select t1.one_junior_num num,
+               t1.two_junior_num num2,
+               t1.user_id        userId,
+               t2.user_no        userNo,
+               t2.`name` as      userName,
+               t2.head_image_url userHeadImg,
+               t2.role_id        roleId
+        from t_user_statistic t1,
+             t_user t2
+        where t1.user_id = t2.id and t2.id=#{userId}
+    </select>
+
+    <select id="findGetAnimaByUserId" resultType="UserStatistic">
+        select user_id, get_anima
+        from t_user_statistic
+        where user_id = #{userId}
+    </select>
+
+    <select id="findGetAnima2ByUserId" resultType="UserStatistic">
+        select user_id, get_anima2
+        from t_user_statistic
+        where user_id = #{userId}
+    </select>
+
+    <select id="findTop" resultType="CapitalTopVo">
+        select t1.get_anima2 balance, t1.user_id userId, t2.user_no userNo,t2.role_id as roleId, t2.name userName, t2.head_image_url userHeadImg
+        from t_user_statistic t1,
+             t_user t2
+        where t1.user_id = t2.id
+          and t2.status = 1
+        order by get_anima2 desc limit #{limit}
+    </select>
+
+
+    <select id="findAll" resultType="UserStatistic">
+        select *
+        from t_user_statistic
+    </select>
+
+    <sql id="conditions">
+
+
+        <if test="createIncome != null">
+            and create_income=#{createIncome}
+        </if>
+        <if test="createGrandfaIncome != null">
+            and create_grandfa_income=#{createGrandfaIncome}
+        </if>
+        <if test="getIncome != null">
+            and get_income=#{getIncome}
+        </if>
+        <if test="getAllIncome != null">
+            and get_all_income=#{getAllIncome}
+        </if>
+
+    </sql>
+
+    <select id="countByConditions" resultType="Long">
+        select count(1) from t_user_statistic
+        <where>
+            <include refid="conditions"></include>
+        </where>
+    </select>
+
+    <select id="findByConditions" resultType="UserStatistic">
+        select * from t_user_statistic
+        <where>
+            <include refid="conditions"></include>
+        </where>
+
+        ORDER BY create_time desc
+        <if test="start != null and limit != null">
+            limit #{start}, #{limit}
+        </if>
+    </select>
+
+
+    <update id="updateUserCreateAnima" parameterType="UserStatistic">
+        update t_user_statistic
+        set create_anima = create_anima + #{anima}
+        where user_id = #{userId}
+
+    </update>
+
+    <update id="updateUserCreateSw" parameterType="UserStatistic">
+        update t_user_statistic
+        set create_sw = create_sw + #{sw}
+        where user_id = #{userId}
+
+    </update>
+
+    <update id="updateUserCreateAnima2" parameterType="UserStatistic">
+        update t_user_statistic
+        set create_anima2 = create_anima2 + #{anima}
+        where user_id = #{userId}
+
+    </update>
+
+    <update id="updateUserCreateGrandfaAnima" parameterType="UserStatistic">
+        update t_user_statistic
+        set create_grandfa_anima = create_grandfa_anima + #{anima}
+        where user_id = #{userId}
+
+    </update>
+
+    <update id="updateUserCreateIncome" parameterType="UserStatistic">
+        update t_user_statistic
+        <set>
+            <if test="income!=null">
+                create_income = create_income+#{income},
+            </if>
+            <if test="grandfaIncome!=null">
+                create_grandfa_income = create_grandfa_income+#{grandfaIncome},
+            </if>
+        </set>
+        where user_id=#{userId}
+
+    </update>
+
+
+    <update id="updateIncomeInfo" parameterType="UserStatistic">
+        update t_user_statistic
+        <set>
+            <if test="createIncome != null">
+                create_income=#{createIncome},
+            </if>
+            <if test="createGrandfaIncome != null">
+                create_grandfa_income=#{createGrandfaIncome},
+            </if>
+            <if test="getIncome != null">
+                get_income=#{getIncome},
+            </if>
+            <if test="getAllIncome != null">
+                get_all_income=#{getAllIncome},
+            </if>
+        </set>
+        where user_id=#{userId}
+    </update>
+
+
+    <update id="updateStatic" parameterType="UserStatistic">
+        update t_user_statistic
+        <set>
+            <if test="createIncome != null">
+                create_income=#{createIncome},
+            </if>
+            <if test="createGrandfaIncome != null">
+                create_grandfa_income=#{createGrandfaIncome},
+            </if>
+            <if test="getIncome != null">
+                get_income=#{getIncome},
+            </if>
+            <if test="getAllIncome != null">
+                get_all_income=#{getAllIncome},
+            </if>
+            <if test="channelIncome != null">
+                channel_income=#{channelIncome},
+            </if>
+            <if test="nowChannelIncome != null">
+                now_channel_income=#{nowChannelIncome},
+            </if>
+            <if test="getAnima != null">
+                get_anima=#{getAnima},
+            </if>
+            <if test="getAnima2 != null">
+                get_anima2=#{getAnima2},
+            </if>
+        </set>
+        where user_id=#{userId}
+    </update>
+
+    <update id="batchUpdate" parameterType="java.util.Collection">
+        <foreach collection="list" item="item" index="index" open=""
+                 close="" separator=";">
+            update t_user_statistic
+            <set>
+
+
+                <if test="item.createIncome != null">
+                    create_income=#{item.createIncome},
+                </if>
+                <if test="item.createGrandfaIncome != null">
+                    create_grandfa_income=#{item.createGrandfaIncome},
+                </if>
+                <if test="item.getIncome != null">
+                    get_income=#{item.getIncome},
+                </if>
+                <if test="item.getAllIncome != null">
+                    get_all_income=#{item.getAllIncome},
+                </if>
+                <if test="item.channelIncome != null">
+                    channel_income=#{item.channelIncome},
+                </if>
+                <if test="item.nowChannelIncome != null">
+                    now_channel_income=#{item.nowChannelIncome},
+                </if>
+                <if test="item.getAnima != null">
+                    get_anima=#{item.getAnima},
+                </if>
+                <if test="item.getAnima2 != null">
+                    get_anima2=#{item.getAnima2},
+                </if>
+            </set>
+            where user_id=#{item.userId}
+        </foreach>
+    </update>
+
+    <update id="updateUserGetAnima" parameterType="UserStatistic">
+        update t_user_statistic
+        <set>
+            <if test="getAnima != null">
+                get_anima=get_anima+#{getAnima},
+            </if>
+        </set>
+        where user_id=#{userId}
+    </update>
+
+
+    <update id="updateUserGetAnima2" parameterType="UserStatistic">
+        update t_user_statistic
+        <set>
+            <if test="getAnima != null">
+                get_anima2=get_anima2+#{getAnima},
+            </if>
+        </set>
+        where user_id=#{userId}
+    </update>
+
+    <update id="updateOneCount" parameterType="UserStatistic">
+        update t_user_statistic set one_junior_num = one_junior_num+1 where user_id=#{userId}
+    </update>
+
+    <update id="updateTwoCount" parameterType="UserStatistic">
+        update t_user_statistic set two_junior_num = two_junior_num+1 where user_id=#{userId}
+    </update>
+
+    <select id="findSonNumberByPrizePool" resultType="UserStatistic">
+        select user_id,one_junior_num,two_junior_num
+        from t_user_statistic
+        where one_junior_num+two_junior_num > 20
+    </select>
+</mapper>

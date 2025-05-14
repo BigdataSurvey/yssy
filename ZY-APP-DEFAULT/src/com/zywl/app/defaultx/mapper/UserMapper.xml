@@ -1,0 +1,684 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.zywl.app.defaultx.mapper.UserMapper">
+
+   <insert id="insert" parameterType="User" useGeneratedKeys="true" keyProperty="id" keyColumn="id">
+		insert into t_user
+		(
+               `user_no`,
+               `parent_Id`,
+               `grandfa_id`,
+		 		`is_channel`,
+               `channel_no`,
+               `invite_code`,
+		 	   `role_id`,
+               `name`,
+               `name_status`,
+		 		`vip1`,
+		 		`vip_expire_time`,
+			   `vip2`,
+			   `vip2_expire_time`,
+		 		`first_charge`,
+               `authentication`,
+               `phone`,
+               `sex`,
+               `mail`,
+		 		`tabtab_id`,
+               `account`,
+               `password`,
+               `qq`,
+               `wechat_id`,
+		 		`alipay_id`,
+               `id_card`,
+				`is_update_id_card`,
+		 		`province`,
+		 		`city`,
+               `real_name`,
+               `courier_name`,
+               `courier_phone`,
+               `courier_address`,
+		 		`is_cash`,
+               `open_id`,
+               `union_id`,
+		 		`game_token`,
+		 		`token_time`,
+		 		`risk`,
+		 		`risk_plus`,
+               `regist_time`,
+               `last_login_time`,
+               `last_leave_time`,
+               `regist_ip`,
+               `last_login_ip`,
+               `head_image_url`,
+               `status`,
+               `group`,
+               `points`,
+               `parent_tree`,
+               `login_times`,
+		 		`cno`
+               
+		)
+		values
+		(
+               #{userNo},
+               #{parentId},
+               #{grandfaId},
+		 		#{isChannel},
+               #{channelNo},
+               #{inviteCode},
+		 	   #{roleId},
+               #{name},
+               #{nameStatus},
+		 		#{vip1},
+		 		#{vipExpireTime},
+			   #{vip2},
+			   #{vip2ExpireTime},
+		 		#{firstCharge},
+               #{authentication},
+               #{phone},
+               #{sex},
+               #{mail},
+		 		#{tabtabId},
+               #{account},
+               #{password},
+               #{qq},
+               #{wechatId},
+		 		#{alipayId},
+               #{idCard},
+		 		#{isUpdateIdCard},
+		 		#{province},
+		 		#{city},
+               #{realName},
+               #{courierName},
+               #{courierPhone},
+               #{courierAddress},
+		 		#{isCash},
+               #{openId},
+               #{unionId},
+		 		#{gameToken},
+		 		#{tokenTime},
+		 		#{risk},
+		 		#{riskPlus},
+               #{registTime},
+               #{lastLoginTime},
+               #{lastLeaveTime},
+               #{registIp},
+               #{lastLoginIp},
+               #{headImageUrl},
+               #{status},
+               #{group},
+               #{points},
+               #{parentTree},
+               #{loginTimes},
+		 		#{cno}
+		)
+	</insert>
+	
+	<update id="update" parameterType="User">
+		update t_user
+		<set >
+			<if test="userNo != null">
+			user_no=#{userNo},
+			</if>
+			<if test="roleId != null">
+				role_id=#{roleId},
+			</if>
+			<if test="parentId !=null">
+			parent_id=#{parentId},
+			</if>
+			<if test="isChannel != null">
+				and is_channel=#{isChannel}
+			</if>
+			<if test="inviteCode !=null">
+			invite_code=#{inviteCode},
+			</if>
+     		<if test="name != null">
+     		name= #{name},
+     		</if>
+     		<if test="nameStatus != null">
+     		name_status=#{nameStatus},
+     		</if>
+			<if test="vipExpireTime != null">
+				vip_expire_time=#{vipExpireTime},
+			</if>
+			<if test="vip2ExpireTime != null">
+				vip2_expire_time=#{vip2ExpireTime},
+			</if>
+     		<if test="phone != null">
+     		phone= #{phone},
+     		</if>
+     		<if test="account != null">
+     		account=#{account},
+     		</if>
+     		<if test="password != null">
+     		password= #{password},
+     		</if>
+     		<if test="qq != null">
+     		qq=#{qq},
+     		</if>
+     		<if test="wechatId != null">
+     		wechat_id=#{wechatId},
+     		</if>
+     		<if test="idCard != null">
+     		id_card= #{idCard},
+     		</if>
+     		<if test="realName != null">
+     		real_name= #{realName},
+     		</if>
+     		<if test="status != null">
+     		status=#{status},
+     		</if>
+     		<if test="group!= null">
+     		group=#{group},
+     		</if>
+			<if test="isUpdateIdCard!= null">
+				is_update_id_card=#{isUpdateIdCard},
+			</if>
+     		<if test="parentTree!= null">
+     		parent_tree= #{parentTree},
+     		</if>
+     		<if test="loginTimes!= null">
+     		login_times=#{loginTimes},
+     		</if>
+			<if test="alipayId!= null">
+				 alipay_id=#{alipayId},
+			</if>
+     		
+     		
+    	</set>
+		where  id= #{id}       and status=1
+	</update>
+
+
+
+	<update id="batchUpdateUser" parameterType="java.util.List">
+		<foreach collection="list" item="item" index="index" open="" close="" separator=";">
+		update t_user
+		<set >
+			<if test="item.lastLeaveTime!= null">
+				last_leave_time=#{item.lastLeaveTime},
+			</if>
+		</set>
+		where  id= #{id}       and status=1
+		</foreach>
+	</update>
+
+	
+	<update id="subUserPoints" parameterType="User">
+		update t_user set points=points-#{points}
+		where  id= #{userId}   and points = #{old}            and status=1
+	</update>
+	
+	<update id="updateCourierInfo" parameterType="User">
+		update t_user set courier_name=#{courierName},courier_phone=#{courierPhone},courier_address=#{courierAddress}
+		where  id= #{userId}        and status=1
+	</update>
+	
+	<delete id="delete">
+		delete from t_user where  id= #{id}
+	</delete>
+	
+	<select id="findOne" resultType="User">
+	    select * from t_user where id = #{id} and status=1
+	</select>
+	
+	<select id="findOneByUserNo" resultType="User">
+	    select * from t_user where user_no = #{userNo} and status=1
+	</select>
+
+	<select id="findOneByCno" resultType="User">
+		select * from t_user where cno = #{cno} and status=1
+	</select>
+
+	<select id="findOneByGameToken" resultType="User">
+		select * from t_user where game_token = #{gameToken} and status=1
+	</select>
+	<select id="findByGzsfk1" resultType="User">
+		select * from t_user where name like '%1-%' and status!=2 and regist_time>'2025-02-12 12:00:00' and ISNULL(parent_id)
+	</select>
+	<select id="findByGzsfk2" resultType="User">
+		select * from t_user where name like '%alipay%' and head_image_url='' and status!=2 and regist_time>'2025-02-12 12:00:00' and ISNULL(parent_id)
+	</select>
+
+	<select id="findIdByParentId" resultType="Long">
+		select * from t_user where parent_id in
+		<foreach collection="ids" index="index" item="item" open="(" separator="," close=")">
+			#{item}
+		</foreach>
+		and status=1
+	</select>
+
+
+	<select id="findOneByOpenId" resultType="User">
+	    select * from t_user where open_id = #{openId} 
+	</select>
+	<select id="findAll" resultType="User">
+	    select * from t_user
+	</select>
+	<select id="findByIdAllStatus" resultType="User">
+		select * from t_user where id=#{id}
+	</select>
+
+	<update id="updateIsCash" parameterType="User">
+		update t_user set is_cash=1
+		where  id= #{userId}
+	</update>
+	
+	<select id="findCacheInfo" resultType="User">
+	    select id,user_no,open_id,invite_code,role_id,is_channel,first_charge from t_user
+	</select>
+	
+	<sql id="conditions">
+		<if test="openId != null">
+   		 and open_id=#{openId}
+   		</if>
+   		
+		<if test="userNo != null">
+		 and user_no=#{userNo}
+		</if>
+		<if test="userName != null">
+			and name=#{userName}
+		</if>
+		<if test="group != null">
+			and group=#{group}
+		</if>
+		<if test="parentId != null">
+		 and parent_id=#{parentId}
+		</if>
+		<if test="grandfaId != null">
+		 and grandfa_id=#{grandfaId}
+		</if>
+		<if test="roleId != null">
+			role_id=#{roleId},
+		</if>
+		<if test="tabtabId != null">
+			tabtab_id=#{tabtabId},
+		</if>
+		<if test="isChannel != null">
+			and is_channel=#{isChannel}
+		</if>
+		<if test="channelNo != null">
+		 and channel_no=#{channelNo}
+		</if>
+		<if test="inviteCode != null">
+		 and invite_code=#{inviteCode}
+		</if>
+		<if test="vipExpireTime != null">
+			vip_expire_time=#{vipExpireTime},
+		</if>
+		<if test="userId != null">
+		 and id=#{userId}
+		</if>
+   		<if test="phone != null">
+   		 and phone= #{phone}
+   		</if>
+   		<if test="sex != null">
+   		 and sex=#{sex}
+   		</if>
+		<if test="realName != null">
+   		 and real_name like concat(concat('%',#{realName}),'%')
+   		</if>
+   		<if test="status != null">
+   		 and status=#{status}
+   		</if>
+		<if test="alipayId!= null">
+			and alipay_id=#{alipayId},
+		</if>
+   		<if test="idCard != null">
+			and id_card=#{idCard}
+		</if>
+    	<if test="registStartDate != null">
+    	 AND regist_time <![CDATA[ >= ]]> #{registStartDate}
+    	</if>
+    	<if test="registEndDate != null">
+    	 AND regist_time <![CDATA[ <= ]]> #{registEndDate}
+    	</if>
+    	<if test="loginStartDate != null">
+    	 AND last_login_time <![CDATA[ >= ]]> #{loginStartDate}
+    	</if>
+    	<if test="loginEndDate != null">
+    	 AND last_login_time <![CDATA[ <= ]]> #{loginEndDate}
+    	</if>
+	</sql>
+	
+	<select id="countByConditions" resultType="Long">
+		select count(1) from t_user
+		<where>
+			<include refid="conditions"></include>
+		</where>
+	</select>
+	
+	<select id="countMySonNoAuthen" resultType="Long">
+		select count(1) from t_user
+		where (parent_id =#{parentId} or grandfa_id = #{grandfaId}) and authentication=0 and status=1
+	</select>
+	<select id="countMySonAuthen" resultType="Long">
+		select count(1) from t_user
+		where parent_id =#{parentId}  and authentication=1 and status=1
+	</select>
+	
+	<select id="countMySonSonAuthen" resultType="Long">
+		select count(1) from t_user
+		where  grandfa_id = #{grandfaId} and authentication=1 and status=1
+	</select>
+	
+	
+	
+	<select id="countOneJunior" resultType="Long">
+		select count(*) from t_user where parent_id=#{parentId} and is_cash=1 and status=1
+	</select>
+	
+	<select id="countTwoJunior" resultType="Long">
+		select count(*) from t_user where grandfa_id=#{grandfaId} and is_cash=1 and status=1
+	</select>
+
+	<select id="findCountByIp" resultType="Long">
+		select count(*) from t_user where regist_ip=#{ip}
+	</select>
+
+	<select id="findTopByDs" resultType="DSTopVo">
+		select id as userId,`name` as userName, head_image_url as userHeadImg ,role_id as roleId,user_no as userNo from t_user where role_id=3
+	</select>
+	<select id="findTopByDl" resultType="DSTopVo">
+		select id as userId,`name` as userName, head_image_url as userHeadImg ,role_id as roleId,user_no as userNo from t_user where role_id=2
+	</select>
+	
+	<select id="countNoAuthenticationJunior" resultType="Long">
+		select count(*) from t_user where (grandfa_id=#{parentId} or parent_id=#{parentId}) and is_cash=0 and status=1
+	</select>
+	<select id="findByConditions" resultType="User">
+	    select * from t_user 
+	    <where>
+	    	<include refid="conditions"></include>
+	    </where>
+	    
+		ORDER BY last_login_time desc
+		<if test="start != null and limit != null">
+	   	 limit #{start}, #{limit} 
+	   	</if>
+	</select>
+	
+	<select id="findByParentId" resultType="User">
+		select id,user_no,`name`,head_image_url,last_login_time,role_id,is_channel,first_charge from t_user where parent_id=#{parentId} and is_cash=1  and status=1
+	ORDER BY regist_time desc 
+		<if test="start != null and limit != null">
+	   	 limit #{start}, #{limit} 
+	   	 </if>
+	</select>
+	
+	
+	<select id="findByGrandfaId" resultType="User">
+		SELECT `t_user`.`id`, `t_user`.`user_no`, `t_user`.`name`, `t_user`.`head_image_url`, `t_user`.`last_login_time` , `t_user`.`role_id`, `t_user`.`is_channel`, `t_user`.`first_charge` FROM `t_user` INNER JOIN ( SELECT `id` FROM `t_user` WHERE `grandfa_id` = #{grandfaId} AND `is_cash` = 1  AND `status` = 1 ORDER BY `regist_time` DESC LIMIT #{start}, #{limit} ) `tmp_0` USING (`id`)
+	</select>
+	
+	
+	<select id="findUserByInviteCode" resultType="User">
+		select * from t_user where invite_code = #{inviteCode} and status=1
+		
+	</select>
+
+	<select id="findUserByTabtabId" resultType="User">
+		select * from t_user where tabtab_id = #{tabtabId} and status=1
+	</select>
+
+	<select id="findUserByGameToken" resultType="User">
+		select * from t_user where game_token = #{gameToken} and status=1
+	</select>
+	
+	<select id="findUserMail" resultType="User">
+		select * from t_user where mail=#{mail}  and status=1
+	</select>
+	
+	<update id="loginSuccess" parameterType="User">
+
+		update t_user
+		<set>
+			<if test="lastLoginTime!=null">
+				last_login_time=#{lastLoginTime},
+			</if>
+			<if test="ip!=null">
+				last_login_ip=#{ip},
+			</if>
+			<if test="name!=null">
+				`name`=#{name},
+			</if>
+			<if test="headImageUrl!=null">
+				head_image_url=#{headImageUrl},
+			</if>
+			<if test="gameToken!=null">
+				game_token=#{gameToken},
+			</if>
+			<if test=" tokenTime!=null">
+				token_time=#{tokenTime},
+			</if>
+		</set>
+		 where id=#{userId} and status=1
+	</update>
+
+	<update id="loginSuccess2" parameterType="User">
+
+		update t_user
+		<set>
+			<if test="lastLoginTime!=null">
+				last_login_time=#{lastLoginTime},
+			</if>
+		</set>
+		where id=#{userId} and status=1
+	</update>
+
+
+
+	<update id="userOffline" parameterType="User">
+		update t_user set last_leave_time=#{lastLeaveTime}  where id=#{userId} and status=1
+	</update>
+
+
+	<update id="updateUserNo" parameterType="User">
+		update t_user set user_no=#{userNo},invite_code=#{userNo}  where id=#{userId} and status=1
+	</update>
+	<update id="updateUserName" parameterType="User">
+		update t_user set `name`=#{name}  where id=#{userId} and status=1
+	</update>
+
+
+	<update id="updatePasswordByEmail" parameterType="User">
+		update t_user set password=#{newPassword}  where mail=#{email} and status=1
+	</update>
+	
+	<update id="updateOffLineTime" parameterType="User">
+		update t_user set last_leave_time=#{lastLeaveTime}  where id=#{userId} and status=1
+	</update>
+
+
+	<update id="authentication" parameterType="User">
+		update t_user set real_name=#{realName},id_card=#{idCard}  where id=#{userId} and status=1
+	</update>
+
+	<update id="authentication2" parameterType="User">
+		update t_user set real_name=#{realName},id_card=#{idCard},is_update_id_card=1  where id=#{userId} and status=1
+	</update>
+	
+	<update id="updateAuthentication" parameterType="User">
+		update t_user set authentication=#{authentication}  where id=#{userId} and status=1
+	</update>
+	
+	<update id="setQQWX" parameterType="User">
+	update t_user
+	<set>
+	<if test="qq != null">
+   		  qq=#{qq},
+   		</if>
+   		
+   		<if test="wechatId != null">
+   		  wechat_id=#{wechatId},
+   		</if>
+	</set>
+		 where id=#{userId} and status=1
+	</update>
+	
+	
+	<update id="userDeleteAccount" parameterType="User">
+	update t_user set status = 0  where id=#{userId}
+	</update>
+
+	<update id="userBeChannel" parameterType="User">
+		update t_user set is_channel2 = 1  where id=#{userId}
+	</update>
+	
+	<update id="addParentIdAndGrandfaId" parameterType="User">
+	update t_user
+	<set>
+		<if test="parentId != null">
+   		  parent_id=#{parentId},
+   		</if>
+   		
+   		<if test="grandfaId != null">
+   		  grandfa_id=#{grandfaId},
+   		</if>
+   		
+   		<if test="channelNo != null">
+   		  channel_no=#{channelNo},
+   		</if>
+	</set>
+	  where id=#{userId} and status=1
+	</update>
+	
+	<select id="findAllUserNo" resultType="User">
+		select user_no from t_user
+		
+	</select>
+	
+	
+	
+	<select id="findMySonNoAuthicatino" resultType="User">
+		SELECT `t_user`.`id`, `t_user`.`user_no`, `t_user`.`name`, `t_user`.`head_image_url`, `t_user`.`last_login_time` , `t_user`.`role_id`, `t_user`.`is_channel`, `t_user`.`first_charge` FROM `t_user` INNER JOIN ( SELECT `id` FROM `t_user` WHERE (`parent_id` = #{parentId} OR `grandfa_id` = #{parentId}) AND `is_cash` = 0 AND `status` = 1 LIMIT #{start}, #{limit} ) `tmp_0` USING (`id`)
+		</select>
+
+	<update id="updateUserRoleId" parameterType="User">
+		update t_user set role_id = #{roleId}  where id=#{userId} and status=1
+	</update>
+
+
+	<select id="findTodayRegister" resultType="User">
+		select id,user_no from t_user where regist_time&gt;#{time} and status=1
+	</select>
+
+	<select id="findTodayLogin" resultType="User">
+		select id,user_no from t_user where last_login_time&gt;#{time} and status=1
+	</select>
+
+
+	<select id="findUserByChannelNo" resultType="User">
+		select * from t_user where channel_no = #{channelNo}  and is_channel=1
+
+	</select>
+
+	<update id="updateUserChannelNo" parameterType="User">
+		update t_user set channel_no =  #{channelNo}  where id=#{userId}
+	</update>
+	<update id="updateUserCNo" parameterType="User">
+		update t_user set cno =  #{cno}  where id=#{userId}
+	</update>
+
+	<update id="openWeek" parameterType="User">
+		update t_user set vip1 = 1 ,vip_expire_time=#{expireTime}  where id=#{userId} and status=1
+	</update>
+
+	<update id="openMonth" parameterType="User">
+		update t_user set vip2_expire_time=#{expireTime},vip2=1  where id=#{userId} and status=1
+	</update>
+
+	<update id="updateUserFirstRecharge" parameterType="User">
+		update t_user set first_charge=1  where id=#{userId} and status=1
+	</update>
+
+	<update id="removeUserWeek" parameterType="User">
+		update t_user set vip1=0  where id=#{userId} and status=1
+	</update>
+	<update id="removeUserMonth" parameterType="User">
+		update t_user set vip2=0  where id=#{userId} and status=1
+	</update>
+
+	<update id="updateChannelInfo" parameterType="User">
+		update t_user set channel_no = user_no, is_channel=1  where id=#{userId} and is_channel=0
+	</update>
+
+
+	<select id="findOneMonthNoLogin" resultType="User">
+		select * from t_user where last_login_time&lt;#{time} and status=1
+	</select>
+
+	<update id="updateOneMonthNoLoginInfo" parameterType="User">
+		update t_user set open_id=CONCAT(open_id,'_noLogin') where last_login_time&lt;#{time} and status=1
+	</update>
+
+	<update id="updateUserRisk" parameterType="User">
+		update t_user set risk=#{risk}  where id=#{userId}
+	</update>
+
+	<update id="addDeviceCount" parameterType="DeviceCount">
+		update t_device_count
+		<set>
+			<if test="type == 1">
+				android=android+1,
+			</if>
+
+			<if test="type == 2">
+				ios=ios+1,
+			</if>
+
+		</set>
+	  where id=1
+	</update>
+
+	<update id="updateStatus">
+		update t_user set status=#{status} where id=#{userId}
+	</update>
+
+	<select id="getDeviceCount" resultType="User">
+		select * from t_device_count where id=1
+	</select>
+
+	<select id="findAllUserId" resultType="User">
+		select id from t_user where last_login_time>'2024-01-01 00:00:00' and id = 30431;
+	</select>
+
+	<select id="findxxx" resultType="User">
+		SELECT id,user_no,COUNT(1) as count from	t_user GROUP BY user_no HAVING count>1
+	</select>
+
+	<select id="findaa" resultType="User">
+		SELECT * from t_user where user_no = #{userNo}
+	</select>
+
+	<update id="uuu">
+		update t_user set user_no=#{userNo},invite_code=#{inviteCode} where id=#{id}
+	</update>
+
+
+	<select id="findRec" resultType="RechargeOrder">
+		select * from t_recharge_order where user_id = #{userId}  and status=1
+	</select>
+
+
+
+	<update id="addTel" parameterType="User">
+		update t_user set phone=#{phone} where id = #{userId}
+	</update>
+	<update id="updateUserNoPassIdCard" parameterType="User">
+		update t_user set risk=1  where id=#{userId}
+	</update>
+	<update id="updateUseRiskPlus" parameterType="User">
+		update t_user set risk_plus=#{riskPlus}  where id=#{userId}
+	</update>
+
+	<update id="addAliPayUserId" parameterType="User">
+		update t_user set alipay_id=#{alipayId}
+		where  id= #{userId}
+	</update>
+
+
+	<select id="findByAliUserId" resultType="User">
+		select * from t_user where alipay_id=#{alipayId}
+	</select>
+</mapper>

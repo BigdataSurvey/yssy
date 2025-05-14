@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.zywl.app.defaultx.mapper.TableLimitMapper">
+	<update id="createNewTable">
+		${sql}
+	</update>
+	
+	<select id="getCreateTableSQL" resultType="Map">
+		SHOW CREATE TABLE ${tableName};
+	</select>
+	
+	<select id="findTables" resultType="String">
+		show tables like '${tablePrefix}%';
+	</select>
+</mapper>

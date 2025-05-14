@@ -1,0 +1,136 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.zywl.app.defaultx.mapper.GameLotteryResultMapper">
+
+   <insert id="insert" parameterType="GameLotteryResult" useGeneratedKeys="true" keyProperty="id" keyColumn="id">
+		insert into l_game_lottery_result
+		(
+               `game_id`,
+               `periods_num`,
+               `lottery_result`,
+               `player_bet`,
+               `player_profit`,
+                `win_lose`,
+               `all_take_num`,
+               `win_num`,
+               `lose_num`,
+               `status`,
+               `create_time`
+               
+		)
+		values
+		(
+               #{gameId},
+               #{periodsNum},
+               #{lotteryResult},
+               #{playerBet},
+               #{playerProfit},
+               #{winLose},
+               #{allTakeNum},
+               #{winNum},
+               #{loseNum},
+               #{status},
+               #{createTime}
+             
+             
+             
+		)
+	</insert>
+	
+	
+	
+	<select id="findOne" resultType="GameLotteryResult">
+	    select * from l_game_lottery_result where id = #{id}
+	</select>
+	
+	<select id="findAll" resultType="GameLotteryResult">
+	    select * from l_game_lottery_result
+	</select>
+	
+	<sql id="conditions">
+   	<if test="date != null">
+   		 and date=#{date}
+   	</if>
+   		
+   	
+   	<if test="gameId != null">
+   		  and game_id = #{gameId}
+   	</if>
+   	
+	</sql>
+	
+	<select id="countByConditions" resultType="Long">
+		select count(1) from l_game_lottery_result
+		<where>
+			<include refid="conditions"></include>
+		</where>
+	</select>
+	<select id="findLastPeridosNum" resultType="GameLotteryResult">
+		select *  from l_game_lottery_result where game_id=#{gameId} limit 1
+		<where>
+			<include refid="conditions"></include>
+		</where>
+	</select>
+	
+	<select id="findHistoryResultByGameId" resultType="GameLotteryResult">
+		select *  from l_game_lottery_result where game_id=#{gameId} order by id desc  limit 0,#{limit}
+	</select>
+	
+	
+	<select id="findByConditions" resultType="GameLotteryResult">
+	    select * from l_game_lottery_result
+	    <where>
+	    	<include refid="conditions"></include>
+	    </where>
+	    
+		ORDER BY create_time desc 
+		<if test="start != null and limit != null">
+	   	 limit #{start}, #{limit} 
+	   	</if>
+	</select>
+	<update id="drawLottery" parameterType="GameLotteryResult">
+		update l_game_lottery_result
+		<set>
+     		<if test="lotteryResult != null">
+     		lottery_result= #{lotteryResult},
+     		</if>
+     		
+     		<if test="playerBet != null">
+     		player_bet= #{playerBet},
+     		</if>
+     		<if test="status != null">
+     		status= #{status},
+     		</if>
+     		<if test="playerProfit != null">
+     		player_profit= #{playerProfit},
+     		</if>
+     		
+     		<if test="winLose != null">
+     		win_lose= #{winLose},
+     		</if>
+     		
+     		<if test="allTakeNum != null">
+     		all_take_num= #{allTakeNum},
+     		</if>
+     		
+     		<if test="winNum != null">
+     		win_num= #{winNum},
+     		</if>
+     		
+     		<if test="LoseNum != null">
+     		Lose_num= #{LoseNum}
+     		</if>
+    	</set>
+		where  game_id=#{gameId}  and periods_num= #{periodsNum}
+	</update>
+	
+	
+	<select id="findByGameIdAndPeriodsNum" resultType="GameLotteryResult">
+		select *  from l_game_lottery_result where game_id=#{gameId} and periods_num=#{periodsNum} and status=0
+	</select>
+	
+	<select id="findPeriodsNum" resultType="GameLotteryResult">
+		select *  from l_game_lottery_result where game_id=#{gameId}  and status=1 order by id DESC limit 1
+	</select>
+
+</mapper>

@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.zywl.app.defaultx.mapper.CashChannelIncomeRecordMapper">
+
+   <insert id="insert" parameterType="CashChannelIncomeRecord" useGeneratedKeys="true" keyProperty="id" keyColumn="id">
+		insert into r_cash_channel_income_record
+		(
+               `user_id`,
+               `amount`,
+               `order_no`,
+               `create_time`
+		)
+		values
+		(
+               #{userId},
+               #{amount},
+               #{orderNo},
+               #{createTime}
+		)
+	</insert>
+	
+	
+	
+	<select id="findAll" resultType="CashChannelIncomeRecord">
+	    select * from r_cash_channel_income_record
+	</select>
+	
+	
+   		
+   	
+	
+	
+	
+
+</mapper>

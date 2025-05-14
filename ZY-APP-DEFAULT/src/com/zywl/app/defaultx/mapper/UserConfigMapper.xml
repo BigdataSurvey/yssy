@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.zywl.app.defaultx.mapper.UserConfigMapper">
+
+   <insert id="insert" parameterType="UserConfig" useGeneratedKeys="true" keyProperty="id" keyColumn="id">
+		insert into t_user_config
+		(
+               id,
+               user_id,
+               audio_setting,
+               music_setting,
+               backpack_vol,
+               create_time,
+               update_time
+		)
+		values
+		(
+               #{id},
+               #{userId},
+               #{audioSetting},
+               #{musicSetting},
+               #{backpackVol},
+               #{createTime},
+               #{updateTime}
+               
+		)
+	</insert>
+	
+	<update id="update" parameterType="UserConfig">
+		update t_user_config
+		<set >
+			<if test="audioSetting != null">
+			audio_setting=#{audioSetting},
+			</if>
+			<if test="musicSetting !=null">
+			music_setting=#{musicSetting},
+			</if>
+     		<if test="backpackVol != null">
+     		backpack_vol= #{backpackVol},
+     		</if>
+    	</set>
+		where  user_id= #{userId}             
+	</update>
+	
+	
+	
+	<delete id="delete">
+		delete from t_user_config where user_id= #{userId}               
+	</delete>
+	
+	<select id="findAll" resultType="UserConfig">
+	    select * from t_user_config
+	</select>
+	
+	<select id="findOne" resultType="UserConfig">
+	    select * from t_user_config where user_id = #{userId}
+	</select>
+	
+</mapper>

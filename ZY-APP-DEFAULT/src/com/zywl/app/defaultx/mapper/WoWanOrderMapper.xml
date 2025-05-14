@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.zywl.app.defaultx.mapper.WoWanOrderMapper">
+
+
+
+
+
+	<insert id="insert" parameterType="WoWanOrder" useGeneratedKeys="true" keyProperty="id">
+		insert into t_wowan_order
+		(
+			`orderId`,
+			`cid`,
+			`cuid`,
+			`devid`,
+			`adName`,
+			`time`,
+			`point`,
+			`atype`,
+			`sign`,
+			`platPoints`,
+			`event`,
+			`dlevel`,
+			`icon`,
+			`adid`,
+			`phonetype`
+		)
+		values
+		(
+			#{orderId},
+			#{cid},
+			#{cuid},
+			#{devid},
+			#{adName},
+			#{time},
+			#{point},
+			#{atype},
+			#{sign},
+			#{platPoints},
+			#{event},
+			#{dlevel},
+			#{icon},
+			#{adid},
+			#{phonetype}
+		)
+	</insert>
+	 
+
+	<select id="getOrderByID" resultType="WoWanOrder">
+		select * from t_wowan_order where orderId =#{orderId}
+	</select>
+
+</mapper>

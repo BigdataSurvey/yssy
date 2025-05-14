@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.zywl.app.defaultx.mapper.BatchCashRecordMapper">
+
+   <insert id="insert" parameterType="BatchCashRecord" useGeneratedKeys="true" keyProperty="id" keyColumn="id">
+		insert into r_batch_cash_record
+		(
+               `order_no`,
+               `total_num`,
+               `total_amount`,
+               `batch_name`,
+                `batch_remark`,
+                `status`,
+               `code`,
+               `message`,
+             	`create_time`,
+				`update_time`               
+		)
+		values
+		(
+               #{orderNo},
+               #{totalNum},
+                #{totalAmount},
+                #{batchName},
+               #{batchRemark},
+              #{status},
+              #{code},
+              #{message},
+               #{createTime},
+               #{updateTime}
+             
+             
+             
+		)
+	</insert>
+	
+	
+	
+	<select id="findOne" resultType="BatchCashRecord">
+	    select * from r_batch_cash_record where id = #{id}
+	</select>
+
+	<select id="findByOrderNo" resultType="BatchCashRecord">
+		select * from r_batch_cash_record where order_no = #{orderNo}
+	</select>
+
+	<select id="findAll" resultType="BatchCashRecord">
+	    select * from r_batch_cash_record
+	</select>
+	
+	<sql id="conditions">
+   	<if test="orderNo != null">
+   		 and order_no=#{orderNo}
+   	</if>
+   		<if test="status != null">
+   		 and status=#{status}
+   	</if>
+	</sql>
+	
+	<select id="countByConditions" resultType="Long">
+		select count(1) from r_batch_cash_record
+		<where>
+			<include refid="conditions"></include>
+		</where>
+	</select>
+	
+	<select id="findByConditions" resultType="BatchCashRecord">
+	    select * from r_batch_cash_record
+	    <where>
+	    	<include refid="conditions"></include>
+	    </where>
+	    
+		ORDER BY create_time desc 
+		<if test="start != null and limit != null">
+	   	 limit #{start}, #{limit} 
+	   	</if>
+	</select>
+	
+	
+	<update id="updateCashOrderToFinshed" parameterType="BatchCashRecord">
+		update r_batch_cash_record
+		<set>
+     		status= #{status},
+     		remark = #{remark},
+     		success_num = #{successNum}
+     		<if test="code != null ">
+	   	 	,code = #{code},message = #{message}
+	   	</if>
+    	</set>
+		where  order_no = #{batchOrderNo}
+	</update>
+	
+	
+	
+</mapper>

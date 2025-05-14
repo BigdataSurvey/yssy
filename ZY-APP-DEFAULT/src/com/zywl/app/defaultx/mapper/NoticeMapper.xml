@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.zywl.app.defaultx.mapper.NoticeMapper">
+
+   <insert id="insert" parameterType="Notice" useGeneratedKeys="true" keyProperty="id" keyColumn="id">
+		insert into t_notice
+		(
+               `title`,
+               `context`,
+               `type`,
+               `create_time`
+		)
+		values
+		(
+               #{title},
+               #{context},
+               #{type},
+               #{createTime}
+		)
+	</insert>
+	
+	
+	
+	<select id="findAll" resultType="Notice">
+	    select * from t_notice
+	</select>
+	
+	
+   		
+   	
+	
+	
+	
+
+</mapper>

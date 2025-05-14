@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.zywl.app.defaultx.mapper.AdminLogMapper">
+
+   
+   <insert id="insert" parameterType="AdminLog">
+		insert into t_admin_log
+		(
+               id,
+               admin_account,
+			   admin_name,
+               action,
+               content,
+               record_time
+		)
+		values
+		(
+               #{id},
+               #{adminAccount},
+			   #{adminName},
+               #{action},
+               #{content},
+               #{recordTime}
+		)
+	</insert>
+
+	<sql id="conditions">
+		<if test="id != null">
+			and id=#{id}
+		</if>
+		<if test="adminName != null">
+			and admin_name=#{adminName}
+		</if>
+		<if test="adminAccount != null">
+			and admin_account=#{adminAccount}
+		</if>
+	</sql>
+
+	<select id="findOne" resultType="AdminLog">
+	    select * from t_admin_log where id = #{id}
+	</select>
+	
+	<select id="findAll" resultType="AdminLog">
+	    select * from t_admin_log
+	</select>
+
+	<select id="countByConditions" resultType="Long">
+		select count(1) from t_admin_log
+	</select>
+	
+	<select id="findByConditions" resultType="AdminLog">
+	    select * from t_admin_log
+	    <where>
+	    	<include refid="conditions"></include>
+	    </where>
+		ORDER BY record_time desc
+		<if test="start != null and limit != null">
+			limit #{start}, #{limit}
+		</if>
+	</select>
+	
+</mapper>

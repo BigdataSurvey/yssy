@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <title>充值成功</title>
+    <meta charset="utf-8">
+    <meta name="renderer" content="webkit">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=0, minimal-ui">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <style>.success{text-align: center; color: #FF5B9D;font-size: 1.125rem;margin-top: 2rem; font-weight: 500;margin-bottom:1rem;}
+    .tips{color:#999;text-align: center; font-size: .825rem;}
+    </style>
+</head>
+
+<body>
+    <div class="success">充值成功</div>
+    <div class="tips" id="time-colock">3秒后关闭。</div>
+    <script>
+        var _time = 3;
+        function timeclock() {
+            if(_time <= 0) {
+                if(window.live && window.live.closePage) {
+                    window.live.closePage();
+                } else if(window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.live) {
+                    window.webkit.messageHandlers.live.postMessage(JSON.stringify({type: 'close'}));
+                } else {
+                    window.close();
+                }
+            } else {
+                document.getElementById('time-colock').innerHTML = _time + ' 秒后关闭';
+                _time--;
+                setTimeout(function() {
+                    timeclock();
+                }, 1000);
+            }
+        };
+        timeclock();
+    </script>
+</body>
+</html>

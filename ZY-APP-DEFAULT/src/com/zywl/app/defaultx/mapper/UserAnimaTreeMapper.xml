@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.zywl.app.defaultx.mapper.UserAnimaTreeMapper">
+
+    <insert id="insert" parameterType="UserAnimaTree">
+        insert into t_user_anima_tree
+        (`user_id`,
+         `anima_number`,
+         `create_time`)
+        values (#{userId},
+                #{animaNumber},
+                #{createTime})
+    </insert>
+
+    <insert id="insertOrUpdate" parameterType="UserAnimaTree">
+        INSERT INTO t_user_anima_tree(`user_id`, `anima_number`, `create_time`)
+        VALUES (#{userId}, #{amount}, NOW()) ON DUPLICATE KEY
+        UPDATE anima_number = anima_number+#{amount};
+    </insert>
+
+    <select id="findAll" resultType="UserAnimaTree">
+        select *
+        from t_user_anima_tree
+    </select>
+
+
+    <select id="findByUserId" resultType="UserAnimaTree">
+        select *
+        from t_user_anima_tree
+        where user_id = #{userId}
+    </select>
+
+
+
+
+</mapper>

@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration monitorInterval="30">
+
+			
+	<properties>
+        <!-- File base path -->
+        <property name="LOG_HOME">/data/logs/logserver6001</property>
+        <!-- App server name -->
+        <property name="SERVER_NAME">logserver</property>
+    </properties>
+	<appenders>
+		
+		<Console name="console" target="SYSTEM_OUT">
+			<!--只输出level及以上级别的信息（onMatch），其他的直接拒绝（onMismatch）-->
+			<StringMatchFilter  text="SqlSession" onMatch="DENY" onMismatch="ACCEPT" />
+			<StringMatchFilter  text="PreparedStatementPool" onMatch="DENY" onMismatch="ACCEPT" />
+            <ThresholdFilter level="DEBUG" onMatch="ACCEPT" onMismatch="DENY"/>
+			<PatternLayout pattern="[%-5p] [%d{HH:mm:ss}] %c - %m%n" />
+			
+		</Console>
+		
+        <RollingFile name="RollingFile" fileName="${LOG_HOME}/${SERVER_NAME}_log"
+                     filePattern="${LOG_HOME}/${SERVER_NAME}/%d{yyyy-MM-dd}.log" >
+            <PatternLayout pattern="[%-5p] [%d{HH:mm:ss:SSS}] %c - %m%n" />
+            <Policies>  
+		        <TimeBasedTriggeringPolicy modulate="true" interval="1"/>
+		    </Policies>
+        </RollingFile>
+        
+	</appenders>
+	<!--只有定义了logger并引入的appender，appender才会生效 -->
+	<loggers>
+		<logger name="org.springframework" level="info" />
+		<logger name="org.apache.http" level="info"/>
+		<logger name="net.rubyeye.xmemcached" level="info"/>
+		<logger name="freemarker.cache" level="info" />
+		<logger name="com.google.code.yanf4j" level="info"/>
+		<logger name="com.fxbtg.api.client" level="error" />
+		
+		<root level="debug">
+			<appender-ref ref="console" />
+			<appender-ref ref="RollingFile" />
+		</root>
+	</loggers>
+</configuration>

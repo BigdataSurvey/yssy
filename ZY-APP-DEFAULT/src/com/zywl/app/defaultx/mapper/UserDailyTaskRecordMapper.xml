@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper
+	namespace="com.zywl.app.defaultx.mapper.UserDailyTaskRecordMapper">
+
+	<insert id="insert" parameterType="UserDailyTaskRecord"
+		useGeneratedKeys="true" keyProperty="id" keyColumn="id">
+		insert into
+		r_user_daily_task_record
+		(
+		`user_id`,
+		`task_id`,
+		`order_no`,
+		`create_time`
+		
+
+		)
+		values
+		(
+		#{userId},
+		#{taskId},
+		#{orderNo},
+		#{createTime}
+
+
+
+		)
+	</insert>
+
+
+
+	<select id="findOne" resultType="UserDailyTaskRecord">
+		select * from r_user_daily_task_record where id = #{id}
+	</select>
+
+	<select id="findAll" resultType="UserDailyTaskRecord">
+		select * from r_user_daily_task_record
+	</select>
+
+	<sql id="conditions">
+		<if test="userId != null">
+			and user_id = #{userId}
+		</if>
+		<if test="taskId!= null">
+			and taskId = #{taskId}
+		</if>
+	</sql>
+
+	<select id="countByConditions" resultType="Long">
+		select count(1) from r_user_daily_task_record
+		<where>
+			<include refid="conditions"></include>
+		</where>
+	</select>
+
+
+	<select id="findByConditions" resultType="UserDailyTaskRecord">
+		select * from r_user_daily_task_record
+		<where>
+			<include refid="conditions"></include>
+		</where>
+
+		ORDER BY id desc
+		<if test="start != null and limit != null">
+			limit #{start}, #{limit}
+		</if>
+	</select>
+
+	<select id="findByUserIdAndTaskId" resultType="UserDailyTaskRecord">
+		select * from r_user_daily_task_record
+		where user_id=#{userId} and task_id=#{taskId} and create_time&gt;#{createTime}
+	</select>
+
+
+
+
+</mapper>

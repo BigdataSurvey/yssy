@@ -1,0 +1,156 @@
+package com.zywl.app.manager.socket;
+
+
+import com.alibaba.fastjson2.JSONObject;
+import com.live.app.ws.bean.Command;
+import com.live.app.ws.bean.ConnectedData;
+import com.live.app.ws.bean.PushBean;
+import com.live.app.ws.config.HttpSessionConfigurator;
+import com.live.app.ws.constant.SocketConstants;
+import com.live.app.ws.enums.PushCode;
+import com.live.app.ws.enums.TargetSocketType;
+import com.live.app.ws.interfacex.PushListener;
+import com.live.app.ws.socket.BaseServerSocket;
+import com.live.app.ws.socket.BaseSocket;
+import com.live.app.ws.util.Push;
+import com.zywl.app.base.util.PropertiesUtil;
+import com.zywl.app.defaultx.util.SpringUtil;
+import com.zywl.app.manager.service.LoginService;
+import com.zywl.app.manager.service.manager.ManagerCapitalService;
+import com.zywl.app.manager.service.manager.ManagerPromoteService;
+import com.zywl.app.manager.service.manager.ManagerUserService;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+
+import javax.websocket.server.ServerEndpoint;
+import java.util.Set;
+
+@ServerEndpoint(value = "/ManagerBTServer" + SocketConstants.SOCKET_CONNECT_SHAKE_HANDS, configurator = HttpSessionConfigurator.class)
+public class ManagerBTSocketServer extends BaseServerSocket {
+private static final Log logger = LogFactory.getLog(ManagerBTSocketServer.class);
+
+	private String address;
+
+	private String host;
+
+	private String name;
+
+	private double weight = 1; //权重
+
+
+	private PropertiesUtil staticProperties;
+
+	private PropertiesUtil globalProperties;
+
+	private ManagerPromoteService managerPromoteService;
+
+
+	private ManagerCapitalService managerCapitalService;
+
+	private ManagerUserService managerUserService;
+
+	public ManagerBTSocketServer() {
+		super(TargetSocketType.loginServer, false, true);
+		staticProperties = new PropertiesUtil("static.properties");
+		globalProperties = new PropertiesUtil("global.properties");
+		managerCapitalService = SpringUtil.getService(ManagerCapitalService.class);
+		managerPromoteService = SpringUtil.getService(ManagerPromoteService.class);
+		managerUserService = SpringUtil.getService(ManagerUserService.class);
+	}
+
+	public ConnectedData onConnect(JSONObject shakeHandsData) {
+		this.address = shakeHandsData.getString("address");
+		this.name = shakeHandsData.getString("name");
+		this.host = shakeHandsData.getString("host"); 
+		this.weight = shakeHandsData.getDoubleValue("weight");
+		if (shakeHandsData.containsKey("gameId")) {
+			this.socketType = TargetSocketType.getServerEnum(shakeHandsData.getIntValue("gameId"));
+		}
+		initPush();
+		JSONObject responseShakeHandsData = new JSONObject();
+		responseShakeHandsData.put("staticWebUrl", staticProperties.get("base.webPath"));
+		responseShakeHandsData.put("managerWebUrl", "http://"+globalProperties.get("host"));
+		return new ConnectedData(address, responseShakeHandsData);
+	}
+
+	@Override
+	protected void onDisconnect() {
+	}
+
+	protected String getPrivateKey(String pk) {
+		return pk;
+	}
+
+	@Override
+	public boolean isEncrypt(Command command) {
+		return false;
+	}
+	
+	@Override
+	protected void filterCommand(Command command) {
+	}
+	
+	protected Set<String> getWhiteList() {
+		return null;
+	}
+	
+	private void initPush(){
+
+		Push.registPush(new PushBean(PushCode.userLogin), new PushListener() {
+			public void onRegist(BaseSocket baseSocket, Object data) {
+			}
+
+			public void onReceive(BaseSocket baseSocket, Object data) {
+				if(data != null){
+					JSONObject jsonObject = (JSONObject)data;
+					//接受到用户登录 TODO  做一些事情
+					managerUserService.pushAddUser();
+					LoginService.userNos.add(jsonObject.getString("userNo"));
+				}
+			}
+		}, this);
+
+
+		Push.registPush(new PushBean(PushCode.userRegist), new PushListener() {
+			public void onRegist(BaseSocket baseSocket, Object data) {
+			}
+
+			public void onReceive(BaseSocket baseSocket, Object data) {
+				if(data != null){
+					//接受到用户登录 TODO  做一些事情
+					JSONObject info = (JSONObject)data;
+					Long userId = info.getLong("userId");
+					managerPromoteService.parentAddFriendNumber(userId);
+				}
+			}
+		}, this);
+	}
+
+	public String getName() {
+		return name;
+	}
+
+	public String getHost() {
+		return host;
+	}
+
+	public String getAddress() {
+		return address;
+	}
+	
+	public double getWeight() {
+		return weight;
+	}
+	
+	public void setWeight(double weight) {
+		this.weight = weight;
+	}
+
+	@Override
+	protected Log logger() {
+		return logger;
+	}
+
+
+	
+}

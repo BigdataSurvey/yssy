@@ -1,0 +1,99 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.zywl.app.defaultx.mapper.GoodNoMapper">
+
+   <insert id="insert" parameterType="GoodNo" useGeneratedKeys="true" keyProperty="id" keyColumn="id">
+		insert into t_good_no
+		(
+               `good_no`,
+               `price`,
+               `number`,
+               `status`
+		)
+		values
+		(
+               #{goodNo},
+               #{price},
+               #{number},
+               #{status}
+		)
+	</insert>
+
+
+    <sql id="conditions">
+        <if test="id != null">
+            and id=#{id}
+        </if>
+        <if test="goodNo != null">
+            and good_no=#{goodNo}
+        </if>
+        <if test="status != null">
+            and status=#{status}
+        </if>
+        <if test="price != null">
+            and price=#{price}
+        </if>
+    </sql>
+
+    <select id="countByConditions" resultType="Long">
+        select count(1) from t_good_no
+        <where>
+            <include refid="conditions"></include>
+        </where>
+    </select>
+
+    <select id="findByConditions" resultType="GoodNo">
+        select * from t_good_no
+        <where>
+            <include refid="conditions"></include>
+        </where>
+
+        ORDER BY status desc
+        <if test="start != null and limit != null">
+            limit #{start}, #{limit}
+        </if>
+    </select>
+
+    <update id="updateGoodNo" parameterType="GoodNo">
+        update t_good_no
+            <set>
+                <if test="number!=null">
+                    number=#{number},
+                </if>
+                <if test="price!=null">
+                    price=#{price},
+                </if>
+                <if test="status!=null">
+                    status=#{status},
+                </if>
+            </set>
+            where id = #{id}
+    </update>
+	
+	<select id="findAll" resultType="GoodNo">
+	    select * from t_good_no
+	</select>
+
+    <select id="findOne" resultType="GoodNo">
+        select * from t_good_no where
+        <if test="id!=null">
+            id=#{id}
+        </if>
+        <if test="goodNo!=null">
+            good_no=#{goodNo}
+        </if>
+    </select>
+
+
+
+    <select id="findCanBuyGoodNo" resultType="GoodNo">
+        select * from t_good_no where status=1
+    </select>
+
+
+
+
+
+
+
+</mapper>

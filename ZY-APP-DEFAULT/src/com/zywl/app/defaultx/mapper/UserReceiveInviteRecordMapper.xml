@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.zywl.app.defaultx.mapper.UserReceiveInviteRecordMapper">
+
+   <insert id="insert" parameterType="UserReceiveInviteRecord" useGeneratedKeys="true" keyProperty="id" keyColumn="id">
+		insert into r_user_receive_invite_record
+		(
+               `user_id`,
+               `issue`,
+               `reward_id`,
+               `reward_amount`,
+               `create_time`
+
+		)
+		values
+		(
+               #{userId},
+               #{issue},
+               #{rewardId},
+               #{rewardAmount},
+               #{createTime}
+		)
+	</insert>
+	
+	
+	
+	<select id="findByUserId" resultType="UserReceiveInviteRecord">
+	    select * from r_user_receive_invite_record where user_id = #{userId} and issue=#{issue}
+	</select>
+
+
+    <select id="findAll" resultType="UserReceiveInviteRecord">
+        select * from r_user_receive_invite_record
+    </select>
+
+
+    <select id="findByUserIdAndRewardId" resultType="UserReceiveInviteRecord">
+        select * from r_user_receive_invite_record where user_id = #{userId} and issue=#{issue} and reward_id=#{rewardId}
+    </select>
+
+
+
+
+</mapper>

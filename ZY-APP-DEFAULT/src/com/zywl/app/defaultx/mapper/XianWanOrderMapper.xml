@@ -1,0 +1,110 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.zywl.app.defaultx.mapper.XianWanOrderMapper">
+
+
+	<select id="queryObject" resultType="XianWanOrder">
+		select * from t_xianwan_order where id = #{value}
+	</select>
+
+	<select id="queryList" resultType="XianWanOrder">
+		select * from t_xianwan_order
+        <choose>
+            <when test="sidx != null and sidx.trim() != ''">
+                order by ${sidx} ${order}
+            </when>
+			<otherwise>
+                order by id desc
+			</otherwise>
+        </choose>
+		<if test="offset != null and limit != null">
+			limit #{offset}, #{limit}
+		</if>
+	</select>
+	
+ 	<select id="queryTotal" resultType="int">
+		select count(*) from t_xianwan_order 
+	</select>
+	 
+	<insert id="insert" parameterType="XianWanOrder" useGeneratedKeys="true" keyProperty="id">
+		insert into t_xianwan_order
+		(
+			`adid`, 
+			`adname`, 
+			`appid`, 
+			`ordernum`, 
+			`dlevel`, 
+			`pagename`, 
+			`atype`, 
+			`deviceid`, 
+			`simid`, 
+			`appsign`, 
+			`merid`, 
+			`event`, 
+			`adicon`, 
+			`price`, 
+			`money`, 
+			`itime`
+		)
+		values
+		(
+			#{adid}, 
+			#{adname}, 
+			#{appid}, 
+			#{ordernum}, 
+			#{dlevel}, 
+			#{pagename}, 
+			#{atype}, 
+			#{deviceid}, 
+			#{simid}, 
+			#{appsign}, 
+			#{merid}, 
+			#{event}, 
+			#{adicon}, 
+			#{price}, 
+			#{money}, 
+			#{itime}
+		)
+	</insert>
+	 
+	<update id="update" parameterType="XianWanOrder">
+		update t_xianwan_order 
+		<set>
+			<if test="adid != null">`adid` = #{adid}, </if>
+			<if test="adname != null">`adname` = #{adname}, </if>
+			<if test="appid != null">`appid` = #{appid}, </if>
+			<if test="ordernum != null">`ordernum` = #{ordernum}, </if>
+			<if test="dlevel != null">`dlevel` = #{dlevel}, </if>
+			<if test="pagename != null">`pagename` = #{pagename}, </if>
+			<if test="atype != null">`atype` = #{atype}, </if>
+			<if test="deviceid != null">`deviceid` = #{deviceid}, </if>
+			<if test="simid != null">`simid` = #{simid}, </if>
+			<if test="appsign != null">`appsign` = #{appsign}, </if>
+			<if test="merid != null">`merid` = #{merid}, </if>
+			<if test="event != null">`event` = #{event}, </if>
+			<if test="adicon != null">`adicon` = #{adicon}, </if>
+			<if test="price != null">`price` = #{price}, </if>
+			<if test="money != null">`money` = #{money}, </if>
+			<if test="itime != null">`itime` = #{itime}</if>
+		</set>
+		where id = #{id}
+	</update>
+	
+	<delete id="delete">
+		delete from t_xianwan_order where id = #{value}
+	</delete>
+	
+	<delete id="deleteBatch">
+		delete from t_xianwan_order where id in 
+		<foreach item="id" collection="array" open="(" separator="," close=")">
+			#{id}
+		</foreach>
+	</delete>
+
+
+	<select id="getOrderByID" resultType="XianWanOrder">
+		select * from t_xianwan_order where ordernum =#{orderId}
+	</select>
+
+</mapper>

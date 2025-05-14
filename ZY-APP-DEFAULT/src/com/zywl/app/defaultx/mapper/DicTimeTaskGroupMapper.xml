@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.zywl.app.defaultx.mapper.DicTimeTaskGroupMapper">
+
+
+
+    <select id="findAll" resultType="DicTimeTaskGroup">
+        select *
+        from dic_time_task_group
+    </select>
+
+
+    <select id="findByGroup" resultType="DicTimeTaskGroup">
+        select *
+        from dic_time_task_group where begin_time&lt;#{nowTime} and end_time&gt;#{nowTime}
+    </select>
+
+</mapper>

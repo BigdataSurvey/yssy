@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.zywl.app.defaultx.mapper.UserDailyTaskMapper">
+
+
+
+	<select id="queryObject" resultType="UserDailyTask">
+		select * from t_user_daily_task where id = #{value}
+	</select>
+
+	<select id="queryList" resultType="UserDailyTask">
+		select * from t_user_daily_task
+        <choose>
+            <when test="sidx != null and sidx.trim() != ''">
+                order by ${sidx} ${order}
+            </when>
+			<otherwise>
+                order by id desc
+			</otherwise>
+        </choose>
+		<if test="offset != null and limit != null">
+			limit #{offset}, #{limit}
+		</if>
+	</select>
+	
+ 	<select id="queryTotal" resultType="int">
+		select count(*) from t_user_daily_task 
+	</select>
+	 
+	<insert id="insert" parameterType="UserDailyTask" useGeneratedKeys="true" keyProperty="id" keyColumn="id">
+		insert into t_user_daily_task
+		(
+			`user_id`, 
+			`ymd`, 
+			`task_list`
+		)
+		values
+		(
+			#{userId}, 
+			#{ymd}, 
+			#{taskList}
+		)
+	</insert>
+	 
+	<update id="update" parameterType="UserDailyTask">
+		update t_user_daily_task 
+		<set>
+			<if test="taskList != null">`task_list` = #{taskList}</if>
+		</set>
+		where user_id = #{userId} and ymd=#{ymd}
+	</update>
+	
+	<delete id="delete">
+		delete from t_user_daily_task where id = #{value}
+	</delete>
+	
+	<delete id="deleteBatch">
+		delete from t_user_daily_task where id in 
+		<foreach item="id" collection="array" open="(" separator="," close=")">
+			#{id}
+		</foreach>
+	</delete>
+
+	<select id="findByUserIdAndYmd" resultType="UserDailyTask">
+		select * from t_user_daily_task where user_id = #{userId} and ymd =#{ymd}
+	</select>
+
+	<select id="findListByUserIdAndYmd" resultType="UserDailyTask">
+		select * from t_user_daily_task where user_id = #{userId} and ymd =#{ymd}
+	</select>
+
+
+
+	<update id="batchUpdate"  parameterType="java.util.List">
+		<foreach collection="list" item="item" index="index" open="" close="" separator=";">
+			update t_user_daily_task
+			<set>
+				<if test="item.taskList != null">`task_list` = #{item.taskList}</if>
+			</set>
+			where user_id = #{item.userId}  and ymd =#{item.ymd}
+		</foreach>
+	</update>
+
+</mapper>

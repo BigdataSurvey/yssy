@@ -1,0 +1,208 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.zywl.app.defaultx.mapper.GreetingCardMapper">
+
+   <insert id="insert" parameterType="GreetingCard" useGeneratedKeys="true" keyProperty="id" keyColumn="id">
+		insert into t_greeting_card
+		(
+				`from_user_id`,
+		 		`from_user_no`,
+		 		`from_user_name`,
+		 		`from_user_head_img`,
+		 		`from_user_role_id`,
+				`to_user_id`,
+		 		`to_user_no`,
+		 		`to_user_name`,
+		 		`to_user_head_img`,
+		 		`to_user_role_id`,
+               `context`,
+               `number`,
+               `user_group`,
+               `status`,
+               `type`,
+               `send_time`,
+               `expiration_time`
+               
+		)
+		values
+		(
+				#{fromUserId},
+		 		#{fromUserNo},
+		 		#{fromUserName},
+		 		#{fromUserHeadImg},
+		 		#{fromUserRoleId},
+				#{toUserId},
+		 		#{toUserNo},
+		 		#{toUserName},
+		 		#{toUserHeadImg},
+		 		#{toUserRoleId},
+               #{context},
+               #{number},
+               #{userGroup},
+               #{status},
+               #{type},
+               #{sendTime},
+               #{expirationTime}
+        
+		)
+	</insert>
+
+
+	<insert id="batchInsertMail" parameterType="java.util.List">
+		insert into t_greeting_card
+		(
+		`from_user_id`,
+		`from_user_no`,
+		`from_user_name`,
+		`from_user_head_img`,
+		`from_user_role_id`,
+		`to_user_id`,
+		`to_user_no`,
+		`to_user_name`,
+		`to_user_head_img`,
+		`to_user_role_id`,
+		`context`,
+		`number`,
+		`user_group`,
+		`status`,
+		`type`,
+		`send_time`,
+		`expiration_time`
+
+		)
+		values
+
+		<foreach collection="list" item="item" separator=",">
+			(
+			#{item.fromUserId},
+			#{item.fromUserNo},
+			#{item.fromUserName},
+			#{item.fromUserHeadImg},
+			#{item.fromUserRoleId},
+			#{item.toUserId},
+			#{item.toUserNo},
+			#{item.toUserName},
+			#{item.toUserHeadImg},
+			#{item.toUserRoleId},
+			#{item.context},
+			#{item.number},
+			#{item.userGroup},
+			#{item.status},
+			#{item.type},
+			#{item.sendTime},
+			#{item.expirationTime}
+
+			)
+		</foreach>
+	</insert>
+
+	<sql id="conditions">
+		<if test="id != null">
+			and id=#{id}
+		</if>
+		<if test="fromUserId != null">
+			and from_user_id=#{fromUserId}
+		</if>
+		<if test="fromUserNo != null">
+			and from_user_no=#{fromUserNo}
+		</if>
+
+		<if test="toUserId != null">
+			and to_user_id=#{toUserId}
+		</if>
+
+		<if test="toUserNo !=null">
+			and to_user_no=#{toUserNo}
+		</if>
+		<if test="fromUserRoleId !=null">
+			and from_user_role_id=#{fromUserRoleId}
+		</if>
+		<if test="toUserRoleId !=null">
+			and to_user_role_id=#{toUserRoleId}
+		</if>
+
+		<if test="type != null">
+			and type=#{type}
+		</if>
+
+		<if test="isRead !=null">
+			and is_read=#{isRead}
+		</if>
+	</sql>
+
+	<select id="countByConditions" resultType="Long">
+		select count(1) from t_greeting_card
+		<where>
+			<include refid="conditions"></include>
+		</where>
+	</select>
+
+	<select id="findByConditions" resultType="Mail">
+		select * from t_greeting_card
+		<where>
+			<include refid="conditions"></include>
+		</where>
+
+		ORDER BY send_time asc
+		<if test="start != null and limit != null">
+			limit #{start}, #{limit}
+		</if>
+	</select>
+
+	<delete id="delete">
+		delete from t_greeting_card where  id= #{id}               
+	</delete>
+	
+	<select id="findOne" resultType="GreetingCard">
+	    select * from t_greeting_card where id = #{id} and status=1
+	</select>
+	
+	<select id="findVaildityMail" resultType="GreetingCard">
+	    select * from t_greeting_card where status = 1 
+	</select>
+	
+	
+	<select id="findAll" resultType="Mail">
+	    select * from t_greeting_card
+	</select>
+
+	<select id="findByUserIdSendToOther" resultType="GreetingCard">
+		select * from t_greeting_card where to_user_id=#{userId}
+		         and from_user_id=#{myId}
+		        and status=1
+		order by id DESC limit #{start},#{num}
+	</select>
+
+	<select id="findByUserIdSendToMe" resultType="GreetingCard">
+		select * from t_greeting_card where from_user_id=#{userId}
+			and to_user_id=#{myId}
+				and status=1
+		order by id DESC limit #{start},#{num}
+	</select>
+
+	<select id="findMyEmailSendToMe" resultType="GreetingCard">
+	    select * from t_greeting_card where to_user_id=#{toUserId}   and status=1
+		order by id DESC limit 100
+	</select>
+
+
+	<select id="findMyEmailSendToOther" resultType="GreetingCard">
+		select * from t_greeting_card where   from_user_id=#{toUserId} and status=1
+		order by id DESC limit 100
+	</select>
+
+	<select id="findToMyEmail" resultType="GreetingCard">
+		select * from t_greeting_card where to_user_id=#{toUserId}   and status=1
+	</select>
+	<select id="findMySendEmail" resultType="GreetingCard">
+		select * from t_greeting_card where from_user_id=#{fromUserId}  and status=1
+	</select>
+
+
+	<update id="updateMailToExpiration" parameterType="GreetingCard">
+		update t_greeting_card set status = 0  where  expiration_time &lt; #{now}    and status=1
+	</update>
+
+
+
+</mapper>

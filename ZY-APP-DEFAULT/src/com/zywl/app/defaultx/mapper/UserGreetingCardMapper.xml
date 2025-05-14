@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.zywl.app.defaultx.mapper.UserGreetingCardMapper">
+
+   <insert id="insert" parameterType="UserGreetingCard" useGeneratedKeys="true" keyProperty="id" keyColumn="id">
+		insert into t_user_greeting_card
+		(
+               `user_id`,
+               `popularity`,
+		        `un_receive_pop`
+
+               
+               
+		)
+		values
+		(
+               #{userId},
+               #{popularity},
+		        #{unReceivePop}
+
+		)
+	</insert>
+	
+	
+	
+	<select id="findAll" resultType="UserGreetingCard">
+	    select * from t_user_greeting_card
+	</select>
+
+    <select id="findByUserId" resultType="UserGreetingCard">
+        select * from t_user_greeting_card where user_id = #{userId}
+    </select>
+
+
+
+    <select id="findTop" resultType="UserGreetingCardVo">
+        select t1.popularity popularity,t1.user_id userId,t2.user_no userNo,t2.`name` as userName ,t2.head_image_url userHeadImg from t_user_greeting_card t1,t_user t2  where t1.user_id=t2.id order by popularity desc limit 0,50
+    </select>
+
+
+    <select id="findAllHasPower" resultType="UserGreetingCard">
+        select * from t_user_greeting_card where popularity>0 order by power desc
+    </select>
+
+    <update id="subUnReceive" parameterType="UserGreetingCard">
+        update t_user_greeting_card set un_receive_pop=un_receive_pop-#{pop} where user_id = #{userId} and un_receive_pop=un_receive_pop-#{pop}>=0
+    </update>
+
+    <insert id="addOrSavePop" parameterType="UserGreetingCard">
+        INSERT INTO t_user_greeting_card(`user_id`, `popularity`,`un_receive_pop`)
+        VALUES (#{userId}, #{popularity},#{popularity}) ON DUPLICATE KEY
+        UPDATE popularity =popularity+ #{popularity},un_receive_pop=un_receive_pop+#{popularity};
+    </insert>
+
+
+</mapper>

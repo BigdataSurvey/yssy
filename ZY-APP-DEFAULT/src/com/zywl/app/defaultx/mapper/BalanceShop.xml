@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.zywl.app.defaultx.mapper.BalanceShopMapper">
+
+   <insert id="insert" parameterType="BalanceShop" useGeneratedKeys="true" keyProperty="id" keyColumn="id">
+		insert into t_balance_shop
+		(
+               `name`,
+               `context`,
+               `image`,
+               `price`,
+               `type`,
+               `status`
+               
+		)
+		values
+		(
+               #{name},
+               #{context},
+               #{image},
+               #{price},
+               #{type},
+               #{status}
+        
+		)
+	</insert>
+	
+	<select id="findOne" resultType="BalanceShop">
+	    select * from t_exchange_record where id = #{id} and status=1
+	</select>
+	
+	
+	
+	<select id="findAll" resultType="BalanceShop">
+	    select * from t_exchange_record
+	</select>
+	
+</mapper>

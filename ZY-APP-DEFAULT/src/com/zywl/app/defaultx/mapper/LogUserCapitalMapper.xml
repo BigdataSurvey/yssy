@@ -1,0 +1,197 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.zywl.app.defaultx.mapper.LogUserCapitalMapper">
+
+   <insert id="insert" parameterType="LogUserCapital" useGeneratedKeys="true" keyProperty="id" keyColumn="id">
+		insert into ${tableName}
+		(
+               log_type,
+               user_id,
+               capital_type,
+               amount,
+               balance_before,
+               balance_after,
+               occupy_balance_before,
+               occupy_balance_after,
+               mark,
+               source_table_name,
+               source_data_id,
+               source_no,
+               source_type,
+               create_time,
+               update_time
+		)
+		values
+		(
+               #{logType},
+               #{userId},
+               #{capitalType},
+               #{amount},
+               #{balanceBefore},
+               #{balanceAfter},
+               #{occupyBalanceBefore},
+               #{occupyBalanceAfter},
+               #{mark},
+               #{sourceTableName},
+               #{sourceDataId},
+               #{sourceNo},
+               #{sourceType},
+               #{createTime},
+               #{updateTime}
+               
+		)
+	</insert>
+	
+	<insert id="batchInsert" parameterType="java.util.List">   
+	 insert into ${tableName} (
+               log_type,
+               user_id,
+               capital_type,
+               amount,
+               balance_before,
+               balance_after,
+               occupy_balance_before,
+               occupy_balance_after,
+               mark,
+               source_table_name,
+               source_data_id,
+               source_no,
+               source_type,
+               create_time,
+               update_time
+		) 
+		values  
+		
+	   <foreach collection="list" item="item" separator=",">    
+	      (
+               #{item.logType},
+               #{item.userId},
+               #{item.capitalType},
+               #{item.amount},
+               #{item.balanceBefore},
+               #{item.balanceAfter},
+               #{item.occupyBalanceBefore},
+               #{item.occupyBalanceAfter},
+               #{item.mark},
+               #{item.sourceTableName},
+               #{item.sourceDataId},
+               #{item.sourceNo},
+               #{item.sourceType},
+               #{item.createTime},
+               #{item.updateTime}
+               
+		)
+	         </foreach>
+	</insert>
+	
+	<update id="update" parameterType="LogUserCapital">
+		update t_user_capital
+		<set >
+     		<if test="occupyBalance != null">
+     		occupy_balance= #{occupyBalance},
+     		</if>
+     		<if test="balance != null">
+     		balance= #{balance},
+     		</if>
+     		
+     		<if test="updateTime != null">
+     		update_time= #{updateTime}
+     		</if>
+    	</set>
+		where  id= #{id} 
+	</update>
+	
+	<delete id="delete">
+		delete from ${tableName} where  id= #{id}               
+	</delete>
+	
+	
+	
+	<select id="findAll" resultType="LogUserCapital">
+	    select * from ${tableName}
+	</select>
+	
+	<select id="findOne" resultType="LogUserCapital">
+	    select * from ${tableName} where id = #{id}
+	</select>
+
+	<select id="findByDz" resultType="LogUserCapital">
+		select * from `kapai-log`.${tableName} where  user_id=#{userId}
+	</select>
+
+	<select id="findUserCapitalByUserId" resultType="LogUserCapital">
+	    select * from ${tableName} where user_id = #{userId}
+	</select>
+
+	<select id="findUserCapitalByUserIdAndCapitalType" resultType="LogUserCapital">
+	    select * from ${tableName} where user_id = #{userId} and capital_type=#{capitalType}
+	</select>
+	<sql id="conditions">
+		<if test="logType != null">
+		 and log_type=#{logType}
+		</if>
+		<if test="userId != null">
+		 and user_id=#{userId}
+		</if>
+   		<if test="type==1">
+			and amount &gt; 0
+		</if>
+		<if test="type==2">
+			and amount &lt; 0
+		</if>
+    	<if test="capitalType != null">
+    	 AND capital_type = #{capitalType}
+    	</if>
+    	<if test="startDate != null">
+    	 AND create_time <![CDATA[ >= ]]> #{startDate}
+    	</if>
+    	<if test="endDate != null">
+    	 AND create_time <![CDATA[ <= ]]> #{endDate}
+    	</if>
+	</sql>
+
+	<select id="countByConditions" resultType="Long">
+		select count(1) from ${tableName}
+		<where>
+			<include refid="conditions"></include>
+		</where>
+	</select>
+
+	<select id="findByConditions" resultType="LogUserCapital">
+	    select * from ${tableName}
+	    <where>
+	    	<include refid="conditions"></include>
+	    </where>
+
+		ORDER BY id desc
+		<if test="start != null and limit != null">
+	   	 limit #{start}, #{limit}
+	   	</if>
+	</select>
+
+	<select id="dbCountByConditions" resultType="Long">
+		select count(1) from `kapai-log`.${tableName}
+		<where>
+			<include refid="conditions"></include>
+		</where>
+	</select>
+
+	<select id="dbFindByConditions" resultType="LogUserCapital">
+		select * from `kapai-log`.${tableName}
+		<where>
+			<include refid="conditions"></include>
+		</where>
+
+		ORDER BY create_time desc
+		<if test="start != null and limit != null">
+			limit #{start}, #{limit}
+		</if>
+	</select>
+
+
+	<select id="findSellLqg" resultType="LogUserCapital">
+		select * from `kapai-log`.${tableName} where user_id=#{userId} and  log_type=41
+	</select>
+
+
+</mapper>

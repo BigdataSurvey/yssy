@@ -1,0 +1,360 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.zywl.app.defaultx.mapper.PlayerCardMapper">
+
+    <insert id="insert" parameterType="PlayerCard"
+            useGeneratedKeys="true" keyProperty="id" keyColumn="id">
+        insert into ${tableName}
+        (`user_id`,
+         `card_id`,
+         `skill_id`,
+         `lv`,
+         `max_lv`,
+         `hp`,
+         `base_hp`,
+         `atk`,
+         `base_atk`,
+         `def`,
+         `base_def`,
+         `chc`,
+         `chc_impact`,
+         `def_chc`,
+         `speed`,
+         `base_speed`,
+         `htt`,
+         `dodge`,
+         `afb`,
+         `combo`,
+         `leech`,
+         `quality`,
+         `power`,
+         `is_fight`,
+         `star`,
+         `max_star`,
+         `card_type`,
+         `equ_A`,
+         `equ_B`,
+         `equ_C`,
+         `equ_D`,
+         `artifact_id`,
+         `pet_id`,
+         `status`,
+         `create_time`,
+         `update_time`)
+        values (#{userId},
+                #{cardId},
+                #{skillId},
+                #{lv},
+                #{maxLv},
+                #{hp},
+                #{baseHp},
+                #{atk},
+                #{baseAtk},
+                #{def},
+                #{baseDef},
+                #{chc},
+                #{chcImpact},
+                #{defChc},
+                #{speed},
+                #{baseSpeed},
+                #{htt},
+                #{dodge},
+                #{afb},
+                #{combo},
+                #{leech},
+                #{quality},
+                #{power},
+                #{isFight},
+                #{star},
+                #{maxStar},
+                #{cardType},
+                #{equA},
+                #{equB},
+                #{equC},
+                #{equD},
+                #{artifactId},
+                #{petId},
+                #{status},
+                #{createTime},
+                #{updateTime})
+    </insert>
+
+    <update id="updatePlayerCardInfo" parameterType="PlayerCard">
+        update ${tableName}
+        <set>
+            <if test="lv!=null">
+                lv=#{lv},
+            </if>
+            <if test="maxLv!=null">
+                max_lv=#{maxLv},
+            </if>
+            <if test="skillId!=null">
+                skill_id=#{skillId},
+            </if>
+            <if test="hp!=null">
+                hp=#{hp},
+            </if>
+            <if test="baseHp!=null">
+                base_hp=#{baseHp},
+            </if>
+            <if test="atk!=null">
+                atk=#{atk},
+            </if>
+            <if test="baseAtk!=null">
+                base_atk=#{baseAtk},
+            </if>
+            <if test="def!=null ">
+                def=#{def},
+            </if>
+            <if test="baseDef!=null">
+                base_def=#{baseDef},
+            </if>
+            <if test="chc!=null">
+                chc=#{chc},
+            </if>
+            <if test="chcImpact!=null">
+                chc_impact=#{chcImpact},
+            </if>
+            <if test="defChc!=null">
+                def_chc=#{defChc},
+            </if>
+            <if test="speed!=null">
+                speed=#{speed},
+            </if>
+            <if test="baseSpeed!=null">
+                base_speed=#{baseSpeed},
+            </if>
+            <if test="htt!=null">
+                htt=#{htt},
+            </if>
+            <if test="dodge!=null">
+                dodge=#{dodge},
+            </if>
+            <if test="afb!=null">
+                afb=#{afb},
+            </if>
+            <if test="combo!=null">
+                combo=#{combo},
+            </if>
+            <if test="leech!=null">
+                leech=#{leech},
+            </if>
+            <if test="quality!=null">
+                quality=#{quality},
+            </if>
+            <if test="power!=null">
+                power=#{power},
+            </if>
+            <if test="isFight!=null">
+                is_fight=#{isFight},
+            </if>
+            <if test="star!=null">
+                star=#{star},
+            </if>
+            <if test="maxStar!=null">
+                max_star=#{maxStar},
+            </if>
+            <if test="equA!=null">
+                equ_A=#{equA},
+            </if>
+            <if test="equB!=null">
+                equ_B=#{equB},
+            </if>
+            <if test="equC!=null">
+                equ_C=#{equC},
+            </if>
+            <if test="equD!=null">
+                equ_D=#{equD},
+            </if>
+            <if test="artifactId!=null">
+                artifact_id=#{artifactId},
+            </if>
+            <if test="petId!=null">
+                pet_id=#{petId},
+            </if>
+        </set>
+        where id=#{id}
+    </update>
+
+    <update id="batchUpdatePlayerCardStatus" parameterType="java.util.List">
+        <foreach collection="list" item="item" index="index" open="" close="" separator=";">
+            update ${item.tableName} set status = 0 where id=#{item.id}
+        </foreach>
+    </update>
+
+    <update id="batchUpdatePlayerCards" parameterType="java.util.List">
+        <foreach collection="list" item="item" index="index" open="" close="" separator=";">
+            update ${tableName}
+            <set>
+                <if test="item.lv!=null">
+                    lv=#{item.lv},
+                </if>
+                <if test="item.skillId!=null">
+                    skill_id=#{item.skillId},
+                </if>
+                <if test="item.maxLv!=null">
+                    max_lv=#{item.maxLv},
+                </if>
+                <if test="item.hp!=null">
+                    hp=#{item.hp},
+                </if>
+                <if test="item.baseHp!=null">
+                    base_hp=#{item.baseHp},
+                </if>
+                <if test="item.atk!=null">
+                    atk=#{item.atk},
+                </if>
+                <if test="item.baseAtk!=null">
+                    base_atk=#{item.baseAtk},
+                </if>
+                <if test="item.def!=null ">
+                    def=#{item.def},
+                </if>
+                <if test="item.baseDef!=null">
+                    base_def=#{item.baseDef},
+                </if>
+                <if test="item.chc!=null">
+                    chc=#{item.chc},
+                </if>
+                <if test="item.chcImpact!=null">
+                    chc_impact=#{item.chcImpact},
+                </if>
+                <if test="item.defChc!=null">
+                    def_chc=#{item.defChc},
+                </if>
+                <if test="item.speed!=null">
+                    speed=#{item.speed},
+                </if>
+                <if test="item.htt!=null">
+                    htt=#{item.htt},
+                </if>
+                <if test="item.dodge!=null">
+                    dodge=#{item.dodge},
+                </if>
+                <if test="item.afb!=null">
+                    afb=#{item.afb},
+                </if>
+
+                <if test="item.combo!=null">
+                    combo=#{item.combo},
+                </if>
+                <if test="item.leech!=null">
+                    leech=#{item.leech},
+                </if>
+                <if test="item.quality!=null">
+                    quality=#{item.quality},
+                </if>
+                <if test="item.power!=null">
+                    power=#{item.power},
+                </if>
+                <if test="item.isFight!=null">
+                    is_fight=#{item.isFight},
+                </if>
+                <if test="item.star!=null">
+                    star=#{item.star},
+                </if>
+                <if test="item.maxStar!=null">
+                    max_star=#{item.maxStar},
+                </if>
+                <if test="item.equA!=null">
+                    equ_A=#{item.equA},
+                </if>
+                <if test="item.equB!=null">
+                    equ_B=#{item.equB},
+                </if>
+                <if test="item.equC!=null">
+                    equ_C=#{item.equC},
+                </if>
+                <if test="item.equD!=null">
+                    equ_D=#{item.equD},
+                </if>
+                <if test="item.artifactId!=null">
+                    artifact_id=#{item.artifactId},
+                </if>
+                <if test="item.petId!=null">
+                    pet_ID=#{item.petId},
+                </if>
+            </set>
+            where id=#{item.id}
+        </foreach>
+    </update>
+
+    <delete id="deleteCard" >
+        delete  from ${tableName} where user_id=#{userId} and id in
+        <foreach collection="ids" index="index" item="item" open="(" separator="," close=")">
+            #{item}
+        </foreach>
+    </delete>
+
+    <select id="findOne" resultType="PlayerCard">
+        select *
+        from ${tableName}
+        where user_id = #{userId}
+          and card_id = #{cardId}
+    </select>
+
+    <select id="findByCardIds" resultType="PlayerCard">
+        select * from ${tableName} where user_id=#{userId} and `status`=1 and id in
+        <foreach collection="ids" index="index" item="item" open="(" separator="," close=")">
+            #{item}
+        </foreach>
+    </select>
+
+
+    <select id="findAll" resultType="PlayerCard">
+        select *
+        from ${tableName} where status=1
+    </select>
+
+    <select id="findByUserId" resultType="PlayerCard">
+        select *
+        from ${tableName}
+        where user_id = #{userId} and status=1
+    </select>
+    <select id="findByUserIdAndIsFight" resultType="PlayerCard">
+        select *
+        from ${tableName}
+        where user_id = #{userId}
+          and is_fight = 1 and status=1
+    </select>
+
+
+
+
+
+
+
+    <sql id="conditions">
+        <if test="userId != null">
+            and user_id=#{userId}
+        </if>
+    </sql>
+
+    <select id="countByConditions" resultType="Long">
+        select count(1) from ${tableName}
+        <where>
+            <include refid="conditions"></include>
+        </where>
+    </select>
+
+    <select id="findByConditions" resultType="PlayerCard">
+        select * from ${tableName}
+        <where>
+            <include refid="conditions"></include>
+        </where>
+
+        ORDER BY create_time asc
+        <if test="start != null and limit != null">
+            limit #{start}, #{limit}
+        </if>
+    </select>
+
+
+    <update id="addV4PlayerMp" parameterType="PlayerCard">
+        update ${tableName}
+        set mp=mp + 100
+        where user_id in (select id from t_user where vip_lv = 4)
+    </update>
+
+
+</mapper>

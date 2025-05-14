@@ -1,0 +1,99 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.zywl.app.defaultx.mapper.ApplyForMapper">
+
+   <insert id="insert" parameterType="ApplyFor" useGeneratedKeys="true" keyProperty="id" keyColumn="id">
+		insert into t_apply_for
+		(
+               `user_id`,
+               `income`,
+               `sill`,
+               `status`,
+               `create_time`,
+               `update_time`,
+               `create_admin`
+
+               
+		)
+		values
+		(
+               #{userId},
+               #{income},
+               #{sill},
+               #{status},
+               #{createTime},
+               #{updateTime},
+               #{createAdmin}
+		)
+	</insert>
+
+    <sql id="conditions">
+        <if test="userId != null">
+            and user_id=#{userId}
+        </if>
+        <if test="income != null">
+            and income=#{income}
+        </if>
+        <if test="sill != null">
+            and sill=#{sill}
+        </if>
+
+        <if test="status != null">
+            and status=#{status}
+        </if>
+
+        <if test="createAdmin !=null">
+            and create_admin=#{createAdmin}
+        </if>
+    </sql>
+
+    <select id="findOne" resultType="ApplyFor">
+        select * from t_apply_for
+        <where>
+            <include refid="conditions"></include>
+        </where>
+    </select>
+
+	<select id="findAll" resultType="ApplyFor">
+	    select * from t_apply_for
+	</select>
+
+    <select id="findByUserId" resultType="ApplyFor">
+        select * from t_apply_for where user_id = #{userId}
+    </select>
+
+    <select id="countByConditions" resultType="Long">
+        select count(1) from t_apply_for
+        <where>
+            <include refid="conditions"></include>
+        </where>
+    </select>
+
+    <select id="findByConditions" resultType="ApplyFor">
+        select id,user_id,income,sill,status,create_time,update_time,create_admin from t_apply_for
+        <where>
+            <include refid="conditions"></include>
+        </where>
+
+        ORDER BY create_time desc
+        <if test="start != null and limit != null">
+            limit #{start}, #{limit}
+        </if>
+    </select>
+
+    <select id="findByStatus" resultType="ApplyFor">
+        select id,user_id,income,sill,status,create_time,update_time,create_admin from t_apply_for where status = #{status}
+        ORDER BY create_time desc
+        <if test="start != null and limit != null">
+            limit #{start}, #{limit}
+        </if>
+    </select>
+	
+    <update id="pass" parameterType="ApplyFor">
+        UPDATE `t_apply_for` SET `status`=#{status} WHERE user_id=#{userId}
+    </update>
+
+
+	
+
+</mapper>

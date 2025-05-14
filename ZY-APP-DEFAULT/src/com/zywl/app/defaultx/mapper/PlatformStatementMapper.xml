@@ -1,0 +1,170 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.zywl.app.defaultx.mapper.PlatformStatementMapper">
+
+
+    <select id="queryObject" resultType="PlatformStatement">
+        select *
+        from t_platform_statement
+        where id = #{value}
+    </select>
+
+    <select id="queryList" resultType="PlatformStatement">
+        select * from t_platform_statement
+        <choose>
+            <when test="sidx != null and sidx.trim() != ''">
+                order by ${sidx} ${order}
+            </when>
+            <otherwise>
+                order by id desc
+            </otherwise>
+        </choose>
+        <if test="offset != null and limit != null">
+            limit #{offset}, #{limit}
+        </if>
+    </select>
+
+    <select id="queryTotal" resultType="int">
+        select count(*)
+        from t_platform_statement
+    </select>
+
+    <insert id="insert" parameterType="PlatformStatement" useGeneratedKeys="true" keyProperty="id" keyColumn="id">
+        insert into t_platform_statement
+        (`ymd`
+         )
+        values (#{ymd}
+                )
+    </insert>
+
+    <update id="update" parameterType="java.util.Map">
+        update t_platform_statement
+        <set>
+
+            <if test="subPrize != null">`sub_prize` = sub_prize+#{subPrize},</if>
+            <if test="subSendMail != null">`sub_send_mail` =sub_send_mail+ #{subSendMail},</if>
+            <if test="subMailFee != null">`sub_mail_fee` =sub_mail_fee+ #{subMailFee},</if>
+            <if test="subTradingBuy != null">`sub_trading_buy` =sub_trading_buy+ #{subTradingBuy},</if>
+            <if test="subAskBuy != null">`sub_ask_buy` =sub_ask_buy+ #{subAskBuy},</if>
+            <if test="subGameBetDts != null">`sub_game_bet_dts` =sub_game_bet_dts+ #{subGameBetDts},</if>
+            <if test="subGameBetFood != null">`sub_game_bet_food` =sub_game_bet_food+ #{subGameBetFood},</if>
+            <if test="subSign != null">`sub_sign` = sub_sign+#{subSign},</if>
+            <if test="subRefineSpeed != null">`sub_refine_speed` =sub_refine_speed+ #{subRefineSpeed},</if>
+            <if test="subPet != null">`sub_pet` = sub_pet+#{subPet},</if>
+            <if test="subStudySkill != null">`sub_study_skill` = sub_study_skill+#{subStudySkill},</if>
+            <if test="subShop != null">`sub_shop` =sub_shop+ #{subShop},</if>
+            <if test="subGuild != null">`sub_guild` = sub_guild+#{subGuild},</if>
+            <if test="subCash != null">`sub_cash` =sub_cash+ #{subCash},</if>
+            <if test="subBuyCoin != null">`sub_buy_coin` =sub_buy_coin+ #{subBuyCoin},</if>
+            <if test="subExchange != null">`sub_exchange` =sub_exchange+ #{subExchange},</if>
+            <if test="subConvert != null">`sub_convert` =sub_convert+ #{subConvert},</if>
+            <if test="subC3ConvertRmb != null">`sub_c3_convert_rmb` =sub_c3_convert_rmb+ #{subC3ConvertRmb},</if>
+            <if test="subNs != null">`sub_ns` =sub_ns+ #{subNs},</if>
+            <if test="subNh != null">`sub_nh` =sub_nh+ #{subNh},</if>
+            <if test="subMagic != null">`sub_magic` =sub_magic+ #{subMagic},</if>
+            <if test="subDzGame != null">`sub_dz_game` =sub_dz_game+ #{subDzGame},</if>
+            <if test="subRedGame != null">`sub_red_game` =sub_red_game+ #{subRedGame},</if>
+            <if test="addMagic != null">`add_magic` =add_magic+ #{addMagic},</if>
+            <if test="subDts2 != null">`sub_dts2` =sub_dts2+ #{subDts2},</if>
+            <if test="subCq != null">`sub_cq` =sub_cq+ #{subCq},</if>
+            <if test="addCq != null">`add_cq` =add_cq+ #{addCq},</if>
+            <if test="addDtsRebate != null">`add_dts_rebate` =add_dts_rebate+ #{addDtsRebate},</if>
+            <if test="addDts2 != null">`add_dts2` =add_dts2+ #{addDts2},</if>
+            <if test="addNh != null">`add_nh` =add_nh+ #{addNh},</if>
+            <if test="addNs != null">`add_ns` =add_ns+ #{addNs},</if>
+            <if test="addPirze != null">`add_pirze` =add_pirze+ #{addPirze},</if>
+            <if test="addSign != null">`add_sign` =add_sign+ #{addSign},</if>
+            <if test="addSell != null">`add_sell` = add_sell+#{addSell},</if>
+            <if test="addCancelAskBuy != null">`add_cancel_ask_buy` = add_cancel_ask_buy+#{addCancelAskBuy},</if>
+            <if test="addCashFail != null">`add_cash_fail` =add_cash_fail+ #{addCashFail},</if>
+            <if test="addReceiveIncome != null">`add_receive_income` =add_receive_income+ #{addReceiveIncome},</if>
+            <if test="addReceiveMail != null">`add_receive_mail` =add_receive_mail+ #{addReceiveMail},</if>
+            <if test="addGameWinDts != null">`add_game_win_dts` =add_game_win_dts+ #{addGameWinDts},</if>
+            <if test="addGameWinFood != null">`add_game_win_food` =add_game_win_food+ #{addGameWinFood},</if>
+            <if test="addSellSysMagic != null">`add_sell_sys_magic` =add_sell_sys_magic+ #{addSellSysMagic},</if>
+            <if test="addSellSys != null">`add_sell_sys` =add_sell_sys+ #{addSellSys},</if>
+            <if test="addSellSys2 != null">`add_sell_sys2` =add_sell_sys2+ #{addSellSys2},</if>
+            <if test="addSellSys3 != null">`add_sell_sys3` =add_sell_sys3+ #{addSellSys3},</if>
+            <if test="addInvite != null">`add_invite` =add_invite+ #{addInvite},</if>
+            <if test="addGuildSend != null">`add_guild_send` =add_guild_send+ #{addGuildSend}</if>
+            <if test="addAchievement != null">`add_achievement` =add_achievement+ #{addAchievement}</if>
+            <if test="addConvert != null">`add_convert` =add_convert+ #{addConvert}</if>
+            <if test="addC3ConvertRmb != null">`add_c3_convert_rmb` =add_c3_convert_rmb+ #{addC3ConvertRmb},</if>
+            <if test="addFriendPlayGame != null">`add_friend_play_game` =add_friend_play_game+ #{addFriendPlayGame},</if>
+            <if test="addPlayGame != null">`add_play_game` =add_play_game+ #{addPlayGame},</if>
+            <if test="addDzGame != null">`add_dz_game` =add_dz_game+ #{addDzGame},</if>
+            <if test="addRedGame != null">`add_red_game` =add_red_game+ #{addRedGame},</if>
+            <if test="addDailyTask != null">`add_daily_task` =add_daily_task+ #{addDailyTask},</if>
+            <if test="subCreateXm != null">`sub_create_xm` =sub_create_xm+ #{subCreateXm},</if>
+            <if test="subContribution != null">`sub_contribution` =sub_contribution+ #{subContribution},</if>
+            <if test="subBuyHead != null">`sub_buy_head` =sub_buy_head+ #{subBuyHead},</if>
+            <if test="subUpdateName != null">`sub_update_name` =sub_update_name+ #{subUpdateName},</if>
+            <if test="addAncientC2 != null">`add_ancient_c2` =add_ancient_c2+ #{addAncientC2},</if>
+            <if test="addAncientC5 != null">`add_ancient_c5` =add_ancient_c5+ #{addAncientC5},</if>
+            <if test="subJoinAncient != null">`sub_join_ancient` =sub_join_ancient+ #{subJoinAncient},</if>
+            <if test="subRefresh != null">`sub_refresh` =sub_refresh+ #{subRefresh},</if>
+            <if test="addXmReward != null">`add_xm_reward` =add_xm_reward+ #{addXmReward},</if>
+            <if test="addCave != null">`add_cave` =add_cave+ #{addCave},</if>
+            <if test="subAddFlag != null">`sub_add_flag` =sub_add_flag+ #{subAddFlag},</if>
+            <if test="addBt != null">`add_bt` =add_bt+ #{addBt},</if>
+            <if test="subBt != null">`sub_bt` =sub_bt+ #{subBt},</if>
+            <if test="subTicket != null">`sub_ticket` =sub_ticket+ #{subTicket},</if>
+            <if test="subShopMagic != null">`sub_shop_magic` =sub_shop_magic+ #{subShopMagic},</if>
+            <if test="addReceivePop != null">`add_receive_pop` =add_receive_pop+ #{addReceivePop},</if>
+            <if test="subSendGreetingCard != null">`sub_send_greeting_card` =sub_send_greeting_card+ #{subSendGreetingCard},</if>
+            <if test="addReceiveAchievement != null">`add_receive_achievement` =add_receive_achievement+ #{addReceiveAchievement},</if>
+            <if test="addFromItem != null">`add_from_item` =add_from_item+ #{addFromItem},</if>
+            <if test="addDispatch != null">`add_dispatch` =add_dispatch+ #{addDispatch},</if>
+            <if test="addWander != null">`add_wander` =add_wander+ #{addWander},</if>
+            <if test="addDice != null">`add_dice` =add_dice+ #{addDice},</if>
+            <if test="subGift != null">`sub_gift` =sub_gift+ #{subGift},</if>
+            <if test="subVip != null">`sub_vip` =sub_vip+ #{subVip},</if>
+            <if test="subAfk != null">`sub_afk` =sub_afk+ #{subAfk},</if>
+            <if test="subGameEscort != null">`sub_game_escort` =sub_game_escort+ #{subGameEscort},</if>
+            <if test="addGameEscort != null">`add_game_escort` =add_game_escort+ #{addGameEscort},</if>
+            <if test="subBuyPass != null">`sub_buy_pass` =sub_buy_pass+ #{subBuyPass},</if>
+            <if test="addFriendBuy != null">`add_friend_buy` =add_friend_buy+ #{addFriendBuy},</if>
+            <if test="addPetBuy != null">`add_pet_buy` =add_pet_buy+ #{addPetBuy},</if>
+            <if test="addAnima != null">`add_anima` =add_anima+ #{addAnima},</if>
+            <if test="subMine != null">`sub_mine` =sub_mine+ #{subMine},</if>
+            <if test="subXhmj != null">`sub_xhmj` =sub_xhmj+ #{subXhmj},</if>
+            <if test="addXhmj != null">`add_xhmj` =add_xhmj+ #{addXhmj},</if>
+        </set>
+        where ymd = #{ymd}
+    </update>
+
+
+
+    <delete id="delete">
+        delete
+        from t_platform_statement
+        where id = #{value}
+    </delete>
+
+    <delete id="deleteBatch">
+        delete from t_platform_statement where id in
+        <foreach item="id" collection="array" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </delete>
+
+    <select id="findByYmd" resultType="PlatformStatement">
+        select *
+        from t_platform_statement where ymd=#{ymd}
+    </select>
+
+    <select id="findAll" resultType="PlatformStatement">
+        select *
+        from t_platform_statement
+    </select>
+
+
+    <select id="findByPage" resultType="PlatformStatement">
+        select *
+        from t_platform_statement order by id desc limit #{start},#{limit}
+    </select>
+
+
+
+</mapper>

@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.zywl.app.defaultx.mapper.ShoppingRecordMapper">
+
+   <insert id="insert" parameterType="ShoppingRecord" useGeneratedKeys="true" keyProperty="id" keyColumn="id">
+		insert into r_shopping_record
+		(
+               `user_id`,
+               `item_id`,
+		 		`shop_type`,
+               `number`,
+               `amount`,
+		 		`capital_type`,
+               `order_no`,
+               `create_time`
+               
+               
+		)
+		values
+		(
+               #{userId},
+               #{itemId},
+		 		#{shopType},
+               #{number},
+               #{amount},
+		 		#{capitalType},
+               #{orderNo},
+               #{createTime}
+		)
+	</insert>
+	
+	
+	
+	<select id="findAll" resultType="ShoppingRecord">
+	    select * from r_shopping_record
+	</select>
+	
+	<select id="findByUserId" resultType="ShoppingRecord">
+	    select * from r_shopping_record where user_id = #{userId}
+	</select>
+   	
+   	
+   	<select id="findByItemId" resultType="ShoppingRecord">
+	    select * from r_shopping_record where item_id = #{itemId}
+	</select>	
+   	
+	
+	
+	
+
+</mapper>

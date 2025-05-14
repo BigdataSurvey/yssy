@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.zywl.app.defaultx.mapper.UserMailMapper">
+
+   <insert id="insert" parameterType="UserMail" useGeneratedKeys="true" keyProperty="id" keyColumn="id">
+		insert into t_user_mail
+		(
+               `user_id`,
+               `read_mail_list`,
+		 		`delete_mail_list`
+               
+		)
+		values
+		(
+               #{userId},
+               #{readMailList},
+		 		#{deleteMailList}
+               
+        
+		)
+	</insert>
+	
+	<update id="updateUserReadMailList" parameterType="UserMail">
+		update t_user_mail set read_mail_list = #{readMailList}  where  user_id= #{userId}             
+	</update>
+	
+	<select id="findByUserId" resultType="UserMail">
+	    select * from t_user_mail where user_id = #{userId}
+	</select>
+
+
+	<update id="updateUserDeleteMailList" parameterType="UserMail">
+		update t_user_mail set delete_mail_list = read_mail_list  where  user_id= #{userId}
+	</update>
+	
+	
+</mapper>

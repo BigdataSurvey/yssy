@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.zywl.app.defaultx.mapper.DuoYouOrderMapper">
+
+   <insert id="insert" parameterType="DuoYouOrder" useGeneratedKeys="true" keyProperty="id" keyColumn="id">
+		insert into t_duoyou_order
+		(
+               `user_id`,
+               `order_id`,
+               `advert_name`,
+               `advert_id`,
+               `created`,
+               `media_income`,
+               `member_income`,
+		        `media_id`,
+		        `device_id`,
+		        `content`
+               
+               
+		)
+		values
+		(
+               #{userId},
+               #{orderId},
+               #{advertName},
+               #{advertId},
+               #{created},
+               #{mediaIncome},
+               #{memberIncome},
+		      #{mediaId},
+		        #{deviceId},
+		        #{content}
+		)
+	</insert>
+	
+	
+	
+	<select id="findAll" resultType="DuoYouOrder">
+	    select * from t_duoyou_order
+	</select>
+
+
+	<select id="getOrderByID" resultType="DuoYouOrder">
+		select * from t_duoyou_order where order_id =#{orderId}
+	</select>
+   	
+	
+	
+	
+
+</mapper>

@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.zywl.app.defaultx.mapper.SignRewardMapper">
+
+   <insert id="insert" parameterType="SignReward" useGeneratedKeys="true" keyProperty="id" keyColumn="id">
+		insert into t_sign_reward
+		(
+               `month`,
+               `days`,
+               `context`,
+               `total_reward`
+               
+		)
+		values
+		(
+               #{month},
+               #{days},
+               #{context},
+               #{totalReward}
+        
+		)
+	</insert>
+	
+	<update id="updateReward" parameterType="SignReward">
+		update t_sign_reward context = #{context} where month=#{month}
+	</update>
+	
+	<select id="findAll" resultType="SignReward">
+	    select * from t_sign_reward
+	</select>
+	
+</mapper>

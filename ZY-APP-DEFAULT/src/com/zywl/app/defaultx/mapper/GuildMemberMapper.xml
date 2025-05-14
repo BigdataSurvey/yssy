@@ -1,0 +1,107 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.zywl.app.defaultx.mapper.GuildMemberMapper">
+
+   <insert id="insert" parameterType="GuildMember" useGeneratedKeys="true" keyProperty="id" keyColumn="id">
+		insert into t_guild_member
+		(
+               `user_id`,
+               `guild_id`,
+               `profit_rate`,
+               `profit_balance`,
+               `role_id`,
+               `create_user_id`,
+               `bail_amount`,
+		       `remark`,
+		       `status`,
+		       `create_time`
+               
+               
+		)
+		values
+		(
+               #{userId},
+               #{guildId},
+               #{profitRate},
+               #{profitBalance},
+               #{roleId},
+               #{createUserId},
+		        #{bailAmount},
+		       #{remark},
+		       #{status},
+		       #{createTime}
+		)
+	</insert>
+
+	<sql id="conditions">
+		<if test="id != null">
+			and id=#{id}
+		</if>
+		<if test="userId != null">
+			and user_id=#{userId}
+		</if>
+		<if test="guildId != null">
+			and guild_id=#{guildId}
+		</if>
+		<if test="status != null">
+			and status=#{status}
+		</if>
+	</sql>
+
+	<select id="countByConditions" resultType="Long">
+		select count(1) from t_guild_member
+		<where>
+			<include refid="conditions"></include>
+		</where>
+	</select>
+
+	<select id="findByConditions" resultType="GuildMember">
+		select * from t_guild_member
+		<where>
+			<include refid="conditions"></include>
+		</where>
+
+		ORDER BY create_time desc
+		<if test="start != null and limit != null">
+			limit #{start}, #{limit}
+		</if>
+	</select>
+	
+	<select id="findAll" resultType="GuildMember">
+	    select * from t_guild_member
+	</select>
+
+	<select id="findByGuildId" resultType="GuildMember">
+		select * from t_guild_member where guild_id = #{guildId} and status =1
+	</select>
+
+	<select id="findByUserId" resultType="GuildMember">
+		select * from t_guild_member where user_id = #{userId} and status =1
+	</select>
+
+
+	<select id="findAllByUserId" resultType="GuildMember">
+		select * from t_guild_member where guild_id =(select guild_id from t_guild_member where user_id=#{userId})
+	</select>
+
+	<select id="findByGuildIdAndUserId" resultType="GuildMember">
+		select * from t_guild_member where guild_id = #{guildId} and status =1 and user_id=#{userId}
+	</select>
+
+	<update id="receiveProfitBalance" parameterType="GuildMember">
+		update t_guild_member set profit_balance = 0  where guild_id = #{guildId} and user_id = #{userId}
+	</update>
+
+	<update id="addProfitBalance" parameterType="GuildMember">
+		update t_guild_member set profit_balance =profit_balance+#{amount}  where  user_id = #{userId}
+	</update>
+
+
+	<update id="updateRate" parameterType="GuildMember">
+		update t_guild_member set profit_rate =#{profitRate}  where  user_id = #{userId}
+	</update>
+
+	<delete id="delete">
+		delete from t_guild_member where id= #{id}
+	</delete>
+</mapper>

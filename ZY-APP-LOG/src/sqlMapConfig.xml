@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE configuration PUBLIC "-//mybatis.org//DTD Config 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-config.dtd">
+<configuration>
+
+	<settings>
+		<setting name="cacheEnabled" value="true" />
+
+		<setting name="useGeneratedKeys" value="true" />
+
+		<setting name="defaultExecutorType" value="REUSE" />
+
+		<setting name="lazyLoadingEnabled" value="true" />
+
+		<setting name="defaultStatementTimeout" value="10000" />
+
+		<setting name="logImpl" value="LOG4J" />
+
+		<setting name="mapUnderscoreToCamelCase" value="true" />
+
+	</settings>
+
+	<typeAliases>
+		<package name="com.zywl.app.base.bean" />
+	</typeAliases>
+	<typeHandlers>
+		<typeHandler handler="com.zywl.app.defaultx.util.JSONArrayTypeHandler" javaType="com.alibaba.fastjson2.JSONArray" />
+		<typeHandler handler="com.zywl.app.defaultx.util.JSONObjectTypeHandler" javaType="com.alibaba.fastjson2.JSONObject" />
+	</typeHandlers>
+	<plugins>
+		<plugin interceptor="com.zywl.app.defaultx.dbutil.PaginationInterceptor">
+			<property name="dialect" value="MYSQL" />
+			<property name="stmtIdRegex" value="*.findPage*" />
+		</plugin>
+	</plugins>
+</configuration>

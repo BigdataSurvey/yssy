@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.zywl.app.defaultx.mapper.UserPowerMapper">
+
+   <insert id="insert" parameterType="UserPower" useGeneratedKeys="true" keyProperty="id" keyColumn="id">
+		insert into t_user_power
+		(
+               `user_id`,
+               `power`
+
+               
+               
+		)
+		values
+		(
+               #{userId},
+               #{power}
+
+		)
+	</insert>
+	
+	
+	
+	<select id="findAll" resultType="UserPower">
+	    select * from t_user_power
+	</select>
+
+    <select id="findByUserId" resultType="UserPower">
+        select * from t_user_power where user_id = #{userId}
+    </select>
+
+    <update id="addPower" parameterType="UserPower">
+        update t_user_power set power=power+#{power} where user_id = #{userId}
+    </update>
+
+
+    <select id="findTop" resultType="UserPowerVo">
+        select t1.power power,t1.user_id userId,t2.user_no userNo,t2.role_id as roleId,t2.`name` as userName ,t2.head_image_url userHeadImg from t_user_power t1,t_user t2  where t1.user_id=t2.id order by power desc limit 0,50
+    </select>
+
+
+    <select id="findAllHasPower" resultType="UserPower">
+        select * from t_user_power where power>0 order by power desc
+    </select>
+
+    <insert id="updateOrSavePower" parameterType="UserPower">
+        INSERT INTO t_user_power(`user_id`, `power`)
+        VALUES (#{userId}, #{power}) ON DUPLICATE KEY
+        UPDATE power = #{power};
+    </insert>
+
+
+</mapper>

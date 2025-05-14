@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.zywl.app.defaultx.mapper.PrizeDrawRecordMapper">
+
+   <insert id="insert" parameterType="PrizeDrawRecord" useGeneratedKeys="true" keyProperty="id" keyColumn="id">
+		insert into r_prize_draw_record
+		(
+				`user_id`,
+               `order_no`,
+               `draw_ids`,
+               `reward`,
+               `create_time`
+               
+		)
+		values
+		(
+				#{userId},
+			   #{orderNo},
+               
+               #{drawIds},
+               #{reward},
+               #{createTime}
+        
+		)
+	</insert>
+	
+	
+	
+	
+	
+	<select id="findByUserId" resultType="PrizeDrawRecord">
+	    select * from r_prize_draw_record where user_id = #{userId} 
+	</select>
+	
+	<select id="findAll" resultType="PrizeDrawRecord">
+	    select * from r_prize_draw_record
+	</select>
+	
+</mapper>

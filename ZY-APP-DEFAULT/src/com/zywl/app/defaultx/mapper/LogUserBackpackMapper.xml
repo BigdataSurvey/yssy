@@ -1,0 +1,112 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.zywl.app.defaultx.mapper.LogUserBackpackMapper">
+
+   <insert id="insert" parameterType="LogUserBackpack" useGeneratedKeys="true" keyProperty="id" keyColumn="id">
+		insert into ${tableName}
+		(
+               
+               `user_id`,
+               `item_id`,
+               `number_before`,
+               `number`,
+               `number_after`,
+               `mark`,
+               `type`,
+               `create_time`,
+               `update_time`
+               
+		)
+		values
+		(
+               #{userId},
+               #{itemId},
+               #{numberBefore},
+               #{number},
+               #{numberAfter},
+               #{mark},
+               #{type},
+               #{createTime},
+               #{updateTime}
+		)
+	</insert>
+	
+	
+	
+	<select id="findAll" resultType="LogUserBackpack">
+	    select * from t_user
+	</select>
+	
+	<sql id="conditions">
+	<if test="userId != null">
+   		 and user_id=#{userId}
+   		</if>
+   		
+		<if test="itemId != null">
+		 and item_id=#{itemId}
+		</if>
+		<if test="mark != null">
+		 and mark=#{mark}
+		</if>
+		<if test="type != null">
+			and type=#{type}
+		</if>
+    	<if test="startDate != null">
+    	 AND create_time <![CDATA[ >= ]]> #{startDate}
+    	</if>
+    	<if test="endDate != null">
+    	 AND create_time <![CDATA[ <= ]]> #{endDate}
+    	</if>
+	</sql>
+	
+	<select id="countByConditions" resultType="Long">
+		select count(1) from ${tableName}
+		<where>
+			<include refid="conditions"></include>
+		</where>
+	</select>
+	
+	<select id="findByConditions" resultType="LogUserBackpack">
+	    select * from ${tableName} 
+	    <where>
+	    	<include refid="conditions"></include>
+	    </where>
+	    
+		ORDER BY create_time desc 
+		<if test="start != null and limit != null">
+	   	 limit #{start}, #{limit} 
+	   	</if>
+	</select>
+
+
+	<select id="dbCountByConditions" resultType="Long">
+		select count(1) from `kapai-log`.${tableName}
+		<where>
+			<include refid="conditions"></include>
+		</where>
+	</select>
+
+	<select id="findLQG" resultType="LogUserBackpack">
+		select * from `kapai-log`.${tableName}
+		<where>
+			<include refid="conditions"></include>
+		</where>
+	</select>
+
+	<select id="dbFindByConditions" resultType="LogUserBackpack">
+		select * from `kapai-log`.${tableName}
+		<where>
+			<include refid="conditions"></include>
+		</where>
+
+		ORDER BY create_time desc
+		<if test="start != null and limit != null">
+			limit #{start}, #{limit}
+		</if>
+	</select>
+
+	<delete id="delete">
+		delete from ${tableName}  where  create_time&lt;#{time}
+	</delete>
+	
+</mapper>

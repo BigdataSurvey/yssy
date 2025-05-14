@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.zywl.app.defaultx.mapper.GuildGrantRecordMapper">
+
+   <insert id="insert" parameterType="GuildGrantRecord" useGeneratedKeys="true" keyProperty="id" keyColumn="id">
+		insert into r_guild_grant_record
+		(
+               `guild_id`,
+               `order_no`,
+               `user_id`,
+		 	   `user_no`,
+               `operator_user_id`,
+               `all_amount`,
+               `rate`,
+               `member_amount`,
+		       `leader_amount`,
+		       `create_time`
+               
+               
+		)
+		values
+		(
+               #{guildId},
+               #{orderNo},
+		       #{userId},
+		 	   #{userNo},
+               #{operatorUserId},
+               #{allAmount},
+               #{rate},
+               #{memberAmount},
+		        #{leaderAmount},
+		       #{createTime}
+		)
+	</insert>
+	
+	
+	
+	<select id="findAll" resultType="GuildGrantRecord">
+	    select * from r_guild_grant_record
+	</select>
+
+
+	<select id="findByUserId" resultType="GuildGrantRecord">
+		select * from r_guild_grant_record where user_id = #{userId} order by id desc
+		<if test="start != null and limit != null">
+			limit #{start}, #{limit}
+		</if>
+	</select>
+
+
+	<select id="findByOperatorUserId" resultType="GuildGrantRecord">
+		select * from r_guild_grant_record where operator_user_id = #{userId} order by id desc
+		<if test="start != null and limit != null">
+			limit #{start}, #{limit}
+		</if>
+	</select>
+	
+
+</mapper>

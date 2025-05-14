@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.zywl.app.defaultx.mapper.RefreshShopRecordMapper">
+
+   <insert id="insert" parameterType="RefreshShopRecord" useGeneratedKeys="true" keyProperty="id" keyColumn="id">
+		insert into r_refresh_shop_record
+		(
+               `user_id`,
+                `order_no`,
+                `shop_type`,
+             	`create_time`
+		)
+		values
+		(
+               #{userId},
+               #{orderNo},
+              #{shopType},
+               #{createTime}
+             
+             
+             
+		)
+	</insert>
+	
+	
+
+
+</mapper>

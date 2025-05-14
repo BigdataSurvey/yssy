@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.zywl.app.defaultx.mapper.ConvertIncomeRecordMapper">
+
+   <insert id="insert" parameterType="ConvertIncomeRecord" useGeneratedKeys="true" keyProperty="id" keyColumn="id">
+		insert into r_convert_income_record
+		(
+               `user_id`,
+               `order_no`,
+               `before_income`,
+               `after_income`,
+               `amount`,
+               `create_time`
+
+               
+		)
+		values
+		(
+               #{userId},
+               #{orderNo},
+               #{beforeIncome},
+               #{afterIncome},
+               #{amount},
+               #{createTime}
+		)
+	</insert>
+	
+	
+	
+	<select id="findAll" resultType="ConvertIncomeRecord">
+	    select * from r_convert_income
+	</select>
+	
+	
+   		
+   	
+	
+	
+	
+
+</mapper>

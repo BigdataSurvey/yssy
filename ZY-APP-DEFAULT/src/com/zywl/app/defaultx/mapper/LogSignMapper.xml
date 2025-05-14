@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.zywl.app.defaultx.mapper.LogSignMapper">
+
+   <insert id="insert" parameterType="LogSign" useGeneratedKeys="true" keyProperty="id" keyColumn="id">
+		insert into log_sign
+		(
+               `user_id`,
+               `sign_context`,
+               `create_time`,
+               `type`,
+               `patch_days`
+               
+		)
+		values
+		(
+               #{userId},
+               #{signContext},
+               #{createTime},
+               #{type},
+               #{patchDays}
+        
+		)
+	</insert>
+	
+	
+	
+	<select id="findUserSignLog" resultType="LogSign">
+	    select * from log_sign where user_id = #{userId} and create_time &gt; #{createTime}
+	</select>
+	
+	
+	<select id="findAll" resultType="LogSign">
+	    select * from log_sign
+	</select>
+	
+</mapper>

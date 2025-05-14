@@ -1,0 +1,124 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.zywl.app.defaultx.mapper.ItemMapper">
+
+   <insert id="insert" parameterType="Item" useGeneratedKeys="true" keyProperty="id" keyColumn="id">
+		insert into dic_item
+		(
+               `name`,
+               `number`,
+               `context`,
+               `quality`,
+               `is_overlap`,
+               `is_sell`,
+               `currency_type`,
+               `price`,
+               `trad_price`,
+               `type`,
+               `is_trading`,
+               `is_duration`,
+               `duration_days`,
+               `position`,
+               `icon`,
+               `status`,
+             	`create_time`,
+				`update_time`,
+				`get_way`            
+		)
+		values
+		(
+               #{name},
+               #{number},
+               #{context},
+               #{quality},
+               #{isOverlap},
+               #{isSell},
+               #{currencyType},
+               #{price},
+               #{tradPrice},
+               #{name},
+               #{type},
+               #{isTrading},
+               #{isDuration},
+               #{durationDays},
+               #{position},
+               #{icon},
+               #{status},
+               #{createTime},
+               #{updateTime},
+               #{getWay}
+             
+             
+		)
+	</insert>
+	
+	<update id="update" parameterType="Item">
+		update dic_item
+		<set >
+			<if test="itemName != null">
+			item_name=#{itemName},
+			</if>
+			<if test="number !=null">
+			number=#{number},
+			</if>
+     		<if test="description != null">
+     		description= #{description},
+     		</if>
+     		<if test="type != null">
+     		type=#{type},
+     		</if>
+     		<if test="position != null">
+     		position= #{position},
+     		</if>
+     		<if test="icon != null">
+     		icon=#{icon},
+     		</if>
+     		<if test="status != null">
+     		status= #{status},
+     		</if>
+     		<if test="isTrading != null">
+			is_trading=#{isTrading},
+			</if>
+			
+			<if test="quality != null">
+			quality=#{quality},
+			</if>
+			<if test="isSell != null">
+			is_sell=#{isSell},
+			</if>
+			<if test="isOverlap != null">
+			is_overlap=#{isOverlap},
+			</if>
+			
+			<if test="currencyType != null">
+			currencyType=#{currencyType},
+			</if>
+			<if test="price != null">
+			price=#{price},
+			</if>
+			
+			<if test="isDuration != null">
+			is_duration=#{isDuration},
+			</if>
+			
+			<if test="durationDays != null">
+			duration_days=#{durationDays},
+			</if>
+    	</set>
+		where  id= #{id}             
+	</update>
+	
+	<delete id="delete">
+		delete from dic_item where  id= #{id}               
+	</delete>
+	
+	<select id="findOne" resultType="Item">
+	    select * from dic_item where id = #{id}
+	</select>
+	
+	<select id="findAll" resultType="Item">
+	    select * from dic_item
+	</select>
+	
+	
+</mapper>

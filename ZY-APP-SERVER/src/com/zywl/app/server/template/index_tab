@@ -1,0 +1,33 @@
+﻿[
+	{
+		text_zh_CN:"直播",
+		text_en_US:"Live",
+		type:1,
+		sortType:1
+	},{
+		text_zh_CN:"热门",
+		text_en_US:"Hot",
+		type:2,
+		sortType:1
+	},{
+		text_zh_CN:"收费",
+		text_en_US:"Charge",
+		type:3,
+		sortType:1
+	},{
+		text_zh_CN:"帅哥",
+		text_en_US:"Man",
+		type:4,
+		sortType:1
+	},{
+		text_zh_CN:"关注",
+		text_en_US:"Follow",
+		type:5,
+		sortType:2
+	},{
+		text_zh_CN:"附近",
+		text_en_US:"Nnearby",
+		type:6,
+		sortType:4
+	}
+]

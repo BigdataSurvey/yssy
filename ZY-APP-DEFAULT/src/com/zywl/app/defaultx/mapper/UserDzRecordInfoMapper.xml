@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.zywl.app.defaultx.mapper.UserDzRecordInfoMapper">
+
+	<!--自定义sql实现-->
+	<!--查询所有待清算数据-->
+	<select id="selectList" resultType="UserDzRecordInfo">
+		select * from t_user_dz_record_info where   user_Id = #{userId}
+		<if test="periods != null">
+			and periods = #{periods}
+		</if>
+		order by id
+	</select>
+
+	<!--玩家报名信息录入-->
+	<insert id="insert" parameterType="UserDzRecordInfo" useGeneratedKeys="true" keyProperty="id" keyColumn="id">
+		insert into
+			t_user_dz_record_info(user_Id,periods,dz_money,cu_money,return_money,create_time,update_time)
+		values(
+		       #{userId},#{periods},#{dzMoney},#{cuMoney},#{returnMoney},#{createTime},#{updateTime}
+			  )
+	</insert>
+
+	<update id="update" parameterType="UserDzRecordInfo">
+		update t_user_dz_record_info
+		<set>
+			<if test="dzMoney != null">
+				dz_money = #{dzMoney},
+			</if>
+			<if test="cuMoney != null">
+				cu_money = #{cuMoney},
+			</if>
+			<if test="returnMoney != null">
+				return_money = #{returnMoney}
+			</if>
+
+		</set>
+		where user_Id = #{userId}
+		<if test="periods != null">
+			and periods = #{periods}
+		</if>
+	</update>
+</mapper>

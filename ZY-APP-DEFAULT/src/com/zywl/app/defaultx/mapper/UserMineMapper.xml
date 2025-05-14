@@ -1,0 +1,136 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.zywl.app.defaultx.mapper.UserMineMapper">
+
+
+    <insert id="insert" parameterType="UserMine" useGeneratedKeys="true" keyProperty="id" keyColumn="id">
+        insert into t_user_mine
+        (
+            `user_id`,
+            `mine_id`,
+            `last_mine_time`,
+            `last_output_time`,
+            `all_output`,
+            `output`,
+            `one_reward`,
+            `is_mining`,
+            `min_end_time`,
+            `index`,
+            `count`,
+            `create_time`,
+            `status`
+
+
+
+        )
+        values
+            (
+                #{userId},
+                #{mineId},
+                #{lastMineTime},
+                #{lastOutputTime},
+                #{allOutput},
+                #{output},
+                #{oneReward},
+                #{isMining},
+                #{minEndTime},
+                #{index},
+                #{count},
+                #{createTime},
+                #{status}
+
+
+            )
+    </insert>
+
+    <select id="findAnalysis" resultType="PetAnalysis">
+        select mine_id, `name`, lv, count(1) as number from t_user_mine left JOIN dic_mine on (t_user_mine.mine_id = dic_mine.id) where t_user_mine.`status`=1  group by mine_id
+    </select>
+
+    <select id="findAll" resultType="UserMine">
+        select *
+        from t_user_mine
+    </select>
+
+
+    <select id="findUserMineByUserId" resultType="UserMine">
+        select *
+        from t_user_mine where user_id=#{userId}
+    </select>
+
+    <select id="findByUserIdAndIndex" resultType="UserMine">
+        select *
+        from t_user_mine where user_id=#{userId} and `index`=#{index} order by id desc limit 1
+    </select>
+
+    <update id="updateUserMin" parameterType="UserMine">
+        update t_user_mine
+        <set>
+            <if test="mineId != null">
+                mine_id=#{mineId},
+            </if>
+            <if test="lastMineTime != null">
+                last_mine_time=#{lastMineTime},
+            </if>
+            <if test="lastOutputTime != null">
+                last_output_time=#{lastOutputTime},
+            </if>
+            <if test="output != null">
+                `output`=#{output},
+            </if>
+            <if test="allOutput != null">
+                `all_output`=#{allOutput},
+            </if>
+            <if test="isMining != null">
+                is_mining=#{isMining},
+            </if>
+            <if test="minEndTime != null">
+                min_end_time=#{minEndTime},
+            </if>
+            <if test="count != null">
+                `count`=#{count},
+            </if>
+            <if test="status != null">
+                `status`=#{status},
+            </if>
+        </set>
+        where id=#{id}
+    </update>
+
+
+    <update id="batchUpdateUserMine"  parameterType="java.util.List">
+        <foreach collection="list" item="item" index="index" open="" close="" separator=";">
+            update t_user_mine
+            <set>
+                <if test="item.mineId != null">
+                    mine_id=#{item.mineId},
+                </if>
+                <if test="item.lastMineTime != null">
+                    last_mine_time=#{item.lastMineTime},
+                </if>
+                <if test="item.lastOutputTime != null">
+                    last_output_time=#{item.lastOutputTime},
+                </if>
+                <if test="item.output != null">
+                    `output`=#{item.output},
+                </if>
+                <if test="item.allOutput != null">
+                    `all_output`=#{item.allOutput},
+                </if>
+                <if test="item.isMining != null">
+                    is_mining=#{item.isMining},
+                </if>
+                <if test="item.minEndTime != null">
+                    min_end_time=#{item.minEndTime},
+                </if>
+                <if test="item.count != null">
+                    `count`=#{item.count},
+                </if>
+                <if test="item.status != null">
+                    `status`=#{item.status},
+                </if>
+            </set>
+            where id=#{item.id}
+        </foreach>
+    </update>
+</mapper>

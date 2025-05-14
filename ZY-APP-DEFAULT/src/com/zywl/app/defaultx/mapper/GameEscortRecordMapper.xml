@@ -1,0 +1,121 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.zywl.app.defaultx.mapper.GameEscortRecordMapper">
+
+   <insert id="insert" parameterType="GameEscortRecord" useGeneratedKeys="true" keyProperty="id" keyColumn="id">
+		insert into r_game_escort_record
+		(
+               `user_id`,
+               `game_order`,
+               `amount`,
+                `begin_number`,
+             	`event_1`,
+               `event_result_1`,
+               `event_2`,
+               `event_result_2`,
+               `event_3`,
+               `event_result_3`,
+               `event_4`,
+               `event_result_4`,
+               `event_5`,
+               `event_result_5`,
+               `event_6`,
+               `event_result_6`,
+               `now_number`,
+		        `now_checkpoint`,
+               `get_amount`,
+               `game_status`,
+               `create_time`,
+		        `update_time`
+		)
+		values
+		(
+               #{userId},
+               #{gameOrder},
+                #{amount},
+               #{beginNumber},
+               #{event1},
+               #{eventResult1},
+               #{event2},
+               #{eventResult2},
+               #{event3},
+               #{eventResult3},
+               #{event4},
+               #{eventResult4},
+               #{event5},
+               #{eventResult5},
+               #{event6},
+               #{eventResult6},
+               #{nowNumber},
+               #{nowCheckpoint},
+               #{getAmount},
+               #{gameStatus},
+               #{createTime},
+		        #{updateTime}
+		)
+	</insert>
+
+    <update id="updateGameRecord" parameterType="GameEscortRecord">
+        update r_game_escort_record
+        <set>
+            <if test="event1 != null">
+                 event_1=#{event1},
+            </if>
+            <if test="eventResult1 != null">
+                event_result_1=#{eventResult1},
+            </if>
+            <if test="event2 != null">
+                event_2=#{event2},
+            </if>
+            <if test="eventResult2 != null">
+                event_result_2=#{eventResult2},
+            </if>
+            <if test="event3 != null">
+            event_3=#{event3},
+        </if>
+            <if test="eventResult3 != null">
+                event_result_3=#{eventResult3},
+            </if> <if test="event4 != null">
+            event_4=#{event4},
+        </if>
+            <if test="eventResult4 != null">
+                event_result_4=#{eventResult4},
+            </if> <if test="event5 != null">
+            event_5=#{event5},
+        </if>
+            <if test="eventResult5 != null">
+                event_result_5=#{eventResult5},
+            </if> <if test="event6 != null">
+            event_6=#{event6},
+        </if>
+            <if test="eventResult6 != null">
+                event_result_6=#{eventResult6},
+            </if>
+            <if test="nowNumber != null">
+                now_number=#{nowNumber},
+            </if>
+            <if test="nowCheckpoint != null">
+                now_checkpoint=#{nowCheckpoint},
+            </if>
+            <if test="getAmount != null">
+                get_amount=#{getAmount},
+            </if>
+            <if test="gameStatus != null">
+                game_status=#{gameStatus},
+            </if>
+        </set>
+      where id = #{id}
+    </update>
+
+
+	
+	<select id="findByUserId" resultType="GameEscortRecord">
+        select * from r_game_escort_record where user_id = #{userId}  order by id desc limit 1
+    </select>
+
+
+    <select id="findRecordByUserId" resultType="GameEscortRecordVo">
+        select * from r_game_escort_record where user_id = #{userId} and game_status=0  order by id desc limit 10
+    </select>
+
+</mapper>

@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.zywl.app.defaultx.mapper.AdminMapper">
+
+   
+   <insert id="insert" parameterType="Admin">
+		insert into t_admin
+		(
+               id,
+               username,
+               password,
+               name,
+               photo,
+               roleId,
+               state
+		)
+		values
+		(
+               #{id},
+               #{username},
+               #{password},
+               #{name},
+               #{photo},
+               #{roleId},
+               #{state}
+		)
+	</insert>
+	
+	<update id="update" parameterType="Admin">
+		update t_admin
+		<set >
+     		<if test="username != null">
+     		username= #{username},
+     		</if>
+     		<if test="password != null">
+     		password= #{password},
+     		</if>
+     		<if test="name != null">
+     		name= #{name},
+     		</if>
+     		<if test="photo != null">
+     		photo= #{photo},
+     		</if>
+     		<if test="roleId != null">
+     		roleId= #{roleId},
+     		</if>
+     		<if test="state != null">
+     		state= #{state},
+     		</if>
+    	</set>
+		where  id= #{id}             
+	</update>
+	
+	<delete id="delete">
+		delete from t_admin where  id= #{id} 
+	</delete>
+	
+	<select id="findOne" resultType="Admin">
+	    select * from t_admin where id = #{id}
+	</select>
+	
+	<select id="findAll" resultType="Admin">
+	    select * from t_admin
+	</select>
+	
+	<select id="findByConditions" resultType="Admin">
+	    select * from t_admin 
+	    <where>
+	    	<if test="username != null">
+	    	 and `username` = #{username}
+	    	</if>
+     		<if test="roleId != null">
+     		 and roleId= #{roleId}
+     		</if>
+     		<if test="state != null">
+     		 and state= #{state}
+     		</if>
+	    </where>
+	</select>
+	
+</mapper>

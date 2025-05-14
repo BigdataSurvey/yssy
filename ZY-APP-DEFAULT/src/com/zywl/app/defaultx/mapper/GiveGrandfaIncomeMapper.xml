@@ -1,0 +1,151 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.zywl.app.defaultx.mapper.GiveGrandfaIncomeMapper">
+
+	
+	<select id="queryObject" resultType="GiveGrandfaIncome">
+		select * from dic_give_grandfa_income where id = #{value}
+	</select>
+
+	<select id="queryList" resultType="GiveGrandfaIncome">
+		select * from dic_give_grandfa_income
+        <choose>
+            <when test="sidx != null and sidx.trim() != ''">
+                order by ${sidx} ${order}
+            </when>
+			<otherwise>
+                order by id desc
+			</otherwise>
+        </choose>
+		<if test="offset != null and limit != null">
+			limit #{offset}, #{limit}
+		</if>
+	</select>
+	
+ 	<select id="queryTotal" resultType="int">
+		select count(*) from dic_give_grandfa_income 
+	</select>
+	 
+	<insert id="save" parameterType="GiveGrandfaIncome" useGeneratedKeys="true" keyProperty="id">
+		insert into dic_give_grandfa_income
+		(
+			`a1`, 
+			`a2`, 
+			`a3`, 
+			`a4`, 
+			`a5`, 
+			`a6`, 
+			`a7`, 
+			`a8`, 
+			`a9`, 
+			`a10`, 
+			`a11`, 
+			`a12`, 
+			`a13`, 
+			`a14`, 
+			`a15`, 
+			`a16`, 
+			`a17`, 
+			`a18`, 
+			`a19`, 
+			`a20`, 
+			`a21`, 
+			`a22`, 
+			`a23`, 
+			`a24`, 
+			`a25`, 
+			`a26`, 
+			`a27`, 
+			`a28`, 
+			`a29`, 
+			`a30`
+		)
+		values
+		(
+			#{a1}, 
+			#{a2}, 
+			#{a3}, 
+			#{a4}, 
+			#{a5}, 
+			#{a6}, 
+			#{a7}, 
+			#{a8}, 
+			#{a9}, 
+			#{a10}, 
+			#{a11}, 
+			#{a12}, 
+			#{a13}, 
+			#{a14}, 
+			#{a15}, 
+			#{a16}, 
+			#{a17}, 
+			#{a18}, 
+			#{a19}, 
+			#{a20}, 
+			#{a21}, 
+			#{a22}, 
+			#{a23}, 
+			#{a24}, 
+			#{a25}, 
+			#{a26}, 
+			#{a27}, 
+			#{a28}, 
+			#{a29}, 
+			#{a30}
+		)
+	</insert>
+	 
+	<update id="update" parameterType="GiveGrandfaIncome">
+		update dic_give_grandfa_income 
+		<set>
+			<if test="a1 != null">`a1` = #{a1}, </if>
+			<if test="a2 != null">`a2` = #{a2}, </if>
+			<if test="a3 != null">`a3` = #{a3}, </if>
+			<if test="a4 != null">`a4` = #{a4}, </if>
+			<if test="a5 != null">`a5` = #{a5}, </if>
+			<if test="a6 != null">`a6` = #{a6}, </if>
+			<if test="a7 != null">`a7` = #{a7}, </if>
+			<if test="a8 != null">`a8` = #{a8}, </if>
+			<if test="a9 != null">`a9` = #{a9}, </if>
+			<if test="a10 != null">`a10` = #{a10}, </if>
+			<if test="a11 != null">`a11` = #{a11}, </if>
+			<if test="a12 != null">`a12` = #{a12}, </if>
+			<if test="a13 != null">`a13` = #{a13}, </if>
+			<if test="a14 != null">`a14` = #{a14}, </if>
+			<if test="a15 != null">`a15` = #{a15}, </if>
+			<if test="a16 != null">`a16` = #{a16}, </if>
+			<if test="a17 != null">`a17` = #{a17}, </if>
+			<if test="a18 != null">`a18` = #{a18}, </if>
+			<if test="a19 != null">`a19` = #{a19}, </if>
+			<if test="a20 != null">`a20` = #{a20}, </if>
+			<if test="a21 != null">`a21` = #{a21}, </if>
+			<if test="a22 != null">`a22` = #{a22}, </if>
+			<if test="a23 != null">`a23` = #{a23}, </if>
+			<if test="a24 != null">`a24` = #{a24}, </if>
+			<if test="a25 != null">`a25` = #{a25}, </if>
+			<if test="a26 != null">`a26` = #{a26}, </if>
+			<if test="a27 != null">`a27` = #{a27}, </if>
+			<if test="a28 != null">`a28` = #{a28}, </if>
+			<if test="a29 != null">`a29` = #{a29}, </if>
+			<if test="a30 != null">`a30` = #{a30}</if>
+		</set>
+		where id = #{id}
+	</update>
+	
+	<delete id="delete">
+		delete from dic_give_grandfa_income where id = #{value}
+	</delete>
+	
+	<delete id="deleteBatch">
+		delete from dic_give_grandfa_income where id in 
+		<foreach item="id" collection="array" open="(" separator="," close=")">
+			#{id}
+		</foreach>
+	</delete>
+
+	<select id="findAll" resultType="GiveGrandfaIncome">
+		select * from dic_give_grandfa_income
+	</select>
+
+</mapper>

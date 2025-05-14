@@ -1,0 +1,114 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.zywl.app.defaultx.mapper.BackpackStatementMapper">
+
+	<select id="queryObject" resultType="BackpackStatement" >
+		select * from t_backpack_statement where id = #{value}
+	</select>
+
+	<select id="queryList" resultType="BackpackStatement">
+		select * from t_backpack_statement
+        <choose>
+            <when test="sidx != null and sidx.trim() != ''">
+                order by ${sidx} ${order}
+            </when>
+			<otherwise>
+                order by id desc
+			</otherwise>
+        </choose>
+		<if test="offset != null and limit != null">
+			limit #{offset}, #{limit}
+		</if>
+	</select>
+	
+ 	<select id="queryTotal" resultType="int">
+		select count(*) from t_backpack_statement 
+	</select>
+	 
+	<insert id="insert" parameterType="BackpackStatement" useGeneratedKeys="true" keyProperty="id" keyColumn="id">
+		insert into t_backpack_statement
+		(
+			`ymd`, 
+			`item_id`, 
+			`use`, 
+			`add_shop`, 
+			`add_sign`, 
+			`add_prize`, 
+			`add_elixir`, 
+			`add_skill`, 
+			`add_achievement`, 
+			`add_event`, 
+			`trad_listing`, 
+			`trad_desting`, 
+			`trad_ask_buy`, 
+			`trad_sell`,
+			`trad_buy`
+		)
+		values
+		(
+			#{ymd}, 
+			#{itemId}, 
+			#{use}, 
+			#{addShop}, 
+			#{addSign}, 
+			#{addPrize}, 
+			#{addElixir}, 
+			#{addSkill}, 
+			#{addAchievement}, 
+			#{addEvent}, 
+			#{tradListing}, 
+			#{tradDesting}, 
+			#{tradAskBuy}, 
+			#{tradSell},
+			#{tradBuy}
+		)
+	</insert>
+	 
+	<update id="update" parameterType="BackpackStatement">
+		update t_backpack_statement 
+		<set>
+			<if test="itemId != null">`item_id` = #{itemId}, </if>
+			<if test="use != null">`use` = use-#{use}, </if>
+			<if test="addShop != null">`add_shop` = add_shop+#{addShop}, </if>
+			<if test="addSign != null">`add_sign` =add_sign+ #{addSign}, </if>
+			<if test="addPrize != null">`add_prize` =add_prize+ #{addPrize}, </if>
+			<if test="addElixir != null">`add_elixir` =add_elixir+ #{addElixir}, </if>
+			<if test="addSkill != null">`add_skill` =add_skill+ #{addSkill}, </if>
+			<if test="addAchievement != null">`add_achievement` = add_achievement+#{addAchievement}, </if>
+			<if test="addEvent != null">`add_event` = add_event+#{addEvent}, </if>
+			<if test="tradListing != null">`trad_listing` =trad_listing- #{tradListing}, </if>
+			<if test="tradDesting != null">`trad_desting` =trad_desting+ #{tradDesting}, </if>
+			<if test="tradAskBuy != null">`trad_ask_buy` =trad_ask_buy+ #{tradAskBuy}, </if>
+			<if test="tradSell != null">`trad_sell` =trad_sell- #{tradSell}, </if>
+			<if test="tradBuy != null">`trad_buy` =trad_buy+ #{tradBuy}</if>
+			<if test="cavePrizeDraw != null">`cave_prize_draw` =cave_prize_draw+ #{cavePrizeDraw}</if>
+			<if test="search != null">`xm_search` =xm_search+ #{search}</if>
+			<if test="xmBuy != null">`xm_buy` =xm_buy+ #{xmBuy}</if>
+			<if test="ancientGet != null">`ancient_get` =ancient_get+ #{ancientGet}</if>
+		</set>
+		where ymd= #{ymd} and item_id = #{itemId}
+	</update>
+	
+	<delete id="delete">
+		delete from t_backpack_statement where id = #{value}
+	</delete>
+	
+	<delete id="deleteBatch">
+		delete from t_backpack_statement where id in 
+		<foreach item="id" collection="array" open="(" separator="," close=")">
+			#{id}
+		</foreach>
+	</delete>
+
+	<select id="findByYmd" resultType="BackpackStatement">
+		select *
+		from t_backpack_statement where ymd=#{ymd}
+	</select>
+
+	<select id="findAll" resultType="BackpackStatement">
+		select * from t_backpack_statement
+	</select>
+
+
+</mapper>

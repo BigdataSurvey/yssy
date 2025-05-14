@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.zywl.app.defaultx.mapper.ConfigMapper">
+
+   <insert id="insert" parameterType="Config" useGeneratedKeys="true" keyProperty="id" keyColumn="id">
+		insert into t_config
+		(
+               key,
+               value
+		)
+		values
+		(
+               #{key},
+               #{value}
+		)
+	</insert>
+	
+	<update id="update" parameterType="Config">
+		update t_config
+		<set >
+     		<if test="value != null">
+     		`value`= #{value}
+     		</if>
+    	</set>
+		where  `key`= #{key}             
+	</update>
+	
+	<delete id="delete">
+		delete from t_config where  `key`= #{key}               
+	</delete>
+	
+	<select id="findOne" resultType="Config">
+	    select * from t_config where `key` = #{key}
+	</select>
+	
+	<select id="findAll" resultType="Config">
+	    select * from t_config
+	</select>
+	
+</mapper>

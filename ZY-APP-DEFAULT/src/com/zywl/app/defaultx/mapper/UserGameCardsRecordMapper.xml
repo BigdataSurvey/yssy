@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.zywl.app.defaultx.mapper.UserGameCardsRecordMapper">
+
+
+    <insert id="insert" parameterType="UserGameCardsRecord" useGeneratedKeys="true" keyProperty="id" keyColumn="id">
+        insert into r_user_game_cards_record
+        (
+            `user_id`,
+            `order_no`,
+            `game_id`,
+            `card_index`,
+            `result`,
+            `amount`,
+            `create_time`
+        )
+        values
+            (
+                #{userId},
+                #{orderNo},
+                #{gameId},
+                #{cardIndex},
+                #{result},
+                #{amount},
+                #{createTime}
+            )
+    </insert>
+
+
+
+</mapper>

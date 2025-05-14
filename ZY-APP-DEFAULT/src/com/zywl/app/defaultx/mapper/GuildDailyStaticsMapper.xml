@@ -1,0 +1,100 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.zywl.app.defaultx.mapper.GuildDailyStaticsMapper">
+
+   <insert id="insert" parameterType="GuildDailyStatics" useGeneratedKeys="true" keyProperty="id" keyColumn="id">
+		insert into t_guild_daily_statics
+		(
+               `ymd`,
+               `user_id`,
+               `guild_id`,
+               `revenue_number`,
+               `expend_number`,
+               `revenue`,
+               `expend`
+
+               
+		)
+		values
+		(
+               #{ymd},
+               #{userId},
+               #{guildId},
+               #{revenueNumber},
+               #{expendNumber},
+               #{revenue},
+               #{expend}
+		)
+	</insert>
+	
+	
+	
+	<select id="findAll" resultType="GuildDailyStatics">
+	    select * from t_guild_daily_statics
+	</select>
+
+    <select id="findByUserId" resultType="GuildDailyStatics">
+        select * from t_guild_daily_statics where user_id = #{userId}
+        ORDER BY id desc
+        <if test="start != null and limit != null">
+            limit #{start}, #{limit}
+        </if>
+    </select>
+
+    
+    <select id="findStatics" resultType="GuildDailyStaticsVo">
+        select user_id,sum(revenue_number) as allRevenueNumber,sum(expend_number) as allExpendNumber,sum(revenue) as allRevenue,sum(expend) as allExpend from t_guild_daily_statics
+        where user_id = #{userId}
+    </select>
+
+    <select id="findStaticsByYmd" resultType="GuildDailyStatics">
+        select * from t_guild_daily_statics
+        where ymd like concat(concat('%',#{ymd}),'%') and user_id = #{userId};
+    </select>
+
+
+    <update id="update" parameterType="GuildDailyStatics">
+        update t_guild_daily_statics
+        <set>
+            <if test="type==1">
+                revenue_number = `revenue_number`+1,
+            </if>
+            <if test="type==2">
+                expend_number = `expend_number`+1,
+            </if>
+            <if test="revenue!=null">
+                revenue=revenue+#{revenue},
+            </if>
+            <if test="expend!=null ">
+                expend=expend+#{expend},
+            </if>
+        </set>
+        where user_id= #{userId} and ymd = #{ymd}
+    </update>
+
+
+    <insert id="batchInsert" parameterType="java.util.List">
+        insert into t_guild_daily_statics (
+        ymd,
+        user_id,
+        guild_id,
+        number,
+        revenue,
+        expend
+        )
+        values
+
+        <foreach collection="list" item="item" separator=",">
+            (
+            #{item.ymd},
+            #{item.userId},
+            #{item.guildId},
+            #{item.number},
+            #{item.revenue},
+             #{item.expend}
+
+            )
+        </foreach>
+    </insert>
+
+</mapper>

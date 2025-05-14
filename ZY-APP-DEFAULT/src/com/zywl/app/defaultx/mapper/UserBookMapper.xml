@@ -1,0 +1,104 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.zywl.app.defaultx.mapper.UserBookMapper">
+
+    <insert id="insert" parameterType="UserBook" useGeneratedKeys="true" keyProperty="id" keyColumn="id">
+        insert into t_user_book
+        (`user_id`,
+         `item_id`,
+         `all_number`,
+         `number`,
+         `today_number`,
+         `can_receive`,
+         `add_time`,
+         `settle_time`,
+         `unlock_time`)
+        values (#{userId},
+                #{itemId},
+                #{allNumber},
+                #{number},
+                #{todayNumber},
+                #{canReceive},
+                #{addTime},
+                #{settleTime},
+                #{unlockTime})
+    </insert>
+
+    <update id="updateUserBook" parameterType="UserBook">
+        update t_user_book
+        <set>
+
+            <if test="allNumber!=null">
+                all_number = #{allNumber},
+            </if>
+            <if test="number!=null">
+                `number` = #{number},
+            </if>
+            <if test="todayNumber!=null">
+                today_number = #{todayNumber},
+            </if>
+            <if test="canReceive!=null">
+                can_receive = #{canReceive},
+            </if>
+            <if test="addTime!=null">
+                add_time = #{addTime},
+            </if>
+            <if test="settleTime!=null">
+                settle_time = #{settleTime},
+            </if>
+            <if test="unlockTime!=null">
+                unlock_time = #{unlockTime},
+            </if>
+        </set>
+        where id= #{id}
+    </update>
+
+    <select id="findByUserId" resultType="UserBook">
+        select *
+        from t_user_book
+        where user_id = #{userId}
+    </select>
+
+    <select id="findByUserIdAndItemId" resultType="UserBook">
+        select *
+        from t_user_book
+        where user_id = #{userId}
+          and item_id = #{itemId}
+    </select>
+
+    <delete id="deleteBook" parameterType="UserBook">
+        delete  from t_user_book where user_id=#{userId} and item_id=#{itemId}
+    </delete>
+
+
+    <update id="batchUpdateBook"  parameterType="java.util.List">
+        <foreach collection="list" item="item" index="index" open="" close="" separator=";">
+            update t_user_book
+            <set>
+
+                <if test="item.allNumber!=null">
+                    all_number = #{item.allNumber},
+                </if>
+                <if test="item.number!=null">
+                    `number` = #{item.number},
+                </if>
+                <if test="item.todayNumber!=null">
+                    today_number = #{item.todayNumber},
+                </if>
+                <if test="item.canReceive!=null">
+                    can_receive = #{item.canReceive},
+                </if>
+                <if test="item.addTime!=null">
+                    add_time = #{item.addTime},
+                </if>
+                <if test="item.settleTime!=null">
+                    settle_time = #{item.settleTime},
+                </if>
+                <if test="item.unlockTime!=null">
+                    unlock_time = #{item.unlockTime},
+                </if>
+            </set>
+            where user_id = #{item.userId} and item_id=#{item.itemId}
+        </foreach>
+    </update>
+</mapper>

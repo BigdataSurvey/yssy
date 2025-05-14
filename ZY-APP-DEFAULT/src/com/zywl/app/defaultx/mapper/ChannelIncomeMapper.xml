@@ -1,0 +1,110 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.zywl.app.defaultx.mapper.ChannelIncomeMapper">
+
+   <insert id="insert" parameterType="ChannelIncome" useGeneratedKeys="true" keyProperty="id" keyColumn="id">
+		insert into dic_channel_income
+		(
+               `tier`,
+               `a1`,
+               `a2`,
+               `a3`,
+               `a4`,
+               `a5`,
+               `a6`,
+               `a7`,
+               `a8`,
+               `a9`,
+               `a10`,
+               `a11`,
+               `a12`,
+               `a13`,
+               `a14`,
+               `a15`,
+               
+		)
+		values
+		(
+               #{tier},
+               #{a1},
+               #{a2},
+               #{a3},
+               #{a4},
+               #{a5},
+               #{a6},
+               #{a7},
+               #{a8},
+               #{a9},
+               #{a10},
+               #{a11},
+               #{a12},
+               #{a13},
+               #{a14},
+               #{a15},
+		)
+	</insert>
+	
+	
+	
+	<select id="findAll" resultType="ChannelIncome">
+	    select * from dic_channel_income
+	</select>
+
+
+
+    <update id="update" parameterType="ChannelIncome">
+        update dic_channel_income
+        <set >
+            <if test="a1 != null">
+                a1= #{a1},
+            </if>
+            <if test="a2 != null">
+                a2= #{a2},
+            </if>
+            <if test="a3 != null">
+                a3= #{a3},
+            </if>
+            <if test="a4 != null">
+                a4= #{a4},
+            </if>
+            <if test="a5 != null">
+                a5= #{a5},
+            </if>
+            <if test="a6 != null">
+                a6= #{a6},
+            </if>
+            <if test="a7 != null">
+                a7= #{a7},
+            </if>
+            <if test="a8 != null">
+                a8= #{a8},
+            </if>
+            <if test="a9 != null">
+                a9= #{a9},
+            </if>
+            <if test="a10 != null">
+                a10= #{a10},
+            </if>
+            <if test="a11 != null">
+                a11= #{a11},
+            </if>
+            <if test="a12 != null">
+                a12= #{a12},
+            </if>
+            <if test="a13 != null">
+                a13= #{a13},
+            </if>
+            <if test="a14 != null">
+                a14= #{a14},
+            </if>
+            <if test="a15 != null">
+                a15= #{a15},
+            </if>
+        </set>
+        where  id= #{id}
+    </update>
+	
+	
+	
+
+</mapper>

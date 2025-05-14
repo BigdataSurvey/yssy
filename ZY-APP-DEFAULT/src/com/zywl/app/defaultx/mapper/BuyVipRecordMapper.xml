@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.zywl.app.defaultx.mapper.BuyVipRecordMapper">
+
+   <insert id="insert" parameterType="BuyVipRecord" useGeneratedKeys="true" keyProperty="id" keyColumn="id">
+		insert into r_buy_vip_record
+		(
+               `user_id`,
+               `order_no`,
+               `vip_type`,
+		 		`amount`,
+             	`create_time`
+		)
+		values
+		(
+               #{userId},
+               #{orderNo},
+               #{vipType},
+		 		#{amount},
+               #{createTime}
+             
+             
+		)
+	</insert>
+	
+	
+	
+
+	
+</mapper>

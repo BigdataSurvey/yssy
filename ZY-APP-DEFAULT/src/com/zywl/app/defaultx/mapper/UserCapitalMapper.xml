@@ -1,0 +1,306 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper
+	namespace="com.zywl.app.defaultx.mapper.UserCapitalMapper">
+
+	<insert id="insert" parameterType="UserCapital"
+		useGeneratedKeys="true" keyProperty="id" keyColumn="id">
+		insert into
+		t_user_capital
+		(
+		user_id,
+		capital_type,
+		occupy_balance,
+		balance,
+		create_time,
+		update_time
+		)
+		values
+		(
+		#{userId},
+		#{capitalType},
+		#{occupyBalance},
+		#{balance},
+		#{createTime},
+		#{updateTime}
+
+		)
+	</insert>
+
+	<update id="update" parameterType="UserCapital">
+		update t_user_capital
+		<set>
+			<if test="occupyBalance != null">
+				occupy_balance= #{occupyBalance},
+			</if>
+			<if test="balance != null">
+				balance= #{balance},
+			</if>
+
+			<if test="updateTime != null">
+				update_time= #{updateTime}
+			</if>
+		</set>
+		where id= #{id}
+	</update>
+
+
+	<update id="addUserBalance" parameterType="UserCapital">
+		update t_user_capital
+		<set>
+			<if test="amount != null">
+				balance=balance+ #{amount}
+			</if>
+		</set>
+		where id=#{id}
+	</update>
+
+	<update id="addUserBalance2" parameterType="UserCapital">
+		update t_user_capital
+		<set>
+			<if test="amount != null">
+				balance=balance+ #{amount}
+			</if>
+		</set>
+		where id=#{id}
+	</update>
+
+	<update id="addUserBalanceAndSubOccupyBalance"
+		parameterType="UserCapital">
+		update t_user_capital
+		<set>
+			<if test="amount != null">
+				balance=balance+ #{amount},
+				occupy_balance = occupy_balance-#{amount}
+			</if>
+		</set>
+		where id=#{id}
+	</update>
+
+	<update id="subUserBalanceAndAddOccupyBalance"
+		parameterType="UserCapital">
+		update t_user_capital
+		<set>
+			<if test="amount != null">
+				balance=balance- #{amount},
+				occupy_balance = occupy_balance +#{amount}
+			</if>
+		</set>
+		where id=#{id}  and balance-#{amount}>=0
+	</update>
+
+	<update id="subUserOccupyBalance" parameterType="UserCapital">
+		update t_user_capital
+		<set>
+			<if test="amount != null">
+				occupy_balance=occupy_balance- #{amount}
+			</if>
+		</set>
+		where id=#{id} and occupy_balance-#{amount}>=0
+	</update>
+
+
+	<update id="addUserOccupyBalance" parameterType="UserCapital">
+		update t_user_capital
+		<set>
+			<if test="amount != null">
+				occupy_balance=occupy_balance+ #{amount}
+			</if>
+		</set>
+		where id=#{id}
+	</update>
+
+
+	<update id="subUserBalance" parameterType="UserCapital">
+		update t_user_capital
+		<set>
+			<if test="amount != null">
+				balance=balance- #{amount}
+			</if>
+		</set>
+		where id=#{id}  and balance-#{amount}>=0
+	</update>
+
+	<update id="subUserBalance2" parameterType="UserCapital">
+		update t_user_capital
+		<set>
+			<if test="amount != null">
+				balance=balance- #{amount}
+			</if>
+		</set>
+		where user_id=#{userId} and capital_type=#{capitalType}  and balance-#{amount}>=0
+	</update>
+
+	<delete id="delete">
+		delete from t_user_capital where id= #{id}
+	</delete>
+
+	<sql id="conditions">
+		<if test="id != null">
+			and id=#{id}
+		</if>
+		<if test="userId != null">
+			and user_id=#{userId}
+		</if>
+		<if test="capitalType != null">
+			and capital_type=#{capitalType}
+		</if>
+	</sql>
+
+	<select id="countByConditions" resultType="Long">
+		select count(1) from t_user_capital
+		<where>
+			<include refid="conditions"></include>
+		</where>
+	</select>
+
+	<select id="findByConditions" resultType="UserCapital">
+		select * from t_user_capital
+		<where>
+			<include refid="conditions"></include>
+		</where>
+
+		ORDER BY update_time desc
+		<if test="start != null and limit != null">
+			limit #{start}, #{limit}
+		</if>
+	</select>
+
+	<select id="countRank" resultType="Long">
+		select count(1) from t_user_capital
+		<where>
+			balance > 0
+			<if test="capitalType != null">
+				and capital_type=#{capitalType}
+			</if>
+		</where>
+	</select>
+
+	<select id="findRank" resultType="UserCapital">
+
+		SELECT `t_user_capital`.* FROM `t_user_capital` INNER JOIN ( SELECT `id` FROM `t_user_capital` WHERE `balance` > 0
+		            AND `capital_type` = #{capitalType} ORDER BY `balance` DESC limit #{start}, #{limit} ) `tmp_0` USING (`id`)
+
+	</select>
+
+	<select id="findAll" resultType="UserCapital">
+		select * from t_user_capital
+	</select>
+
+	<select id="findCapitalTop" resultType="CapitalTopVo">
+		select t1.balance balance,t1.user_id userId,t2.user_no userNo,t2.`name` as name ,t2.head_image_url userHeadImage  from t_user_capital t1, t_user t2 where capital_type=#{capitalType} and t1.user_id=t2.id and t2.status=1 order by
+		balance desc limit #{limit};
+	</select>
+
+	<select id="findOne" resultType="UserCapital">
+		select * from t_user_capital where id = #{id}
+	</select>
+
+	<select id="findUserCapitalByUserId" resultType="UserCapital">
+		select * from t_user_capital where user_id = #{userId}
+	</select>
+
+	<select id="findUserCapitalByUserIdAndCapitalType"
+		resultType="UserCapital">
+		select * from t_user_capital where user_id = #{userId} and
+		capital_type=#{capitalType}
+	</select>
+
+	<update id="rollbackCapital" parameterType="java.util.List">
+		<foreach collection="list" item="item" index="index" open=""
+			close="" separator=";">
+			update t_user_capital
+			<set>
+				balance=balance+${item.amount}
+			</set>
+			where user_id = ${item.userId} and capital_type = #{item.capitalType}
+		</foreach>
+	</update>
+
+	<update id="betUpdateBalance" parameterType="java.util.List">
+		<foreach collection="list" item="item" index="index" open=""
+			close="" separator=";">
+			update t_user_capital
+			<set>
+				balance=balance+${item.amount}
+			</set>
+			where id=#{item.id} and balance+${item.amount}>=0
+		</foreach>
+	</update>
+
+	<update id="betUpdateBalance2" parameterType="java.util.List">
+		<foreach collection="list" item="item" index="index" open=""
+				 close="" separator=";">
+			update t_user_capital
+			<set>
+				balance=balance+${item.amount}
+			</set>
+			where id=#{item.id}
+		</foreach>
+	</update>
+
+<update id="tranfertLotteryIn" parameterType="UserCapital">
+			update t_user_capital set balance=0 where user_id = ${userId} and capital_type = #{capitalType}
+	</update>
+	
+	<update id="tranfertLotteryOut" parameterType="UserCapital">
+			update t_user_capital set balance=#{balance} where user_id = ${userId} and capital_type = #{capitalType}
+	</update>
+
+
+	<update id="batchUpdateCoin"  parameterType="java.util.List">
+    <foreach collection="list" item="item" index="index" open="" close="" separator=";">
+        update t_user_capital
+        <set>
+            balance=#{item.balance}
+        </set>
+        where id=#{item.id}
+    </foreach>      
+	</update>
+
+	<update id="batchUpdateByNs"  parameterType="java.util.List">
+		<foreach collection="list" item="item" index="index" open="" close="" separator=";">
+			update t_user_capital
+			<set>
+				balance=balance+#{item.profit}
+			</set>
+			where user_id = #{item.userId} and capital_type=2
+		</foreach>
+	</update>
+
+	<select id="findSumBalance" resultType="java.util.Map">
+		select sum(balance) as allBalance from t_user_capital where capital_type=#{capitalType}
+
+		<if test="start != null and limit != null">
+			limit #{start}, #{limit}
+		</if>
+	</select>
+	<select id="findSumBalance2" resultType="java.util.Map">
+		select sum(balance) as allBalance from t_user_capital where capital_type=#{capitalType} and balance&gt;100
+
+		<if test="start != null and limit != null">
+			limit #{start}, #{limit}
+		</if>
+	</select>
+
+
+
+	<insert id="batchInsert" parameterType="java.util.List">
+		insert into t_user_capital (user_id,capital_type,occupy_balance,balance)
+		values
+
+		<foreach collection="list" item="item" separator=",">
+			(
+			#{item.userId},
+			#{item.capitalType},
+			#{item.occupyBalance},
+			#{item.balance}
+			)
+		</foreach>
+	</insert>
+
+	<delete id="deletedOneMonthNoLogin">
+		delete from t_user_capital where user_id= #{userId}
+	</delete>
+
+</mapper>

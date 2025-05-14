@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta http-equiv="X-UA-Compatible" content="chrome">
+<meta http-equiv="X-UA-Compatible" content="IE=Edge">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>j2oc</title>
+<style type="text/css">
+*{margin:0px; padding:0px;}
+.d-input{margin: 20px;}
+.d-file{width:40%;background: radial-gradient(#d2d2d2, #8a8a8a); margin:0 auto;text-align: center;border-radius: 10px;}
+.d-file label{z-index: 0;position: absolute;left: 0;right: 0;line-height: 300px;font-size: 35px;font-family: 微软雅黑;color: #FFF;}
+.d-file input{width: 100%;height:300px; opacity: 0;filter: alpha(opacity=0);}
+.d-result{display: none;}
+.d-code{width: 60%;margin: 0 auto;border:2px #d2d2d2 solid; min-height: 400px;padding:15px;}
+</style>
+</head>
+<script src="https://cdn.bootcss.com/jquery/3.4.1/jquery.min.js"></script>
+<script type="text/javascript">
+var oc = {};
+var LF = "<br />"
+var convert = {
+	String : "@property (nonatomic, copy) NSString *",
+	Integer : "@property (nonatomic, assign) NSInteger ",
+	Date: "@property (nonatomic, assign) long ",
+	Float : "@property (nonatomic, assign) float ",
+	Double : "@property (nonatomic, assign) float ",
+	BigDecimal : "@property (nonatomic, assign) double "
+};
+function init(){
+	oc = {
+		noties:"",
+		begin:"NS_ASSUME_NONNULL_BEGIN",
+		obj:"",
+		propertys:[],
+		end:"@end"+LF+LF+"NS_ASSUME_NONNULL_END"
+	};
+}
+function j2oc(java){
+	java = java.split("\n");
+	for(line of java){
+		if(line){
+			line = line.trim();
+			if(line.startsWith("public class ")){
+				setObj(line.split(" ")[2]);
+			}else if(line.startsWith("private ")){
+				addPropertys(line.split(" ")[1], line.split(" ")[2]);
+			}
+		}
+	}
+	build();
+}
+function setObj(name){
+	oc.noties = "//"+LF+"//  "+name+".h"+LF+"// "+LF+"//  Created by j2oc on "+new Date().Format("yyyy/MM/dd")+"."+LF+"//"
+	oc.obj = "@interface "+name+" : NSObject";
+}
+function addPropertys(type, name){
+	if(convert[type]){
+		oc.propertys.push(convert[type] + name);
+	}
+}
+function build(){
+	$(".d-result").show();
+	var serialize = "";
+	serialize += (oc.noties);
+	serialize += (LF + LF + oc.begin);
+	serialize += (LF + LF + oc.obj);
+	for(property of oc.propertys){
+		serialize += (LF + property);
+	}
+	serialize +=  (LF + oc.end);
+	$("#oc").html(serialize);
+}
+$(function(){
+	$("#java-file").change(function(file){
+		init();
+		var file = this.files[0]; 
+        var reader = new FileReader();
+        reader.readAsBinaryString(file);
+        reader.onload = function(){ 
+            j2oc(reader.result);
+        } 
+	});
+});
+Date.prototype.Format=function(fmt){var o={"M+":this.getMonth()+1,"d+":this.getDate(),"H+":this.getHours(),"m+":this.getMinutes(),"s+":this.getSeconds(),"S+":this.getMilliseconds()};if(/(y+)/.test(fmt)){fmt=fmt.replace(RegExp.$1,(this.getFullYear()+"").substr(4-RegExp.$1.length))}for(var k in o){if(new RegExp("("+k+")").test(fmt)){fmt=fmt.replace(RegExp.$1,(RegExp.$1.length==1)?(o[k]):(("00"+o[k]).substr(String(o[k]).length)))}}return fmt};
+</script>
+<body>
+<div class="d-input">
+	<div class="d-file">
+		<label id="file-lab">在此处拖放.java文件</label>
+		<input id="java-file" class="inp-file" type="file" />
+	</div>
+</div>
+<div class="d-result">
+	<div id="oc" class="d-code" contentEditable="true">
+	</div>
+</div>
+</body>
+</html>

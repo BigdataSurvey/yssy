@@ -1,0 +1,138 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.zywl.app.defaultx.mapper.BackpackMapper">
+
+   <insert id="insert" parameterType="Backpack" useGeneratedKeys="true" keyProperty="id" keyColumn="id">
+		insert into ${tableName}
+		(
+               
+               `user_id`,
+               `item_id`,
+               `item_number`,
+               `create_time`,
+               `update_time`
+               
+		)
+		values
+		(
+               #{userId},
+               #{itemId},
+               #{itemNumber},
+               #{createTime},
+               #{updateTime}
+		)
+	</insert>
+	
+	
+	
+	<select id="findAll" resultType="Backpack">
+	    select * from ${tableName}
+	</select>
+	
+	<sql id="conditions">
+	<if test="userId != null">
+   		 and user_id=#{userId}
+   		</if>
+   		
+		<if test="itemId != null">
+		 and item_id=#{itemId}
+		</if>
+   		
+    	<if test="startDate != null">
+    	 AND create_time <![CDATA[ >= ]]> #{startDate}
+    	</if>
+    	<if test="endDate != null">
+    	 AND create_time <![CDATA[ <= ]]> #{endDate}
+    	</if>
+	</sql>
+	
+	<select id="countByConditions" resultType="Long">
+		select count(1) from ${tableName}
+		<where>
+			<include refid="conditions"></include>
+		</where>
+	</select>
+	
+	<select id="findByConditions" resultType="Backpack">
+	    select * from ${tableName} 
+	    <where>
+	    	<include refid="conditions"></include>
+	    </where>
+	    
+		ORDER BY create_time desc 
+		<if test="start != null and limit != null">
+	   	 limit #{start}, #{limit} 
+	   	</if>
+	</select>
+	<update id="subItemNumber" parameterType="Backpack">
+		update ${tableName}
+		<set >
+     		<if test="number != null">
+     		`item_number`= `item_number`- #{number}
+     		</if>
+    	</set>
+		where
+		<if test="id != null">
+			id=#{id}
+		</if>
+
+		<if test="id == null">
+			`user_id`= #{userId} and `item_id`=#{itemId}
+		</if>
+		    and   item_number- #{number}>=0
+	</update>
+	
+	<update id="addItemNumber" parameterType="Backpack">
+		update ${tableName}
+		<set >
+     		<if test="number != null">
+     		`item_number`= `item_number`+ #{number}
+     		</if>
+    	</set>
+		where
+		<if test="id != null">
+			id=#{id}
+		</if>
+
+		<if test="id == null">
+			`user_id`= #{userId} and `item_id`=#{itemId}
+		</if>
+
+	</update>
+	
+	
+	
+	<update id="batchUpdateBackpack"  parameterType="java.util.List">  
+    <foreach collection="list" item="item" index="index" open="" close="" separator=";">
+        update ${tableName}
+        <set>
+            item_number=item_number-#{item.number}
+        </set>
+        where user_id = #{item.userId} and item_id=#{item.itemId} and item_number-#{item.number}>=0
+    </foreach>      
+	</update>
+
+	<select id="dbCountByConditions" resultType="Long">
+		select count(1) from ${tableName}
+		<where>
+			<include refid="conditions"></include>
+		</where>
+	</select>
+
+	<select id="dbFindByConditions" resultType="Backpack">
+		select * from ${tableName}
+		<where>
+			<include refid="conditions"></include>
+		</where>
+
+		ORDER BY create_time desc
+		<if test="start != null and limit != null">
+			limit #{start}, #{limit}
+		</if>
+	</select>
+
+	<delete id="deletedOneMonthNoLogin">
+			delete from ${tableName} where user_id= #{userId}
+	</delete>
+	
+</mapper>

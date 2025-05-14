@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.zywl.app.defaultx.mapper.TradingRecordMapper">
+
+    <insert id="insert" parameterType="TradingRecord" useGeneratedKeys="true" keyProperty="id" keyColumn="id">
+        insert into r_trading_record
+        (`user_id`,
+         `trad_id`,
+         `item_id`,
+         `item_price`,
+         `item_number`,
+         `order_no`,
+         `amount`,
+         `fee`,
+         `type`,
+         `mark`,
+         `create_time`,
+         `update_time`)
+        values (#{userId},
+                #{tradId},
+                #{itemId},
+                #{itemPrice},
+                #{itemNumber},
+                #{orderNo},
+                #{amount},
+                #{fee},
+                #{type},
+                #{mark},
+                #{createTime},
+                #{updateTime})
+    </insert>
+
+
+    <select id="findOne" resultType="TradingRecord">
+        select *
+        from r_trading_record
+        where id = #{id}
+    </select>
+
+    <select id="findAll" resultType="TradingRecord">
+        select *
+        from r_trading_record
+    </select>
+
+    <sql id="conditions">
+        <if test="itemId != null">
+            and item_id=#{itemId}
+        </if>
+        <if test="type != null">
+            and type=#{type}
+        </if>
+        <if test="userId != null">
+            and user_id=#{userId}
+        </if>
+    </sql>
+
+    <select id="countByConditions" resultType="Long">
+        select count(1) from r_trading_record
+        <where>
+            <include refid="conditions"></include>
+        </where>
+    </select>
+
+    <select id="findByConditions" resultType="TradingRecord">
+        select * from r_trading_record
+        <where>
+            <include refid="conditions"></include>
+        </where>
+
+        ORDER BY create_time desc
+        <if test="start != null and limit != null">
+            limit #{start}, #{limit}
+        </if>
+    </select>
+
+</mapper>

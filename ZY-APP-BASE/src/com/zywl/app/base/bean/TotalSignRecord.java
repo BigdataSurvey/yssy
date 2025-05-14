@@ -1,0 +1,69 @@
+package com.zywl.app.base.bean;
+
+import java.util.Date;
+
+public class TotalSignRecord {
+	
+	private Long id;
+	
+	private Long userId;
+	
+	private Integer totalDay;
+	
+	private String reward;
+	
+	private String orderNo;
+	
+	private Date createTime;
+
+	public Long getId() {
+		return id;
+	}
+
+	public void setId(Long id) {
+		this.id = id;
+	}
+
+	public Long getUserId() {
+		return userId;
+	}
+
+	public void setUserId(Long userId) {
+		this.userId = userId;
+	}
+
+	public Integer getTotalDay() {
+		return totalDay;
+	}
+
+	public void setTotalDay(Integer totalDay) {
+		this.totalDay = totalDay;
+	}
+
+	public String getReward() {
+		return reward;
+	}
+
+	public void setReward(String reward) {
+		this.reward = reward;
+	}
+
+	public String getOrderNo() {
+		return orderNo;
+	}
+
+	public void setOrderNo(String orderNo) {
+		this.orderNo = orderNo;
+	}
+
+	public Date getCreateTime() {
+		return createTime;
+	}
+
+	public void setCreateTime(Date createTime) {
+		this.createTime = createTime;
+	}
+	
+	
+
+}

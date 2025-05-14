@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.zywl.app.defaultx.mapper.UserInviteInfoMapper">
+
+   <insert id="insert" parameterType="UserInviteInfo" useGeneratedKeys="true" keyProperty="id" keyColumn="id">
+		insert into t_user_invite_info
+		(
+               `user_id`,
+		        `issue`,
+               `number`,
+               `effective_number`,
+               `ad_number`,
+               `status`,
+               `create_time`,
+               `end_time`
+               
+               
+		)
+		values
+		(
+               #{userId},
+		        #{issue},
+               #{number},
+               #{effectiveNumber},
+               #{adNumber},
+               #{status},
+               #{createTime},
+               #{endTime}
+		)
+	</insert>
+
+
+
+
+
+    <select id="findAllByEndTime" resultType="UserInviteInfo">
+        select * from t_user_invite_info where end_time&gt;#{endTime}
+    </select>
+
+    <select id="findByUserId" resultType="UserInviteInfo">
+        select * from t_user_invite_info where user_id=#{userId} and  end_time&gt;#{endTime}
+    </select>
+
+    <select id="findLastByUserId" resultType="UserInviteInfo">
+        select * from t_user_invite_info where user_id=#{userId} order by id desc limit 1;
+    </select>
+
+
+    <update id="addFriendNumber" parameterType="UserCapital">
+        update t_user_invite_info set number=number+1 where user_id = #{userId} and end_time>#{endTime}
+
+    </update>
+
+    <update id="addEffectiveFriendNumber" parameterType="UserCapital">
+        update t_user_invite_info set effective_number=effective_number+1 where user_id = #{userId} and end_time>#{endTime}
+
+    </update>
+
+
+    <update id="addAdNumber" parameterType="UserCapital">
+        update t_user_invite_info set ad_number=ad_number+1 where user_id = #{userId} and end_time>#{endTime}
+
+    </update>
+
+
+</mapper>

@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.zywl.app.defaultx.mapper.UserIncomeStatementMapper">
+
+   <insert id="insert" parameterType="UserIncomeStatement" useGeneratedKeys="true" keyProperty="id" keyColumn="id">
+		insert into t_user_income_statement
+		(
+               `user_id`,
+               `ymd`,
+               `one_income`,
+               `two_income`
+
+               
+		)
+		values
+		(
+               #{userId},
+               #{ymd},
+               #{oneIncome},
+               #{twoIncome}
+		)
+	</insert>
+	
+	<select id="findAll" resultType="UserIncomeStatement">
+	    select * from t_user_income_statement
+	</select>
+
+
+	<update id="addOneIncome" parameterType="UserIncomeStatement">
+        UPDATE `t_user_income_statement` SET `one_income`=one_income+#{income} WHERE user_id=#{userId} and ymd=#{ymd}
+	</update>
+
+    <update id="addTwoIncome" parameterType="UserIncomeStatement">
+        UPDATE `t_user_income_statement` SET `two_income`=two_income+#{income} WHERE user_id=#{userId} and ymd=#{ymd}
+    </update>
+
+    <select id="findByUserIdAndYmd" resultType="UserIncomeStatement">
+        select * from `kapai-log`.t_user_income_statement where user_id = #{userId} and ymd=#{ymd}
+    </select>
+
+    <select id="findByUserId" resultType="UserIncomeStatement">
+        select * from t_user_income_statement where user_id = #{userId} order by id desc limit #{start},#{limit}
+    </select>
+
+    <select id="findByUserIdSync" resultType="UserIncomeStatement">
+        select * from `kapai-log`.t_user_income_statement where user_id = #{userId} order by id desc limit #{start},#{limit}
+    </select>
+
+</mapper>

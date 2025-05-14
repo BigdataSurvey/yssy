@@ -1,0 +1,19 @@
+﻿[
+	{
+		img3_1:'${staticWebUrl}/index_banner/1.jpg',
+		url:'${AppWebUrl}',
+		title:'测试1'
+	},{
+		img3_1:'${staticWebUrl}/index_banner/2.jpg',
+		url:'${AppWebUrl}',
+		title:'测试2'
+	},{
+		img3_1:'${staticWebUrl}/index_banner/3.jpg',
+		url:'${AppWebUrl}',
+		title:'测试3'
+	},{
+		img3_1:'${staticWebUrl}/index_banner/4.jpg',
+		url:'${AppWebUrl}',
+		title:'测试4'
+	}
+]

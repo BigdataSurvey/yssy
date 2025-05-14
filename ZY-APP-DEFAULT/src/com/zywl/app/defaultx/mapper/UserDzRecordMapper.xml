@@ -1,0 +1,114 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.zywl.app.defaultx.mapper.UserDzRecordMapper">
+
+	<!--自定义sql实现-->
+	<!--查询所有待清算数据-->
+	<select id="selectYesTodayAllData" resultType="UserDzRecord">
+		select * from t_user_dz_record where periods = #{periods}
+	</select>
+	<!--查询本期玩家报名人数，报名灵石总数量-->
+	<select id="selectPeriodsSum" resultType="java.util.Map">
+		select count(1) as userNum, sum(dz_money) as dzMoney  from t_user_dz_record
+		<where>
+			<if test="periods != null">
+				1=1 and periods=#{periods}
+			</if>
+		</where>
+	</select>
+	<!--根据userI periods 得出记录-->
+	<select id="selectByUserIdAndStatus" resultType="UserDzRecord">
+		select * from t_user_dz_record where user_Id = #{userId} and status = #{status}
+		<if test="periods != null">
+			and periods =#{periods}
+		</if>
+	</select>
+	<!--跑批处理，计算玩家分的灵石，幸运儿信息-->
+	<update id="batchUpdateRecord"  parameterType="java.util.List">
+		<foreach collection="list" item="item" index="index" open="" close="" separator=";">
+			update t_user_dz_record
+			<set>
+				`luck_user_status`=#{item.luckUserStatus},`cu_money`=#{item.cuMoney},`return_money`=#{item.returnMoney},update_time=#{item.updateTime}
+			</set>
+			where id = #{item.id}
+		</foreach>
+	</update>
+	<!--玩家报名信息录入-->
+	<insert id="insert" parameterType="UserDzRecord" useGeneratedKeys="true" keyProperty="id" keyColumn="id">
+		insert into
+		    t_user_dz_record(user_Id,dz_money,status,luck_user_status,cu_money,return_money,periods,clock_time,create_time,update_time)
+		values(
+		       #{userId},#{dzMoney},#{status},#{luckUserStatus},#{cuMoney},#{returnMoney},#{periods},#{clockTime},#{createTime},#{updateTime}
+			  )
+	</insert>
+	<!--玩家打卡信息更改-->
+	<update id="updateUserInfo" parameterType= "UserDzRecord" >
+		update t_user_dz_record set status = #{status} ,clock_time = #{clockTime} where periods=#{periods} and user_id = #{userId}
+	</update>
+
+	<update id="updateStatusTo3" parameterType= "UserDzRecord">
+		update t_user_dz_record set status = #{status}  where id=#{id}
+	</update>
+	
+	<select id="selectByUserIdAndPeriods" resultType="java.lang.String">
+		select sum(dz_money) as dzMoney from t_user_dz_record where user_id =#{userId} and periods = #{periods}
+	</select>
+
+	<update id="updateUsersDzMoney" parameterType= "UserDzRecord">
+		update t_user_dz_record set dz_money = #{dzMoney}  where id = #{id}
+	</update>
+
+
+	<select id="selectUserRecode" resultType="UserDzRecord">
+		select * from t_user_dz_record where user_id =#{userId} and periods = #{periods}
+	</select>
+
+	<select id="selectByStatusAndPeriods"  resultType="UserDzRecord">
+		select * from t_user_dz_record where periods = 1 and status =2
+	</select>
+
+	<select id="selectByStatusUserId"  resultType="UserDzRecord">
+		select * from t_user_dz_record where   status =2 and user_id = #{userId}
+	</select>
+
+	<select id="selectNoDkUserIds"  resultType="UserDzRecord">
+		select * from t_user_dz_record where   status =#{status} and periods = #{periods}
+	</select>
+
+	<select id="findAll" resultType="UserDzRecord">
+		select * from t_user_dz_record
+	</select>
+
+	<select id="selectPeriods16Data" resultType="UserDzRecord">
+		select * from t_user_dz_record where status = 3 and periods = 16 and dz_money-return_money > 0
+	</select>
+
+	<select id="queryOrderByPeriods" resultType="UserDzRecordVO">
+		SET @row_number = 0;
+		select * from (
+			select tmp.*, (@row_number:= @row_number + 1) AS `index` FROM (
+				SELECT tudr.*, tu.name, tu.head_image_url
+				from t_user_dz_record tudr
+				RIGHT JOIN t_user_dz_periods tudp on tudr.periods = tudp.periods
+				LEFT JOIN t_user tu on tu.id = tudr.user_id
+				WHERE
+				<if test="periods != null">
+					tudr.periods = #{periods} and
+				</if>
+				not ISNULL(tudr.cu_money)
+				ORDER BY tudr.cu_money desc
+			) tmp
+		) a
+		limit #{curPage}, #{pageSize}
+	</select>
+
+	<select id="queryOrderByUserId" resultType="UserDzRecordVO">
+		SELECT tudr.*, tu.name, tu.head_image_url from t_user_dz_record tudr
+		RIGHT JOIN t_user_dz_periods  tudp on tudr.periods = tudp.periods
+		LEFT JOIN t_user tu on tu.id = tudr.user_id
+		WHERE tudr.user_id = #{userId} and not ISNULL(tudr.cu_money)
+		ORDER BY tudr.cu_money desc
+			limit 1
+	</select>
+
+</mapper>

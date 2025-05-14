@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.zywl.app.defaultx.mapper.ReceiveDiceRecordMapper">
+
+   <insert id="insert" parameterType="ReceiveDiceRecord" useGeneratedKeys="true" keyProperty="id" keyColumn="id">
+		insert into r_receive_dice_record
+		(
+               `user_id`,
+               `receive_time`,
+		        `amount`,
+               `order_no`,
+             	`week_dice_order`
+		)
+		values
+		(
+               #{userId},
+               #{receiveTime},
+		        #{amount},
+                #{orderNo},
+               #{weekDiceOrder}
+
+             
+             
+		)
+	</insert>
+	
+	<select id="findRecordByUserId" resultType="ReceiveDiceRecord">
+        select * from r_receive_dice_record where user_id = #{userId} and receive_time>#{time} order by id desc limit 1
+    </select>
+
+</mapper>

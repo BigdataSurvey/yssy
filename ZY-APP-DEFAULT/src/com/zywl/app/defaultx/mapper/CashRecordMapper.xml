@@ -1,0 +1,167 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.zywl.app.defaultx.mapper.CashRecordMapper">
+
+   <insert id="insert" parameterType="CashRecord" useGeneratedKeys="true" keyProperty="id" keyColumn="id">
+		insert into r_cash_record
+		(
+               `user_id`,
+               `user_no`,
+               `user_name`,
+               `real_name`,
+               `open_id`,
+                `order_no`,
+                `batch_order_no`,
+               `amount`,
+               `fee`,
+               `received_amount`,
+               `type`,
+               `tel`,
+               `status`,
+               `remark`,
+             	`create_time`,
+				`update_time`               
+		)
+		values
+		(
+               #{userId},
+               #{userNo},
+                #{userName},
+                #{realName},
+                #{openId},
+               #{orderNo},
+              #{batchOrderNo},
+              #{amount},
+              #{fee},
+              #{receivedAmount},
+              #{type},
+              #{tel},
+               #{status},
+               #{remark},
+               #{createTime},
+               #{updateTime}
+             
+             
+             
+		)
+	</insert>
+	
+	
+	
+	<select id="findOne" resultType="CashRecord">
+	    select * from r_cash_record where id = #{id}
+	</select>
+	
+	<select id="findAll" resultType="CashRecord">
+	    select * from r_cash_record
+	</select>
+	
+	<sql id="conditions">
+	<if test="userId != null">
+   		 and user_id=#{userId}
+   	</if>
+   	<if test="orderNo != null">
+   		 and order_no=#{orderNo}
+   	</if>
+   	<if test="userNo != null">
+   		 and user_no=#{userNo}
+   	</if>
+   	
+   	<if test="userName != null">
+   		  and user_name like concat(concat('%',#{userName}),'%')
+   	</if>
+   	<if test="realName != null">
+   		 and real_name=#{realName}
+   	</if>
+   		<if test="amount != null">
+   		  and amount = #{amount}
+   	</if>
+   	
+   		
+   		
+   		<if test="batchOrderNo != null">
+   		  and batch_order_no = #{batchOrderNo}
+   	</if>
+   	
+   	<if test="status != null">
+   		  and `status` = #{status}
+   	</if>
+
+		<if test="startDate != null">
+			AND create_time <![CDATA[ >= ]]> #{startDate}
+		</if>
+   	
+	</sql>
+	
+	<select id="countByConditions" resultType="Long">
+		select count(1) from r_cash_record
+		<where>
+			<include refid="conditions"></include>
+		</where>
+	</select>
+	
+	<select id="findByConditions" resultType="CashRecord">
+	    select * from r_cash_record
+	    <where>
+	    	<include refid="conditions"></include>
+	    </where>
+	    
+		ORDER BY create_time desc 
+		<if test="start != null and limit != null">
+	   	 limit #{start}, #{limit} 
+	   	</if>
+	</select>
+
+	<select id="findTotalInfo" resultType="CashTotalInfo">
+		SELECT COUNT(1) AS orderCount, IFNULL(SUM(amount),0) AS amount, IFNULL(SUM(received_amount),0) AS receivedAmount FROM r_cash_record
+		<where>
+			`status` = #{status}
+			<if test="today != null">
+				AND create_time >= CURDATE()
+			</if>
+		</where>
+	</select>
+
+	<update id="updateFailCashOrder" parameterType="CashRecord">
+		update r_cash_record
+		<set>
+     		remark= #{remark},
+     		`status` = #{status}
+    	</set>
+		where  order_no = #{orderNo}
+	</update>
+	
+	
+	<update id="batchUpdateSuccess" parameterType="CashRecord">
+		update r_cash_record
+		<set>
+     		`status`= #{status},
+     		remark = #{remark}
+    	</set>
+		where  batch_order_no = #{batchOrderNo}
+	</update>
+	
+	
+	<update id="updateBatch"  parameterType="java.util.List">  
+    <foreach collection="list" item="item" index="index" open="" close="" separator=";">
+        update r_cash_record
+        <set>
+            batch_order_no='${item.batchOrderNo}',
+            `status`=${item.status}
+        </set>
+        where id = ${item.id}
+    </foreach>      
+</update>
+
+	<update id="updateStatus" parameterType="CashRecord">
+		update r_cash_record
+		<set>
+			`status` = #{status},
+			<if test="remark!=null">
+			remark = #{remark}
+			</if>
+		</set>
+		where id = #{id}
+	</update>
+
+</mapper>

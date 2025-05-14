@@ -1,0 +1,206 @@
+package com.zywl.app.defaultx.util;
+
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
+import java.lang.reflect.ParameterizedType;
+import java.lang.reflect.Type;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+import org.springframework.context.ApplicationContext;
+
+import com.alibaba.fastjson2.JSON;
+import com.zywl.app.base.Base;
+import com.zywl.app.base.bean.Warning;
+import com.zywl.app.base.exp.AppException;
+import com.zywl.app.defaultx.annotation.ServiceClass;
+import com.zywl.app.defaultx.annotation.ServiceMethod;
+import com.zywl.app.defaultx.bean.ServiceBean;
+import com.live.app.ws.bean.Command;
+import com.live.app.ws.interfacex.ServiceController;
+import com.live.app.ws.socket.BaseServerSocket;
+import com.google.common.collect.Lists;
+
+/**
+ * 
+ * @author CDY
+ *
+ */
+public class OLD_DefaultServiceController extends Base implements ServiceController {
+	
+	private static final Log logger = LogFactory.getLog(OLD_DefaultServiceController.class);
+	
+	public static Map<String, ServiceBean> serviceMap = new HashMap<String, ServiceBean>();
+	
+	private static ServiceController controller;
+	
+	private OLD_DefaultServiceController(){}
+	
+	public static ServiceController getController(ApplicationContext context){
+		if(controller == null){
+			controller = new OLD_DefaultServiceController();
+
+			try {
+				Map<String, Object> classs = context.getBeansWithAnnotation(ServiceClass.class);
+				for (Entry<String, Object> bean : classs.entrySet()) {
+					String className = bean.getValue().toString().split("@")[0];
+					Class<?> clazz = Class.forName(className);
+					String classCode = clazz.getAnnotation(ServiceClass.class).code();
+					Method[] methods = clazz.getMethods();
+
+					for (Method method : methods) {
+						if(method.isAnnotationPresent(ServiceMethod.class)){
+							ServiceBean service = new ServiceBean();
+							String methodCode = method.getAnnotation(ServiceMethod.class).code();
+							String description = method.getAnnotation(ServiceMethod.class).description();
+							
+							service.setBean(context.getBean(bean.getKey()));
+							service.setServiceCode(classCode);
+							service.setMethodCode(methodCode);
+							service.setMethodName(method.getName());
+							service.setDescription(description);
+							service.setParamTypes(method.getParameterTypes());
+							
+							String code = classCode + methodCode;
+							if(serviceMap.containsKey(code)){
+								logger.error("Code重复：" + code + " " + clazz + " <-> " +serviceMap.get(code).getBean().getClass());
+								System.exit(0);
+							}
+							logger.debug("Loading-" + description + "-" + code + "-" + clazz.toString());
+							serviceMap.put(code, service);
+						}
+					}
+				}
+				logger.info("Load Serivce Success..");
+			} catch (Exception e) {
+				logger.error(e, e);
+			}
+		}
+		return controller;
+	}
+	
+	public static Map<String, ServiceBean> getServiceMap() {
+		return serviceMap;
+	}
+
+	/**
+	 * 获取ServiceBean的信息
+	 * @author Doe.
+	 * @param code 
+	 * @return
+	 */
+	public static ServiceBean getService(String code) {
+		if(isNull(code))
+			return null;
+		return serviceMap.get(code);
+	}
+
+	public static void main(String[] args) {
+		Method[] methods = OLD_DefaultServiceController.class.getMethods();
+		for (Method method : methods) {
+			if(method.getName().equals("test")){
+				invoke(method);
+			}
+		}
+	}
+	
+	public static void invoke(Method method){
+		Warning warning = new Warning();
+		warning.setPoint("123123");
+		Map<String, Warning> map = new HashMap<String, Warning>();
+		map.put("11111111", warning);
+		String p1 = JSON.toJSONString(warning);
+		String p2 = JSON.toJSONString(Lists.newArrayList(warning));
+		String p3 = JSON.toJSONString(map);
+		
+		/*ParameterizedType genericSuperclass = (ParameterizedType)TypeReference.class.getGenericSuperclass();
+		Type[] actualTypeArguments = genericSuperclass.getActualTypeArguments();
+		System.out.println(actualTypeArguments.length);
+		*/
+		Type[] genericParameterTypes = method.getGenericParameterTypes();
+		Object[] objects = new Object[genericParameterTypes.length];
+		for (int i = 0; i < genericParameterTypes.length; i++) {
+			Type type = genericParameterTypes[i];
+			if(type instanceof Class<?>){
+				System.out.println("原始类型：" + (Class<?>) type);
+				
+			}else if(type instanceof ParameterizedType){
+				Type[] typetwos = ((ParameterizedType)type).getActualTypeArguments();
+				for (int j = 0; j < typetwos.length; j++) {
+					System.out.println("参数化类型：" + typetwos[j]);
+				}
+			}
+			objects[i] = JSON.parseObject(p1, type);
+			System.out.println("-----------------------");
+		}
+		try {
+			method.invoke(OLD_DefaultServiceController.class.newInstance(), objects);
+		} catch (Exception e) {
+			e.printStackTrace();
+		} 
+	}
+	
+	public void test(String warning){
+		System.out.println(warning);
+	}
+	/*public void test(List<Warning> warnings){
+		for (Warning warning : warnings) {
+			System.out.println(warning.getPoint());
+		}
+	}*/
+	/*public void test(Map<String, Warning> warnings){
+		for (String key : warnings.keySet()) {
+			System.out.println(key + "   " + warnings.get(key).getPoint());
+		}
+	}*/
+	
+	
+	@Override
+	public Object exec(BaseServerSocket serverSocket, Command command) throws Exception, AppException {
+		ServiceBean service = getService(command.getCode());
+		if(service == null){
+			throwExp("code["+command.getCode()+"]不存在");
+		}
+		Object bean = service.getBean();
+		Method method = bean.getClass().getMethod(service.getMethodName(), service.getParamTypes());
+		Object [] param = new Object[service.getParamTypes().length];
+		
+		for (int i = 0 ;i < service.getParamTypes().length ; i++) {
+			if(service.getParamTypes()[i] == Command.class){
+				param[i] = command;
+			}else if(BaseServerSocket.class.isAssignableFrom(service.getParamTypes()[i])){
+				param[i] = serverSocket;
+			}else if(JSON.class.isAssignableFrom(service.getParamTypes()[i])){
+				param[i] = JSON.parseObject(JSON.toJSONString(command.getData()), service.getParamTypes()[i]);
+			}else if(List.class.isAssignableFrom(service.getParamTypes()[i])){
+				Type type = service.getParamTypes()[i].getGenericSuperclass();
+				if(type != null){
+					Type[] genericType = ((ParameterizedType) type).getActualTypeArguments();
+					param[i] = JSON.parseArray(JSON.toJSONString(command.getData()), genericType);
+				}
+			}else{
+				param[i] = JSON.parseObject(JSON.toJSONString(command.getData()), service.getParamTypes()[i]);
+			}
+		}
+		try {
+			return method.invoke(bean, param);
+		} catch (InvocationTargetException e) {
+			if(e.getTargetException() instanceof AppException){
+				throw (AppException)e.getTargetException();
+			}else{
+				throw new Exception(e);
+			}
+		} catch (Exception e) {
+			throw e;
+		}
+	}
+
+	@Override
+	protected Log logger() {
+		return logger;
+	}
+}

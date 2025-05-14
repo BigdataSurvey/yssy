@@ -1,0 +1,150 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.zywl.app.defaultx.mapper.TradingMapper">
+
+    <insert id="insert" parameterType="Trading" useGeneratedKeys="true" keyProperty="id" keyColumn="id">
+        insert into t_trading
+        (
+            `user_id`,
+            `item_id`,
+            `item_type`,
+            `item_number`,
+            `item_all_number`,
+            `item_price`,
+            `type`,
+            `status`,
+            `create_time`,
+            `update_time`
+        )
+        values
+            (
+                #{userId},
+                #{itemId},
+                #{itemType},
+                #{itemNumber},
+                #{itemAllNumber},
+                #{itemPrice},
+                #{type},
+                #{status},
+                #{createTime},
+                #{updateTime}
+
+
+
+            )
+    </insert>
+
+    <update id="update" parameterType="Trading">
+        update t_trading
+        <set >
+            <if test="itemNumber != null">
+                item_number=#{itemNumber},
+            </if>
+            <if test="status !=null">
+                status=#{status},
+            </if>
+        </set>
+        where  id= #{id}       and status=1
+    </update>
+
+    <update id="subItemNumber" parameterType="Trading">
+        update t_trading
+        <set >
+            <if test="itemNumber != null">
+                item_number=item_number-#{itemNumber}
+            </if>
+        </set>
+        where  id= #{id}   and       item_number-#{itemNumber}>=0 and status = 1
+    </update>
+
+    <delete id="delete">
+        delete from t_trading where  id= #{id}
+    </delete>
+
+    <delete id="deleteNumberZero">
+        delete from t_trading where  item_number=0
+    </delete>
+
+    <select id="findOne" resultType="Trading">
+        select * from t_trading where id = #{id}
+    </select>
+
+    <select id="findAll" resultType="Trading">
+        select * from t_trading
+    </select>
+
+    <sql id="conditions">
+        <if test="itemId != null">
+            and item_id=#{itemId}
+        </if>
+        <if test="type != null">
+            and type=#{type}
+        </if>
+        <if test="itemTypes != null and  itemId==null"  >
+            and item_type in
+            <foreach collection="itemTypes" index="index" item="item" open="(" separator="," close=")">
+                #{item}
+            </foreach>
+        </if>
+        <if test="userId != null">
+            and user_id=#{userId}
+        </if>
+        <if test="status != null">
+            and status=#{status}
+        </if>
+    </sql>
+
+    <update id="cancelListOrAskBuy" parameterType="Trading">
+        update t_trading set status = #{status}	where  id= #{id} and status=1
+    </update>
+
+
+    <select id="countByConditions" resultType="Long">
+        select count(1) from t_trading
+        <where>
+            <include refid="conditions"></include>
+        </where>
+    </select>
+
+    <!--	<select id="findByConditions" resultType="Trading">-->
+    <!--	    select * from t_trading-->
+    <!--	    <where>-->
+    <!--	    	<include refid="conditions"></include>-->
+    <!--	    </where>-->
+    <!--	             and status!=2 and item_number>0-->
+    <!--		<if test="type==1">-->
+    <!--			ORDER BY status desc, item_price desc,create_time desc-->
+    <!--		</if>-->
+    <!--		<if test="type==0">-->
+    <!--			ORDER BY status desc, item_price asc,create_time desc-->
+    <!--		</if>-->
+
+    <!--		<if test="start != null and limit != null">-->
+    <!--	   	 limit #{start}, #{limit} -->
+    <!--	   	</if>-->
+    <!--	</select>-->
+
+    <select id="findByConditions" resultType="Trading">
+        SELECT `t_trading`.* FROM `t_trading` INNER JOIN ( SELECT `id` FROM `t_trading`
+        <where>
+            <include refid="conditions"></include>
+        </where>
+        <if test="type==1">
+            ORDER BY item_price desc,create_time asc
+        </if>
+        <if test="type==0">
+            ORDER BY  item_price asc,create_time asc
+        </if>
+
+        <if test="start != null and limit != null">
+            limit #{start}, #{limit}
+        </if>
+        ) `tmp_0` USING (`id`)
+    </select>
+
+    <select id="getMyTradingCount" resultType="Long">
+        select count(1) from t_trading
+        where  status=1 and user_id=#{userId}
+    </select>
+
+</mapper>

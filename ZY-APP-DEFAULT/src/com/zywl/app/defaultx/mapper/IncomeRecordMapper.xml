@@ -1,0 +1,110 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.zywl.app.defaultx.mapper.IncomeRecordMapper">
+
+   <insert id="insert" parameterType="InComeRecord" useGeneratedKeys="true" keyProperty="id" keyColumn="id">
+		insert into r_income_record
+		(
+               `user_id`,
+               `contribution_user_id`,
+               `order_no`,
+               `amount`,
+               `type`,
+                `status`,
+               `remark`,
+             	`create_time`,
+				`update_time`               
+		)
+		values
+		(
+               #{userId},
+               #{contributionUserId},
+               #{orderNo},
+              #{amount},
+              #{type},
+               #{status},
+               #{remark},
+               #{createTime},
+               #{updateTime}
+             
+             
+             
+		)
+	</insert>
+	
+	
+	
+	<select id="findOne" resultType="InComeRecord">
+	    select * from r_income_record where id = #{id}
+	</select>
+	
+	<select id="findAll" resultType="InComeRecord">
+	    select * from r_income_record
+	</select>
+	
+	<sql id="conditions">
+	<if test="userId != null">
+   		 and user_id=#{userId}
+   	</if>
+   	<if test="orderNo != null">
+   		 and order_no=#{orderNo}
+   	</if>
+   	
+   	
+   		
+   		
+   	
+   	<if test="status != null">
+   		  and status = #{status}
+   	</if>
+   	
+	</sql>
+	
+	<select id="countByConditions" resultType="Long">
+		select count(1) from r_income_record
+		<where>
+			<include refid="conditions"></include>
+		</where>
+	</select>
+	
+	<select id="findByConditions" resultType="InComeRecord">
+	    select * from r_income_record
+	    <where>
+	    	<include refid="conditions"></include>
+	    </where>
+	    
+		ORDER BY create_time desc 
+		<if test="start != null and limit != null">
+	   	 limit #{start}, #{limit} 
+	   	</if>
+	</select>
+	
+	<update id="receivedIncomeByType" parameterType="InComeRecord">
+		update r_income_record
+		<set>
+     		status= 1,
+     		order_no=#{orderNo}
+    	</set>
+		where  user_id = #{userId} and type =#{type}
+	</update>
+	
+	
+	
+	<select id="getUserUnReceivedIncom" resultType="java.util.Map">
+    SELECT user_id userId,amount,type FROM 
+    `r_income_record` where `status` = 0   ;
+    </select>
+	
+	
+	<select id="getTodayIncom" resultType="java.lang.String">
+  	  	SELECT sum(amount) as allAmount from
+    	`r_income_record` where user_id=#{myId}  and contribution_user_id=#{sonId}   and create_time &gt; #{today}
+    </select>
+    
+    <select id="getAllIncom" resultType="java.lang.String">
+  	  	SELECT sum(amount) as allAmount from
+    	`r_income_record` where user_id=#{myId}  and contribution_user_id=#{sonId}  
+    </select>
+	
+
+</mapper>

@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.zywl.app.defaultx.mapper.LogLoginMapper">
+
+   <insert id="insert" parameterType="LogLogin" useGeneratedKeys="true" keyProperty="id" keyColumn="id">
+		insert into ${tableName}
+		(
+               `user_id`,
+               `type`,
+               `request_id`,
+               `device_id`,
+               `code`,
+               `riskLevel`,
+               `detail`,
+		        `model`,
+		        `ip`,
+		        `ip_country`,
+		        `ip_province`,
+		        `ip_city`,
+		        `message`,
+		        `create_time`
+               
+               
+		)
+		values
+		(
+               #{userId},
+               #{type},
+               #{requestId},
+               #{deviceId},
+               #{code},
+               #{riskLevel},
+               #{detail},
+		       #{model},
+		       #{ip},
+               #{ipCountry},
+               #{ipProvince},
+               #{ipCity},
+               #{message},
+               #{createTime}
+		)
+	</insert>
+	
+	
+	
+	<select id="findAll" resultType="LogLogin">
+	    select * from ${tableName}
+	</select>
+
+
+
+	
+   		
+   	
+	
+	
+	
+
+</mapper>

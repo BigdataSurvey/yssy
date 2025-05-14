@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.zywl.app.defaultx.mapper.ReceivePoolRecordMapper">
+
+   <insert id="insert" parameterType="ReceivePoolRecord" useGeneratedKeys="true" keyProperty="id" keyColumn="id">
+		insert into r_receive_pool_record
+		(
+               `user_id`,
+               `receive_amount`,
+		        `order_no`,
+               `day`,
+                `today_pool`,
+		        `my_number`,
+		        `all_number`,
+             	`receive_time`
+		)
+		values
+		(
+               #{userId},
+               #{receiveAmount},
+		        #{orderNo},
+                #{day},
+               #{todayPool},
+               #{myNumber},
+		        #{allNumber},
+		        #{receiveTime}
+
+             
+             
+		)
+	</insert>
+	
+	<select id="findTodayRecordByUserId" resultType="ReceivePoolRecord">
+        select * from r_receive_pool_record where user_id = #{userId} and receive_time>#{time}
+    </select>
+
+    <select id="findRecordByDay" resultType="ReceivePoolRecord">
+        select * from r_receive_pool_record where day=#{day}
+    </select>
+
+</mapper>

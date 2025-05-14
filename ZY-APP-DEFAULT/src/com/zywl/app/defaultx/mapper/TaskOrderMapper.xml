@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.zywl.app.defaultx.mapper.TaskOrderMapper">
+
+   <insert id="insert" parameterType="TaskOrder" useGeneratedKeys="true" keyProperty="id" keyColumn="id">
+		insert into t_task_order
+		(
+				`order_no`,
+               `sql`,
+               `type`,
+               `server`,
+               `status`,
+               `user_id`,
+               `amount`,
+               `capital_type`,
+               `active_time`,
+               `create_time`,
+               `update_time`
+               
+		)
+		values
+		(
+				#{orderNo},
+               #{sql},
+               #{type},
+               #{server},
+               #{status},
+               #{userId},
+               #{amount},
+               #{capitalType},
+               #{activeTime},
+               #{createTime},
+               #{updateTime}
+        
+		)
+	</insert>
+	
+	<update id="updateOrder" parameterType="TaskOrder">
+	
+		update t_task_order
+		
+		<set>
+			<if test="sql != null">
+				`sql`=#{sql},
+			</if>
+			<if test="server != null">
+				`server`=#{server}
+			</if>
+			<if test="status != null">
+				`status`=#{status}
+			</if>
+		</set>
+		 where  order_no= #{orderNo}             
+	</update>
+	
+	<delete id="delete">
+		delete from t_task_order where  status= 1          
+	</delete>
+	
+	
+	
+	<select id="findOne" resultType="TaskOrder">
+	    select * from t_task_order where order_no = #{orderNo} and status=1
+	</select>
+	
+	<select id="findNoStatusOrderByOrderNo" resultType="TaskOrder">
+	    select * from t_task_order where order_no = #{orderNo}
+	</select>
+	
+	<select id="findErrorOrder" resultType="TaskOrder">
+	    select * from t_task_order where status =0;
+	</select>
+	
+	<select id="findAll" resultType="TaskOrder">
+	    select * from t_task_order
+	</select>
+	
+</mapper>

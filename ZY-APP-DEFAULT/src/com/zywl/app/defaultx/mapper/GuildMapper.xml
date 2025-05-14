@@ -1,0 +1,119 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.zywl.app.defaultx.mapper.GuildMapper">
+
+   <insert id="insert" parameterType="Guild" useGeneratedKeys="true" keyProperty="id" keyColumn="id">
+		insert into t_guild
+		(
+               `id`,
+               `user_id`,
+               `guild_name`,
+               `member_number`,
+               `bail_amount`,
+               `remark`,
+		       `type`,
+		        `free_num`,
+               `status`,
+		       `create_time`,
+               `apply_time`
+		)
+		values
+		(
+               #{id},
+               #{userId},
+               #{guildName},
+               #{memberNumber},
+               #{bailAmount},
+               #{remark},
+		       #{type},
+		        #{freeNum},
+               #{status},
+		        #{createTime},
+		        #{applyTime}
+		)
+	</insert>
+
+    <sql id="conditions">
+        <if test="id != null">
+            and id=#{id}
+        </if>
+        <if test="userId != null">
+            and user_id=#{userId}
+        </if>
+        <if test="status != null">
+            and status=#{status}
+        </if>
+        <if test="type != null">
+            and type=#{type}
+        </if>
+        <if test="guildName != null">
+            and guild_name=#{guildName}
+        </if>
+    </sql>
+
+    <select id="countByConditions" resultType="Long">
+        select count(1) from t_guild
+        <where>
+            <include refid="conditions"></include>
+        </where>
+    </select>
+
+    <select id="findByConditions" resultType="Guild">
+        select * from t_guild
+        <where>
+            <include refid="conditions"></include>
+        </where>
+
+        ORDER BY create_time desc
+        <if test="start != null and limit != null">
+            limit #{start}, #{limit}
+        </if>
+    </select>
+	
+	<select id="findAll" resultType="Guild">
+	    select * from t_guild where status=1
+	</select>
+
+    <select id="findByUserId" resultType="Guild">
+        select * from t_guild where user_id=#{userId}
+    </select>
+
+    <update id="updateGuildBailAmount" parameterType="InComeRecord">
+        update t_guild set bail_amount = bail_amount +#{addBailAmount}
+        where id = #{id}
+    </update>
+
+    <select id="findOne" resultType="Guild">
+        select * from t_guild where id = #{id}
+    </select>
+   		
+   	<update id="updateStatus" parameterType="Guild">
+        update t_guild
+        <set>
+            status = ${status}
+        </set>
+        where user_id= #{userId}
+    </update>
+
+    <update id="updateMemberNumber">
+        update t_guild set
+            member_number = member_number+#{memberNumber},
+            free_num = free_num + #{freeNum}
+        where id= #{id}
+    </update>
+
+    <update id="passGuildApply">
+        update t_guild
+        <set>
+            status = 1,
+            create_time = #{createTime}
+        </set>
+        where id= #{id}
+    </update>
+
+    <delete id="delete">
+        delete from t_guild where id= #{id}
+    </delete>
+	
+
+</mapper>

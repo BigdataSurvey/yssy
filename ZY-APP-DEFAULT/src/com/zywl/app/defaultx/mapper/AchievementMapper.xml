@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.zywl.app.defaultx.mapper.AchievementMapper">
+
+   <insert id="insert" parameterType="Achievement" useGeneratedKeys="true" keyProperty="id" keyColumn="id">
+		insert into t_achievement
+		(
+               `context`,
+               `condition`,
+               `reward`,
+               `sort`,
+               `type`
+		)
+		values
+		(
+               #{context},
+               #{condition},
+               #{reward},
+               #{sort},
+        	#{type}
+		)
+	</insert>
+	
+	<update id="updateAchievement" parameterType="Achievement">
+		update t_achievement 
+		<set>
+		
+		<if test="context!=null">
+		context = #{context},  
+		</if>
+		<if test="condition!=null">
+		condition = #{condition},  
+		</if>
+		<if test="reward!=null">
+		reward = #{reward},  
+		</if>
+		<if test="sort!=null">
+		sort = #{sort},  
+		</if>
+		<if test="type!=null">
+		type = #{type},  
+		</if>
+		</set> 
+		where  id= #{id}            
+	</update>
+	
+	<delete id="delete">
+		delete from t_achievement where  id= #{id}               
+	</delete>
+	
+	<select id="findByType" resultType="Achievement">
+	    select * from t_achievement where type = #{type} 
+	</select>
+	
+	
+	<select id="findAll" resultType="Achievement">
+	    select * from t_achievement
+	</select>
+
+
+</mapper>

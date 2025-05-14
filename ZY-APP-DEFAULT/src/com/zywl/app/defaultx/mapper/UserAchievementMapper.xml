@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.zywl.app.defaultx.mapper.UserAchievementMapper">
+
+   <insert id="insert" parameterType="UserAchievement" useGeneratedKeys="true" keyProperty="id" keyColumn="id">
+		insert into t_user_achievement
+		(
+               `user_id`,
+               `achievement_list`
+
+               
+		)
+		values
+		(
+               #{userId},
+               #{achievementList}
+
+             
+             
+		)
+	</insert>
+	
+	
+	
+	<select id="findOne" resultType="UserAchievement">
+	    select * from t_user_achievement where user_id = #{userId}
+	</select>
+	
+	
+   		
+   	<update id="addNoCompleteList" parameterType="UserAchievement">
+		update t_user_achievement
+		<set>
+			<if test="noCompleteList != null">
+				no_complete_list=#{noCompleteList}
+			</if>
+		</set>
+		where user_id= #{userId} 
+	</update>
+   	
+	
+		<update id="addCompleteList" parameterType="UserAchievement">
+		update t_user_achievement
+		<set>
+			<if test="noCompleteList != null">
+				no_complete_list=#{noCompleteList},
+			</if>
+			<if test="hasAchievementList != null">
+				has_achievement_list=#{hasAchievementList},
+			</if>
+		</set>
+		where user_id= #{userId} 
+	</update>
+
+
+	<update id="updateUserAchievement" parameterType="UserAchievement">
+		update t_user_achievement set achievement_list = #{achievementList} where user_id=#{userId}
+	</update>
+
+
+	<update id="updateList" parameterType="java.util.List">
+		<foreach collection="list" item="item" index="index" open=""
+				 close="" separator=";">
+			update t_user_achievement
+			<set>
+				<if test="item.achievementList != null">
+					achievement_list=#{item.achievementList}
+				</if>
+			</set>
+			where user_id = ${item.userId}
+		</foreach>
+	</update>
+
+
+
+</mapper>

@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.zywl.app.defaultx.mapper.DeviceRiskMapper">
+
+
+	<sql id="conditions">
+		<if test="status != null">
+			and status=#{status}
+		</if>
+		<if test="models != null">
+			and models=#{models}
+		</if>
+
+	</sql>
+
+
+	<select id="countByConditions" resultType="Long">
+		select count(1) from t_device_risk
+		<where>
+			<include refid="conditions"></include>
+		</where>
+	</select>
+
+	<select id="findByConditions" resultType="DeviceRisk">
+		select * from t_device_risk
+		<where>
+			<include refid="conditions"></include>
+		</where>
+		order by status desc
+		<if test="start != null and limit != null">
+			limit #{start}, #{limit}
+		</if>
+	</select>
+
+	<select id="findById" resultType="DeviceRisk">
+		select * from t_device_risk where id=#{id}
+	</select>
+	
+	<select id="findAll" resultType="DeviceRisk">
+	    select * from t_device_risk
+	</select>
+
+	<update id="updateDeviceRiskStatus" parameterType="DeviceRisk">
+		update t_device_risk set status=#{status}   where id=#{id}
+	</update>
+   		
+   	
+	
+	
+	
+
+</mapper>

@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.zywl.app.defaultx.mapper.AgentMapper">
+
+   
+   <insert id="insert" parameterType="Agent">
+		insert into t_agent
+		(
+               id,
+               parentId,
+               name,
+               username,
+               password,
+               downloadNum,
+               registNum,
+               paymentNum,
+               createTime
+		)
+		values
+		(
+               #{id},
+               #{parentId},
+               #{name},
+               #{username},
+               #{password},
+               #{downloadNum},
+               #{registNum},
+               #{paymentNum},
+               #{createTime}
+		)
+	</insert>
+	
+	<update id="update" parameterType="Agent">
+		update t_agent
+		<set >
+			<if test="parentId != null">
+			parentId=#{parentId},
+			</if>
+     		<if test="name != null">
+     		name= #{name},
+     		</if>
+     		<if test="username != null">
+     		username= #{username},
+     		</if>
+     		<if test="password != null">
+     		password= #{password},
+     		</if>
+     		<if test="downloadNum != null">
+     		downloadNum= #{downloadNum},
+     		</if>
+     		<if test="registNum != null">
+     		registNum= #{registNum},
+     		</if>
+     		<if test="paymentNum != null">
+     		paymentNum= #{paymentNum},
+     		</if>
+    	</set>
+		where  id= #{id}             
+	</update>
+	
+	<delete id="delete">
+		delete from t_agent where  id= #{id} 
+	</delete>
+	
+	<select id="findOne" resultType="Agent">
+	    select * from t_agent where id = #{id}
+	</select>
+	
+	<select id="findAll" resultType="Agent">
+	    select * from t_agent
+	</select>
+	
+	<select id="findByConditions" resultType="Agent">
+	    select * from t_agent 
+	    <where>
+	    	<if test="username != null">
+	    	 and `username` = #{username}
+	    	</if>
+     		<if test="parentId != null">
+     		 and parentId= #{parentId}
+     		</if>
+	    </where>
+	</select>
+	
+</mapper>
