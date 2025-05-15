@@ -7,7 +7,7 @@ import com.zywl.app.socket.ManagerSocket;
 import org.springframework.stereotype.Service;
 
 @Service
-public class NHManagerService {
+public class LhdManagerService {
 
 	private ManagerSocket managerSocket;
 	

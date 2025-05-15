@@ -253,7 +253,6 @@ public class BattleRoyaleService2 extends BaseService {
                 && ROOM.getLookList().containsKey(userId)) {
             ROOM.getPlayers().remove(userId);
             ROOM.getLookList().remove(userId);
-            // Push.push(PushCode.updateDts2Info, null, pushResult);
         }
         return new JSONObject();
 
@@ -316,7 +315,6 @@ public class BattleRoyaleService2 extends BaseService {
             ROOM.getBetOptionsInfo().get(newRoomId).put("betAmount",
                     (new BigDecimal(ROOM.getBetOptionsInfo().get(newRoomId).get("betAmount")).add(amount)).toString());
             pushArray.get(key2).add(ROOM.pushResult(1, userId, newRoomId, amount));
-            //Push.push(PushCode.updateDts2Info, null, ROOM.pushResult(1, userId, newRoomId, amount));
             updateRoomUser.remove(userId);
             return result;
         }
@@ -382,16 +380,16 @@ public class BattleRoyaleService2 extends BaseService {
         checkNull(params.get("userId"), params.get("betAmount"), params.get("bet"));
 
         if (STATUS == 0) {
-            throwExp("神尊护体即将维护，暂时不能进行游戏！");
+            throwExp("游戏即将维护");
         }
         if (ROOM.getStatus() == LotteryGameStatusEnum.settle.getValue()) {
-            throwExp("上局结算中,请等待结算完成重新渡劫 ~");
+            throwExp("上局结算中");
         }
         if (System.currentTimeMillis() > ROOM.getReadyTime() && (System.currentTimeMillis() - ROOM.getReadyTime()) < 2000) {
-            throwExp("上局结算中,请等待结算完成重新渡劫 ~");
+            throwExp("上局结算中");
         }
         if (ROOM.getEndTime() != 0L && ROOM.getEndTime() - System.currentTimeMillis() < 2000) {
-            throwExp("本局即将结束，请稍后参与 ~");
+            throwExp("本局即将结束，请等待下一局游戏开始");
         }
         String userId = params.getString("userId");
         String userBet = params.getString("bet");
@@ -406,7 +404,7 @@ public class BattleRoyaleService2 extends BaseService {
         if (!ROOM.getPlayers().containsKey(userId)) {
             throwExp("请返回大厅后重新进入游戏");
         }
-        if (Integer.parseInt(userBet) > ROOM.getOption() - 1 || Integer.parseInt(userBet) <0) {
+        if (Integer.parseInt(userBet) > ROOM.getOption() - 1 || Integer.parseInt(userBet)<0) {
             throwExp("非法投入");
         }
         /*
@@ -460,7 +458,7 @@ public class BattleRoyaleService2 extends BaseService {
                     }
                 }
                 pushArray.get(key2).add(ROOM.pushResult(1, userId, userBet, allAmount));
-                //Push.push(PushCode.updateDts2Info, null, ROOM.pushResult(1, userId, userBet, allAmount));
+                //Push.push(PushCode.updateRoomDate, null, ROOM.pushResult(1, userId, userBet, allAmount));
                 Executer.response(CommandBuilder.builder(lotteryCommand).success(ROOM.pushResult(1, userId, userBet, allAmount)).build());
             } catch (Exception e) {
                 logger.info(e);
@@ -479,8 +477,8 @@ public class BattleRoyaleService2 extends BaseService {
     public void initHistoryResult() {
         logger.info("更新大逃杀历史开奖结果");
         long time = System.currentTimeMillis();
-        List<GameLotteryResult> result100 = gameLotteryResultService.findHistoryResultByGameId(7L, 100);
-        List<GameLotteryResult> result20 = gameLotteryResultService.findHistoryResultByGameId(7L, 20);
+        List<GameLotteryResult> result100 = gameLotteryResultService.findHistoryResultByGameId(1L, 100);
+        List<GameLotteryResult> result20 = gameLotteryResultService.findHistoryResultByGameId(1L, 20);
         JSONObject result1 = new JSONObject();
         for (GameLotteryResult gameLotteryResult : result100) {
             String lotteryResult = gameLotteryResult.getLotteryResult();
@@ -575,7 +573,6 @@ public class BattleRoyaleService2 extends BaseService {
             ConcurrentHashMap<String, Map<String, String>> userBetOrderInfo = ROOM.getUserBetOrderInfo();
             data.put("roomId", killList);
             data.put("status", status);
-            data.putAll(ROOM.getSettleDate());
             data.put("userSettleInfo", userBetOrderInfo);
             Push.push(PushCode.updateDts2Status, null, data);
             Executer.executeService(new Runnable() {
@@ -801,7 +798,7 @@ public class BattleRoyaleService2 extends BaseService {
         }
         ROOM.setNextResult(getKillList(getResultCount()));
 
-        gameLotteryResultService.drawLottery(7L, ROOM.getPeridosNum() == null ? "1" : ROOM.getPeridosNum(),
+        gameLotteryResultService.drawLottery(1L, ROOM.getPeridosNum() == null ? "1" : ROOM.getPeridosNum(),
                 String.valueOf(killList), ROOM.getAllBetAmount(), BigDecimal.ZERO, BigDecimal.ONE, ROOM.getBetNum(), 0, 0,
                 1);
         return killList;
@@ -848,7 +845,7 @@ public class BattleRoyaleService2 extends BaseService {
 
     public void initGameSetting() {
         logger.info("初始化大逃杀游戏配置");
-        Game game = gameService.findGameById(7L);
+        Game game = gameService.findGameById(1L);
         if (game != null) {
             GAME_SETTING = JSON.parseObject(game.getGameSetting());
             PEOPLE_NUM = GAME_SETTING.getIntValue("peopleNum");

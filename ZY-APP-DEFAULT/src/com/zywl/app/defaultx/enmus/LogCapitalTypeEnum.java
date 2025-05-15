@@ -74,8 +74,8 @@ public enum LogCapitalTypeEnum {
     sell_sys2("背包卖出", 63),
     sell_sys3("背包卖出", 64),
     pirze_draw_reward("奖池获得", 65),
-    game_bet_nh("参加龙年大集", 76),
-    game_bet_win_nh("龙年大集获得", 67),
+    game_bet_nh("参加2选1游戏", 76),
+    game_bet_win_nh("2选1游戏获得", 67),
     add_magic("投入魔晶",70),
     receive_magic("魔幻阁领取",71),
 

@@ -8,7 +8,7 @@ import com.live.app.ws.util.Executer;
 import org.springframework.stereotype.Service;
 
 @Service
-public class NhRequestMangerService {
+public class LhdRequestMangerService {
 
 	
 	public void requestManagerBet(JSONObject data, Listener listener) {

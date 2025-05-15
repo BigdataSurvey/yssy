@@ -14,9 +14,9 @@
 
 		<setting name="defaultStatementTimeout" value="10000" />
 
-		<!--<setting name="logImpl" value="NO_LOGGING" />-->
+		<setting name="logImpl" value="NO_LOGGING" />
 
-		<setting name="logImpl" value="LOG4J" />
+		<!--<setting name="logImpl" value="LOG4J" />-->
 
 		<setting name="mapUnderscoreToCamelCase" value="true" />
 

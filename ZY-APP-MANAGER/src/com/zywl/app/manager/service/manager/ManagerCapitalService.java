@@ -21,6 +21,7 @@ import com.zywl.app.defaultx.cache.AppConfigCacheService;
 import com.zywl.app.defaultx.cache.GameCacheService;
 import com.zywl.app.defaultx.cache.UserCacheService;
 import com.zywl.app.defaultx.cache.UserCapitalCacheService;
+import com.zywl.app.defaultx.enmus.GameTypeEnum;
 import com.zywl.app.defaultx.enmus.LogCapitalTypeEnum;
 import com.zywl.app.defaultx.enmus.UserCapitalTypeEnum;
 import com.zywl.app.defaultx.service.*;
@@ -29,10 +30,7 @@ import com.zywl.app.manager.service.AliPayCashService;
 import com.zywl.app.manager.service.CheckAchievementService;
 import com.zywl.app.manager.service.PlayGameService;
 import com.zywl.app.manager.service.WXCashService;
-import com.zywl.app.manager.socket.AdminSocketServer;
-import com.zywl.app.manager.socket.ManagerDTSSocketServer;
-import com.zywl.app.manager.socket.ManagerSGSocketServer;
-import com.zywl.app.manager.socket.ManagerSocketServer;
+import com.zywl.app.manager.socket.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -463,4 +461,71 @@ public class ManagerCapitalService extends BaseService {
         return new JSONObject();
     }
 
+
+    @Transactional
+    @ServiceMethod(code = "710", description = "倩女幽魂结算")
+    public JSONObject dtsSettle(ManagerDTS2SocketServer adminSocketServer, JSONObject data) {
+        checkNull(data);
+        Set<String> set = data.keySet();
+        if (set.size() == 0) {
+            return new JSONObject();
+        }
+        LogCapitalTypeEnum em = null;
+        Long userId = null;
+        for (String key : set) {
+            JSONObject o = JSONObject.parse(data.getString(key));
+            em = LogCapitalTypeEnum.getEm(o.getIntValue("em"));
+            userId = Long.parseLong(key);
+            /*if (em.getValue() == LogCapitalTypeEnum.game_bet_food.getValue() || em.getValue() == LogCapitalTypeEnum.game_bet_win.getValue()) {
+                userCacheService.addTodayUserPlayCount(userId);
+                checkAchievementService.checkDailyTaskPlayerArea(userId);
+            }*/
+        }
+        userCapitalService.betUpdateBalance2(data);
+        for (String key : set) {
+            JSONObject o = JSONObject.parse(data.getString(key));
+            em = LogCapitalTypeEnum.getEm(o.getIntValue("em"));
+            userId = Long.parseLong(key);
+            UserCapital userCapital = userCapitalCacheService.getUserCapitalCacheByType(userId, UserCapitalTypeEnum.currency_2.getValue());
+            JSONObject pushData = new JSONObject();
+            pushData.put("userId", userId);
+            if (em.getValue() == LogCapitalTypeEnum.game_bet_win_dts2.getValue()) {
+                pushData.put("isDts", 1);
+            }
+            pushData.put("capitalType", UserCapitalTypeEnum.currency_2.getValue());
+            pushData.put("balance", userCapital.getBalance());
+
+            Push.push(PushCode.updateUserCapital, managerSocketService.getServerIdByUserId(userId), pushData);
+        }
+
+
+        return new JSONObject();
+    }
+
+    @Transactional
+    @ServiceMethod(code = "711", description = "2选1结算")
+    public JSONObject nhSettle(ManagerLhdSocketServer adminSocketServer, JSONObject data) {
+        checkNull(data);
+        Set<String> set = data.keySet();
+        LogCapitalTypeEnum em = null;
+        Long userId = null;
+        userCapitalService.betUpdateBalance(data);
+        for (String key : set) {
+            JSONObject o = JSONObject.parse(data.getString(key));
+            em = LogCapitalTypeEnum.getEm(o.getIntValue("em"));
+            userId = Long.parseLong(key);
+            UserCapital userCapital = userCapitalCacheService.getUserCapitalCacheByType(userId, UserCapitalTypeEnum.currency_2.getValue());
+            JSONObject pushData = new JSONObject();
+            pushData.put("userId", userId);
+            if (em.getValue() == LogCapitalTypeEnum.game_bet_win_nh.getValue()) {
+                pushData.put("isDts", 1);
+            }
+            pushData.put("capitalType", UserCapitalTypeEnum.currency_2.getValue());
+            pushData.put("balance", userCapital.getBalance());
+            Push.push(PushCode.updateUserCapital, managerSocketService.getServerIdByUserId(userId), pushData);
+        }
+
+
+        return new JSONObject();
+    }
 }

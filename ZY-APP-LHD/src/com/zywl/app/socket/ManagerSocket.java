@@ -11,7 +11,7 @@ import com.live.app.ws.socket.BaseSocket;
 import com.live.app.ws.util.DefaultPushHandler;
 import com.live.app.ws.util.Executer;
 import com.live.app.ws.util.Push;
-import com.zywl.app.service.NHService;
+import com.zywl.app.service.LhdService;
 import com.zywl.app.base.bean.Config;
 import com.zywl.app.defaultx.service.GameService;
 import com.zywl.app.defaultx.service.IncomeRecordService;
@@ -31,7 +31,7 @@ public class ManagerSocket extends BaseClientSocket {
 	
 	private VersionService versionService;
 	
-	private NHService NHService;
+	private LhdService LhdService;
 
 	private GameService gameService;
 	
@@ -45,7 +45,7 @@ public class ManagerSocket extends BaseClientSocket {
 		super(socketType, false, reconnect, server, shakeHandsDatas);
 		versionService = SpringUtil.getService(VersionService.class);
 		incomeRecordService = SpringUtil.getService(IncomeRecordService.class);
-		NHService = SpringUtil.getService(NHService.class);
+		LhdService = SpringUtil.getService(LhdService.class);
 		gameService = SpringUtil.getService(GameService.class);
 		Push.addPushSuport(PushCode.cancelBet, new DefaultPushHandler() {
 			public void onRegist(BaseSocket baseSocket, PushBean pushBean) {
@@ -77,15 +77,15 @@ public class ManagerSocket extends BaseClientSocket {
 				logger.info("收到系统参数修改推送：" + data);
 				JSONObject object = (JSONObject) data;
 				Config config = object.toJavaObject(Config.class);
-				if (config.getKey().equals(Config.NH_STATUS)){
+				if (config.getKey().equals(Config.LHD_STATUS)){
 					int status = Integer.parseInt(config.getValue());
 					logger.info("调整游戏状态："+status);
-					NHService.updateStatus(status);
+					LhdService.updateStatus(status);
 				}
-				if (config.getKey().equals(Config.NH_RATE)){
+				if (config.getKey().equals(Config.LHD_STATUS)){
 					BigDecimal rate = new BigDecimal(config.getValue());
 					logger.info("调整游戏手续费："+rate);
-					NHService.updateRate(rate);
+					LhdService.updateRate(rate);
 				}
 			}
 		}, this);

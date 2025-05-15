@@ -2,7 +2,7 @@ package com.zywl.app.context;
 
 import com.zywl.app.defaultx.APP;
 import com.zywl.app.defaultx.util.SpringUtil;
-import com.zywl.app.service.NHManagerService;
+import com.zywl.app.service.LhdManagerService;
 
 import javax.servlet.ServletContextEvent;
 import javax.servlet.ServletContextListener;
@@ -21,7 +21,7 @@ public class ServerContext implements ServletContextListener {
 	public void contextInitialized(ServletContextEvent contextEvent) {
 		APP.run();
 		Thread t = new Thread(() -> {
-			SpringUtil.getService(NHManagerService.class).connectManager();
+			SpringUtil.getService(LhdManagerService.class).connectManager();
 		}, "connectManagerNhServer");
 		t.start();
 	}

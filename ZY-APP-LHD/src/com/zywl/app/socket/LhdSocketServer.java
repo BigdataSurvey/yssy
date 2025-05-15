@@ -12,7 +12,7 @@ import com.live.app.ws.interfacex.PushListener;
 import com.live.app.ws.socket.BaseServerSocket;
 import com.live.app.ws.socket.BaseSocket;
 import com.live.app.ws.util.Push;
-import com.zywl.app.service.NHService;
+import com.zywl.app.service.LhdService;
 import com.zywl.app.base.util.PropertiesUtil;
 import com.zywl.app.defaultx.service.LotterySyncCapitalService;
 import com.zywl.app.defaultx.service.TaskOrderService;
@@ -24,10 +24,10 @@ import org.apache.commons.logging.LogFactory;
 import javax.websocket.server.ServerEndpoint;
 import java.util.Set;
 
-@ServerEndpoint(value = "/NHServer"
+@ServerEndpoint(value = "/LhdServer"
 		+ SocketConstants.SOCKET_CONNECT_SHAKE_HANDS, configurator = HttpSessionConfigurator.class)
-public class NHSocketServer extends BaseServerSocket {
-	private static final Log logger = LogFactory.getLog(NHSocketServer.class);
+public class LhdSocketServer extends BaseServerSocket {
+	private static final Log logger = LogFactory.getLog(LhdSocketServer.class);
 
 	private String address;
 
@@ -41,7 +41,7 @@ public class NHSocketServer extends BaseServerSocket {
 
 	private PropertiesUtil globalProperties;
 
-	private NHService NHService;
+	private LhdService LhdService;
 
 	private LotterySyncCapitalService lotterySyncCapitalService;
 
@@ -50,14 +50,14 @@ public class NHSocketServer extends BaseServerSocket {
 
 	private TaskOrderService taskOrderService;
 
-	public NHSocketServer() {
+	public LhdSocketServer() {
 		super(TargetSocketType.server, false, true);
 		staticProperties = new PropertiesUtil("static.properties");
 		globalProperties = new PropertiesUtil("global.properties");
 		lotterySyncCapitalService = SpringUtil.getService(LotterySyncCapitalService.class);
 		userCapitalService = SpringUtil.getService(UserCapitalService.class);
 		taskOrderService = SpringUtil.getService(TaskOrderService.class);
-		NHService = SpringUtil.getService(NHService.class);
+		LhdService = SpringUtil.getService(LhdService.class);
 
 	}
 

@@ -90,13 +90,13 @@ public class BattleRoyale2Socket extends BaseClientSocket {
 				downLatch.countDown();
 			}
 			public void onReceive(BaseSocket baseSocket, Object data) {
-				logger.info("收到神尊护体房间信息变更" + data);
+				logger.info("收到倩女幽魂房间信息变更" + data);
 				JSONArray array = JSONArray.from(data);
 				for (Object o : array) {
 					JSONObject obj = JSONObject.from(o);
 					String gameId = obj.getString("gameId");
-					if ("7".equals(gameId)) {
-						Push.push(PushCode.updateDts2Info, gameId, obj);
+					if ("1".equals(gameId)) {
+						Push.push(PushCode.updateRoomDate, gameId, obj);
 					}
 				}
 
@@ -109,17 +109,16 @@ public class BattleRoyale2Socket extends BaseClientSocket {
 				downLatch.countDown();
 			}
 			public void onReceive(BaseSocket baseSocket, Object data) {
-				logger.info("神尊护体游戏状态变更" + data);
+				logger.info("倩女幽魂游戏状态变更" + data);
 				JSONObject obj = JSONObject.from(data);
 				String gameId = obj.getString("gameId");
 				JSONArray ids = obj.getJSONArray("userIds");
-				if ("7".equals(gameId)) {
+				if ("1".equals(gameId)) {
 					for (Object id : ids) {
 						JSONObject result = new JSONObject();
 						String userId = (String) id;
 						if (LotteryGameStatusEnum.settle.getValue()== obj.getIntValue("status")) {
 							Map<String, Map<String, String>> map = (Map<String, Map<String, String>>) obj.get("userSettleInfo");
-
 							if (map.containsKey(userId) ) {
 								//有该玩家的下注信息
 								result.put("winAmount", map.get(userId).get("winAmount"));
@@ -141,8 +140,7 @@ public class BattleRoyale2Socket extends BaseClientSocket {
 						result.put("roomIds", obj.get("roomIds"));
 						result.put("status", obj.get("status"));
 						result.put("userId", userId);
-						
-						Push.push(PushCode.updateDts2Status, userId, result);
+						Push.push(PushCode.updateGameStatus, userId, result);
 					}
 					
 				}

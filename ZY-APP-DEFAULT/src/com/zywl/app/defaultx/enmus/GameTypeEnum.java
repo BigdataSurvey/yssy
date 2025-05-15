@@ -8,13 +8,13 @@ package com.zywl.app.defaultx.enmus;
  */
 public enum GameTypeEnum {
 
-	battleRoyale("大逃杀", 1), 
+	battleRoyale("单杀大逃杀", 7),
 	starChange("斗转星移", 2),
 	food("我是酒仙", 3),
 	ns("打年兽",4),
 	nh("年货",5),
 	dz("打坐",6),
-	dts2("神尊护体",7),
+	dts2("倩女幽魂",1),
 	sg("算卦",8),
 	bt("宝塔",9);
 	private String name;
