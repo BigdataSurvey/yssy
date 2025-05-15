@@ -23,7 +23,10 @@
 	<typeAliases>
 		<package name="com.zywl.app.base.bean" />
 	</typeAliases>
-
+	<typeHandlers>
+		<typeHandler handler="com.zywl.app.defaultx.util.JSONArrayTypeHandler" javaType="com.alibaba.fastjson2.JSONArray" />
+		<typeHandler handler="com.zywl.app.defaultx.util.JSONObjectTypeHandler" javaType="com.alibaba.fastjson2.JSONObject" />
+	</typeHandlers>
 	<plugins>
 		<plugin interceptor="com.zywl.app.defaultx.dbutil.PaginationInterceptor">
 			<property name="dialect" value="MYSQL" />
