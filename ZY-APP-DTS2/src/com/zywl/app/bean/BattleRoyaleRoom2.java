@@ -115,17 +115,17 @@ public class BattleRoyaleRoom2 extends BaseBean{
 	
 	public BattleRoyaleRoom2() {
 		status = 1;
-		players=new ConcurrentHashMap<String, Map<String,String>>();
-		userBetInfo=new ConcurrentHashMap<String, Map<String,BigDecimal>>();
-		betOptionsInfo=new ConcurrentHashMap<String, Map<String,String>>();
-		userBetOrderInfo=new ConcurrentHashMap<String, Map<String,String>>();
+		players= new ConcurrentHashMap<>();
+		userBetInfo= new ConcurrentHashMap<>();
+		betOptionsInfo= new ConcurrentHashMap<>();
+		userBetOrderInfo= new ConcurrentHashMap<>();
 		history100Reuslt=new JSONObject();
 		history20Reuslt=new JSONObject();
-		roomList = new ConcurrentHashMap<String, Map<String,JSONObject>>();
+		roomList = new ConcurrentHashMap<>();
 		for (int i =0; i < option; i++) {
-			roomList.put(String.valueOf(i), new ConcurrentHashMap<String, JSONObject>());
+			roomList.put(String.valueOf(i), new ConcurrentHashMap<>());
 		}
-		lookList = new ConcurrentHashMap<String, Map<String,Object>>();
+		lookList = new ConcurrentHashMap<>();
 		allBetAmount=BigDecimal.ZERO;
 		settleDate = new JSONObject();
 	}

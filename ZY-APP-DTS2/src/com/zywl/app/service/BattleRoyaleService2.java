@@ -821,7 +821,7 @@ public class BattleRoyaleService2 extends BaseService {
 
     public static List<Integer> getKillList(int count){
         List<Integer> list = new ArrayList<>();
-        for (int i = 0; i < 9; i++) {
+        for (int i = 0; i < 5; i++) {
             list.add(i);
         }
         Collections.shuffle(list);
@@ -833,31 +833,16 @@ public class BattleRoyaleService2 extends BaseService {
     }
 
     public static void main(String[] args) {
-        RATE_LIST.add(5);
-        RATE_LIST.add(13);
-        RATE_LIST.add(43);
-        RATE_LIST.add(73);
-        RATE_LIST.add(81);
-        RATE_LIST.add(88);
-        RATE_LIST.add(95);
+        RATE_LIST.add(50);
+        RATE_LIST.add(80);
+        RATE_LIST.add(0);
         RATE_LIST.add(100);
-        List<Integer> list = new ArrayList<>();
-        list.add(0);
-        list.add(0);
-        list.add(0);
-        list.add(0);
-        list.add(0);
-        list.add(0);
-        list.add(0);
-        list.add(0);
-        list.add(0);
-        list.add(0);
+        RATE_LIST.add(0);
         for (int i = 0; i < 100; i++) {
             int resultCount = getResultCount();
             List<Integer> killList = getKillList(resultCount);
             System.out.println(killList);
         }
-        System.out.println(list);
     }
 
 
@@ -877,7 +862,7 @@ public class BattleRoyaleService2 extends BaseService {
             MAX_KILL_COUNT= GAME_SETTING.getIntValue("maxKillCount",8);
 
         }
-        Config configByKey = configService.getConfigByKey(Config.SZHT_RATE);
+        Config configByKey = configService.getConfigByKey(Config.QNYH_RATE);
         if (configByKey!=null){
             String value = configByKey.getValue();
             String[] split = value.split(",");

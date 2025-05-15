@@ -96,7 +96,8 @@ if(!window.CtrlFn_${menuId}){
             GAME_SG_STATUS:"签与签寻游戏状态",
             QQ:"官方QQ群",
             SG_ISK:"军机情报游戏配置",
-            GAME_DZ_GAME_ON:"打卡开关"
+            GAME_DZ_GAME_ON:"打卡开关",
+            GAME_DTS2_STATUS:"倩女幽魂游戏状态"
 
 
         };

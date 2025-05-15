@@ -28,10 +28,14 @@ public class ServerContext implements ServletContextListener {
 			SpringUtil.getService(ServerManagerService.class).connectLogServer();
 		}, "connectLogServer");
 		t2.start();*/
-//		Thread t8 = new Thread(() -> {
-//			SpringUtil.getService(ServerManagerService.class).connectSgServer();
-//		}, "connectSgServer");
-//		t8.start();
+		Thread t7 = new Thread(() -> {
+			SpringUtil.getService(ServerManagerService.class).connectDts2Server();
+		}, "connectDts2Server");
+		t7.start();
+		Thread t8 = new Thread(() -> {
+			SpringUtil.getService(ServerManagerService.class).connectSgServer();
+		}, "connectSgServer");
+		t8.start();
 
 		Thread t9 = new Thread(() -> {
 			SpringUtil.getService(ServerManagerService.class).connectBattleRoyaleServer();

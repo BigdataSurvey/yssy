@@ -8,6 +8,10 @@ import java.util.List;
 public class Config extends BaseBean {
 	public static final String QQ = "QQ";
 
+	public static final String QNYH_RATE="QNYH_RATE";
+
+	public static final String DTS2_STATUS="GAME_DTS2_STATUS";
+
 	public static final String DAILY_STOLEN_COUNT = "DAILY_STOLEN_COUNT";
 	public static final String DTS_STATUS="GAME_DTS_STATUS";
 	public static final String DZ_GAME_ON = "GAME_DZ_GAME_ON";
