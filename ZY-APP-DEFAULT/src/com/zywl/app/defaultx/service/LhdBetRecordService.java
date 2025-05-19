@@ -81,7 +81,6 @@ public class LhdBetRecordService extends DaoService {
 			Map<String, Object> map = new HashedMap<String, Object>();
 			map.put("orderNo", key);
 			JSONObject o = (JSONObject) obj.get(key);
-			map.put("settleInfo",o.getJSONObject("settleInfo").toJSONString());
 			map.put("winAmount", o.get("winAmount"));
 			map.put("lotteryResult", o.get("lotteryResult"));
 			list.add(map);

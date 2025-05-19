@@ -455,6 +455,18 @@ public class PlayGameService extends BaseService {
         updateUserBackpack(userId.toString(), itemId, number, em);
     }
 
+
+    public void updateUserBackpackCache(Long userId,String itemId,int number){
+        synchronized (LockUtil.getlock(userId)) {
+            if (playerItems.containsKey(userId)) {
+                if (playerItems.get(userId).containsKey(itemId)) {
+                    playerItems.get(userId).get(itemId).setItemNumber(playerItems.get(userId).get(itemId).getItemNumber() + number);
+                }
+            }
+            managerGameBaseService.pushBackpackUpdate(userId, itemId, number, 1);
+        }
+    }
+
     public void updateUserBackpack(String userId, String itemId, int number, LogUserBackpackTypeEnum em) {
         synchronized (LockUtil.getlock(userId)) {
             Map<String, Backpack> map = getUserBackpack(userId);

@@ -38,13 +38,13 @@ public class GameLotteryResultService extends DaoService {
 		result.setPeriodsNum(periodsNum);
 		result.setLotteryResult(lotteryResult);
 		result.setCreateTime(new Date());
-		
+
 		int a = save(result);
 		if (a<1) {
 			throwExp("开奖失败");
 		}
 	}
-	
+
 	
 	public GameLotteryResult findByGameIdAndPeriodsNum(Long gameId,String periodsNum) {
 		Map<String, Object> params = new HashedMap<String, Object>();

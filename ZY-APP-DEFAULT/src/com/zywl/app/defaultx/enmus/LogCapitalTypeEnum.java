@@ -87,9 +87,9 @@ public enum LogCapitalTypeEnum {
     send_red_package("发红包",74),
 
     lq_red_package("抢红包",75),
-    game_bet_dts2("参加神尊护体", 77),
-    game_bet_win_dts2("神尊护体获得", 78),
-    dts_rank_rebate("秘境免伤返还",79),
+    game_bet_dts2("游玩倩女幽魂", 77),
+    game_bet_win_dts2("倩女幽魂奖励", 78),
+    dts_rank_rebate("游园奖励",79),
     cave_prize_draw("宝箱抽奖",80),
     game_bet_sg("参与签与签寻", 81),
     game_bet_win_sg("签与签寻获得", 82),

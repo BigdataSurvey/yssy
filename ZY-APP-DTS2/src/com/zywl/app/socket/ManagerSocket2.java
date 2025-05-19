@@ -89,6 +89,9 @@ public class ManagerSocket2 extends BaseClientSocket {
 					battleRoyaleService2.updateRate(status);
 					//gameService.updateGameStatus(GameTypeEnum.battleRoyale.getValue(),status);
 				}
+				if (config.getKey().equals(Config.GAME_DTS2_NEED_BOT)){
+					BattleRoyaleService2.NEED_BOT=Integer.parseInt(config.getValue());
+				}
 
 			}
 		}, this);

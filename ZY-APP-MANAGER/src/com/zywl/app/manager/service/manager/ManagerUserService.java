@@ -356,8 +356,8 @@ public class ManagerUserService extends BaseService {
             throwExp("认证数量已达上限！");
         }
         if (authentication == 0) {//未认证
-            int status = idCardService.checkIDCard(userInfo.getId().toString(), realName, idCard);
-//            int status = 0;
+//            int status = idCardService.checkIDCard(userInfo.getId().toString(), realName, idCard);
+            int status = 0;
             if (status == 0) {
                 JSONArray reward = JSONArray.parseArray(managerConfigService.getString(Config.REAL_NAME_REWARD));
                 gameService.addReward(userId, reward, null);
@@ -401,8 +401,8 @@ public class ManagerUserService extends BaseService {
                 userCapitalService.subUserBalanceByUpdateIdCard(userId, new BigDecimal("100"), UserCapitalTypeEnum.currency_2.getValue());
                 managerGameBaseService.pushCapitalUpdate(userId,UserCapitalTypeEnum.currency_2.getValue());
             }
-            int status = idCardService.checkIDCard(userInfo.getId().toString(), realName, idCard);
-//             int status=0;
+//            int status = idCardService.checkIDCard(userInfo.getId().toString(), realName, idCard);
+             int status=0;
             if (status == 0) {
                 userService.authentication2(userId, realName, idCard);
                 userService.updateAuthentication(userId, 1);

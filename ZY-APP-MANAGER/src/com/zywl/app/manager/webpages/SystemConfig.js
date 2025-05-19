@@ -87,7 +87,7 @@ if(!window.CtrlFn_${menuId}){
             IS_REGISTER:"是否允许注册",
             TODAY_LUCKY:"优化线程数",
             VERSION_DAFUWENG:"大富翁表版本",
-            PJZL_STATUS:"破军之旅游戏状态",
+            LHD_STATUS:"2选1游戏状态",
             XWMJ_STATUS:"虚妄迷局游戏状态",
             USER_CARD_MAX_COUNT:"玩家最大卡牌上限",
             IP_USER_NUMBER:"同IP最多注册账号上限",
@@ -97,7 +97,8 @@ if(!window.CtrlFn_${menuId}){
             QQ:"官方QQ群",
             SG_ISK:"军机情报游戏配置",
             GAME_DZ_GAME_ON:"打卡开关",
-            GAME_DTS2_STATUS:"倩女幽魂游戏状态"
+            GAME_DTS2_STATUS:"倩女幽魂游戏状态",
+            GAME_DTS2_NEED_BOT:"倩女幽魂人机"
 
 
         };

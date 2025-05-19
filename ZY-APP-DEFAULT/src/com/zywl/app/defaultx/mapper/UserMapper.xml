@@ -547,7 +547,10 @@
 		select user_no from t_user
 		
 	</select>
-	
+	<select id="findAllBotUser" resultType="User">
+		select * from t_user where is_bot =1
+
+	</select>
 	
 	
 	<select id="findMySonNoAuthicatino" resultType="User">

@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
+import com.alibaba.fastjson2.JSONArray;
 import com.zywl.app.defaultx.enmus.GameTypeEnum;
 
 import com.alibaba.fastjson2.JSONObject;
@@ -20,7 +21,7 @@ public class BattleRoyaleRoom2 extends BaseBean{
 	private ConcurrentHashMap<String, Map<String, String>> players;
 
 	//上一期的结果
-	private String lastResult;
+	private JSONArray lastResult;
 
 	//下一期的结果
 	public static List<Integer> nextResult;
@@ -371,13 +372,7 @@ public class BattleRoyaleRoom2 extends BaseBean{
 		this.userBetAmount = userBetAmount;
 	}
 
-	public String getLastResult() {
-		return lastResult;
-	}
 
-	public void setLastResult(String lastResult) {
-		this.lastResult = lastResult;
-	}
 
 	public static List<Integer> getNextResult() {
 		return nextResult;
@@ -401,5 +396,13 @@ public class BattleRoyaleRoom2 extends BaseBean{
 
 	public  void setLastWeekTopThree(Map<String, Double> lastWeekTopThree) {
 		this.lastWeekTopThree = lastWeekTopThree;
+	}
+
+	public JSONArray getLastResult() {
+		return lastResult;
+	}
+
+	public void setLastResult(JSONArray lastResult) {
+		this.lastResult = lastResult;
 	}
 }

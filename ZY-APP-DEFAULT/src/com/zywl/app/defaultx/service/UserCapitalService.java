@@ -154,7 +154,7 @@ public class UserCapitalService extends DaoService {
     //仅仅用来解决大逃杀死锁问题
     @Transactional
     public void betUpdateBalance2(JSONObject obj) {
-        int capitalType = UserCapitalTypeEnum.currency_2.getValue();
+        int capitalType = UserCapitalTypeEnum.yyb.getValue();
         List<Map<String, Object>> list = new ArrayList<>();
         Set<String> set = obj.keySet();
         LogCapitalTypeEnum em = null;
@@ -163,7 +163,7 @@ public class UserCapitalService extends DaoService {
         for (String key : set) {
             Map<String, Object> map = new HashedMap<>();
             map.put("userId", key);
-            UserCapital userCapital = userCapitalCacheService.getUserCapitalCacheByType(Long.parseLong(key), UserCapitalTypeEnum.currency_2.getValue());
+            UserCapital userCapital = userCapitalCacheService.getUserCapitalCacheByType(Long.parseLong(key), UserCapitalTypeEnum.yyb.getValue());
             beforeMoney.put(key, userCapital.getBalance());
             JSONObject o = JSONObject.parse(obj.getString(key));
             map.put("amount", o.get("amount"));

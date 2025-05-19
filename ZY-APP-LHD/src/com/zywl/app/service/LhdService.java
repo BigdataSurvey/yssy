@@ -104,7 +104,6 @@ public class LhdService extends BaseService {
     public static Map<String, Map<String, JSONObject>> ROOM_LIST = new ConcurrentHashMap<>();
 
 
-
     private static JSONArray history10Result = new JSONArray();
 
     private BigDecimal RATE;
@@ -118,6 +117,9 @@ public class LhdService extends BaseService {
 
     private static final Map<String, Map<String, BigDecimal>> settleInfo = new ConcurrentHashMap<>();
 
+    public static String key2 = DateUtil.getCurrent5();
+
+    public static final Map<String, JSONArray> pushArray = new ConcurrentHashMap<>();
 
     public void init() {
         userOrders.clear();
@@ -126,6 +128,8 @@ public class LhdService extends BaseService {
         PERIODS_NUM = PERIODS_NUM + 1;
         ROOM_LIST.clear();
         BET_USERS.clear();
+        ROOM_LIST.put("0", new ConcurrentHashMap<>());
+        ROOM_LIST.put("1", new ConcurrentHashMap<>());
     }
 
     public void initRate() {
@@ -178,18 +182,24 @@ public class LhdService extends BaseService {
     }
 
     public void pushRoomDate() {
-        new Timer("定时推送房间数据").schedule(new TimerTask() {
+        new Timer("定时推送SERVER").schedule(new TimerTask() {
             public void run() {
                 try {
-                    if (needPush == 1) {
-                        Push.push(PushCode.updateNhInfo, null, getPushInfo());
-                        needPush = 0;
+                    String oldKey = key2;
+                    String newKey = DateUtil.getCurrent5();
+                    pushArray.put(newKey, new JSONArray());
+                    key2 = newKey;
+                    Thread.sleep(100);
+                    JSONArray data = pushArray.remove(oldKey);
+                    if (data != null && data.size() > 0) {
+                        Push.push(PushCode.updateNhInfo, null, data);
                     }
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
+
             }
-        }, 0, 500);
+        }, 0, 1);
 
     }
 
@@ -251,8 +261,7 @@ public class LhdService extends BaseService {
         this.history10Result.clear();
         for (GameLotteryResult gameLotteryResult : result20) {
             String lotteryResult = gameLotteryResult.getLotteryResult();
-            JSONArray result = JSONArray.parseArray(lotteryResult);
-            this.history10Result.add(result);
+            this.history10Result.add(Integer.parseInt(lotteryResult));
         }
         logger.info("更新2选1历史开奖结果完成，用时：" + (System.currentTimeMillis() - time));
     }
@@ -283,18 +292,19 @@ public class LhdService extends BaseService {
         checkNull(data);
         checkNull(data.get("userId"));
         String userId = data.getString("userId");
-        String name = data.getString("name");
+        String name = data.getString("userName");
         USER_MAP.put(userId, name);
         users.add(userId);
         JSONObject returnInfo = getReturnInfo();
-        if (ROOM_LIST.get("1").containsKey(userId) ){
-            returnInfo.put("myBetRoom",1 );
+        if (ROOM_LIST.get("1").containsKey(userId)) {
+            returnInfo.put("myBetRoom", 1);
             returnInfo.put("myBetAmount", ROOM_LIST.get("1").get(userId).getBigDecimal("amount"));
         }
-        if (ROOM_LIST.get("0").containsKey(userId) ){
-            returnInfo.put("myBetRoom",0 );
+        if (ROOM_LIST.get("0").containsKey(userId)) {
+            returnInfo.put("myBetRoom", 0);
             returnInfo.put("myBetAmount", ROOM_LIST.get("0").get(userId).getBigDecimal("amount"));
         }
+        returnInfo.put("history10Result",history10Result);
         return returnInfo;
     }
 
@@ -307,12 +317,11 @@ public class LhdService extends BaseService {
         return new JSONObject();
     }
 
-
     @Transactional
     @ServiceMethod(code = "103", description = "用户参与投入")
     public Object play(LhdService adminSocketServer, Command lotteryCommand, JSONObject data) {
         String betInfo = data.getString("bet");
-        BigDecimal amount = data.getBigDecimal("amount");
+        BigDecimal amount = data.getBigDecimal("betAmount");
         String userId = data.getString("userId");
         synchronized (LockUtil.getlock(userId)) {
 
@@ -348,43 +357,104 @@ public class LhdService extends BaseService {
                 userOrders.put(userId, record);
             }
             //处理资产信息
-            Map<String, String> map = updateCapital(userId, amount, orderNo, dataId);
+            updateCapital(userId, amount, orderNo, dataId);
             //本局总金额
             ALL_PRIZE = ALL_PRIZE.add(amount);
             //处理内存信息
+            BigDecimal myAllAmount = amount;
             if (ROOM_LIST.get(betInfo).containsKey(userId)) {
                 //已经参与过了
-                ROOM_LIST.get(betInfo).get(userId).put("amount", ROOM_LIST.get(betInfo).get(userId).getBigDecimal("amount").add(amount));
+                ROOM_LIST.get(betInfo).get(userId).put("betAmount", ROOM_LIST.get(betInfo).get(userId).getBigDecimal("betAmount").add(amount));
+                myAllAmount = ROOM_LIST.get(betInfo).get(userId).getBigDecimal("betAmount");
             } else {
                 BET_USERS.add(userId);
                 JSONObject jsonObject = new JSONObject();
                 jsonObject.put("userId", userId);
                 jsonObject.put("name", USER_MAP.getOrDefault(userId, "***"));
-                jsonObject.put("amount", amount);
+                jsonObject.put("betAmount", amount);
                 ROOM_LIST.get(betInfo).put(userId, jsonObject);
             }
             LhdBetRecord lhdBetRecord = userOrders.get(userId);
             lhdBetRecord.setBetAmount(lhdBetRecord.getBetAmount().add(amount));
             lhdBetRecord.setBetInfo(betInfo);
             lhdBetRecordService.updateRecord(lhdBetRecord);
+            pushArray.get(key2).add(pushResult(1, userId, betInfo, myAllAmount));
 
-
-        synchronized (lock) {
-            if (BET_USERS.size() >= PEOPLE_NUM && STATUS == LotteryGameStatusEnum.ready.getValue()) {
-                logger.info("更改状态为游戏阶段");
-                beginTime = System.currentTimeMillis();
-                endTime = DateUtil.getTimeByM(TIME);
-                changeRoomStatus(LotteryGameStatusEnum.gaming.getValue(), lotteryCommand);
+            synchronized (lock) {
+                if (BET_USERS.size() >= PEOPLE_NUM && STATUS == LotteryGameStatusEnum.ready.getValue()) {
+                    logger.info("更改状态为游戏阶段");
+                    beginTime = System.currentTimeMillis();
+                    endTime = DateUtil.getTimeByM(TIME);
+                    changeRoomStatus(LotteryGameStatusEnum.gaming.getValue(), lotteryCommand);
+                }
             }
+            JSONObject result = new JSONObject();
+            result.put("myBetInfo", data);
+            needPush = 1;
+            return result;
         }
-        JSONObject result = new JSONObject();
-        result.put("myBetInfo", data);
-        needPush = 1;
-        return result;
+
     }
 
-}
+    @Transactional
+    @ServiceMethod(code = "105", description = "用户更换下注房间")
+    public JSONObject updateRoom(LhdService adminSocketServer, Command lotteryCommand, JSONObject data) {
+        checkNull(data);
+        checkNull(data.get("userId"), data.get("userNo"), data.get("userName"));
 
+
+        if (STATUS != LotteryGameStatusEnum.ready.getValue() && endTime != 0L && endTime - System.currentTimeMillis() < 1000) {
+            throwExp("游戏即将开始，禁止更换");
+        }
+
+        String userId = data.getString("userId");
+        String newRoomId = data.getString("bet");
+        if (!newRoomId.equals("0") && !newRoomId.equals("1")) {
+            throwExp("异常操作");
+        }
+        synchronized (LockUtil.getlock(userId + "bet")) {
+            if (ROOM_LIST.get(newRoomId).containsKey(userId)) {
+                throwExp("已经在该房间");
+            }
+            if (!BET_USERS.contains(userId)) {
+                throwExp("请求异常");
+            }
+            String oldRoomId = "";
+            if (ROOM_LIST.get("0").containsKey(userId)) {
+                oldRoomId = "0";
+            } else {
+                oldRoomId = "1";
+            }
+            //处理内存信息
+            JSONObject userBetInfo = ROOM_LIST.get(oldRoomId).get(userId);
+            ROOM_LIST.get(oldRoomId).remove(userId);
+            BigDecimal amount = userBetInfo.getBigDecimal("betAmount");
+            LhdBetRecord lhdBetRecord = userOrders.get(userId);
+            lhdBetRecord.setBetInfo(newRoomId);
+            ROOM_LIST.get(newRoomId).put(userId, userBetInfo);
+            pushArray.get(key2).add(pushResult(1, userId, newRoomId, amount));
+            JSONObject result = new JSONObject();
+            return result;
+        }
+
+    }
+
+    public JSONObject pushResult(int type, String userId, String bet, BigDecimal amount) {
+        JSONObject pushResult = new JSONObject();
+        pushResult.put("type", type);
+        pushResult.put("userId", userId);
+        pushResult.put("gameId", GameTypeEnum.nh.getValue());
+        if (type == 1) {
+            //下注 更换房间
+            pushResult.put("roomId", bet);
+            pushResult.put("name", USER_MAP.getOrDefault(userId, "***"));
+            pushResult.put("betAmount", amount);
+        } else if (type == 2 || type == 3) {
+            // 离开房间 或者 加入房间
+            pushResult.put("name", USER_MAP.getOrDefault(userId, "***"));
+        }
+        return pushResult;
+    }
 
     public void changeRoomStatus(int roomStatus, Command lotteryCommand) {
         if (STATUS == roomStatus) {
@@ -393,17 +463,18 @@ public class LhdService extends BaseService {
         STATUS = roomStatus;
         JSONObject data = new JSONObject();
         data.put("gameId", GameTypeEnum.nh.getValue());
+        data.put("userIds", users);
         if (STATUS == LotteryGameStatusEnum.ready.getValue()) {
             // 初始化房间信息 更新历史开奖结果
             init();
             initHistoryResult();
             data.put("status", STATUS);
-            data.put("periodsNum", PERIODS_NUM);
+            data.put("periods", PERIODS_NUM);
             data.put("userIds", users);
             data.put("lookList", new ConcurrentHashMap<String, Map<String, Object>>());
             data.put("roomList", ROOM_LIST);
             data.put("lastResult", LAST_RESULT);
-
+            data.put("history10Result",history10Result);
             Push.push(PushCode.updateNhStatus, null, data);
         } else if (STATUS == LotteryGameStatusEnum.gaming.getValue()) {
             data.put("status", STATUS);
@@ -419,10 +490,10 @@ public class LhdService extends BaseService {
         } else if (STATUS == LotteryGameStatusEnum.settle.getValue()) {
             int result = lhdService.settle(lotteryCommand);
             int status = STATUS;
-            data.put("roomId", result);
+            data.put("roomIds", result);
             data.put("status", status);
             data.put("userSettleInfo", settleInfo);
-            Push.push(PushCode.updateDts2Status, null, data);
+            Push.push(PushCode.updateNhStatus, null, data);
             Executer.executeService(new Runnable() {
                 @Override
                 public void run() {
@@ -436,7 +507,6 @@ public class LhdService extends BaseService {
             });
         }
     }
-
 
 
     @Transactional
@@ -461,27 +531,27 @@ public class LhdService extends BaseService {
 
 
     @Transactional
-    public int  settle(Command lotteryCommand) {
+    public int settle(Command lotteryCommand) {
 
         Random random = new Random();
         int result = random.nextInt(2);
         JSONObject data = new JSONObject();
         JSONObject updateRecord = new JSONObject();
-        String winRoom ;
+        String winRoom;
         String loseRoom;
-        if (result==0){
-            winRoom="0";
-            loseRoom="1";
-        }else {
-            winRoom="1";
-            loseRoom="0";
+        if (result == 0) {
+            winRoom = "0";
+            loseRoom = "1";
+        } else {
+            winRoom = "1";
+            loseRoom = "0";
         }
         Map<String, JSONObject> winMap = ROOM_LIST.get(winRoom);
-        Map<String,JSONObject> loseMap = ROOM_LIST.get(loseRoom);
+        Map<String, JSONObject> loseMap = ROOM_LIST.get(loseRoom);
         BigDecimal allWinAmount = BigDecimal.ZERO;
         for (String uid : winMap.keySet()) {
             JSONObject o = new JSONObject();
-            BigDecimal winAmount = ROOM_LIST.get(winRoom).get(uid).getBigDecimal("amount").multiply(new BigDecimal("1.9"));
+            BigDecimal winAmount = ROOM_LIST.get(winRoom).get(uid).getBigDecimal("betAmount").multiply(new BigDecimal("1.9"));
             allWinAmount = allWinAmount.add(winAmount);
             o.put("amount", winAmount);
             o.put("capitalType", 2);
@@ -492,29 +562,31 @@ public class LhdService extends BaseService {
             record.put("winAmount", winAmount);
             record.put("lotteryResult", result);
             record.put("betInfo", winRoom);
-            record.put("winOrLose",1);
+            record.put("winOrLose", 1);
             updateRecord.put(userOrders.get(uid).getOrderNo(), record);
-            Map<String,BigDecimal> map = new HashMap<>();
-            map.put("winAmount",winAmount);
-            map.put("betAmount", ROOM_LIST.get(winRoom).get(uid).getBigDecimal("amount"));
-            map.put("roomResult",BigDecimal.ONE);
-            settleInfo.put(uid,map);
+            Map<String, BigDecimal> map = new HashMap<>();
+            map.put("winAmount", winAmount);
+            map.put("betAmount", ROOM_LIST.get(winRoom).get(uid).getBigDecimal("betAmount"));
+            map.put("roomResult", BigDecimal.ONE);
+            map.put("isWin",BigDecimal.ONE);
+            settleInfo.put(uid, map);
         }
         for (String uid : loseMap.keySet()) {
             JSONObject record = new JSONObject();
             record.put("winAmount", 0);
             record.put("lotteryResult", result);
             record.put("betInfo", loseRoom);
-            record.put("winOrLose",0);
+            record.put("winOrLose", 0);
             updateRecord.put(userOrders.get(uid).getOrderNo(), record);
-            Map<String,BigDecimal> map = new HashMap<>();
-            map.put("winAmount",BigDecimal.ZERO);
-            map.put("betAmount", ROOM_LIST.get(winRoom).get(uid).getBigDecimal("amount"));
-            map.put("roomResult",BigDecimal.ZERO);
-            settleInfo.put(uid,map);
+            Map<String, BigDecimal> map = new HashMap<>();
+            map.put("winAmount", BigDecimal.ZERO);
+            map.put("betAmount", ROOM_LIST.get(loseRoom).get(uid).getBigDecimal("betAmount"));
+            map.put("roomResult", BigDecimal.ZERO);
+            map.put("isWin",BigDecimal.ZERO);
+            settleInfo.put(uid, map);
         }
         gameLotteryResultService.drawLottery(5L, String.valueOf(PERIODS_NUM == 0 ? 1 : PERIODS_NUM),
-                String.valueOf(result), ALL_PRIZE, allWinAmount, allWinAmount.subtract(ALL_PRIZE), BET_USERS.size(), winMap.size(), loseMap.size(),
+                String.valueOf(result), ALL_PRIZE, allWinAmount, ALL_PRIZE.subtract(allWinAmount), BET_USERS.size(), winMap.size(), loseMap.size(),
                 1);
         requestMangerService.requestManagerBet(data, new Listener() {
             public void handle(BaseClientSocket clientSocket, Command command) {
@@ -532,8 +604,6 @@ public class LhdService extends BaseService {
     }
 
 
-
-
     @ServiceMethod(code = "004", description = "获取统计记录")
     public JSONObject getRecord(LhdService adminSocketServer, Command lotteryCommand, JSONObject data) {
         checkNull(data);
@@ -543,7 +613,7 @@ public class LhdService extends BaseService {
         JSONArray resultArray = new JSONArray();
         for (LhdBetRecord record : records) {
             JSONObject obj = new JSONObject();
-            obj.put("periodsNum", record.getPeriodsNum());
+            obj.put("periods", record.getPeriodsNum());
             obj.put("result", record.getLotteryResult());
             obj.put("myBet", record.getBetInfo());
             obj.put("betAmount", record.getBetAmount());

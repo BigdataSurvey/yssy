@@ -17,7 +17,10 @@ import com.zywl.app.base.bean.*;
 import com.zywl.app.base.bean.vo.BattleRoyale2Record;
 import com.zywl.app.base.constant.TableNameConstant;
 import com.zywl.app.base.service.BaseService;
-import com.zywl.app.base.util.*;
+import com.zywl.app.base.util.ConcurrentHashSet;
+import com.zywl.app.base.util.DateUtil;
+import com.zywl.app.base.util.LockUtil;
+import com.zywl.app.base.util.OrderUtil;
 import com.zywl.app.bean.BattleRoyaleRoom2;
 import com.zywl.app.defaultx.annotation.ServiceClass;
 import com.zywl.app.defaultx.annotation.ServiceMethod;
@@ -69,7 +72,8 @@ public class BattleRoyaleService2 extends BaseService {
 
     public static List<Integer> RATE_LIST = new ArrayList<>();
 
-    public static ConcurrentHashMap<Long, ConcurrentHashMap<String, Object>> ROOLBACK_MAP = new ConcurrentHashMap<>();
+    public static Map<String, User> BOT_USER = new ConcurrentHashMap<>();
+
 
     @Autowired
     private GameLotteryResultService gameLotteryResultService;
@@ -88,17 +92,24 @@ public class BattleRoyaleService2 extends BaseService {
     private UserCapitalService userCapitalService;
 
     @Autowired
+    private BackpackService backpackService;
+
+    @Autowired
     private BattleRoyaleService2 battleRoyaleService2;
 
 
     @Autowired
     private ConfigService configService;
+
+    @Autowired
+    private UserService userService;
     @Autowired
     private BattleRoyaleRequsetMangerService2 requsetMangerService;
 
     private static final Object lock = new Object();
 
-    private static final Object betLock = new Object();
+    private static Random random = new Random();
+
 
     public static Map<String, List<Map<String, String>>> userCapitals = new ConcurrentHashMap<>();
 
@@ -111,16 +122,18 @@ public class BattleRoyaleService2 extends BaseService {
 
     public static Set<String> updateRoomUser = new ConcurrentHashSet<>();
 
-    public static final Map<String,JSONArray> pushArray = new ConcurrentHashMap<>();
+    public static final Map<String, JSONArray> pushArray = new ConcurrentHashMap<>();
 
     public static String key2 = DateUtil.getCurrent5();
 
     public static String key3 = DateUtil.getCurrent5();
+
+    public static int NEED_BOT = 0;
     public static BigDecimal rate = new BigDecimal("0.9");
 
 
-    public void updateRate(BigDecimal a){
-        rate=a;
+    public void updateRate(BigDecimal a) {
+        rate = a;
     }
 
     @PostConstruct
@@ -131,7 +144,39 @@ public class BattleRoyaleService2 extends BaseService {
         addPushSuport();
         periodsNum();
         requestManagerUpdateCapital();
+        logger.info("开始加载人机");
+        List<User> bot = userService.findBot();
+        bot.forEach(e -> BOT_USER.put(e.getId().toString(), e));
+        logger.info("加载人机完成，加载数量：" + BOT_USER.size());
+    }
 
+    public static <K,V> V getRandomValue(Map<K,V> map) {
+        return map.values().stream()
+                .skip(new Random().nextInt(map.size()))
+                .findFirst().orElse(null);
+    }
+
+    public User getBotUser(){
+        return getRandomValue(BOT_USER);
+
+    }
+
+    public void gameAddBot() {
+        new Timer("游戏添加人机").schedule(new TimerTask() {
+            public void run() {
+                try {
+                    if (ROOM.getStatus() == LotteryGameStatusEnum.gaming.getValue() && NEED_BOT==1){
+                        //游戏阶段 添加人机
+                        User user = getBotUser();
+                        int i = random.nextInt(5);
+                        userBetBet(user.getId().toString(),String.valueOf(i),new BigDecimal("10"),null,null);
+                    }
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+
+            }
+        }, 0, 500);
     }
 
     public void requestManagerUpdateCapital() {
@@ -147,7 +192,7 @@ public class BattleRoyaleService2 extends BaseService {
                     if (data != null && data.size() > 0) {
                         JSONObject object = new JSONObject();
                         object.put("betArray", data);
-                        Executer.request(TargetSocketType.dts2, CommandBuilder.builder().request("200821", object).build(), new RequestManagerListener(null));
+                        Executer.request(TargetSocketType.dts2, CommandBuilder.builder().request("200801", object).build(), new RequestManagerListener(null));
                     }
                 } catch (Exception e) {
                     e.printStackTrace();
@@ -226,7 +271,7 @@ public class BattleRoyaleService2 extends BaseService {
                 ROOM.getLookList().put(String.valueOf(userId), map2);
                 ROOM.getPlayers().put(data.getString("userId"), map);
                 ROOM.setLookNum(ROOM.getLookNum() + 1);
-                ROOM.setLastWeekTopThree(gameCacheService.getLastWeekTopList(GameTypeEnum.dts2.getValue(),10));
+                ROOM.setLastWeekTopThree(gameCacheService.getLastWeekTopList(GameTypeEnum.dts2.getValue(), 10));
             }
         }
         return ROOM.getReturnInfo();
@@ -269,7 +314,7 @@ public class BattleRoyaleService2 extends BaseService {
         System.out.println(ROOM.getRoomList());
         String userId = data.getString("userId");
         String newRoomId = data.getString("bet");
-        if (Integer.parseInt(newRoomId) > ROOM.getOption() - 1 || Integer.parseInt(newRoomId) <0) {
+        if (Integer.parseInt(newRoomId) > ROOM.getOption() - 1 || Integer.parseInt(newRoomId) < 0) {
             throwExp("非法操作");
         }
         synchronized (LockUtil.getlock(userId + "bet")) {
@@ -334,7 +379,22 @@ public class BattleRoyaleService2 extends BaseService {
         return myOrder;
     }
 
+    public Map<String, String> updateItem(String userId, BigDecimal number, String orderNo, Long dataId) {
+        backpackService.subItemNumberByDts(Long.parseLong(userId), 3L, Integer.parseInt(number.toString()));
+        Map<String, String> myOrder = new HashMap<>();
+        myOrder.put("orderNo", orderNo);
+        myOrder.put("dataId", String.valueOf(dataId));
+        myOrder.put("betAmount", number.toString());
+        myOrder.put("userId", userId);
+        List<Map<String, String>> maps = userCapitals.get(key);
+        maps.add(myOrder);
+        return myOrder;
+    }
+
     public void rankRebate(String userId, BigDecimal amount, String orderNo) {
+        if (BOT_USER.containsKey(userId)){
+            return;
+        }
         userCapitalService.addUserBalanceByDtsRank(Long.parseLong(userId), amount);
         Map<String, String> myOrder = new HashMap<>();
         myOrder.put("orderNo", orderNo);
@@ -358,6 +418,10 @@ public class BattleRoyaleService2 extends BaseService {
 
     public void bet(Map<String, String> myOrder, String userId, String userBet, BigDecimal amount) {
         // 添加订单信息
+        myOrder.put("isBot","0");
+        if (BOT_USER.containsKey(userId)){
+            myOrder.put("isBot","1");
+        }
         ROOM.getUserBetOrderInfo().put(userId, myOrder);
         // 下注人数+1 观看人数-1
         ROOM.setBetNum(ROOM.getBetNum() + 1);
@@ -375,10 +439,16 @@ public class BattleRoyaleService2 extends BaseService {
 
     @Transactional
     @ServiceMethod(code = "103", description = "用户下注")
-    public Async userBet(BattleRoyaleSocketServer2 adminSocketServer, Command lotteryCommand, JSONObject params) {
+    public JSONObject userBet(BattleRoyaleSocketServer2 adminSocketServer, Command lotteryCommand, JSONObject params) {
         checkNull(params);
         checkNull(params.get("userId"), params.get("betAmount"), params.get("bet"));
+        String userId = params.getString("userId");
+        String userBet = params.getString("bet");
+        BigDecimal amount = params.getBigDecimal("betAmount");
+        return userBetBet(userId, userBet, amount, lotteryCommand, params);
+    }
 
+    public JSONObject userBetBet(String userId, String userBet, BigDecimal amount, Command lotteryCommand, JSONObject params) {
         if (STATUS == 0) {
             throwExp("游戏即将维护");
         }
@@ -391,11 +461,7 @@ public class BattleRoyaleService2 extends BaseService {
         if (ROOM.getEndTime() != 0L && ROOM.getEndTime() - System.currentTimeMillis() < 2000) {
             throwExp("本局即将结束，请等待下一局游戏开始");
         }
-        String userId = params.getString("userId");
-        String userBet = params.getString("bet");
         ROOM.getUserCheckNum().put(userId, userBet);
-        String periodsNum = ROOM.getPeridosNum();
-        BigDecimal amount = params.getBigDecimal("betAmount");
         UserCapital userCapital = userCapitalService.findUserCapitalByUserIdAndCapitalType(Long.parseLong(userId),
                 CAPITAL_TYPE);
         if (userCapital == null) {
@@ -404,13 +470,9 @@ public class BattleRoyaleService2 extends BaseService {
         if (!ROOM.getPlayers().containsKey(userId)) {
             throwExp("请返回大厅后重新进入游戏");
         }
-        if (Integer.parseInt(userBet) > ROOM.getOption() - 1 || Integer.parseInt(userBet)<0) {
+        if (Integer.parseInt(userBet) > ROOM.getOption() - 1 || Integer.parseInt(userBet) < 0) {
             throwExp("非法投入");
         }
-        /*
-         * 下注 需更新下注人数信息
-         */
-
         synchronized (LockUtil.getlock(userId + "bet")) {
             betUser.add(userId);
             String orderNo = OrderUtil.getOrder5Number();
@@ -432,7 +494,10 @@ public class BattleRoyaleService2 extends BaseService {
                 dataId = battleRoyaleRecordService.addBattleRoyaleRecord(Long.parseLong(userId), orderNo,
                         ROOM.getPeridosNum(), userBet, amount);
             }
-            Map<String, String> myOrder = updateCapital(userId, amount, orderNo, dataId);
+            Map<String, String> myOrder = new HashMap<>();
+            if (!BOT_USER.containsKey(userId)) {
+                myOrder = updateItem(userId, amount, orderNo, dataId);
+            }
             try {
                 BigDecimal allAmount = amount;
                 // 用户下注信息增加
@@ -459,16 +524,20 @@ public class BattleRoyaleService2 extends BaseService {
                 }
                 pushArray.get(key2).add(ROOM.pushResult(1, userId, userBet, allAmount));
                 //Push.push(PushCode.updateRoomDate, null, ROOM.pushResult(1, userId, userBet, allAmount));
-                Executer.response(CommandBuilder.builder(lotteryCommand).success(ROOM.pushResult(1, userId, userBet, allAmount)).build());
+                if (!BOT_USER.containsKey(userId)) {
+                    Executer.response(CommandBuilder.builder(lotteryCommand).success(ROOM.pushResult(1, userId, userBet, allAmount)).build());
+                }
             } catch (Exception e) {
-                logger.info(e);
-                e.printStackTrace();
-                Push.push(PushCode.cancelBet, null, params);
-                betUser.remove(userId);
+                if (!BOT_USER.containsKey(userId)) {
+                    logger.info(e);
+                    e.printStackTrace();
+                    Push.push(PushCode.cancelBet, null, params);
+                    betUser.remove(userId);
+                }
             }
         }
         betUser.remove(userId);
-        return async();
+        return new JSONObject();
     }
 
     /**
@@ -566,12 +635,12 @@ public class BattleRoyaleService2 extends BaseService {
         } else if (ROOM.getStatus() == LotteryGameStatusEnum.settle.getValue()) {
             List<Integer> killList = battleRoyaleService2.draw();
             ROOM.setResult(killList);
-            ROOM.setLastResult(killList.toString());
+            ROOM.setLastResult(JSONArray.of(killList));
             battleRoyaleService2.settle(killList, lotteryCommand);
             ROOM.setReadyTime(System.currentTimeMillis());
             int status = ROOM.getStatus();
             ConcurrentHashMap<String, Map<String, String>> userBetOrderInfo = ROOM.getUserBetOrderInfo();
-            data.put("roomId", killList);
+            data.put("roomIds", killList);
             data.put("status", status);
             data.put("userSettleInfo", userBetOrderInfo);
             Push.push(PushCode.updateDts2Status, null, data);
@@ -592,7 +661,7 @@ public class BattleRoyaleService2 extends BaseService {
     @Transactional
     public void settle(List<Integer> killList, Command lotteryCommand) {
         List<String> result = new ArrayList<>();
-        killList.forEach(e->result.add(e.toString()));
+        killList.forEach(e -> result.add(e.toString()));
         System.out.println("开奖结果：" + result);
         int winNumber = 0;
         int loseNumber = 0;
@@ -624,11 +693,11 @@ public class BattleRoyaleService2 extends BaseService {
                     BigDecimal loseAmount = oneUserbetInfo.get(s);
                     int index = GameCacheService.LAST_WEEK_USER_IDS.indexOf(userId);
                     BigDecimal rate = BigDecimal.ZERO;
-                    if (index==0){
+                    if (index == 0) {
                         rate = new BigDecimal("0.15");
-                    } else if (index>=1 && index<=5) {
+                    } else if (index >= 1 && index <= 5) {
                         rate = new BigDecimal("0.1");
-                    } else  {
+                    } else {
                         rate = new BigDecimal("0.05");
                     }
                     BigDecimal rebate = loseAmount.multiply(rate);
@@ -705,18 +774,18 @@ public class BattleRoyaleService2 extends BaseService {
             record.put("betAmount", betAmount);
             record.put("betInfo", ROOM.getUserCheckNum().get(uid));
             record.put("isWin", ROOM.getUserBetOrderInfo().get(uid).get("isWin"));
-            if (Integer.parseInt(ROOM.getUserBetOrderInfo().get(uid).get("isWin"))==0 && GameCacheService.LAST_WEEK_USER_IDS.contains(uid)){
+            if (Integer.parseInt(ROOM.getUserBetOrderInfo().get(uid).get("isWin")) == 0 && GameCacheService.LAST_WEEK_USER_IDS.contains(uid)) {
                 int index = GameCacheService.LAST_WEEK_USER_IDS.indexOf(uid);
                 BigDecimal rate = BigDecimal.ZERO;
-                if (index==0){
+                if (index == 0) {
                     rate = new BigDecimal("0.15");
-                } else if (index>=1 && index<=5) {
+                } else if (index >= 1 && index <= 5) {
                     rate = new BigDecimal("0.1");
-                } else  {
+                } else {
                     rate = new BigDecimal("0.05");
                 }
                 BigDecimal rebate = betAmount.multiply(rate);
-                rankRebate(uid,rebate,ROOM.getUserBetOrderInfo().get(uid).get("orderNo"));
+                rankRebate(uid, rebate, ROOM.getUserBetOrderInfo().get(uid).get("orderNo"));
             }
             updateRecord.put(ROOM.getUserBetOrderInfo().get(uid).get("orderNo"), record);
         }
@@ -726,7 +795,7 @@ public class BattleRoyaleService2 extends BaseService {
                     battleRoyaleRecordService.batchUpdateRecord(updateRecord);
                     Executer.response(CommandBuilder.builder(lotteryCommand).success(result).build());
                 } else {
-                    STATUS=0;
+                    STATUS = 0;
                     logger.error("结算失败，本期数据：");
                     logger.info(result);
                     Executer.response(
@@ -757,23 +826,23 @@ public class BattleRoyaleService2 extends BaseService {
             obj.put("create", record.getCreateTime());
             resultArray.add(obj);
         }
-        Map<String,Integer> his20Info = new HashMap<>();
+        Map<String, Integer> his20Info = new HashMap<>();
         Set<String> his20 = history20Result.keySet();
         for (String s : his20) {
             JSONArray array = JSON.parseArray(s);
             for (Object o : array) {
                 Integer num = Integer.parseInt(o.toString());
-                his20Info.put(num.toString(),his20Info.getOrDefault(num.toString(),0)+1);
+                his20Info.put(num.toString(), his20Info.getOrDefault(num.toString(), 0) + 1);
             }
         }
 
-        Map<String,Integer> his100Info = new HashMap<>();
+        Map<String, Integer> his100Info = new HashMap<>();
         Set<String> his100 = history100Result.keySet();
         for (String s : his100) {
             JSONArray array = JSON.parseArray(s);
             for (Object o : array) {
                 Integer num = Integer.parseInt(o.toString());
-                his100Info.put(num.toString(),his100Info.getOrDefault(num.toString(),0)+1);
+                his100Info.put(num.toString(), his100Info.getOrDefault(num.toString(), 0) + 1);
             }
         }
         JSONObject result = new JSONObject();
@@ -782,9 +851,6 @@ public class BattleRoyaleService2 extends BaseService {
         result.put("myRecord", resultArray);
         return result;
     }
-
-
-
 
 
     @Transactional
@@ -804,19 +870,19 @@ public class BattleRoyaleService2 extends BaseService {
         return killList;
     }
 
-    public static int getResultCount(){
+    public static int getResultCount() {
         Random random = new Random();
         int i = random.nextInt(100);
         for (int j = 0; j < RATE_LIST.size(); j++) {
-            if (i>RATE_LIST.get(j)){
+            if (i > RATE_LIST.get(j)) {
                 continue;
             }
-            return j+1;
+            return j + 1;
         }
         return 0;
     }
 
-    public static List<Integer> getKillList(int count){
+    public static List<Integer> getKillList(int count) {
         List<Integer> list = new ArrayList<>();
         for (int i = 0; i < 5; i++) {
             list.add(i);
@@ -855,12 +921,12 @@ public class BattleRoyaleService2 extends BaseService {
             OPTIONS_NUM = GAME_SETTING.getIntValue("optionsNum");
             TIME = GAME_SETTING.getIntValue("time");
             CAPITAL_TYPE = GAME_SETTING.getIntValue("capitalType");
-            MIN_KILL_COUNT = GAME_SETTING.getIntValue("minKillCount",2);
-            MAX_KILL_COUNT= GAME_SETTING.getIntValue("maxKillCount",8);
+            MIN_KILL_COUNT = GAME_SETTING.getIntValue("minKillCount", 2);
+            MAX_KILL_COUNT = GAME_SETTING.getIntValue("maxKillCount", 8);
 
         }
         Config configByKey = configService.getConfigByKey(Config.QNYH_RATE);
-        if (configByKey!=null){
+        if (configByKey != null) {
             String value = configByKey.getValue();
             String[] split = value.split(",");
             for (String s : split) {

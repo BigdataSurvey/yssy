@@ -14,6 +14,8 @@ public class Config extends BaseBean {
 
 	public static final String DTS2_STATUS="GAME_DTS2_STATUS";
 
+	public static final String GAME_DTS2_NEED_BOT="GAME_DTS2_NEED_BOT";
+
 	public static final String DAILY_STOLEN_COUNT = "DAILY_STOLEN_COUNT";
 	public static final String DTS_STATUS="GAME_DTS_STATUS";
 	public static final String DZ_GAME_ON = "GAME_DZ_GAME_ON";
@@ -113,7 +115,7 @@ public class Config extends BaseBean {
 
 	public static final String BOSS_CARD_VERSION = "VERSION_BOSS_CARD";
 	public static final String EQU_SYN_VERSION = "VERSION_EQU_SYN";
-	public static final String DAFUWENG_VERSION = "VERSION_DAFUWENG";
+
 	public static final String MINE_VERSION = "VERSION_MINE";
 
 	public static final String PET_VERSION = "VERSION_PET";

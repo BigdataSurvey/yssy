@@ -114,6 +114,16 @@ public class User extends BaseBean{
 	private Integer risk;
 	private Integer riskPlus;
 
+	private Integer isBot;
+
+	public Integer getIsBot() {
+		return isBot;
+	}
+
+	public void setIsBot(Integer isBot) {
+		this.isBot = isBot;
+	}
+
 	public Integer getRiskPlus() {
 		return riskPlus;
 	}

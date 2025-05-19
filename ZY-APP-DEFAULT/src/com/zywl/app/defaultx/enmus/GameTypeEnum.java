@@ -12,7 +12,7 @@ public enum GameTypeEnum {
 	starChange("斗转星移", 2),
 	food("我是酒仙", 3),
 	ns("打年兽",4),
-	nh("年货",5),
+	nh("2选1小游戏",5),
 	dz("打坐",6),
 	dts2("倩女幽魂",1),
 	sg("算卦",8),

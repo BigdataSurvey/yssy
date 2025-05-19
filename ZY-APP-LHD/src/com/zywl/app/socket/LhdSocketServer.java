@@ -41,7 +41,7 @@ public class LhdSocketServer extends BaseServerSocket {
 
 	private PropertiesUtil globalProperties;
 
-	private LhdService LhdService;
+	private LhdService lhdService;
 
 	private LotterySyncCapitalService lotterySyncCapitalService;
 
@@ -57,7 +57,7 @@ public class LhdSocketServer extends BaseServerSocket {
 		lotterySyncCapitalService = SpringUtil.getService(LotterySyncCapitalService.class);
 		userCapitalService = SpringUtil.getService(UserCapitalService.class);
 		taskOrderService = SpringUtil.getService(TaskOrderService.class);
-		LhdService = SpringUtil.getService(LhdService.class);
+		lhdService = SpringUtil.getService(LhdService.class);
 
 	}
 
@@ -117,6 +117,11 @@ public class LhdSocketServer extends BaseServerSocket {
 			public void onRegist(BaseSocket baseSocket, Object data) {
 			}
 			public void onReceive(BaseSocket baseSocket, Object data) {
+				JSONObject json = (JSONObject) data;
+				int gameId = json.getIntValue("gameId");
+				if (gameId == 5) {
+					lhdService.STATUS = json.getIntValue("status");
+				}
 			}
 		}, this);
 

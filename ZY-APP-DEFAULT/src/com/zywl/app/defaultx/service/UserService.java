@@ -53,6 +53,30 @@ public class UserService extends DaoService {
         return newPlayer;
     }
 
+    @Transactional
+    public User insertUserInfoText(Long id,String clientIp, String wxOpenId, String inviteCode, String userNo, JSONObject wxInfo, String city, String province,String gameToken,String cno) {
+        User newPlayer = createUser(clientIp, inviteCode, userNo,gameToken, cno);
+        newPlayer.setName(wxInfo.getString("nickname"));
+        if (newPlayer.getName()==null){
+            newPlayer.setName("账号"+wxOpenId);
+        }
+        newPlayer.setId(id);
+        newPlayer.setNameStatus(0);
+        newPlayer.setMail(null);
+        newPlayer.setOpenId(wxOpenId);
+        newPlayer.setRoleId(1);
+        newPlayer.setCity(city);
+        newPlayer.setRiskPlus(0);
+        newPlayer.setProvince(province);
+        newPlayer.setIsCash(0);
+        newPlayer.setUnionId(wxInfo.getString("unionid"));
+        newPlayer.setHeadImageUrl(wxInfo.getString("headimgurl") == null ? "" : wxInfo.getString("headimgurl"));
+        newPlayer.setStatus(1);
+        newPlayer.setAuthentication(0);
+        save(newPlayer);
+        return newPlayer;
+    }
+
     private User createUser(String clientIp, String inviteCode, String userNo,String gameToken,String cno) {
         User newPlayer = new User();
         if (inviteCode != null && !inviteCode.equals("")) {
@@ -479,6 +503,11 @@ public class UserService extends DaoService {
             nos.add(user.getUserNo());
         }
         return nos;
+    }
+
+    public List<User> findBot(){
+        List<User> users = findList("findAllBotUser", null);
+        return users;
     }
 
     @Transactional

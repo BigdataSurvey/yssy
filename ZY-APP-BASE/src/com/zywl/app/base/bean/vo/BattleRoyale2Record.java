@@ -1,5 +1,6 @@
 package com.zywl.app.base.bean.vo;
 
+import com.alibaba.fastjson2.JSONArray;
 import com.zywl.app.base.BaseBean;
 
 import java.math.BigDecimal;
@@ -21,7 +22,7 @@ public class BattleRoyale2Record extends BaseBean{
 	
 	private BigDecimal profit;
 	
-	private String lotteryResult;
+	private JSONArray lotteryResult;
 	
 	private Integer winOrLose;
 	
@@ -87,11 +88,11 @@ public class BattleRoyale2Record extends BaseBean{
 		this.profit = profit;
 	}
 
-	public String getLotteryResult() {
+	public JSONArray getLotteryResult() {
 		return lotteryResult;
 	}
 
-	public void setLotteryResult(String lotteryResult) {
+	public void setLotteryResult(JSONArray lotteryResult) {
 		this.lotteryResult = lotteryResult;
 	}
 

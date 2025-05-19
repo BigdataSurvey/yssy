@@ -77,8 +77,14 @@ public class LhdSocket extends BaseClientSocket {
 
             public void onReceive(BaseSocket baseSocket, Object data) {
                 logger.info("收到2选1房间信息变更" + data);
-                JSONObject obj = JSONObject.from(data);
-                Push.push(PushCode.updateNhInfo, "5", obj);
+                JSONArray array = JSONArray.from(data);
+                for (Object o : array) {
+                    JSONObject obj = JSONObject.from(o);
+                    String gameId = obj.getString("gameId");
+                    if ("5".equals(gameId)) {
+                        Push.push(PushCode.updateNhInfo, gameId, obj);
+                    }
+                }
 
             }
         }, this);
@@ -92,7 +98,7 @@ public class LhdSocket extends BaseClientSocket {
                 JSONObject obj = JSONObject.from(data);
                 String gameId = obj.getString("gameId");
                 JSONArray ids = obj.getJSONArray("userIds");
-                if ("1".equals(gameId)) {
+                if ("5".equals(gameId)) {
                     for (Object id : ids) {
                         JSONObject result = new JSONObject();
                         String userId = (String) id;
@@ -103,7 +109,7 @@ public class LhdSocket extends BaseClientSocket {
                                 result.put("winAmount", map.get(userId).get("winAmount"));
                                 result.put("betAmount",map.get(userId).get("betAmount"));
                                 //0 输  1 赢
-                                result.put("roomResult", Integer.parseInt(map.get(userId).get("isWin")));
+                                result.put("roomResult", map.get(userId).get("isWin"));
                             }else {
                                 result.put("roomResult", 2);
                             }
@@ -113,13 +119,13 @@ public class LhdSocket extends BaseClientSocket {
                             result.put("lookList", obj.get("lookList"));
                             result.put("roomList", obj.get("roomList"));
                             result.put("lastResult",obj.get("lastResult"));
-                            result.put("periodsNum",obj.get("periodsNum"));
+                            result.put("periods",obj.get("periods"));
                         }
                         result.put("allLoseAmount", obj.get("allLoseAmount"));
                         result.put("roomIds", obj.get("roomIds"));
                         result.put("status", obj.get("status"));
                         result.put("userId", userId);
-                        Push.push(PushCode.updateGameStatus, userId, result);
+                        Push.push(PushCode.updateNhStatus, userId, result);
                     }
 
                 }

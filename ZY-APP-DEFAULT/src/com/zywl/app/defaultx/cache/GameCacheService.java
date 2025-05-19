@@ -21,12 +21,25 @@ import java.util.*;
 public class GameCacheService extends RedisService {
 
 
-
     @Autowired
     private UserCacheService userCacheService;
 
     public static final List<String> LAST_WEEK_USER_IDS = new ArrayList<>();
 
+    @PostConstruct
+    public void _construct(){
+        updateLastWeekList();
+        new Timer("刷新大逃杀排行榜上周前10数据").schedule(new TimerTask() {
+            public void run() {
+                try {
+                    logger.info("刷新大逃杀排行榜上周前10数据");
+                    updateLastWeekList();
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+        }, DateUtil.getTomorrowBegin() - System.currentTimeMillis(), 1000 * 60 * 60 * 24);
+    }
 
     public void updateLastWeekList(){
         LAST_WEEK_USER_IDS.clear();
@@ -38,66 +51,22 @@ public class GameCacheService extends RedisService {
         }
     }
 
-
-    public List<JSONObject> getLastWeekList(){
-        String key = RedisKeyConstant.GAME_LAST_WEEK_TOP_LIST_XHMJ+DateUtil.getFirstDayOfWeek(new Date());
-        List<JSONObject> array = getList(key,JSONObject.class);
-        if (array==null || array.size()==0){
-            Map<String, Double> lastWeekTopList = getLastWeekTopList(GameTypeEnum.dts2.getValue(), 10);
-            Set<String> ids = lastWeekTopList.keySet();
-            array =new ArrayList<>();
-            for (String id : ids) {
-                User userInfoById = userCacheService.getUserInfoById(id);
-                JSONObject info = new JSONObject();
-                info.put("userHeadImg",userInfoById.getHeadImageUrl());
-                info.put("userId",id);
-                info.put("userName",userInfoById.getName());
-                info.put("userNo",userInfoById.getUserNo());
-                info.put("score",lastWeekTopList.get(id));
-                array.add(info);
-            }
-            set(key,array,86400*10);
+    public void addGameRankCache(int gameId, String userId, int number){
+        if (LAST_WEEK_USER_IDS.contains(userId)){
+            return;
         }
-        return  array;
+        String key = getRankKey(gameId);
+        addZset(key,userId, (double) number);
     }
 
-    public List<JSONObject> getThisWeekList(){
-        String key  = RedisKeyConstant.GAME_RANK_LIST;
-        List<JSONObject> list = getList(key,JSONObject.class);
-        if (list==null || list.size()==0){
-            Map<String, Double> lastWeekTopList = getThisWeekTopList(GameTypeEnum.dts2.getValue(), 10);
-            Set<String> ids = lastWeekTopList.keySet();
-            list =new ArrayList<>();
-            for (String id : ids) {
-                User userInfoById = userCacheService.getUserInfoById(id);
-                JSONObject info = new JSONObject();
-                info.put("userHeadImg",userInfoById.getHeadImageUrl());
-                info.put("userId",id);
-                info.put("userName",userInfoById.getName());
-                info.put("userNo",userInfoById.getUserNo());
-                info.put("score",lastWeekTopList.get(id));
-                list.add(info);
-            }
-            set(key,list,60);
-        }
-        return list;
-    }
+
 
 
     public Double getUserRankScore(int gameId,String userId){
         String key = getRankKey(gameId);
         return getZsetScore(key,userId);
     }
-    public Map<String,Double> getThisWeekTopList(int gameId,int count){
-        String key = getRankKey(gameId);
-        Set<ZSetOperations.TypedTuple<String>> zset = getZset(key, count);
-        Map<String,Double> map = new HashMap<>();
-        for (ZSetOperations.TypedTuple<String> s : zset) {
-            Double score = s.getScore();
-            map.put(s.getValue(), score);
-        }
-        return map;
-    }
+
 
     public Long getUserKillRank(String userId){
         return getZsetRank(userId,RedisKeyConstant.KILL_RANK+DateUtil.format2(new Date()));
@@ -145,17 +114,10 @@ public class GameCacheService extends RedisService {
         }
         return map;
     }
-    public void addGameRankCache(int gameId, String userId){
-        if (LAST_WEEK_USER_IDS.contains(userId)){
-            return;
-        }
+
+
+    public Map<String,Double> getThisWeekTopList(int gameId,int count){
         String key = getRankKey(gameId);
-        addZset(key,userId,1.0);
-    }
-
-
-    public Map<String,Double> getKillThisDayTopList(int count){
-        String key = RedisKeyConstant.KILL_RANK+DateUtil.format2(new Date()) ;
         Set<ZSetOperations.TypedTuple<String>> zset = getZset(key, count);
         Map<String,Double> map = new HashMap<>();
         for (ZSetOperations.TypedTuple<String> s : zset) {
@@ -165,8 +127,61 @@ public class GameCacheService extends RedisService {
         return map;
     }
 
+    public Map<String,Double> getKillThisDayTopList(int count){
+        String key = RedisKeyConstant.KILL_RANK+DateUtil.format2(new Date()) ;
+        Set<ZSetOperations.TypedTuple<String>> zset = getZset(key, count);
+        Map<String,Double> map = new HashMap<>();
+        for (ZSetOperations.TypedTuple<String> s : zset) {
+            Double score = s.getScore();
+            map.put(s.getValue(), score);;
+        }
+        return map;
+    }
+
+    public List<JSONObject> getLastWeekList(){
+        String key = RedisKeyConstant.GAME_LAST_WEEK_TOP_LIST+DateUtil.getFirstDayOfWeek(new Date());
+        List<JSONObject> array = getList(key,JSONObject.class);
+        if (array==null || array.size()==0){
+            Map<String, Double> lastWeekTopList = getLastWeekTopList(GameTypeEnum.dts2.getValue(), 10);
+            Set<String> ids = lastWeekTopList.keySet();
+            array =new ArrayList<>();
+            for (String id : ids) {
+                User userInfoById = userCacheService.getUserInfoById(id);
+                JSONObject info = new JSONObject();
+                info.put("userHeadImg",userInfoById.getHeadImageUrl());
+                info.put("userId",id);
+                info.put("userName",userInfoById.getName());
+                info.put("userNo",userInfoById.getUserNo());
+                info.put("score",lastWeekTopList.get(id));
+                array.add(info);
+            }
+            set(key,array,86400*10);
+        }
+        return  array;
+    }
 
 
+    public List<JSONObject> getThisWeekList(){
+        String key  = RedisKeyConstant.GAME_RANK_LIST;
+        List<JSONObject> list = getList(key,JSONObject.class);
+        if (list==null || list.size()==0){
+            Map<String, Double> lastWeekTopList = getThisWeekTopList(GameTypeEnum.dts2.getValue(), 10);
+            Set<String> ids = lastWeekTopList.keySet();
+            list =new ArrayList<>();
+            for (String id : ids) {
+                User userInfoById = userCacheService.getUserInfoById(id);
+                JSONObject info = new JSONObject();
+                info.put("userHeadImg",userInfoById.getHeadImageUrl());
+                info.put("userId",id);
+                info.put("userName",userInfoById.getName());
+                info.put("userNo",userInfoById.getUserNo());
+                info.put("score",lastWeekTopList.get(id));
+                list.add(info);
+            }
+            set(key,list,60);
+        }
+        return list;
+    }
 
     public List<JSONObject> getKillThisDayList(){
         String key  = RedisKeyConstant.KILL_RANK_LIST;

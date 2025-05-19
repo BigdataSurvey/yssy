@@ -22,6 +22,8 @@ public class ServerManagerService {
 
 	private BattleRoyale2Socket battleRoyale2Socket;
 
+	private LhdSocket lhdSocket;
+
 
 
 
@@ -95,6 +97,20 @@ public class ServerManagerService {
 			shakeHandsDatas.put("weight", serverProperties.get("server.weight"));
 			battleRoyale2Socket = new BattleRoyale2Socket(TargetSocketType.dts2, -1, managerProperties.get("dts2Server.ws.address"), shakeHandsDatas);
 			battleRoyale2Socket.connect();
+		}
+	}
+
+	public void connectLHDServer(){
+		if(lhdSocket == null){
+			PropertiesUtil managerProperties = new PropertiesUtil("manager.properties");
+			PropertiesUtil serverProperties = new PropertiesUtil("config.properties");
+			JSONObject shakeHandsDatas = new JSONObject();
+			shakeHandsDatas.put("name", serverProperties.get("server.name"));
+			shakeHandsDatas.put("address", serverProperties.get("template.server"));
+			shakeHandsDatas.put("host", serverProperties.get("template.server"));
+			shakeHandsDatas.put("weight", serverProperties.get("server.weight"));
+			lhdSocket = new LhdSocket(TargetSocketType.nh, -1, managerProperties.get("nhServer.ws.address"), shakeHandsDatas);
+			lhdSocket.connect();
 		}
 	}
 }

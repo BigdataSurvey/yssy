@@ -39,7 +39,8 @@ public enum LogUserBackpackTypeEnum {
 	tower("试炼之塔",29),
 	game("统一",30),
 	open_mine("开通矿产",1002),
-	treasure_map_get("藏宝图获得",1003);
+	treasure_map_get("藏宝图获得",1003),
+	yy("游园使用",1004);
 	
 	private String name;
 

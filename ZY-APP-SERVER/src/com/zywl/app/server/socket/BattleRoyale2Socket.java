@@ -121,6 +121,7 @@ public class BattleRoyale2Socket extends BaseClientSocket {
 							Map<String, Map<String, String>> map = (Map<String, Map<String, String>>) obj.get("userSettleInfo");
 							if (map.containsKey(userId) ) {
 								//有该玩家的下注信息
+								result.put("isBot",map.get(userId).get("isBot"));
 								result.put("winAmount", map.get(userId).get("winAmount"));
 								result.put("betAmount",map.get(userId).get("betAmount"));
 								//0 输  1 赢
@@ -140,7 +141,10 @@ public class BattleRoyale2Socket extends BaseClientSocket {
 						result.put("roomIds", obj.get("roomIds"));
 						result.put("status", obj.get("status"));
 						result.put("userId", userId);
-						Push.push(PushCode.updateGameStatus, userId, result);
+						if (result.containsKey("isBot") && result.getString("isBot").equals("0")){
+							Push.push(PushCode.updateGameStatus, userId, result);
+						}
+
 					}
 					
 				}

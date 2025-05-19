@@ -192,7 +192,7 @@ public class ServerLotteryGameService extends BaseService {
 
     }
 
-    @ServiceMethod(code = "002", description = "下注")
+    @ServiceMethod(code = "002", description = "投入")
     public Async bet(final AppSocket appSocket, Command appCommand, JSONObject params) {
         checkNull(params);
         checkNull(params.get("betAmount"), params.get("bet"));
@@ -210,15 +210,6 @@ public class ServerLotteryGameService extends BaseService {
             if (betList.indexOf(amount) < 0) {
                 throwExp("非法请求");
             }
-        }
-        if (gameId == 5) {
-            if (amount.compareTo(new BigDecimal("5")) != 0) {
-                throwExp("非法请求");
-            }
-            List<BigDecimal> list = new ArrayList<>();
-            list.add(params.getBigDecimal("bet"));
-            params.put("betInfo", list);
-
         }
         params.put("userId", userId);
         params.put("headImgUrl",user.getHeadImageUrl());
@@ -298,6 +289,36 @@ public class ServerLotteryGameService extends BaseService {
     }
 
 
+    @ServiceMethod(code = "014", description = "大逃杀排行榜")
+    public JSONObject dtsRankList(final AppSocket appSocket, Command appCommand, JSONObject params) {
+        checkNull(params);
+        checkNull(params.get("type"));
+        long userId = appSocket.getWsidBean().getUserId();
+        params.put("userId", userId);
+        User user = userCacheService.getUserInfoById(userId);
+        if (user == null) {
+            throwExp("用户信息异常");
+        }
+        JSONObject result = new JSONObject();
+        int type= params.getInteger("type");
+        if (type==1){
+            result.put("rankList",gameCacheService.getLastWeekList());
+            Double userLastWeekRankScore = gameCacheService.getUserLastWeekRankScore(GameTypeEnum.battleRoyale.getValue(), String.valueOf(userId));
+            result.put("myScore",userLastWeekRankScore==null?0.0:userLastWeekRankScore);
+            Long rank = gameCacheService.getLastWeekUserRank(String.valueOf(userId));
+            result.put("myRank",rank==null?-1:rank+1);
+        } else if (type==0) {
+            result.put("remainingTime", DateUtil.thisWeekRemainingTime());
+            result.put("rankList",gameCacheService.getThisWeekList() );
+            Double userRankScore = gameCacheService.getUserRankScore(GameTypeEnum.battleRoyale.getValue(), String.valueOf(userId));
+            result.put("myScore", userRankScore ==null?0.0:userRankScore);
+            Long thisWeekUserRank = gameCacheService.getThisWeekUserRank(String.valueOf(userId));
+            result.put("myRank",thisWeekUserRank==null?-1:thisWeekUserRank+1);
+        }
+
+
+        return result;
+    }
 
 
 

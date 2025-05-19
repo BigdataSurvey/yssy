@@ -10,7 +10,7 @@ public enum UserCapitalTypeEnum {
 
 	currency_1("文币", 1),
 	currency_2("通宝", 2),
-	tongbao("游园券",3),
+	yyb("游园币",3),
 	rmb("游园币", 4),
 
 	;
