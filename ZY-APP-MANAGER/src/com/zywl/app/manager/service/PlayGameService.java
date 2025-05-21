@@ -673,6 +673,22 @@ public class PlayGameService extends BaseService {
         }
     }
 
+    @KafkaProducer(topic = KafkaTopicContext.RED_POINT, event = KafkaEventContext.DTS, sendParams = true)
+    public void updateYyItemCacheByDts(String a,JSONObject orderInfo){
+        //只是为了触发kafka
+        String id = orderInfo.getString("userId");
+        int number = orderInfo.getIntValue("betAmount");
+        updateUserBackpackCache(Long.parseLong(id), "3", -number);
+    }
+
+    @KafkaProducer(topic = KafkaTopicContext.RED_POINT, event = KafkaEventContext.LHD, sendParams = true)
+    public void updateYyItemCacheByLhd(String a,JSONObject orderInfo){
+        //只是为了触发kafka
+        String id = orderInfo.getString("userId");
+        int number = orderInfo.getIntValue("betAmount");
+        updateUserBackpackCache(Long.parseLong(id), "3", -number);
+    }
+
 
     public void checkUserItemNumber(String userId, String itemId, int number) {
 

@@ -687,10 +687,6 @@ public class ManagerGameBaseService extends BaseService {
 
 
 
-    @KafkaProducer(topic = KafkaTopicContext.RED_POINT, event = KafkaEventContext.USER_LV_UP, sendParams = true)
-    public JSONObject userLvUp(Long userId, JSONObject params) {
-        return null;
-    }
 
 
     @Transactional
@@ -827,31 +823,6 @@ public class ManagerGameBaseService extends BaseService {
     }
 
 
-    @Transactional
-    @ServiceMethod(code = "038", description = "排行榜点赞")
-    @KafkaProducer(topic = KafkaTopicContext.RED_POINT, event = KafkaEventContext.TOP_LIKE_NUMBER, sendParams = true)
-    public Object topLike(ManagerSocketServer adminSocketServer, JSONObject params) {
-        Long userId = params.getLong("userId");
-        int type = params.getIntValue("type");
-        synchronized (LockUtil.getlock(userId)) {
-            Map userTopLike = userCacheService.getUserTopLike(userId);
-            int count = (int) userTopLike.getOrDefault(type, 0);
-            if (count > 0) {
-                throwExp("今日已经点赞过啦");
-            }
-            userCacheService.userTopLike(userId, type);
-            JSONObject result = new JSONObject();
-            JSONArray array = new JSONArray();
-            JSONObject info = new JSONObject();
-            info.put("id", ItemIdEnum.MONEY_1.getValue());
-            info.put("type", 1);
-            info.put("number", 2000);
-            array.add(info);
-            result.put("reward", array);
-            userCacheService.userTopLike(userId, type);
-            return result;
-        }
-    }
 
     @Transactional
     @ServiceMethod(code = "040", description = "一键领取友情值和广告收益")
@@ -929,6 +900,7 @@ public class ManagerGameBaseService extends BaseService {
 
     @Transactional
     @ServiceMethod(code = "046", description = "合成道具")
+    @KafkaProducer(topic = KafkaTopicContext.RED_POINT, event = KafkaEventContext.SYN, sendParams = true)
     public Object syn(ManagerSocketServer adminSocketServer, JSONObject params) {
         String lId = params.getString("itemId");
         int number = params.getIntValue("number");

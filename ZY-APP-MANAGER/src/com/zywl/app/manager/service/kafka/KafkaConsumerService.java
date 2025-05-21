@@ -68,10 +68,6 @@ public class KafkaConsumerService extends BaseService {
     private PlayGameService gameService;
 
 
-
-
-
-
     private ManagerGameBaseService managerGameBaseService;
 
     private UserCapitalCacheService userCapitalCacheService;
@@ -118,7 +114,6 @@ public class KafkaConsumerService extends BaseService {
                 JSONObject data = msg.getJSONObject("data");
                 update(eventType, data);
             }
-
         } catch (Exception e) {
             logger.error("kafkaConsumerError:" + e);
             // 异常处理逻辑
@@ -159,33 +154,20 @@ public class KafkaConsumerService extends BaseService {
             checkTopLikeRed(data);
         } else if (KafkaEventContext.DO_DAILY_TASK.equals(eventType)) {
             userReceiveDailyTask(data);
-        }  else if (KafkaEventContext.PVP_COUNT.equals(eventType)) {
-            userDoPvp(data);
         } else if (KafkaEventContext.PVE_WIN.equals(eventType)) {
             checkAchievement(data, AchievementGroupEnum.CHECKPOINT_NUMBER.getValue());
-        } else if (KafkaEventContext.USER_LV_UP.equals(eventType)) {
-            checkAchievement(data, AchievementGroupEnum.LV_UP.getValue());
         } else if (KafkaEventContext.SHOP_BUY.equals(eventType)) {
             checkAchievement(data, AchievementGroupEnum.SHOP_BUY.getValue());
             userBuyShop(data);
-        } else if (KafkaEventContext.HAS_QUALITY_CARD_NUMBER.equals(eventType)) {
-            checkAchievement(data, AchievementGroupEnum.HAS_QUALITY_CARD_NUMBER.getValue());
-        } else if (KafkaEventContext.CARD_UP_LV_NUMBER.equals(eventType)) {
-            //卡牌升级 验证战力成就
-            checkAchievement(data, AchievementGroupEnum.CARD_UP_LV_NUMBER.getValue());
-            checkPowerAchievement(data);
-        }  else if (KafkaEventContext.CARD_SALVAGE_NUMBER.equals(eventType)) {
-            checkAchievement(data, AchievementGroupEnum.CARD_SALVAGE_NUMBER.getValue());
-        } else if (KafkaEventContext.TOP_LIKE_NUMBER.equals(eventType)) {
-            checkTopLikeHideRed(data);
-            userTopLike(data);
-        } else if (KafkaEventContext.CHECK_POWER.equals(eventType)) {
-            checkAchievement(data, AchievementGroupEnum.CHECK_POWER.getValue());
-        }  else if (KafkaEventContext.WEAR_SET.equals(eventType)) {
-            checkAchievement(data, AchievementGroupEnum.WEAR_SET.getValue());
-        }  else if (KafkaEventContext.RECEIVE_ACHIEVEMENT.equals(eventType)) {
+        } else if (KafkaEventContext.SYN.equals(eventType)) {
+            userSyn(data);
+        }else if (KafkaEventContext.DTS.equals(eventType)) {
+            userDts(data);
+        }else if (KafkaEventContext.LHD.equals(eventType)) {
+            userLHD(data);
+        } else if (KafkaEventContext.RECEIVE_ACHIEVEMENT.equals(eventType)) {
             checkRemoveRedAchievement(data, KafkaEventContext.ACHIEVEMENT);
-        }   else if (KafkaEventContext.USE_ITEM.equals(eventType)) {
+        } else if (KafkaEventContext.USE_ITEM.equals(eventType)) {
             //使用道具 判断是否是战马
             checkUserPetAchievement(data);
         } else if (KafkaEventContext.OPEN_MINE.equals(eventType)) {
@@ -261,42 +243,23 @@ public class KafkaConsumerService extends BaseService {
     }
 
 
-
-
-
-
-
-
-
-
-    public void userReceiveDispatch(JSONObject data) {
-        Long userId = data.getLong("userId");
-        Long number = cardGameCacheService.getUserTodayDispatchNumber(userId);
-        checkDailyTaskIsOk(userId, TaskIdEnum.DISPATCH_NUMBER.getValue(), Integer.parseInt(number.toString()));
-    }
-
-    public void userTopLike(JSONObject data) {
-        Long userId = data.getLong("userId");
-        checkDailyTaskIsOk(userId, TaskIdEnum.TOP_LIKE_NUMBER.getValue(), 1);
-    }
-
-
-
-    public void getAwaitReward(JSONObject data) {
-        Long userId = data.getLong("userId");
-        checkDailyTaskIsOk(userId, TaskIdEnum.GET_AWAIT_REWARD_COUNT.getValue());
-    }
-
-
     public void userBuyShop(JSONObject data) {
         Long userId = data.getLong("userId");
         checkDailyTaskIsOk(userId, TaskIdEnum.SHOP_BUY_NUMBER.getValue());
     }
-
-    public void userDoPvp(JSONObject data) {
+    public void userSyn(JSONObject data) {
         Long userId = data.getLong("userId");
-        int type = data.getIntValue("type");
-        checkDailyTaskIsOk(userId, TaskIdEnum.PVP_PK_COUNT.getValue());
+        checkDailyTaskIsOk(userId, TaskIdEnum.SYN.getValue());
+    }
+
+    public void userDts(JSONObject data) {
+        Long userId = data.getLong("userId");
+        checkDailyTaskIsOk(userId, TaskIdEnum.DTS.getValue());
+    }
+
+    public void userLHD(JSONObject data) {
+        Long userId = data.getLong("userId");
+        checkDailyTaskIsOk(userId, TaskIdEnum.LHD.getValue());
     }
 
     public void checkRemoveRedAchievement(JSONObject data, String event) {
@@ -381,7 +344,7 @@ public class KafkaConsumerService extends BaseService {
                         achievement.put("schedule", lv);
                     }
 
-                }  else if (group == AchievementGroupEnum.LOGIN.getValue()) {
+                } else if (group == AchievementGroupEnum.LOGIN.getValue()) {
                     if (!userCacheService.userTodayIsLogin(userId)) {
                         achievement.put("schedule", achievement.getIntValue("schedule") + 1);
                     }
@@ -397,7 +360,7 @@ public class KafkaConsumerService extends BaseService {
                     }
                 } else if (group == AchievementGroupEnum.DISPATCH_NUMBER.getValue()) {
                     Long number = cardGameCacheService.getUserTodayDispatchNumber(userId);
-                    achievement.put("schedule",  number);
+                    achievement.put("schedule", number);
                 } else {
                     achievement.put("schedule", achievement.getIntValue("schedule") + 1);
                 }
@@ -425,34 +388,6 @@ public class KafkaConsumerService extends BaseService {
         }
     }
 
-
-
-
-
-
-    public void userGetCard(JSONObject data) {
-        Long userId = data.getLong("userId");
-        int type = data.getIntValue("type");
-        int number = 0;
-        if (type == 1) {
-            number = 1;
-        } else if (type == 2) {
-            number = 10;
-        }
-        checkDailyTaskIsOk(userId, TaskIdEnum.GET_CARD.getValue(), number);
-        //判断是否还有红点
-        long count1 = userCacheService.getUserAdvertLookNum(userId, AdvertIndexEnum.getCard_1.getIndex());
-        long count2 = userCacheService.getUserAdvertLookNum(userId, AdvertIndexEnum.getCard_2.getIndex());
-        if (count1 >= 3 && count2 >= 1) {
-            pushHideRedPoint(userId, KafkaEventContext.GET_CARD_RED);
-        }
-    }
-
-    //快速挂机
-    public void userAwait(JSONObject data) {
-        Long userId = data.getLong("userId");
-        checkDailyTaskIsOk(userId, TaskIdEnum.AWAIT.getValue());
-    }
 
     public void checkDailyTaskIsOk(Long userId, String taskId) {
         synchronized (LockUtil.getlock(userId)) {
@@ -505,7 +440,6 @@ public class KafkaConsumerService extends BaseService {
     }
 
 
-
     public void userReceiveDailyTask(JSONObject data) {
         //领取每日任务奖励 移除红点 遍历玩家的每日任务 和AP 判断是是否有未领取的
         Long userId = data.getLong("userId");
@@ -525,7 +459,7 @@ public class KafkaConsumerService extends BaseService {
         }
     }
 
-    public void checkAchievementAllTask(JSONObject data){
+    public void checkAchievementAllTask(JSONObject data) {
         checkAchievement(data, AchievementGroupEnum.DAILY_TASK_AP_100.getValue());
     }
 
@@ -561,8 +495,6 @@ public class KafkaConsumerService extends BaseService {
     }
 
 
-
-
     public void userLoginCheckRedPoint(JSONObject data) {
         Long userId = data.getLong("userId");
         Map userRedPointInfo = cardGameCacheService.getUserRedPointInfo(userId);
@@ -570,56 +502,12 @@ public class KafkaConsumerService extends BaseService {
             if (userRedPointInfo.containsKey(KafkaEventContext.MAIL)) {
                 pushRedPoint(userId, KafkaEventContext.MAIL, userRedPointInfo.get(KafkaEventContext.MAIL));
             }
-            if (userRedPointInfo.containsKey(KafkaEventContext.CARD_EQU_A)) {
-                pushRedPoint(userId, KafkaEventContext.CARD_EQU_A, userRedPointInfo.get(KafkaEventContext.CARD_EQU_A));
-            }
-            if (userRedPointInfo.containsKey(KafkaEventContext.CARD_EQU_B)) {
-                pushRedPoint(userId, KafkaEventContext.CARD_EQU_B, userRedPointInfo.get(KafkaEventContext.CARD_EQU_B));
-            }
-            if (userRedPointInfo.containsKey(KafkaEventContext.CARD_EQU_C)) {
-                pushRedPoint(userId, KafkaEventContext.CARD_EQU_C, userRedPointInfo.get(KafkaEventContext.CARD_EQU_C));
-            }
-            if (userRedPointInfo.containsKey(KafkaEventContext.CARD_EQU_D)) {
-                pushRedPoint(userId, KafkaEventContext.CARD_EQU_D, userRedPointInfo.get(KafkaEventContext.CARD_EQU_D));
-            }
-            if (userRedPointInfo.containsKey(KafkaEventContext.CARD_ARTIFACT)) {
-                pushRedPoint(userId, KafkaEventContext.CARD_ARTIFACT, userRedPointInfo.get(KafkaEventContext.CARD_ARTIFACT));
-            }
+
             if (userRedPointInfo.containsKey(KafkaEventContext.DAILY_TASK)) {
                 pushRedPoint(userId, KafkaEventContext.DAILY_TASK, userRedPointInfo.get(KafkaEventContext.DAILY_TASK));
             }
             if (userRedPointInfo.containsKey(KafkaEventContext.ACHIEVEMENT)) {
                 pushRedPoint(userId, KafkaEventContext.ACHIEVEMENT, userRedPointInfo.get(KafkaEventContext.ACHIEVEMENT));
-            }
-            if (userRedPointInfo.containsKey(KafkaEventContext.GET_CARD_RED)) {
-                pushRedPoint(userId, KafkaEventContext.GET_CARD_RED, userRedPointInfo.get(KafkaEventContext.GET_CARD_RED));
-            } else {
-                Long lookCount1 = userCacheService.getUserAdvertLookNum(userId, AdvertIndexEnum.getCard_1.getIndex());
-                Long lookCount2 = userCacheService.getUserAdvertLookNum(userId, AdvertIndexEnum.getCard_1.getIndex());
-                if (lookCount1 < AdvertIndexEnum.getCard_1.getCount() || lookCount2 < AdvertIndexEnum.getCard_2.getCount()) {
-                    pushRedPoint(userId, KafkaEventContext.GET_CARD_RED, userRedPointInfo.get(KafkaEventContext.GET_CARD_RED));
-                }
-            }
-            if (userRedPointInfo.containsKey(KafkaEventContext.EQU_SYN_1)) {
-                pushRedPoint(userId, KafkaEventContext.EQU_SYN_1, userRedPointInfo.get(KafkaEventContext.EQU_SYN_1));
-            }
-            if (userRedPointInfo.containsKey(KafkaEventContext.EQU_SYN_2)) {
-                pushRedPoint(userId, KafkaEventContext.EQU_SYN_2, userRedPointInfo.get(KafkaEventContext.EQU_SYN_2));
-            }
-            if (userRedPointInfo.containsKey(KafkaEventContext.EQU_SYN_3)) {
-                pushRedPoint(userId, KafkaEventContext.EQU_SYN_3, userRedPointInfo.get(KafkaEventContext.EQU_SYN_3));
-            }
-            if (userRedPointInfo.containsKey(KafkaEventContext.EQU_SYN_4)) {
-                pushRedPoint(userId, KafkaEventContext.EQU_SYN_4, userRedPointInfo.get(KafkaEventContext.EQU_SYN_4));
-            }
-            if (userRedPointInfo.containsKey(KafkaEventContext.GREETING_CARD)) {
-                pushRedPoint(userId, KafkaEventContext.GREETING_CARD, userRedPointInfo.get(KafkaEventContext.GREETING_CARD));
-            }
-            if (userRedPointInfo.containsKey(KafkaEventContext.PET_LV_UP)) {
-                pushRedPoint(userId, KafkaEventContext.PET_LV_UP, userRedPointInfo.get(KafkaEventContext.PET_LV_UP));
-            }
-            if (userRedPointInfo.containsKey(KafkaEventContext.PET_ASCEND)) {
-                pushRedPoint(userId, KafkaEventContext.PET_ASCEND, userRedPointInfo.get(KafkaEventContext.PET_ASCEND));
             }
 
         }
@@ -668,7 +556,6 @@ public class KafkaConsumerService extends BaseService {
     }
 
 
-
     public String getEquIdByPosition(int position, PlayerCard card) {
         if (card == null) {
             return null;
@@ -685,36 +572,6 @@ public class KafkaConsumerService extends BaseService {
             return String.valueOf(card.getPetId());
         } else if (position == 0) {
             return String.valueOf(card.getArtifactId());
-        }
-        return null;
-    }
-
-    private String getCardEquEventType(int position) {
-        if (position == 1) {
-            return KafkaEventContext.CARD_EQU_A;
-        } else if (position == 2) {
-            return KafkaEventContext.CARD_EQU_B;
-        } else if (position == 3) {
-            return KafkaEventContext.CARD_EQU_C;
-        } else if (position == 4) {
-            return KafkaEventContext.CARD_EQU_D;
-        } else if (position == 5) {
-            return KafkaEventContext.CARD_PET;
-        } else if (position == 0) {
-            return KafkaEventContext.CARD_ARTIFACT;
-        }
-        return null;
-    }
-
-    private String getCardEquSynEventType(int position) {
-        if (position == 1) {
-            return KafkaEventContext.EQU_SYN_1;
-        } else if (position == 2) {
-            return KafkaEventContext.EQU_SYN_2;
-        } else if (position == 3) {
-            return KafkaEventContext.EQU_SYN_3;
-        } else if (position == 4) {
-            return KafkaEventContext.EQU_SYN_4;
         }
         return null;
     }

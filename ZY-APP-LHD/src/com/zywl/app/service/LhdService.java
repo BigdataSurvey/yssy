@@ -43,6 +43,9 @@ public class LhdService extends BaseService {
     @Autowired
     private UserCapitalService userCapitalService;
 
+    @Autowired
+    private BackpackService backpackService;
+
 
     @Autowired
     private GameService gameService;
@@ -144,12 +147,13 @@ public class LhdService extends BaseService {
         STATUS = status;
     }
 
-    public Map<String, String> updateCapital(String userId, BigDecimal amount, String orderNo, Long dataId) {
-        userCapitalService.subUserOccupyBalanceByLotteryBet(Long.parseLong(userId), amount);
+
+    public Map<String, String> updateItem(String userId, BigDecimal number, String orderNo, Long dataId) {
+        backpackService.subItemNumberByDts(Long.parseLong(userId), 3L, Integer.parseInt(number.toString()));
         Map<String, String> myOrder = new HashMap<>();
         myOrder.put("orderNo", orderNo);
         myOrder.put("dataId", String.valueOf(dataId));
-        myOrder.put("betAmount", amount.toString());
+        myOrder.put("betAmount", number.toString());
         myOrder.put("userId", userId);
         List<Map<String, String>> maps = userCapitals.get(key);
         maps.add(myOrder);
@@ -357,7 +361,7 @@ public class LhdService extends BaseService {
                 userOrders.put(userId, record);
             }
             //处理资产信息
-            updateCapital(userId, amount, orderNo, dataId);
+            updateItem(userId, amount, orderNo, dataId);
             //本局总金额
             ALL_PRIZE = ALL_PRIZE.add(amount);
             //处理内存信息

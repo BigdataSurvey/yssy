@@ -11,6 +11,7 @@ import com.zywl.app.defaultx.enmus.GameTypeEnum;
 
 import com.alibaba.fastjson2.JSONObject;
 import com.zywl.app.base.BaseBean;
+import com.zywl.app.service.BattleRoyaleService2;
 
 public class BattleRoyaleRoom2 extends BaseBean{
 
@@ -324,10 +325,17 @@ public class BattleRoyaleRoom2 extends BaseBean{
 		pushResult.put("type", type);
 		pushResult.put("userId", userId);
 		pushResult.put("gameId", GameTypeEnum.dts2.getValue());
+		String name = "";
+		if (players.containsKey(userId)){
+			name = players.get(userId).get("userName");
+		}
+		if (BattleRoyaleService2.BOT_USER.containsKey(userId)){
+			name = BattleRoyaleService2.BOT_USER.get(userId).getName();
+		}
 		if (type==1) {
 			//下注 更换房间
 			pushResult.put("roomId", bet);
-			pushResult.put("name", players.containsKey(userId)? players.get(userId).get("userName"):"");
+			pushResult.put("name",name);
 			pushResult.put("betAmount", amount);
 		}else if(type==2 || type==3) {
 			// 离开房间 或者 加入房间

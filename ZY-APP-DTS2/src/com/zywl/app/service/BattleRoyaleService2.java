@@ -148,6 +148,7 @@ public class BattleRoyaleService2 extends BaseService {
         List<User> bot = userService.findBot();
         bot.forEach(e -> BOT_USER.put(e.getId().toString(), e));
         logger.info("加载人机完成，加载数量：" + BOT_USER.size());
+        gameAddBot();
     }
 
     public static <K,V> V getRandomValue(Map<K,V> map) {
@@ -165,7 +166,7 @@ public class BattleRoyaleService2 extends BaseService {
         new Timer("游戏添加人机").schedule(new TimerTask() {
             public void run() {
                 try {
-                    if (ROOM.getStatus() == LotteryGameStatusEnum.gaming.getValue() && NEED_BOT==1){
+                    if ((ROOM.getStatus() == LotteryGameStatusEnum.ready.getValue()||ROOM.getStatus() == LotteryGameStatusEnum.gaming.getValue()) && NEED_BOT==1){
                         //游戏阶段 添加人机
                         User user = getBotUser();
                         int i = random.nextInt(5);
@@ -176,7 +177,7 @@ public class BattleRoyaleService2 extends BaseService {
                 }
 
             }
-        }, 0, 500);
+        }, 0, 100);
     }
 
     public void requestManagerUpdateCapital() {
@@ -428,7 +429,14 @@ public class BattleRoyaleService2 extends BaseService {
         ROOM.setLookNum(ROOM.getLookNum() - 1);
         JSONObject betInfo = new JSONObject();
         betInfo.put("userId", userId);
-        betInfo.put("name", ROOM.getPlayers().get(userId).get("userName"));
+        String name ="***" ;
+        if (ROOM.getPlayers().containsKey(userId)){
+            name =ROOM.getPlayers().get(userId).get("userName");
+        }
+        if (BOT_USER.containsKey(userId)){
+            name = BOT_USER.get(userId).getName();
+        }
+        betInfo.put("name", name);
         betInfo.put("betAmount", amount);
         ROOM.getRoomList().get(userBet).put(userId, betInfo);
         ROOM.getLookList().remove(userId);
@@ -462,16 +470,18 @@ public class BattleRoyaleService2 extends BaseService {
             throwExp("本局即将结束，请等待下一局游戏开始");
         }
         ROOM.getUserCheckNum().put(userId, userBet);
-        UserCapital userCapital = userCapitalService.findUserCapitalByUserIdAndCapitalType(Long.parseLong(userId),
-                CAPITAL_TYPE);
-        if (userCapital == null) {
-            throwExp(UserCapitalTypeEnum.getName(CAPITAL_TYPE) + "不足");
-        }
-        if (!ROOM.getPlayers().containsKey(userId)) {
-            throwExp("请返回大厅后重新进入游戏");
-        }
-        if (Integer.parseInt(userBet) > ROOM.getOption() - 1 || Integer.parseInt(userBet) < 0) {
-            throwExp("非法投入");
+        if (!BOT_USER.containsKey(userId)){
+            UserCapital userCapital = userCapitalService.findUserCapitalByUserIdAndCapitalType(Long.parseLong(userId),
+                    CAPITAL_TYPE);
+            if (userCapital == null) {
+                throwExp(UserCapitalTypeEnum.getName(CAPITAL_TYPE) + "不足");
+            }
+            if (!ROOM.getPlayers().containsKey(userId)) {
+                throwExp("请返回大厅后重新进入游戏");
+            }
+            if (Integer.parseInt(userBet) > ROOM.getOption() - 1 || Integer.parseInt(userBet) < 0) {
+                throwExp("非法投入");
+            }
         }
         synchronized (LockUtil.getlock(userId + "bet")) {
             betUser.add(userId);
@@ -744,7 +754,9 @@ public class BattleRoyaleService2 extends BaseService {
                 o.put("capitalType", CAPITAL_TYPE);
                 o.put("orderNo", ROOM.getUserBetOrderInfo().get(userId).get("orderNo"));
                 o.put("em", LogCapitalTypeEnum.game_bet_win_dts2.getValue());
-                data.put(userId, o);
+                if (!BOT_USER.containsKey(userId)){
+                    data.put(userId, o);
+                }
                 ROOM.getUserBetOrderInfo().get(userId).put("winAmount",
                         add.toString());
 
