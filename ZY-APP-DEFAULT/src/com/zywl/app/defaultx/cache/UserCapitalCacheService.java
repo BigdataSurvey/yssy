@@ -151,6 +151,22 @@ public class UserCapitalCacheService extends RedisService {
             Push.push(PushCode.syncUserCapital, null, data);
         }
     }
+    public void subGift(Long userId, int capitalType, long amount, long occupyAmonut,BigDecimal price) {
+        synchronized (LockUtil.getlock(userId.toString() + "money")) {
+            String key = getKey(userId, capitalType);
+            if (!userCapitals.containsKey(key)) {
+                UserCapital userCapital = userCapitalService.findUserCapitalByUserIdAndCapitalType(userId, capitalType);
+                if (userCapital != null) {
+                    userCapitals.put(key, userCapital);
+                }
+            }
+            userCapitals.get(key).setBalance(userCapitals.get(key).getBalance().subtract(price));
+            data.clear();
+            data.put("userCapitals", userCapitals);
+            Push.push(PushCode.syncUserCapital, null, data);
+        }
+    }
+
 
 
     //删除全部资产

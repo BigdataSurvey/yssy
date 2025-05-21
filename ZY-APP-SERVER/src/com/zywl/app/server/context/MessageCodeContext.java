@@ -52,4 +52,7 @@ public class MessageCodeContext {
 	public final static String TIME_TASK ="074";
 
 	public final static String BOOK_SERVER = "075";
+
+	public final static String ROLE="076";
+
 }

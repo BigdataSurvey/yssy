@@ -845,6 +845,54 @@ public class UserCapitalService extends DaoService {
     }
 
 
+    /**
+     * 得到求购物品 减少冻结资产
+     */
+    @Transactional
+    public int subUserOccupyBalanceByAskBuyGift(Long userId, Long tradId,Long itemId, BigDecimal price, int number, BigDecimal balanceBefore, BigDecimal occupyBalanceBefore, String orderNo) {
+        BigDecimal amount = price.multiply(new BigDecimal(number));
+
+        Long tradingId = tradingRecordService.addTradingRecord(userId, tradId,itemId, orderNo, amount, BigDecimal.ZERO, TradingRecordTypeEnum.askbuy.getValue(), TradingRecordTypeEnum.askbuy.getName(), number, price);
+
+        // 减少冻结资产
+        int a = subUserOccupyBalance(amount, userId, UserCapitalTypeEnum.currency_2.getValue(), balanceBefore, occupyBalanceBefore, orderNo, tradingId, LogCapitalTypeEnum.askbuy_sucess, TableNameConstant.TRADING_RECORD);
+        // 清理缓存
+        if (a < 1) {
+            userCapitalCacheService.deltedUserCapitalCache(userId, UserCapitalTypeEnum.currency_2.getValue());
+            UserCapital userCapital = userCapitalCacheService.getUserCapitalCacheByType(userId, UserCapitalTypeEnum.currency_2.getValue());
+            int b = subUserOccupyBalance(amount, userId, UserCapitalTypeEnum.currency_2.getValue(), userCapital.getBalance(), userCapital.getOccupyBalance(), orderNo, tradingId, LogCapitalTypeEnum.askbuy_sucess, TableNameConstant.TRADING_RECORD);
+            if (b < 1) {
+                return b;
+            }
+        }
+
+        return a;
+    }
+
+    @Transactional
+    public int subUserGift(BigDecimal amount, Long userId, Integer capitalType, BigDecimal balanceBefore, BigDecimal occupyBalanceBefore, String orderNo, Long sourceDataId, LogCapitalTypeEnum em, String tableName) {
+        Map<String,Object> params = new HashedMap<>();
+        params.put("userId", userId);
+        params.put("capitalType", capitalType);
+        //数量
+        params.put("amount", amount);
+        params.put("occupyBalance", occupyBalanceBefore);
+        int a = execute("subUserOccupyBalance", params);
+        if (a >= 1) {
+            userCapitalCacheService.sub(userId, capitalType, BigDecimal.ZERO, amount);
+            pushLog(2, userId, capitalType, balanceBefore, occupyBalanceBefore, amount.negate(), em, orderNo, sourceDataId, tableName);
+        }
+        return a;
+    }
+    public Long addTradingRecord(Long userId,BigDecimal amount) {
+        UserGift userGift = new UserGift();
+        userGift.setUserId(userId);
+        userGift.setGiftNum(amount);
+        userGift.setCreateTime(new Date());
+        save(userGift);
+        return userGift.getUserId();
+    }
+
 
 
 
@@ -971,7 +1019,17 @@ public class UserCapitalService extends DaoService {
             }
         }
     }
-
+    public void pushLog1(int type, Long userId, Integer capitalType, long number, LogCapitalTypeEnum em, String orderNo,String tableName) {
+        Map<String,Object> a = new HashedMap<>();
+        a.put("type", type);
+        a.put("userId", userId);
+        a.put("capitalType", capitalType);
+        a.put("amount", number);
+        a.put("em", em);
+        a.put("orderNo", orderNo);
+        a.put("tableName", tableName);
+        Push.push(PushCode.insertLog, null, a);
+    }
     public void pushLog(int type, Long userId, Integer capitalType, BigDecimal balanceBefore, BigDecimal occupyBalanceBefore, BigDecimal amount, LogCapitalTypeEnum em, String orderNo, Long sourceDataId, String tableName) {
         Map<String,Object> a = new HashedMap<>();
         a.put("logType", 1);
@@ -1103,10 +1161,9 @@ public class UserCapitalService extends DaoService {
         Map<String,Object> params = new HashedMap<>();
         params.put("userId", userId);
         params.put("capitalType", capitalType);
+        //数量
         params.put("amount", amount);
         params.put("occupyBalance", occupyBalanceBefore);
-        UserCapital userCapital = userCapitalCacheService.getUserCapitalCacheByType(userId,capitalType)   ;
-        params.put("id",userCapital.getId());
         int a = execute("subUserOccupyBalance", params);
         if (a >= 1) {
             userCapitalCacheService.sub(userId, capitalType, BigDecimal.ZERO, amount);
@@ -1114,6 +1171,23 @@ public class UserCapitalService extends DaoService {
         }
         return a;
     }
+
+    @Transactional
+    public int subUserGiftMoney(BigDecimal balance, Long userId,Long number, Integer capitalType,LogCapitalTypeEnum em, String tableName,BigDecimal price,String orderNo) {
+        Map<String,Object> params = new HashedMap<>();
+        params.put("userId", userId);
+        params.put("capitalType", capitalType);
+        //数量
+        params.put("amount", number);
+        params.put("price", price);
+        int a = execute("subUserGiftMoney", params);
+        if (a >= 1) {
+            userCapitalCacheService.subGift(userId, capitalType, 0, number,price);
+            pushLog1(2, userId, capitalType, number, em, orderNo,tableName);
+        }
+        return a;
+    }
+
 
     @Transactional
     public void batchUpdateCoin(List<UserCapital> capitals) {
@@ -1188,6 +1262,8 @@ public class UserCapitalService extends DaoService {
         }
         // 清理缓存
     }
+
+
 
 
     //+++++++++++++++++++++++++++++++++++++++++++++++

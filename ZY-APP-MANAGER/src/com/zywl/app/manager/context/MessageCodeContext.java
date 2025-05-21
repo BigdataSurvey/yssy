@@ -41,6 +41,8 @@ public class MessageCodeContext {
 
 	public final static String PAY_ORDER_SERVER = "034";
 
+	public final static String USER_GIFT_SERVER = "035";
+
 	public final static String KP_PLAYER_CARD= "1001";
 
 	public final static String BATTLE= "2001";

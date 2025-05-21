@@ -22,6 +22,8 @@ public class TableNameConstant {
 	
 	//交易行交易记录
 	public final static String TRADING_RECORD = "r_trading_record";
+	//交易行交易记录
+	public final static String USER_GIFT_RECORD = "r_user_gift_record";
 	
 	//好友转增记录表
 	public final static String TRANSFER_RECORD = "r_transfer_record";
