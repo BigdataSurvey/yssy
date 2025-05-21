@@ -15,6 +15,7 @@ import com.zywl.app.base.constant.RedisKeyConstant;
 import com.zywl.app.base.service.BaseService;
 import com.zywl.app.base.util.LockUtil;
 import com.zywl.app.base.util.OrderUtil;
+import com.zywl.app.defaultx.annotation.KafkaProducer;
 import com.zywl.app.defaultx.annotation.ServiceClass;
 import com.zywl.app.defaultx.annotation.ServiceMethod;
 import com.zywl.app.defaultx.cache.AppConfigCacheService;
@@ -25,6 +26,8 @@ import com.zywl.app.defaultx.enmus.GameTypeEnum;
 import com.zywl.app.defaultx.enmus.LogCapitalTypeEnum;
 import com.zywl.app.defaultx.enmus.UserCapitalTypeEnum;
 import com.zywl.app.defaultx.service.*;
+import com.zywl.app.manager.context.KafkaEventContext;
+import com.zywl.app.manager.context.KafkaTopicContext;
 import com.zywl.app.manager.context.MessageCodeContext;
 import com.zywl.app.manager.service.AliPayCashService;
 import com.zywl.app.manager.service.CheckAchievementService;
@@ -379,9 +382,29 @@ public class ManagerCapitalService extends BaseService {
                 JSONObject orderInfo = (JSONObject) o;
                 String id = orderInfo.getString("userId");
                 int number = orderInfo.getIntValue("betAmount");
-                gameService.updateUserBackpackCache(Long.parseLong(id), "3", -number);
+                gameService.updateYyItemCacheByDts("",orderInfo);
                 userCacheService.addTodayUserPlayCount(Long.valueOf(id));
                 addRankCache(id, number);
+            } catch (Exception e) {
+                logger.error(e);
+                e.printStackTrace();
+            }
+        }
+        return new JSONObject();
+    }
+
+
+
+    @Transactional
+    @ServiceMethod(code = "811", description = "2选1投入修改内存")
+    public JSONObject updateCacheByDts(ManagerLhdSocketServer lhdSocketServer, JSONObject data) throws InterruptedException {
+        checkNull(data);
+        checkNull(data.get("betArray"));
+        JSONArray betArray = data.getJSONArray("betArray");
+        for (Object o : betArray) {
+            try {
+                JSONObject orderInfo = (JSONObject) o;
+                gameService.updateYyItemCacheByLhd("",orderInfo);
             } catch (Exception e) {
                 logger.error(e);
                 e.printStackTrace();

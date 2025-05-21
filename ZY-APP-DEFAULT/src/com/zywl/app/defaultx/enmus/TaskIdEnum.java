@@ -6,15 +6,12 @@ package com.zywl.app.defaultx.enmus;
 public enum TaskIdEnum {
 
     LOGIN("每日登录","1"),
-    GET_CARD("进行5次招募","2"),
-    AWAIT("快速作战三次","3"),
-    DAILY_FB("通过或扫荡3次日常副本","4"),
-    TOWER("通关或扫荡3次试炼之塔","5"),
-    GET_AWAIT_REWARD_COUNT("领取挂机收益1次","6"),
-    SHOP_BUY_NUMBER("任意商城购买1次","7"),
-    DISPATCH_NUMBER("完成悬赏任务3次","7"),
-    PVP_PK_COUNT("演武场挑战3次","8"),
-    TOP_LIKE_NUMBER("排行榜点赞次数", "9"),
+    SHOP_BUY_NUMBER("商城购买1次道具","2"),
+
+    ADD_POWER("补充一次体力","3"),
+    DTS("参与一次倩女幽魂","4"),
+    LHD("参与一次2选1","5"),
+    SYN("合成一次","6")
 
     ;
 

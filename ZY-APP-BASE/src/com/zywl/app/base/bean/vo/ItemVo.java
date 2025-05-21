@@ -16,6 +16,8 @@ public class ItemVo extends BaseBean{
 	private Integer canSyn;
 
 	private Long synUse;
+
+	private Integer synRate;
 	
 	private String context;
 
@@ -313,5 +315,13 @@ public class ItemVo extends BaseBean{
 
 	public void setSynUse(Long synUse) {
 		this.synUse = synUse;
+	}
+
+	public Integer getSynRate() {
+		return synRate;
+	}
+
+	public void setSynRate(Integer synRate) {
+		this.synRate = synRate;
 	}
 }

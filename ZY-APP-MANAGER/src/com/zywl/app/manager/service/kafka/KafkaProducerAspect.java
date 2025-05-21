@@ -34,9 +34,8 @@ public class KafkaProducerAspect {
         JSONObject args = new JSONObject();
         if (sendParams) {
             if (event.equals(KafkaEventContext.ADD_REWARD)){
-                args = new JSONObject();
                 args.put("userId",joinPoint.getArgs()[0]);
-                args.put("reward",(JSONArray)joinPoint.getArgs()[1]);
+                args.put("reward", joinPoint.getArgs()[1]);
             }else{
                 args = (JSONObject)joinPoint.getArgs()[1];
             }
