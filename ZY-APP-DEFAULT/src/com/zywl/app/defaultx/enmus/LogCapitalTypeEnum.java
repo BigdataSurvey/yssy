@@ -132,7 +132,10 @@ public enum LogCapitalTypeEnum {
     pet_buy("战马商城购买",1018),
     receive_anima("领取友情值", 1019),
     game_bet_cards("参与虚妄迷局",1020),
-    game_cards_win("虚妄迷局获得",1021),;
+
+    game_cards_win("虚妄迷局获得",1021),
+
+    bug_role_gift("购买角色礼包",1022),;
     ;
     private String name;
 
