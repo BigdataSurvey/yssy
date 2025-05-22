@@ -11,8 +11,8 @@ import java.util.Date;
 @Service
 public class UserGiftRecordService extends DaoService {
 
-    public UserGiftRecordService(String mapper) {
-        super(mapper);
+    public UserGiftRecordService() {
+        super("UserGiftRecordMapper");
     }
 
     public Long addGiftRecord(Long userId, String orderNo,  int type, long number, BigDecimal price) {

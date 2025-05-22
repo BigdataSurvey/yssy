@@ -22,8 +22,8 @@ public class UserGiftService extends DaoService {
     private UserCapitalCacheService userCapitalCacheService;
 
 
-    public UserGiftService(String mapper) {
-        super(mapper);
+    public UserGiftService() {
+        super("UserGiftServiceMapper");
     }
 
     @Transactional
