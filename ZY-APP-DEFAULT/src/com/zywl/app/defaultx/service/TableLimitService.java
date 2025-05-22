@@ -26,16 +26,16 @@ import com.zywl.app.defaultx.dbutil.DaoService;
 public class TableLimitService extends DaoService {
 
 	private static final Log logger = LogFactory.getLog(TableLimitService.class);
-	
+
 	private final static Map<String, SimpleDateFormat> TABLE_LIMIT = new ConcurrentHashMap<String, SimpleDateFormat>();
 
 	private final static Map<String, List<TableInfo>> TABLE_INFOS = new ConcurrentHashMap<String, List<TableInfo>>();
-	
+
 	private static boolean READ_ONLY = false;
-	
+
 	public TableLimitService() {
 		super("TableLimitMapper");
-		
+
 		new Timer("分表监控").schedule(new TimerTask() {
 			public void run() {
 				Executer.executeService(new Runnable() {
@@ -64,12 +64,12 @@ public class TableLimitService extends DaoService {
 			}
 		}, 0, 60000);
 	}
-	
+
 	public void setReadOnly(boolean readOnly){
 		logger.info("分表监控只读状态变更：" + readOnly);
 		READ_ONLY = readOnly;
 	}
-	
+
 	public void regist(String tablePrefix, SimpleDateFormat dateFormat) {
 		JSONObject parameters = new JSONObject();
 		parameters.put("tablePrefix", tablePrefix);
@@ -87,27 +87,27 @@ public class TableLimitService extends DaoService {
 				logger.error(e, e);
 			}
 		}
-		
+
 		Collections.sort(_tableInfos, new Comparator<TableInfo>() {
 			public int compare(TableInfo arg0, TableInfo arg1) {
 				return arg0.date.compareTo(arg1.date);
 			}
 		});
-		
+
 		TABLE_LIMIT.put(tablePrefix, dateFormat);
 		TABLE_INFOS.put(tablePrefix, new CopyOnWriteArrayList<TableInfo>(_tableInfos));
 	}
-	
+
 	@Transactional
 	public void createNewTable(String newTableName, String oldTableName) {
 		String tableSQL = getCreateTableSQL(oldTableName);
 		String sql = tableSQL.replaceFirst(oldTableName, newTableName);
-		
+
 		JSONObject params = new JSONObject();
 		params.put("sql", sql);
 		execute("createNewTable", params);
 	}
-	
+
 	public String getLastTableName(String tablePrefix) {
 		TableInfo lastTableInfo = getLastTableInfo(tablePrefix);
 		if(lastTableInfo != null) {
@@ -115,7 +115,7 @@ public class TableLimitService extends DaoService {
 		}
 		return null;
 	}
-	
+
 	public TableInfo getLastTableInfo(String tablePrefix) {
 		List<TableInfo> list = TABLE_INFOS.get(tablePrefix);
 		if(list != null && !list.isEmpty()) {
@@ -123,7 +123,7 @@ public class TableLimitService extends DaoService {
 		}
 		return null;
 	}
-	
+
 	public List<String> getAllTableNames(String tablePrefix){
 		List<String> result = new ArrayList<String>();
 		List<TableInfo> list = TABLE_INFOS.get(tablePrefix);
@@ -134,12 +134,12 @@ public class TableLimitService extends DaoService {
 		}
 		return result;
 	}
-	
+
 	public String getTableName(String tablePrefix, Date date) {
 		SimpleDateFormat simpleDateFormat = TABLE_LIMIT.get(tablePrefix);
 		return tablePrefix + simpleDateFormat.format(date);
 	}
-	
+
 	public String getCreateTableSQL(String tableName){
 		JSONObject params = new JSONObject();
 		params.put("tableName", tableName);
@@ -150,7 +150,7 @@ public class TableLimitService extends DaoService {
 
 	public class TableInfo{
 		public String tableName;
-		
+
 		public Date date;
 	}
 
@@ -158,5 +158,5 @@ public class TableLimitService extends DaoService {
 	protected Log logger() {
 		return logger;
 	}
-	
+
 }
