@@ -75,7 +75,7 @@ public class ManagerBuyGiftService extends BaseService {
             }
            //扣除金额
             userCapitalService.subUserGiftMoney(balance,userId,number,userCapital.getCapitalType(),roleGift,TableNameConstant.USER_GIFT_RECORD,price,orderNo);
-            Long userGiftId = userGiftRecordService.addGiftRecord(userId,orderNo,userCapital.getCapitalType(),number,price);
+            userGiftRecordService.addGiftRecord(userId,orderNo,userCapital.getCapitalType(),number,price);
             JSONObject pushData = new JSONObject();
             pushData.put("userId", userId);
             if (roleGift.getValue() == LogCapitalTypeEnum.bug_role_gift.getValue()) {
