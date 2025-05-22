@@ -23,6 +23,7 @@ public class UserGiftRecordService extends DaoService {
         userGiftRecord.setPrice(price);
         userGiftRecord.setType(type);
         userGiftRecord.setCreateTime(new Date());
+        save(userGiftRecord);
         return userGiftRecord.getId();
     }
 
