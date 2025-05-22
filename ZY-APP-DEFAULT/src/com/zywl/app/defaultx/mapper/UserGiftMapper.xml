@@ -2,7 +2,7 @@
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.zywl.app.defaultx.mapper.UserGiftMapper">
 
-   <insert id="insert" parameterType="Achievement" useGeneratedKeys="true" keyProperty="id" keyColumn="id">
+   <insert id="insert" parameterType="UserGift" useGeneratedKeys="true" keyProperty="id" keyColumn="id">
 		insert into t_user_gift
 		(
                `user_id`,
@@ -17,12 +17,22 @@
 		)
 	</insert>
 
+	<insert id="insertOrUpdate" parameterType="UserGift">
+		INSERT INTO t_user_gift(`user_id`, `gift_num`, `create_time`)
+		VALUES (#{userId}, 1, NOW()) ON DUPLICATE KEY
+			UPDATE gift_num = gift_num+1;
+	</insert>
+
+	<update id="useGift" parameterType="UserGift">
+		update t_user_gift set gitf_number = gift_number-1 where user_id = #{userId} and gift_number-1 &gt; 1
+	</update>
+
 	<delete id="delete">
 		delete from t_user_gift where  id= #{id}
 	</delete>
 	
 
-	<select id="findAll" resultType="Achievement">
+	<select id="findAll" resultType="UserGift">
 	    select * from t_user_gift
 	</select>
 

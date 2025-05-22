@@ -45,6 +45,8 @@ public class TableNameConstant {
 	
 	//兑换记录表
 	public final static String EXCHANGE_RECORD = "r_exchange_record";
+
+
 	
 	//成就领取记录表
 	public final static String COMPLETE_ACHIEVEMENT_RECORD ="r_complete_achievement_record";

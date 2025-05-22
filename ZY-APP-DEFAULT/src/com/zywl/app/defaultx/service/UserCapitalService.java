@@ -1188,6 +1188,21 @@ public class UserCapitalService extends DaoService {
         return a;
     }
 
+    @Transactional
+    public void subBalanceByGift(BigDecimal amount, Long userId, String orderNo, Long dataId) {
+        UserCapital userCapital = userCapitalCacheService.getUserCapitalCacheByType(userId, UserCapitalTypeEnum.currency_2.getValue());
+        int a = subUserBalance(amount, userId, UserCapitalTypeEnum.currency_2.getValue(), userCapital.getBalance(), userCapital.getOccupyBalance(), orderNo, dataId, LogCapitalTypeEnum.bug_role_gift, null);
+        if (a < 1) {
+            userCapitalCacheService.deltedUserCapitalCache(userId, UserCapitalTypeEnum.rmb.getValue());
+            userCapital = userCapitalCacheService.getUserCapitalCacheByType(userId, UserCapitalTypeEnum.rmb.getValue());
+            int b = subUserBalance(amount, userId, UserCapitalTypeEnum.rmb.getValue(), userCapital.getBalance(), userCapital.getOccupyBalance(), orderNo, dataId, LogCapitalTypeEnum.exchange, TableNameConstant.EXCHANGE_RECORD);
+            if (b < 1) {
+                throwExp("扣除余额失败");
+            }
+        }
+    }
+
+
 
     @Transactional
     public void batchUpdateCoin(List<UserCapital> capitals) {

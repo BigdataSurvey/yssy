@@ -6,6 +6,12 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class Config extends BaseBean {
+
+
+	public static final String GIFT_PRICE_1 = "GIFT_PRICE_1";
+
+	public static final String GIFT_PRICE_2 = "GIFT_PRICE_2";
+
 	public static final String QQ = "QQ";
 
 

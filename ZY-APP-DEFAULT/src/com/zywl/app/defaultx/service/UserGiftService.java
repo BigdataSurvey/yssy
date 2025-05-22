@@ -23,30 +23,29 @@ public class UserGiftService extends DaoService {
 
 
     public UserGiftService() {
-        super("UserGiftServiceMapper");
+        super("UserGiftMapper");
     }
 
     @Transactional
-    public void betUpdateBalance(JSONObject obj) {
-        Set<String> set = obj.keySet();
-
-        for (String key : set) {
-            Map<String, Object> map = new HashedMap<>();
-            map.put("userId", key);
-            UserCapital userCapital = userCapitalCacheService.getUserCapitalCacheByType(Long.parseLong(key), UserCapitalTypeEnum.currency_2.getValue());
-            List<UserGift> byConditions = findByConditions(userCapital.getUserId());
-
-            if(null != byConditions.get(0)){
-                UserGift userGift = byConditions.get(0);
-                map.put("giftNum", String.valueOf(userGift.getGiftNum().add(BigDecimal.valueOf(1))));
-            }else {
-                map.put("giftNum", String.valueOf(1));
-            }
-            map.put("userId",userCapital.getUserId());
-            map.put("createTime",new Date());
-            save(map);
+    public void addUserGiftNumber(Long userId) {
+        // 插入或者修改数据 第一次买就插入 否则数量+1
+        Map<String, Object> params = new HashMap<>();
+        params.put("userId", userId);
+        int a = execute("insertOrUpdate", params);
+        if (a<1){
+            throwExp("购买礼包失败，请联系客服");
         }
+    }
 
+    @Transactional
+    public void useGift(Long userId){
+        //使用或者赠送礼包，数量-1
+        Map<String, Object> params = new HashMap<>();
+        params.put("userId", userId);
+        int a = execute("useGift",params);
+        if (a<1){
+            throwExp("激活失败，请联系客服");
+        }
     }
 
 

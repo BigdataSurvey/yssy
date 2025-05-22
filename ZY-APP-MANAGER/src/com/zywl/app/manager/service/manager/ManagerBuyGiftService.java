@@ -1,31 +1,23 @@
 package com.zywl.app.manager.service.manager;
 
 import com.alibaba.fastjson2.JSONObject;
-import com.live.app.ws.enums.PushCode;
-import com.live.app.ws.util.Push;
-import com.zywl.app.base.bean.TradingRecord;
+import com.zywl.app.base.bean.Config;
 import com.zywl.app.base.bean.UserCapital;
-import com.zywl.app.base.constant.TableNameConstant;
 import com.zywl.app.base.service.BaseService;
 import com.zywl.app.base.util.OrderUtil;
 import com.zywl.app.defaultx.annotation.ServiceClass;
 import com.zywl.app.defaultx.annotation.ServiceMethod;
 import com.zywl.app.defaultx.cache.UserCapitalCacheService;
-import com.zywl.app.defaultx.enmus.LogCapitalTypeEnum;
-import com.zywl.app.defaultx.enmus.TradingRecordTypeEnum;
 import com.zywl.app.defaultx.enmus.UserCapitalTypeEnum;
 import com.zywl.app.defaultx.service.UserCapitalService;
 import com.zywl.app.defaultx.service.UserGiftRecordService;
 import com.zywl.app.defaultx.service.UserGiftService;
 import com.zywl.app.manager.context.MessageCodeContext;
-import com.zywl.app.manager.socket.ManagerLhdSocketServer;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
-import java.util.Date;
-import java.util.Set;
 
 @Service
 @ServiceClass(code = MessageCodeContext.USER_GIFT_SERVER)
@@ -33,6 +25,9 @@ public class ManagerBuyGiftService extends BaseService {
 
     @Autowired
     private ManagerConfigService managerConfigService;
+
+    @Autowired
+    private ManagerGameBaseService managerGameBaseService;
     @Autowired
     private UserCapitalService userCapitalService;
     @Autowired
@@ -44,51 +39,43 @@ public class ManagerBuyGiftService extends BaseService {
     @Autowired
     private UserGiftRecordService userGiftRecordService;
 
-
-
+    public BigDecimal getGiftPriceById(Long giftId){
+        if (giftId == 1L){
+            return  managerConfigService.getBigDecimal(Config.GIFT_PRICE_1);
+        } else if (giftId==2L) {
+            return  managerConfigService.getBigDecimal(Config.GIFT_PRICE_2);
+        }else {
+            throwExp("非法请求");
+        }
+        return null;
+    }
 
 
     @Transactional
     @ServiceMethod(code = "011", description = "购买礼包")
-    public JSONObject nhSettle( JSONObject data) throws Exception {
+    public JSONObject buy(JSONObject data) throws Exception {
         checkNull(data);
-        Set<String> set = data.keySet();
-        LogCapitalTypeEnum roleGift = null;
-        Long userId = null;
-        Long number=null;
-        userGiftService.betUpdateBalance(data);
-        String orderNo = OrderUtil.getOrder5Number();
-
-
-        for (String key : set) {
-            JSONObject o = JSONObject.parse(data.getString(key));
-            roleGift = LogCapitalTypeEnum.getEm(o.getIntValue("role_gift"));
-            userId = Long.parseLong(key);
-            //获取当前userid以及余额
-            UserCapital userCapital = userCapitalCacheService.getUserCapitalCacheByType(userId, UserCapitalTypeEnum.currency_2.getValue());
-
-            BigDecimal balance = userCapital.getBalance();
-            BigDecimal price = new BigDecimal("499");
-            int result = balance.compareTo(price);
-           if (result < 0) {
-                throw new Exception("余额不足");
-            }
-           //扣除金额
-            userCapitalService.subUserGiftMoney(balance,userId,number,userCapital.getCapitalType(),roleGift,TableNameConstant.USER_GIFT_RECORD,price,orderNo);
-            userGiftRecordService.addGiftRecord(userId,orderNo,userCapital.getCapitalType(),number,price);
-            JSONObject pushData = new JSONObject();
-            pushData.put("userId", userId);
-            if (roleGift.getValue() == LogCapitalTypeEnum.bug_role_gift.getValue()) {
-                pushData.put("isDts", 1);
-            }
-            pushData.put("capitalType", UserCapitalTypeEnum.currency_2.getValue());
-            pushData.put("balance", userCapital.getBalance());
-            Push.push(PushCode.updateUserCapital, managerSocketService.getServerIdByUserId(userId), pushData);
+        checkNull(data.get("userId"),data.get("giftId"));
+        //根据礼包ID获取礼包价格
+        Long giftId = data.getLong("giftId");
+        BigDecimal price = getGiftPriceById(giftId);
+        //购买礼包的用户ID
+        Long userId = data.getLong("userId");
+        //礼包加数量之前先判断用户余额是否足够
+        UserCapital userCapital = userCapitalCacheService.getUserCapitalCacheByType(userId,UserCapitalTypeEnum.currency_2.getValue());
+        if (userCapital.getBalance().compareTo(price)<0){
+            throwExp(UserCapitalTypeEnum.currency_2.getName()+"不足");
         }
+        //余额充足 1.插入订单 2.扣钱  3.加礼包数量
+        //1.插入订单
+        String orderNo = OrderUtil.getOrder5Number();
+        Long recordId = userGiftRecordService.addGiftRecord(userId, orderNo, userCapital.getCapitalType(), 1, price);
+        //2.扣钱
+        userCapitalService.subBalanceByGift(price,userId,orderNo,recordId);
+        //3.礼包数+1
+        userGiftService.addUserGiftNumber(userId);
+        //推送用户余额变化
+        managerGameBaseService.pushCapitalUpdate(userId,UserCapitalTypeEnum.currency_2.getValue());
         return new JSONObject();
     }
-
-
-
-
 }
