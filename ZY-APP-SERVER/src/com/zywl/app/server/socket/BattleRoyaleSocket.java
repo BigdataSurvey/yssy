@@ -140,15 +140,8 @@ public class BattleRoyaleSocket extends BaseClientSocket {
 							}else {
 								result.put("roomResult", 2);
 							}
-						}else if(LotteryGameStatusEnum.gaming.getValue()== obj.getIntValue("status")) {
-							result.put("endTime", obj.get("endTime"));
-						}else if(LotteryGameStatusEnum.ready.getValue()==obj.getIntValue("status")) {
-							result.put("lookList", obj.get("lookList"));
-							result.put("roomList", obj.get("roomList"));
-							result.put("lastResult",obj.get("lastResult"));
-							result.put("periodsNum",obj.get("periodsNum"));
-						}
-						result.put("allLoseAmount", obj.get("allLoseAmount"));
+						}else BattleRoyale2Socket.dtsPublic(obj, result);
+                        result.put("allLoseAmount", obj.get("allLoseAmount"));
 						result.put("roomIds", obj.get("roomIds"));
 						result.put("status", obj.get("status"));
 						result.put("userId", userId);
@@ -159,12 +152,12 @@ public class BattleRoyaleSocket extends BaseClientSocket {
 				}
 			}
 		}, this);
-		
-		
-		
 
-	
-		
+
+
+
+
+
 		JSONObject connectedData = ((JSONObject)data).getJSONObject("responseShakeHandsData");
 		if(connectedData != null){
 			TemplateLoadService.staticWebUrl = connectedData.getString("staticWebUrl");

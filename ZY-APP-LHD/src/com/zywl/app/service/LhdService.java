@@ -544,11 +544,11 @@ public class LhdService extends BaseService {
         String winRoom;
         String loseRoom;
         if (result == 0) {
-            winRoom = "0";
-            loseRoom = "1";
-        } else {
             winRoom = "1";
             loseRoom = "0";
+        } else {
+            winRoom = "0";
+            loseRoom = "1";
         }
         Map<String, JSONObject> winMap = ROOM_LIST.get(winRoom);
         Map<String, JSONObject> loseMap = ROOM_LIST.get(loseRoom);

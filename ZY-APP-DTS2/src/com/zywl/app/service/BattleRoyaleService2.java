@@ -159,7 +159,6 @@ public class BattleRoyaleService2 extends BaseService {
 
     public User getBotUser(){
         return getRandomValue(BOT_USER);
-
     }
 
     public void gameAddBot() {
@@ -177,7 +176,7 @@ public class BattleRoyaleService2 extends BaseService {
                 }
 
             }
-        }, 0, 100);
+        }, 0, 500);
     }
 
     public void requestManagerUpdateCapital() {
@@ -499,6 +498,9 @@ public class BattleRoyaleService2 extends BaseService {
             if (ROOM.getUserBetInfo().containsKey(userId)) {
                 // 追加投资 不需要插入投注记录 修改投注订单即可
                 Map<String, String> orderInfo = ROOM.getUserBetOrderInfo().get(userId);
+                if (orderInfo.containsKey("isBot") && orderInfo.get("isBot").equals("1")){
+                    return null;
+                }
                 dataId = Long.parseLong(orderInfo.get("dataId"));
             } else {
                 dataId = battleRoyaleRecordService.addBattleRoyaleRecord(Long.parseLong(userId), orderNo,
@@ -805,7 +807,9 @@ public class BattleRoyaleService2 extends BaseService {
             public void handle(BaseClientSocket clientSocket, Command command) {
                 if (command.isSuccess()) {
                     battleRoyaleRecordService.batchUpdateRecord(updateRecord);
-                    Executer.response(CommandBuilder.builder(lotteryCommand).success(result).build());
+                    if (lotteryCommand!=null){
+                        Executer.response(CommandBuilder.builder(lotteryCommand).success(result).build());
+                    }
                 } else {
                     STATUS = 0;
                     logger.error("结算失败，本期数据：");

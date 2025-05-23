@@ -930,6 +930,17 @@ public class ManagerGameBaseService extends BaseService {
         result.put("itemId",Integer.parseInt(PlayGameService.itemMap.get(lId).getSynResultId()));
         return result;
     }
+
+    public void checkBalance(String userId,BigDecimal price,UserCapitalTypeEnum em){
+        checkBalance(Long.parseLong(userId),price,em);
+    }
+
+    public void checkBalance(Long userId,BigDecimal price,UserCapitalTypeEnum em){
+        UserCapital userCapital = userCapitalCacheService.getUserCapitalCacheByType(userId,em.getValue());
+        if (userCapital.getBalance().compareTo(price)<0){
+            throwExp(em.getName()+"不足");
+        }
+    }
 }
 
 

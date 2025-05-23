@@ -7,7 +7,7 @@ public class KeyUtil {
 
 	public static int server = 1;
 	public static String KEY_URL = "http://47.96.189.119:8080/ZY-KEYFACTORY/getKey";
-	public static String KEY_URL2 = "http://127.0.0.1:8099/ZY-KEYFACTORY/getKey";
+	public static String KEY_URL2 = "http://8.130.102.236:8080/ZY-KEYFACTORY/getKey";
 	public static String publicKey() {
 		return UID.create();
 	}

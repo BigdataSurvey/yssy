@@ -25,15 +25,10 @@ public class ManagerBuyGiftService extends BaseService {
 
     @Autowired
     private ManagerConfigService managerConfigService;
-
     @Autowired
     private ManagerGameBaseService managerGameBaseService;
     @Autowired
     private UserCapitalService userCapitalService;
-    @Autowired
-    private UserCapitalCacheService userCapitalCacheService;
-    @Autowired
-    private ManagerSocketService managerSocketService;
     @Autowired
     private UserGiftService userGiftService;
     @Autowired
@@ -62,14 +57,11 @@ public class ManagerBuyGiftService extends BaseService {
         //购买礼包的用户ID
         Long userId = data.getLong("userId");
         //礼包加数量之前先判断用户余额是否足够
-        UserCapital userCapital = userCapitalCacheService.getUserCapitalCacheByType(userId,UserCapitalTypeEnum.currency_2.getValue());
-        if (userCapital.getBalance().compareTo(price)<0){
-            throwExp(UserCapitalTypeEnum.currency_2.getName()+"不足");
-        }
+        managerGameBaseService.checkBalance(userId,price,UserCapitalTypeEnum.currency_2);
         //余额充足 1.插入订单 2.扣钱  3.加礼包数量
         //1.插入订单
         String orderNo = OrderUtil.getOrder5Number();
-        Long recordId = userGiftRecordService.addGiftRecord(userId, orderNo, userCapital.getCapitalType(), 1, price);
+        Long recordId = userGiftRecordService.addGiftRecord(userId, orderNo, UserCapitalTypeEnum.currency_2.getValue(), 1, price);
         //2.扣钱
         userCapitalService.subBalanceByGift(price,userId,orderNo,recordId);
         //3.礼包数+1
