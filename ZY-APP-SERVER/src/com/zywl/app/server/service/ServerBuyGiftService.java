@@ -35,17 +35,20 @@ public class ServerBuyGiftService extends BaseService {
         result.put("gift1",price1);
         result.put("gift2",price2);
         return result;
-
     }
 
     @ServiceMethod(code = "002", description = "购买礼包")
     public Object buy(final AppSocket appSocket, Command appCommand, JSONObject params) {
         checkNull(params);
         checkNull(params.get("giftId"));
+        //todo 验证giftId合理性
         Long userId = appSocket.getWsidBean().getUserId();
         //用户Id 插入到参数中 传到manager服务器   code 035011
         params.put("userId", userId);
         Executer.request(TargetSocketType.manager, CommandBuilder.builder().request("035011", params).build(), new RequestManagerListener(appCommand));
         return async();
     }
+
+
+
 }

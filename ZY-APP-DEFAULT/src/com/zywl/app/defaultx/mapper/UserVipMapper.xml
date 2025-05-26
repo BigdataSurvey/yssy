@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.zywl.app.defaultx.mapper.UserVipMapper">
+
+   
+   <insert id="insert" parameterType="UserVip">
+		insert into t_user_vip
+		(
+               id,
+			   user_id,
+			   vip_level,
+			   recharge_amount,
+			   create_time,
+			   update_time
+		)
+		values
+		(
+               #{id},
+               #{adminAccount},
+			   #{adminName},
+               #{action},
+               #{content},
+               #{recordTime}
+		)
+	</insert>
+<update id="update" parameterType="UserVip">
+		update t_user_vip
+	<set>
+		<if test="vipLevel!=null">
+			vip_level =  #{vipLevel},
+		</if>
+		<if test="rechargeAmount!=null">
+			recharge_amount = #{rechargeAmount},
+		</if>
+		<if test="createTime!=null">
+		create_time = #{createTime},
+		</if><if test="updateTime!=null">
+		update_time = #{updateTime},
+		</if>
+	    <where>
+			user_id = #{userId}
+		</where>
+	</set>
+
+	</update>
+
+
+	<select id="findRechargeAmountByUserId" resultType="UserVip">
+		select * from t_user_vip where user_id = #{userId}
+	</select>
+
+
+	<select id="findOne" resultType="UserVip">
+	    select * from t_user_vip where id = #{id}
+	</select>
+	
+	<select id="findAll" resultType="UserVip">
+	    select * from t_user_vip
+	</select>
+
+	<select id="countByConditions" resultType="Long">
+		select count(1) from t_user_vip
+	</select>
+	
+
+</mapper>

@@ -56,5 +56,6 @@ public class MessageCodeContext {
 	public final static String ROLE="076";
 
 	public final static String BUY_GIFT="077";
+	public final static String USER_VIP="078";
 
 }

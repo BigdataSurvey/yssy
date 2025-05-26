@@ -1173,25 +1173,9 @@ public class UserCapitalService extends DaoService {
     }
 
     @Transactional
-    public int subUserGiftMoney(BigDecimal balance, Long userId,Long number, Integer capitalType,LogCapitalTypeEnum em, String tableName,BigDecimal price,String orderNo) {
-        Map<String,Object> params = new HashedMap<>();
-        params.put("userId", userId);
-        params.put("capitalType", capitalType);
-        //数量
-        params.put("amount", number);
-        params.put("price", price);
-        int a = execute("subUserGiftMoney", params);
-        if (a >= 1) {
-            userCapitalCacheService.subGift(userId, capitalType, 0, number,price);
-            pushLog1(2, userId, capitalType, number, em, orderNo,tableName);
-        }
-        return a;
-    }
-
-    @Transactional
     public void subBalanceByGift(BigDecimal amount, Long userId, String orderNo, Long dataId) {
         UserCapital userCapital = userCapitalCacheService.getUserCapitalCacheByType(userId, UserCapitalTypeEnum.currency_2.getValue());
-        int a = subUserBalance(amount, userId, UserCapitalTypeEnum.currency_2.getValue(), userCapital.getBalance(), userCapital.getOccupyBalance(), orderNo, dataId, LogCapitalTypeEnum.bug_role_gift, null);
+        int a = subUserBalance(amount, userId, UserCapitalTypeEnum.currency_2.getValue(), userCapital.getBalance(), userCapital.getOccupyBalance(), orderNo, dataId, LogCapitalTypeEnum.bug_role_gift, TableNameConstant.BUY_GIFT);
         if (a < 1) {
             userCapitalCacheService.deltedUserCapitalCache(userId, UserCapitalTypeEnum.rmb.getValue());
             userCapital = userCapitalCacheService.getUserCapitalCacheByType(userId, UserCapitalTypeEnum.rmb.getValue());

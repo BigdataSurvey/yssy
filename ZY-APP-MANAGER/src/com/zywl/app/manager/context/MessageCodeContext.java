@@ -69,6 +69,7 @@ public class MessageCodeContext {
 	public final static String CDM= "9006";
 
 	public final static String TIME_TASK= "9007";
+	public final static String USER_VIP= "9008";
 
 
 }
