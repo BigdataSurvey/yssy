@@ -68,6 +68,9 @@ public class ManagerBuyGiftService extends BaseService {
         userGiftService.addUserGiftNumber(userId);
         //推送用户余额变化
         managerGameBaseService.pushCapitalUpdate(userId,UserCapitalTypeEnum.currency_2.getValue());
+
         return new JSONObject();
     }
+
+
 }
