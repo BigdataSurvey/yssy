@@ -34,15 +34,11 @@ public class ManagerUserVipService extends BaseService {
      */
     @Transactional
     @ServiceMethod(code = "011", description = "新增经验")
-    public JSONObject addExper(JSONObject data) {
-        checkNull(data);
-        checkNull(data.get("userId"));
-        //购买礼包的用户ID
-        Long userId = data.getLong("userId");
-        //充值金额（经验）
+    public JSONObject addExper(long userId, BigDecimal rechargeAmount) {
         //vip等级
         UserVip uservip = userVipService.findRechargeAmountByUserId(userId);
-        uservip.getRechargeAmount().add((BigDecimal) data.get("rechargeAmount"));
+        //充值金额（经验）
+        uservip.getRechargeAmount().add( rechargeAmount);
         userVipService.addExper(uservip);
         return new JSONObject();
     }

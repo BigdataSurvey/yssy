@@ -34,7 +34,8 @@
 		</if>
 		<if test="createTime!=null">
 		create_time = #{createTime},
-		</if><if test="updateTime!=null">
+		</if>
+		<if test="updateTime!=null">
 		update_time = #{updateTime}
 		</if>
 	    <where>
