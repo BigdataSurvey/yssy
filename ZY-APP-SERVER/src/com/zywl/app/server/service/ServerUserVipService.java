@@ -27,7 +27,7 @@ public class ServerUserVipService extends BaseService {
 
     @ServiceMethod(code = "001", description = "获取vip信息")
     public Object getVipInfo(final AppSocket appSocket, Command appCommand, JSONObject params) {
-        //获取当前等级  当前经验 升到下一级需要多少经验
+        //获取当前等级
         checkNull(params);
         Long userId = appSocket.getWsidBean().getUserId();
         BigDecimal price1 = serverConfigService.getBigDecimal(Config.GIFT_PRICE_1);
@@ -36,6 +36,7 @@ public class ServerUserVipService extends BaseService {
         result.put("gift1",price1);
         result.put("gift2",price2);
         UserVip rechargeAmountByUserId = userVipService.findRechargeAmountByUserId(userId);
+        // 当前经验 升到下一级需要多少经验
         BigDecimal differ = comparToRechargeAmount(rechargeAmountByUserId.getRechargeAmount());
         result.put("differ",differ);
         return result;
@@ -75,6 +76,7 @@ public class ServerUserVipService extends BaseService {
 
         }if(rechargeAmount.compareTo(VipLevelTypeEnum.VIP10.getValue())<0 && rechargeAmount.compareTo(VipLevelTypeEnum.VIP9.getValue())>0){
             differ = VipLevelTypeEnum.VIP10.getValue().subtract(rechargeAmount);
+
 
         }
          return  differ;
