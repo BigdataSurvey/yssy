@@ -691,12 +691,10 @@ public class PlayGameService extends BaseService {
 
 
     public void checkUserItemNumber(String userId, String itemId, int number) {
-
         Map<String, Backpack> userBackpack = getUserBackpack(userId);
         if (!userBackpack.containsKey(itemId) || userBackpack.get(itemId).getItemNumber() < number) {
             throwExp(itemMap.get(itemId).getName() + "数量不足");
         }
-
     }
 
     public void checkUserItemNumber(long userId, String itemId, int number) {

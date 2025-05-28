@@ -334,22 +334,15 @@ public class ManagerGameBaseService extends BaseService {
         checkNull(params.get("userId"), params.get("itemId"), params.get("num"));
         String userId = params.getString("userId");
         String itemId = params.getString("itemId");
-        int number = params.getIntValue("num");
-        Map<String, Backpack> myBack = gameService.getUserBackpack(userId);
-        if (!myBack.containsKey(itemId)) {
-            throwExp("没有该道具");
-        }
-        if (myBack.get(itemId).getItemNumber() < number) {
-            throwExp(PlayGameService.itemMap.get(itemId).getName() + "数量不足");
-        }
+        int number = params.getIntValue("number");
+        gameService.checkUserItemNumber(userId,itemId,number);
         BigDecimal onePrice = PlayGameService.itemMap.get(itemId).getPrice();
         String orderNo = OrderUtil.getOrder5Number();
         BigDecimal totalAmount = onePrice.multiply(new BigDecimal(String.valueOf(number)));
         Long dataId = sellSysRecordService.addRecord(Long.parseLong(userId), Long.parseLong(itemId), number, totalAmount, orderNo);
         gameService.updateUserBackpack(userId, itemId, -number, LogUserBackpackTypeEnum.sell_sys);
-        int capitalType = UserCapitalTypeEnum.currency_2.getValue();
-        userCapitalService.addUserBalanceBySellToSys(totalAmount, Long.parseLong(userId), orderNo, dataId, capitalType);
-        pushCapitalUpdate(Long.valueOf(userId), capitalType);
+        userCapitalService.addUserBalanceBySellToSys(totalAmount, Long.parseLong(userId), orderNo, dataId, UserCapitalTypeEnum.currency_2.getValue());
+        pushCapitalUpdate(Long.valueOf(userId), UserCapitalTypeEnum.currency_2.getValue());
         return params;
     }
 

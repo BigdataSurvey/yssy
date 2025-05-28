@@ -996,7 +996,6 @@ public class UserCapitalService extends DaoService {
         int a = addUserBalance(amount, userId, capitalType, userCapital.getBalance(), userCapital.getOccupyBalance(), orderNo, dataId, LogCapitalTypeEnum.sell_sys2, TableNameConstant.SELL_SYS_RECORD);
         if (a < 1) {
             userCapitalCacheService.deltedUserCapitalCache(userId, capitalType);
-
             userCapital = userCapitalCacheService.getUserCapitalCacheByType(userId, capitalType);
             int b = addUserBalance(amount, userId, capitalType, userCapital.getBalance(), userCapital.getOccupyBalance(), orderNo, dataId, LogCapitalTypeEnum.sell_sys2, TableNameConstant.SELL_SYS_RECORD);
             if (b < 1) {
