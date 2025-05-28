@@ -1,5 +1,6 @@
 package com.zywl.app.base.bean.vo;
 
+import com.alibaba.fastjson2.JSONArray;
 import com.zywl.app.base.BaseBean;
 
 import java.math.BigDecimal;
@@ -15,7 +16,7 @@ public class ItemVo extends BaseBean{
 
 	private Integer canSyn;
 
-	private Long synUse;
+	private JSONArray synUse;
 
 	private Integer synRate;
 	
@@ -23,6 +24,7 @@ public class ItemVo extends BaseBean{
 
 	private Integer isUse;
 
+	private Integer isSend;
 
 
 	private Integer synNumber;
@@ -143,6 +145,14 @@ public class ItemVo extends BaseBean{
 
 	public Integer getQuality() {
 		return quality;
+	}
+
+	public Integer getIsSend() {
+		return isSend;
+	}
+
+	public void setIsSend(Integer isSend) {
+		this.isSend = isSend;
 	}
 
 	public void setQuality(Integer quality) {
@@ -309,11 +319,11 @@ public class ItemVo extends BaseBean{
 		this.canSyn = canSyn;
 	}
 
-	public Long getSynUse() {
+	public JSONArray getSynUse() {
 		return synUse;
 	}
 
-	public void setSynUse(Long synUse) {
+	public void setSynUse(JSONArray synUse) {
 		this.synUse = synUse;
 	}
 

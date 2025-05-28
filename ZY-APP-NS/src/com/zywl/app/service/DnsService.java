@@ -385,7 +385,7 @@ public class DnsService extends BaseService {
 
 
 
-        new Timer("每1分钟秒修改下注投入信息").schedule(new TimerTask() {
+        new Timer("每1分钟修改下注投入信息").schedule(new TimerTask() {
             public void run() {
                 try {
                     if (STATUS == 1) {

@@ -14,10 +14,7 @@ import com.zywl.app.defaultx.annotation.ServiceMethod;
 import com.zywl.app.defaultx.cache.AppConfigCacheService;
 import com.zywl.app.defaultx.cache.UserCacheService;
 import com.zywl.app.defaultx.cache.UserCapitalCacheService;
-import com.zywl.app.defaultx.enmus.ItemIdEnum;
-import com.zywl.app.defaultx.enmus.LogCapitalTypeEnum;
-import com.zywl.app.defaultx.enmus.MailGoldTypeEnum;
-import com.zywl.app.defaultx.enmus.UserCapitalTypeEnum;
+import com.zywl.app.defaultx.enmus.*;
 import com.zywl.app.defaultx.service.*;
 import com.zywl.app.manager.context.KafkaEventContext;
 import com.zywl.app.manager.context.KafkaTopicContext;
@@ -177,97 +174,36 @@ public class ManagerMailService extends BaseService {
         checkNull(data);
         checkNull(data.get("toUserId"), data.get("userId"));
         long userId = data.getLongValue("userId");
-        User fromUser = userCacheService.getUserInfoById(userId);
         long toUserId = data.getLongValue("toUserId");
-        User toUser = userCacheService.getUserInfoById(toUserId);
         String context = data.getString("context");
-        BigDecimal amount = data.getBigDecimal("amount");
-        if (amount != null && amount.compareTo(BigDecimal.ZERO) < 0) {
+        int number = data.getIntValue("amount");
+        if (number < 0) {
             throwExp("数值异常");
         }
-        BigDecimal sill = appConfigCacheService.getTransferSill();
-
-        if (amount.compareTo(appConfigCacheService.getTransferSill()) < 0 && amount.compareTo(BigDecimal.ZERO) > 0) {
-            throwExp("最小值为" + sill  );
-        }
-        if (amount.divideAndRemainder(sill)[1].compareTo(BigDecimal.ZERO) != 0) {
-            throwExp("需为" + sill + "的整数倍");
-        }
+        String itemId = "5";
         String title = data.getString("title");
-        UserCapital userCapital = userCapitalCacheService.getUserCapitalCacheByType(userId, UserCapitalTypeEnum.currency_2.getValue());
-        UserCapital userCapitalDb = userCapitalService.findUserCapitalByUserIdAndCapitalType(userId, UserCapitalTypeEnum.currency_2.getValue());
-        if (userCapital.getBalance().compareTo(userCapitalDb.getBalance()) != 0) {
-            userCapitalCacheService.deletedUserAllCapitalCache(userId);
-            throwExp("网络繁忙");
-        }
         User user = userCacheService.getUserInfoById(userId);
-        if (user.getRoleId() == 2 || user.getRoleId() == 3) {
-            if (userCapital.getBalance().compareTo(amount) == -1) {
-                throwExp("余额不足");
-            }
-        } else {
-            if (userCapital.getBalance().compareTo(amount.add(getUserFee().multiply(amount))) == -1) {
-                throwExp("余额不足");
-            }
-        }
-
-        if (fromUser.getRoleId() == 1) {
-            String cdTime = userCacheService.getCdTime(userId);
-            if (cdTime != null) {
-                throwExp(cdTime.replace("\"", "") + "后可赠送");
-            }
-        }
-
-
+        gameService.checkUserItemNumber(userId, itemId, number);
         if (title == null) {
             title = "好友赠送";
         }
         if (context == null) {
-            context = user.getName() + "(" + user.getUserNo() + ")赠送" + UserCapitalTypeEnum.currency_2.getName()
-                    + ":" + amount;
-        }
-        BigDecimal fee;
-        //扣除发送邮件的资产
-        fee = amount.multiply(getUserFee());
-        if (amount.compareTo(BigDecimal.ZERO) == 0) {
-            fee = new BigDecimal("20").multiply(getUserFee());
+            context = user.getName() + "(" + user.getUserNo() + ")赠送" + PlayGameService.itemMap.get(itemId).getName()
+                    + ":" + number;
         }
         JSONObject detail = new JSONObject();
         detail.put("type", 1);
-        detail.put("id", Integer.parseInt(ItemIdEnum.GOLD.getValue()));
-        detail.put("number", amount);
+        detail.put("id", itemId);
+        detail.put("number", number);
         detail.put("channel", MailGoldTypeEnum.FRIEND.getValue());
         //添加邮件记录
         int isAttachments = 1;
-        if (amount.compareTo(BigDecimal.ZERO) == 0) {
-            isAttachments = 0;
-        }
         JSONArray array = new JSONArray();
         array.add(detail);
         Long mailId = mailService.sendMail(userId, toUserId, title, context, null, isAttachments, array);
         String orderNo = OrderUtil.getOrder5Number();
-        //扣除手续费
-        if (user.getRoleId() == 2 || user.getRoleId() == 3) {
-            fee = BigDecimal.ZERO;
-            guildDailyStaticsService.updateStatics(2, userId, amount);
-        } else {
-            userCapitalService.subUserBalanceBySendMail(userId, fee, orderNo, mailId);
-            managerGameBaseService.pushCapitalUpdate(userId,UserCapitalTypeEnum.currency_2.getValue());
-        }
         //如果是赠送   则再扣除赠送的金额  增加流水  赠送记录
-        if (amount != null && amount.compareTo(BigDecimal.ZERO) != 0) {
-            userCapitalService.subUserBalanceByTransferFriend(userId, toUserId, amount, orderNo);
-            managerGameBaseService.pushCapitalUpdate(userId,UserCapitalTypeEnum.currency_2.getValue());
-            if ((toUser.getRoleId() == 2 || toUser.getRoleId() == 3) && userId != 2 && userId != 3 && fee.compareTo(BigDecimal.ZERO) == 1) {
-                guildMemberService.addProfitBalance(toUserId, fee);
-                guildDailyStaticsService.updateStatics(1, toUserId, amount);
-            }
-        }
-        JSONObject result = new JSONObject();
-        //initGameInfoService.pushCapitalUpdate(userId, UserCapitalTypeEnum.currency_2.getValue());
-        if (toUser.getRoleId() == 1 && managerConfigService.getInteger(Config.MAIL_CD_STATUS) == 1) {
-            userCacheService.setUserCd(toUserId, managerConfigService.getInteger(Config.MAIL_CD));
-        }
+        gameService.updateUserBackpack(userId,itemId,-number, LogUserBackpackTypeEnum.use);
         return null;
     }
 
@@ -278,22 +214,22 @@ public class ManagerMailService extends BaseService {
         String findUserNo = data.getString("userNo");
         Long userId = data.getLong("userId");
         User user = userCacheService.getUserInfoById(userId);
-        if (user==null) {
+        if (user == null) {
             throwExp("查询异常！");
         }
-        User findUser =  userCacheService.getUserInfoByUserNo(findUserNo);
-        if (findUser==null) {
+        User findUser = userCacheService.getUserInfoByUserNo(findUserNo);
+        if (findUser == null) {
             throwExp("玩家不存在");
         }
         JSONObject userInfo = new JSONObject();
         userInfo.put("userNo", findUser.getUserNo());
         userInfo.put("headImgUrl", findUser.getHeadImageUrl());
         userInfo.put("name", findUser.getName());
-        userInfo.put("isPop", findUser.getRoleId()==1?0:findUser.getRoleId());
-        userInfo.put("roleId",findUser.getRoleId());
-        userInfo.put("name",findUser.getName());
-        userInfo.put("wechatId",findUser.getWechatId());
-        userInfo.put("qq",findUser.getQq());
+        userInfo.put("isPop", findUser.getRoleId() == 1 ? 0 : findUser.getRoleId());
+        userInfo.put("roleId", findUser.getRoleId());
+        userInfo.put("name", findUser.getName());
+        userInfo.put("wechatId", findUser.getWechatId());
+        userInfo.put("qq", findUser.getQq());
         JSONObject result = new JSONObject();
         result.put("userInfo", userInfo);
         return result;

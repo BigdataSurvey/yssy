@@ -399,7 +399,21 @@ public class GameBaseService extends BaseService {
         return async();
     }
 
+    @ServiceMethod(code = "020", description = "背包物品出售")
+    public Object sellItemToSystem(AppSocket appSocket, Command command, JSONObject data) {
+        checkNull(data);
+        checkNull(data.get("itemId"), data.get("num"));
+        long userId = appSocket.getWsidBean().getUserId();
+        data.put("userId", userId);
+        int num = data.getIntValue("num");
+        if (num < 1) {
+            throwExp("请填写正确的出售数量");
+        }
+        Executer.request(TargetSocketType.manager, CommandBuilder.builder().request("100111", data).build(),
+                new RequestManagerListener(command));
 
+        return async();
+    }
 
 
     @ServiceMethod(code = "023", description = "获取每日任务信息")

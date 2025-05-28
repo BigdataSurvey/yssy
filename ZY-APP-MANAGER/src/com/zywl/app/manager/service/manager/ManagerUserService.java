@@ -356,8 +356,12 @@ public class ManagerUserService extends BaseService {
             throwExp("认证数量已达上限！");
         }
         if (authentication == 0) {//未认证
-//            int status = idCardService.checkIDCard(userInfo.getId().toString(), realName, idCard);
+           // int status = idCardService.checkIDCard(userInfo.getId().toString(), realName, idCard);
             int status = 0;
+            int age = IDCardUtil.getAgeForIdcard(idCard);
+            if(age < 18) {
+                status = -102;
+            }
             if (status == 0) {
                 JSONArray reward = JSONArray.parseArray(managerConfigService.getString(Config.REAL_NAME_REWARD));
                 gameService.addReward(userId, reward, null);

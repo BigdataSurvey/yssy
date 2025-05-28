@@ -980,11 +980,11 @@ public class UserCapitalService extends DaoService {
     // 用户出售道具给系统
     public void addUserBalanceBySellToSys(BigDecimal amount, Long userId, String orderNo, Long dataId, int capitalType) {
         UserCapital userCapital = userCapitalCacheService.getUserCapitalCacheByType(userId, capitalType);
-        int a = addUserBalance(amount, userId, capitalType, userCapital.getBalance(), userCapital.getOccupyBalance(), orderNo, dataId, capitalType==2?LogCapitalTypeEnum.sell_sys:LogCapitalTypeEnum.sell_sys_magic, TableNameConstant.SELL_SYS_RECORD);
+        int a = addUserBalance(amount, userId, capitalType, userCapital.getBalance(), userCapital.getOccupyBalance(), orderNo, dataId, LogCapitalTypeEnum.sell_sys, TableNameConstant.SELL_SYS_RECORD);
         if (a < 1) {
             userCapitalCacheService.deltedUserCapitalCache(userId, capitalType);
             userCapital = userCapitalCacheService.getUserCapitalCacheByType(userId, capitalType);
-            int b = addUserBalance(amount, userId, capitalType, userCapital.getBalance(), userCapital.getOccupyBalance(), orderNo, dataId, capitalType==2?LogCapitalTypeEnum.sell_sys:LogCapitalTypeEnum.sell_sys_magic, TableNameConstant.SELL_SYS_RECORD);
+            int b = addUserBalance(amount, userId, capitalType, userCapital.getBalance(), userCapital.getOccupyBalance(), orderNo, dataId, LogCapitalTypeEnum.sell_sys, TableNameConstant.SELL_SYS_RECORD);
             if (b < 1) {
                 userCapitalCacheService.deltedUserCapitalCache(userId, capitalType);
                 throwExp("道具出售失败");

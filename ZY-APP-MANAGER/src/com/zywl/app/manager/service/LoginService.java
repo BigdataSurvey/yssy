@@ -621,7 +621,7 @@ public class LoginService extends BaseService {
         }
         String gameToken = generateToken();
         User newPlayer = userService.insertUserInfo(clientIp, wxOpenId, inviteCode, getNo(), wxInfo, ipService.getCityName(clientIp), ipService.getRegionName(clientIp), gameToken, cno);
-        if (ipService.isInternetAddress(clientIp)) {
+        /*if (ipService.isInternetAddress(clientIp)) {
             String s = checkLogin(newPlayer.getId().toString(), "register", clientIp, deviceId, "signupPlatform");
             switch (s) {
                 case "0":
@@ -633,7 +633,7 @@ public class LoginService extends BaseService {
                     userService.updateUserRisk(1, newPlayer.getId());
                     break;
             }
-        }
+        }*/
         if ("android".equals(os)) {
             userService.addDeviceCount(1);
         } else if ("ios".equals(os)) {

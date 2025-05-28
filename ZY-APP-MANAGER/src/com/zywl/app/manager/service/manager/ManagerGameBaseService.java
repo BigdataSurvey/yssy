@@ -49,7 +49,6 @@ public class ManagerGameBaseService extends BaseService {
     private UserIncomeStatementService userIncomeStatementService;
 
 
-
     @Autowired
     private AuthService authService;
 
@@ -80,14 +79,12 @@ public class ManagerGameBaseService extends BaseService {
     private PlayGameService gameService;
 
 
-
     @Autowired
     private CardGameCacheService cardGameCacheService;
 
 
     @Autowired
     private ManagerSocketService managerSocketService;
-
 
 
     @Autowired
@@ -100,17 +97,12 @@ public class ManagerGameBaseService extends BaseService {
     private UserService userService;
 
 
-
-
     @Autowired
     private ManagerUserService managerUserService;
 
 
     @Autowired
     private UserDailyTaskService userDailyTaskService;
-
-
-
 
 
     private int LJY_NUMBER = 0;
@@ -243,10 +235,10 @@ public class ManagerGameBaseService extends BaseService {
         int type = params.getIntValue("type");
         if (type == TopTypeEnum.POPULAR.getValue()) {
             result.put("topList", TopService.TOP_DS);
-        }  else if (type == TopTypeEnum.INVITE.getValue()) {
+        } else if (type == TopTypeEnum.INVITE.getValue()) {
             result.put("topList", TopService.TOP_5);
             OneJuniorNumTopVo myJuniorNum = userStatisticService.findMyJuniorNum(userId);
-            myJuniorNum.setNum(myJuniorNum.getNum()+myJuniorNum.getNum2());
+            myJuniorNum.setNum(myJuniorNum.getNum() + myJuniorNum.getNum2());
             result.put("my", myJuniorNum);
         } else if (type == TopTypeEnum.TOWER_TOP.getValue()) {
             result.put("topList", TopService.TOWER_TOP);
@@ -335,10 +327,9 @@ public class ManagerGameBaseService extends BaseService {
     public Object sellItemToSys(ManagerSocketServer adminSocketServer, JSONObject params) {
         checkNull(params);
         checkNull(params.get("userId"), params.get("itemId"), params.get("num"));
-       /* String userId = params.getString("userId");
+        String userId = params.getString("userId");
         String itemId = params.getString("itemId");
         int number = params.getIntValue("num");
-        int type = params.getIntValue("type");
         Map<String, Backpack> myBack = gameService.getUserBackpack(userId);
         if (!myBack.containsKey(itemId)) {
             throwExp("没有该道具");
@@ -346,27 +337,14 @@ public class ManagerGameBaseService extends BaseService {
         if (myBack.get(itemId).getItemNumber() < number) {
             throwExp(PlayGameService.itemMap.get(itemId).getName() + "数量不足");
         }
-
-        BigDecimal onePrice = type == 0 ? PlayGameService.itemMap.get(itemId).getPrice() : PlayGameService.itemMap.get(itemId).getMagicPrice();
+        BigDecimal onePrice = PlayGameService.itemMap.get(itemId).getPrice();
         String orderNo = OrderUtil.getOrder5Number();
         BigDecimal totalAmount = onePrice.multiply(new BigDecimal(String.valueOf(number)));
         Long dataId = sellSysRecordService.addRecord(Long.parseLong(userId), Long.parseLong(itemId), number, totalAmount, orderNo);
         gameService.updateUserBackpack(userId, itemId, -number, LogUserBackpackTypeEnum.sell_sys);
-        int capitalType = type == 0 ? UserCapitalTypeEnum.currency_2.getValue() : UserCapitalTypeEnum.magic.getValue();
-        if (itemId.equals("47")) {
-            userCapitalService.addUserBalanceBySellToSys2(totalAmount, Long.parseLong(userId), orderNo, dataId, capitalType);
-        } else if (itemId.equals("48")) {
-            userCapitalService.addUserBalanceBySellToSys3(totalAmount, Long.parseLong(userId), orderNo, dataId, capitalType);
-        } else {
-            userCapitalService.addUserBalanceBySellToSys(totalAmount, Long.parseLong(userId), orderNo, dataId, capitalType);
-        }
-
-        UserCapital userCapital = userCapitalCacheService.getUserCapitalCacheByType(Long.parseLong(userId), capitalType);
-        JSONObject pushData = new JSONObject();
-        pushData.put("userId", userId);
-        pushData.put("capitalType", capitalType);
-        pushData.put("balance", userCapital.getBalance());
-        Push.push(PushCode.updateUserCapital, managerSocketService.getServerIdByUserId(Long.parseLong(userId)), pushData);*/
+        int capitalType = UserCapitalTypeEnum.currency_2.getValue();
+        userCapitalService.addUserBalanceBySellToSys(totalAmount, Long.parseLong(userId), orderNo, dataId, capitalType);
+        pushCapitalUpdate(Long.valueOf(userId), capitalType);
         return params;
     }
 
@@ -493,8 +471,8 @@ public class ManagerGameBaseService extends BaseService {
         JSONObject result = new JSONObject();
         synchronized (LockUtil.getlock(userId.toString())) {
             JSONArray reward = JSONArray.parseArray(managerConfigService.getString(Config.SIGN_REWARD));
-            gameService.addReward(userId,reward,null);
-            result.put("reward",reward);
+            gameService.addReward(userId, reward, null);
+            result.put("reward", reward);
             cardGameCacheService.userSign(userId);
             return result;
         }
@@ -685,49 +663,45 @@ public class ManagerGameBaseService extends BaseService {
     }
 
 
-
-
-
-
     @Transactional
     @ServiceMethod(code = "035", description = "商店购买")
     @KafkaProducer(topic = KafkaTopicContext.RED_POINT, event = KafkaEventContext.SHOP_BUY, sendParams = true)
     public JSONArray buy(ManagerSocketServer adminSocketServer, JSONObject params) {
         checkNull(params);
-        checkNull(params.get("userId"), params.get("id"), params.get("type"),params.get("number"));
+        checkNull(params.get("userId"), params.get("id"), params.get("type"), params.get("number"));
         Long userId = params.getLong("userId");
         String id = params.getString("id");
         String type = params.getString("type");
         int number = params.getIntValue("number");
-        if (!PlayGameService.DIC_SHOP_MAP.containsKey(type) || !PlayGameService.DIC_SHOP_MAP.get(type).containsKey(id)){
+        if (!PlayGameService.DIC_SHOP_MAP.containsKey(type) || !PlayGameService.DIC_SHOP_MAP.get(type).containsKey(id)) {
             throwExp("异常请求");
         }
         DicShop dicShop = PlayGameService.DIC_SHOP_MAP.get(type).get(id);
-        int price = dicShop.getPrice()*number;
-        BigDecimal amount = new BigDecimal(String.valueOf(price ));
-        if (dicShop.getUseItemId()==1 || dicShop.getUseItemId()==2){
-            UserCapital userCapital = userCapitalCacheService.getUserCapitalCacheByType(userId,dicShop.getUseItemId().intValue());
-            if (userCapital.getBalance().compareTo(amount)<0){
+        int price = dicShop.getPrice() * number;
+        BigDecimal amount = new BigDecimal(String.valueOf(price));
+        if (dicShop.getUseItemId() == 1 || dicShop.getUseItemId() == 2) {
+            UserCapital userCapital = userCapitalCacheService.getUserCapitalCacheByType(userId, dicShop.getUseItemId().intValue());
+            if (userCapital.getBalance().compareTo(amount) < 0) {
                 throwExp("余额不足");
-            }else{
+            } else {
                 String orderNo = OrderUtil.getOrder5Number();
-                userCapitalService.subUserBalanceByShopping(userId,amount,orderNo,null,dicShop.getUseItemId().intValue(),LogCapitalTypeEnum.shopping);
-                pushCapitalUpdate(userId,dicShop.getUseItemId().intValue());
+                userCapitalService.subUserBalanceByShopping(userId, amount, orderNo, null, dicShop.getUseItemId().intValue(), LogCapitalTypeEnum.shopping);
+                pushCapitalUpdate(userId, dicShop.getUseItemId().intValue());
             }
-        }else{
+        } else {
             int userItemNumber = gameService.getUserItemNumber(userId, dicShop.getUseItemId().toString());
-            if (userItemNumber<price){
-                throwExp(PlayGameService.itemMap.get(dicShop.getUseItemId().toString()).getName()+"不足");
-            }else{
-                gameService.updateUserBackpack(userId,dicShop.getUseItemId().toString(),-price,LogUserBackpackTypeEnum.use);
+            if (userItemNumber < price) {
+                throwExp(PlayGameService.itemMap.get(dicShop.getUseItemId().toString()).getName() + "不足");
+            } else {
+                gameService.updateUserBackpack(userId, dicShop.getUseItemId().toString(), -price, LogUserBackpackTypeEnum.use);
             }
         }
-        gameService.updateUserBackpack(userId,dicShop.getItemId().toString(),number,LogUserBackpackTypeEnum.shopping);
+        gameService.updateUserBackpack(userId, dicShop.getItemId().toString(), number, LogUserBackpackTypeEnum.shopping);
         JSONObject result = new JSONObject();
         JSONArray array = new JSONArray();
-        result.put("type",1);
-        result.put("id",dicShop.getItemId());
-        result.put("number",number);
+        result.put("type", 1);
+        result.put("id", dicShop.getItemId());
+        result.put("number", number);
         array.add(result);
         return array;
     }
@@ -748,7 +722,7 @@ public class ManagerGameBaseService extends BaseService {
             //修改资产
             userCapitalService.subUserBalanceByShopping(userId, price, orderNo, dataId, capitalType, LogCapitalTypeEnum.shopping);
             pushCapitalUpdate(userId, capitalType);
-        }  else if (shopType == ShopTypeEnum.PET.getValue()) {
+        } else if (shopType == ShopTypeEnum.PET.getValue()) {
             //龙驹玉商城
             gameService.checkUserItemNumber(userId, ItemIdEnum.BUY_PET.getValue(), userShopVo.getPrice());
             String orderNo = OrderUtil.getOrder5Number();
@@ -775,8 +749,6 @@ public class ManagerGameBaseService extends BaseService {
         }
 
     }
-
-
 
 
     public void pushCapitalUpdate(Long userId, int capitalType) {
@@ -823,7 +795,6 @@ public class ManagerGameBaseService extends BaseService {
     }
 
 
-
     @Transactional
     @ServiceMethod(code = "040", description = "一键领取友情值和广告收益")
     public Object receiveAdIncome(ManagerSocketServer adminSocketServer, JSONObject params) {
@@ -849,9 +820,6 @@ public class ManagerGameBaseService extends BaseService {
     }
 
 
-
-
-
     @Transactional
     @ServiceMethod(code = "044", description = "我的信息")
     public Object getMyInfo(ManagerSocketServer adminSocketServer, JSONObject params) {
@@ -866,26 +834,26 @@ public class ManagerGameBaseService extends BaseService {
         parentInfo.put("userNo", "");
         parentInfo.put("headImageUrl", "");
         parentInfo.put("wx", "");
-        parentInfo.put("qq","");
-        parentInfo.put("name","暂无");
+        parentInfo.put("qq", "");
+        parentInfo.put("name", "暂无");
         if (user != null && user.getParentId() != null) {
             User parent = userCacheService.getUserInfoById(user.getParentId());
             if (parent != null) {
                 parentInfo.put("userNo", parent.getUserNo());
                 parentInfo.put("headImageUrl", parent.getHeadImageUrl());
                 parentInfo.put("wx", parent.getWechatId());
-                parentInfo.put("qq",parent.getQq());
-                parentInfo.put("name",parent.getName());
+                parentInfo.put("qq", parent.getQq());
+                parentInfo.put("name", parent.getName());
             }
         }
-        result.put("inviterInfo",parentInfo);
+        result.put("inviterInfo", parentInfo);
         result.put("isChannel", 0);
         if (user.getIsChannel() == 1) {
             result.put("isChannel", 1);
         }
         UserStatistic byUserId = userStatisticService.findByUserId(userId);
-        int number = byUserId.getOneJuniorNum()+byUserId.getTwoJuniorNum();
-        result.put("number",number);
+        int number = byUserId.getOneJuniorNum() + byUserId.getTwoJuniorNum();
+        result.put("number", number);
         return result;
     }
 
@@ -902,43 +870,44 @@ public class ManagerGameBaseService extends BaseService {
     @ServiceMethod(code = "046", description = "合成道具")
     @KafkaProducer(topic = KafkaTopicContext.RED_POINT, event = KafkaEventContext.SYN, sendParams = true)
     public Object syn(ManagerSocketServer adminSocketServer, JSONObject params) {
-        String lId = params.getString("itemId");
+        String resultId = params.getString("itemId");
         int number = params.getIntValue("number");
         Long userId = params.getLong("userId");
-        if (number<0||number>99){
+        if (number < 0 || number > 99) {
             throwExp("数量区间不合理");
         }
-        if (!PlayGameService.itemMap.containsKey(lId) || PlayGameService.itemMap.get(lId).getCanSyn()==0){
+        if (!PlayGameService.itemMap.containsKey(resultId) || PlayGameService.itemMap.get(resultId).getCanSyn() == 0) {
             throwExp("道具ID有误");
         }
-        String rId = PlayGameService.itemMap.get(lId).getSynUse().toString();
-        gameService.checkUserItemNumber(userId,lId,number);
-        gameService.checkUserItemNumber(userId,rId,number);
+        JSONArray synUse = PlayGameService.itemMap.get(resultId).getSynUse();
         int finalNumber = 0;
         Random random = new Random();
         for (int i = 0; i < number; i++) {
             int k = random.nextInt(100) + 1;
-            if (k<PlayGameService.itemMap.get(lId).getSynRate()){
+            if (k < PlayGameService.itemMap.get(resultId).getSynRate()) {
                 finalNumber++;
             }
         }
-        gameService.updateUserBackpack(userId,lId,-number,LogUserBackpackTypeEnum.use);
-        gameService.updateUserBackpack(userId,rId,-number,LogUserBackpackTypeEnum.use);
-        gameService.updateUserBackpack(userId,PlayGameService.itemMap.get(lId).getSynResultId(),finalNumber,LogUserBackpackTypeEnum.use);
+        for (Object o : synUse) {
+            Long useId = Long.parseLong(o.toString());
+            gameService.checkUserItemNumber(userId, String.valueOf(useId), number);
+            gameService.updateUserBackpack(userId, String.valueOf(useId), -number, LogUserBackpackTypeEnum.use);
+        }
+        gameService.updateUserBackpack(userId, resultId, finalNumber, LogUserBackpackTypeEnum.use);
         JSONObject result = new JSONObject();
-        result.put("number",finalNumber);
-        result.put("itemId",Integer.parseInt(PlayGameService.itemMap.get(lId).getSynResultId()));
+        result.put("number", finalNumber);
+        result.put("itemId", resultId);
         return result;
     }
 
-    public void checkBalance(String userId,BigDecimal price,UserCapitalTypeEnum em){
-        checkBalance(Long.parseLong(userId),price,em);
+    public void checkBalance(String userId, BigDecimal price, UserCapitalTypeEnum em) {
+        checkBalance(Long.parseLong(userId), price, em);
     }
 
-    public void checkBalance(Long userId,BigDecimal price,UserCapitalTypeEnum em){
-        UserCapital userCapital = userCapitalCacheService.getUserCapitalCacheByType(userId,em.getValue());
-        if (userCapital.getBalance().compareTo(price)<0){
-            throwExp(em.getName()+"不足");
+    public void checkBalance(Long userId, BigDecimal price, UserCapitalTypeEnum em) {
+        UserCapital userCapital = userCapitalCacheService.getUserCapitalCacheByType(userId, em.getValue());
+        if (userCapital.getBalance().compareTo(price) < 0) {
+            throwExp(em.getName() + "不足");
         }
     }
 }

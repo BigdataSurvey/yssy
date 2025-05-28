@@ -32,15 +32,12 @@ public class ManagerUserVipService extends BaseService {
     /**
      * 新增经验
      */
-    @Transactional
-    @ServiceMethod(code = "011", description = "新增经验")
-    public JSONObject addExper(long userId, BigDecimal rechargeAmount) {
+    public void addExper(long userId, BigDecimal rechargeAmount) {
         //vip等级
         UserVip uservip = userVipService.findRechargeAmountByUserId(userId);
         //充值金额（经验）
         uservip.getRechargeAmount().add( rechargeAmount);
         userVipService.addExper(uservip);
-        return new JSONObject();
     }
 
 

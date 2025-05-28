@@ -1,5 +1,6 @@
 package com.zywl.app.base.bean;
 
+import com.alibaba.fastjson2.JSONArray;
 import com.zywl.app.base.BaseBean;
 
 import java.math.BigDecimal;
@@ -29,11 +30,13 @@ public class Item extends BaseBean{
 	
 	private Integer isSell;
 
+	private Integer isSend;
+
 	private Integer synNumber;
 
 	private Integer canSyn;
 
-	private Long synUse;
+	private JSONArray synUse;
 
 	private Integer synRate;
 
@@ -169,6 +172,14 @@ public class Item extends BaseBean{
 
 	public Date getCreateTime() {
 		return createTime;
+	}
+
+	public Integer getIsSend() {
+		return isSend;
+	}
+
+	public void setIsSend(Integer isSend) {
+		this.isSend = isSend;
 	}
 
 	public void setCreateTime(Date createTime) {
@@ -330,11 +341,11 @@ public class Item extends BaseBean{
 		this.canSyn = canSyn;
 	}
 
-	public Long getSynUse() {
+	public JSONArray getSynUse() {
 		return synUse;
 	}
 
-	public void setSynUse(Long synUse) {
+	public void setSynUse(JSONArray synUse) {
 		this.synUse = synUse;
 	}
 

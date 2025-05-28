@@ -63,8 +63,6 @@ public class ManagerCapitalService extends BaseService {
     private ManagerSocketService managerSocketService;
 
     @Autowired
-    private BalanceShopService balanceShopService;
-    @Autowired
     private RoleService roleService;
 
     @Autowired
@@ -73,25 +71,15 @@ public class ManagerCapitalService extends BaseService {
     @Autowired
     private GameCacheService gameCacheService;
 
-    @Autowired
-    private CheckAchievementService checkAchievementService;
 
     @Autowired
     private AppConfigCacheService appConfigCacheService;
 
 
-    @Autowired
-    private UserIncomeStatementService userIncomeStatementService;
-
-    @Autowired
-    private ExchangeRecordService exchangeRecordService;
 
     @Autowired
     private CashChannelIncomeRecordService cashChannelIncomeRecordService;
 
-
-    @Autowired
-    private ConfigService configService;
 
     @Autowired
     private UserStatisticService userStatisticService;
@@ -102,9 +90,6 @@ public class ManagerCapitalService extends BaseService {
     @Autowired
     private ManagerGameBaseService managerGameBaseService;
 
-
-    @Autowired
-    private UserService userService;
 
     @Autowired
     private PlayGameService gameService;
@@ -138,7 +123,6 @@ public class ManagerCapitalService extends BaseService {
 
     public JSONObject cash(Long userId, int type, BigDecimal amount, String userNo, String userName, String realName, String openId) {
         synchronized (String.valueOf(userId)) {
-            //checkAmount(userId, amount);
             UserCapital userCapital = userCapitalCacheService.getUserCapitalCacheByType(userId, UserCapitalTypeEnum.rmb.getValue());
             BigDecimal balance = userCapital.getBalance();
             BigDecimal occupyBalance = userCapital.getOccupyBalance();

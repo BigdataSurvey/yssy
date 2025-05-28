@@ -48,7 +48,7 @@ public enum LogCapitalTypeEnum {
     refine_speed("炼丹加速", 38),
     get_pet("合成/升级 灵兽", 39),
     get_buff("合成/升级 底座", 40),
-    sell_sys("背包卖出(材料)", 41),
+    sell_sys("卖出道具", 41),
     study_skill("领悟/升级 技能", 42),
     shopping("商城购买道具", 43),
     receive_invite("活动奖励", 44),
