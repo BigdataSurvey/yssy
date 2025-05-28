@@ -30,6 +30,7 @@ import com.zywl.app.manager.context.MessageCodeContext;
 import com.zywl.app.manager.context.KafkaEventContext;
 import com.zywl.app.manager.service.*;
 import com.zywl.app.manager.socket.ManagerSocketServer;
+import org.apache.commons.collections4.map.HashedMap;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -103,7 +104,11 @@ public class ManagerGameBaseService extends BaseService {
 
     @Autowired
     private UserDailyTaskService userDailyTaskService;
+    @Autowired
+    private ItemService itemService;
 
+    @Autowired
+    private BackpackService backpackService;
 
     private int LJY_NUMBER = 0;
 
@@ -706,6 +711,48 @@ public class ManagerGameBaseService extends BaseService {
         return array;
     }
 
+    /**
+     * 捐赠道具
+     * @param adminSocketServer
+     * @param params
+     * @return
+     */
+    @Transactional
+    @ServiceMethod(code = "047", description = "捐赠道具")
+    public JSONArray donateItem(ManagerSocketServer adminSocketServer, JSONObject params) {
+        //捐赠系统回收 id为30 文房四宝
+        //每次捐赠可以获得一个道具 和一些数额（待定）的金币
+        //减掉该用户的道具
+        deleteItem(params);
+        //加货币
+        addGold(params);
+        BigDecimal gold = BigDecimal.valueOf(1000);
+        JSONObject result = new JSONObject();
+        JSONArray array = new JSONArray();
+        result.put("type",1);
+        result.put("gold",gold);
+        array.add(result);
+        return array;
+    }
+
+    private void addGold(JSONObject params) {
+        Map<String,Object> parameters = new HashedMap<>();
+        parameters.put("userId", params.getLong("userId"));
+        UserCapital userCapital = userCapitalService.findOne(parameters);
+        parameters.put("capitalType", "2");
+        parameters.put("balance",userCapital.getBalance().add(BigDecimal.valueOf(100)));
+        params.put("obj",parameters);
+        userCapitalService.betUpdateBalance(params);
+    }
+
+    private void deleteItem(JSONObject params) {
+        Map<String, Object> mapParams = new HashMap<>();
+        mapParams.put("userId",params.getLong("userId"));
+        mapParams.put("itemId",30);
+        backpackService.delete(mapParams);
+    }
+
+
     public void userBuy(Long userId, UserShopVo userShopVo, int shopType, int number) {
         int capitalType = 0;
         if (shopType == ShopTypeEnum.YUANBAO.getValue()) {
@@ -910,6 +957,8 @@ public class ManagerGameBaseService extends BaseService {
             throwExp(em.getName() + "不足");
         }
     }
+
+
 }
 
 
