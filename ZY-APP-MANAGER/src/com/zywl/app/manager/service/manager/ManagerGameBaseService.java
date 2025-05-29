@@ -109,6 +109,9 @@ public class ManagerGameBaseService extends BaseService {
 
     @Autowired
     private BackpackService backpackService;
+    @Autowired
+    private UserDonateItemRecordService userDonateItemRecordService;
+
 
     private int LJY_NUMBER = 0;
 
@@ -334,7 +337,7 @@ public class ManagerGameBaseService extends BaseService {
         checkNull(params.get("userId"), params.get("itemId"), params.get("num"));
         String userId = params.getString("userId");
         String itemId = params.getString("itemId");
-        int number = params.getIntValue("number");
+        int number = params.getIntValue("num");
         gameService.checkUserItemNumber(userId,itemId,number);
         BigDecimal onePrice = PlayGameService.itemMap.get(itemId).getPrice();
         String orderNo = OrderUtil.getOrder5Number();
@@ -714,12 +717,26 @@ public class ManagerGameBaseService extends BaseService {
      */
     @Transactional
     @ServiceMethod(code = "047", description = "捐赠道具")
-    public JSONArray donateItem(ManagerSocketServer adminSocketServer, JSONObject params) {
-        //捐赠系统回收 id为30 文房四宝
+    public JSONArray donateItem(ManagerSocketServer adminSocketServer, JSONObject params) throws Exception {
+        checkNull(params);
+        checkNull(params.get("userId"), params.get("itemId"), params.get("num"));
+        long userId = (long) params.get("userId");
+        String itemId = params.getString("itemId");
+        int number = params.getIntValue("num");
+        gameService.checkUserItemNumber(userId,itemId,number);
+        if(!"30".equals(itemId)){
+            throw new Exception("该道具无法捐赠");
+        }
         //每次捐赠可以获得一个道具 和一些数额（待定）的金币
-        //减掉该用户的道具
-        deleteItem(params);
-        //加货币
+        UserCapital userCapital = userCapitalService.findOne(params);
+        //加金额（1000暂定数额）
+        BigDecimal balance = userCapital.getBalance().add(BigDecimal.valueOf(1000));
+        //生成捐赠道具订单
+        String orderNo = OrderUtil.getOrder5Number();
+        Long recordId = userDonateItemRecordService.addDonateItemRecord(userId, orderNo, UserCapitalTypeEnum.currency_2.getValue(), number, balance);
+        //修改该用户的道具
+        gameService.updateUserBackpack(userId, String.valueOf(itemId),-number, LogUserBackpackTypeEnum.use);
+        userCapitalService.addUserBalanceByDonate(userId,balance,UserCapitalTypeEnum.currency_2.getValue(),recordId,userCapital);
         addGold(params);
         BigDecimal gold = BigDecimal.valueOf(1000);
         JSONObject result = new JSONObject();

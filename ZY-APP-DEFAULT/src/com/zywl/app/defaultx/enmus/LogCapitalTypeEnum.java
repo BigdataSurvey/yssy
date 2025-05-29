@@ -135,8 +135,10 @@ public enum LogCapitalTypeEnum {
 
     game_cards_win("虚妄迷局获得",1021),
 
-    bug_role_gift("购买角色礼包",1022),;
+    bug_role_gift("购买角色礼包",1022),
+    donate_item("捐赠道具",1023),
     ;
+
     private String name;
 
     private int value;

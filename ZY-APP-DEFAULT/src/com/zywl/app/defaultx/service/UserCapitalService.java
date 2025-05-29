@@ -86,7 +86,18 @@ public class UserCapitalService extends DaoService {
             }
         }
         return 1;
+    }@Transactional
+    public int addUserBalanceByDonate(Long userId,BigDecimal amount,Integer capitalType,long id,UserCapital userCapital){
+        synchronized (LockUtil.getlock(userId+"")) {
+            String orderNo = OrderUtil.getOrder5Number();
+            int a = addUserBalance(amount,userId,capitalType,userCapital.getBalance(),userCapital.getOccupyBalance(),orderNo,id,LogCapitalTypeEnum.dz_dk_lq_reward,TableNameConstant.USER_DZ_RECORD);
+            if(a<1){
+                throwExp("领取失败");
+            }
+        }
+        return 1;
     }
+
 
     @Transactional
     public int subBalanceByCash(Long userId, String orderNo, Long sourceDataId, BigDecimal amount, BigDecimal balanceBefore, BigDecimal occupyBalanceBefore) {
