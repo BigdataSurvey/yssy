@@ -729,15 +729,14 @@ public class ManagerGameBaseService extends BaseService {
         }
         //每次捐赠可以获得一个道具 和一些数额（待定）的金币
         UserCapital userCapital = userCapitalService.findOne(params);
-        //加金额（1000暂定数额）
-        BigDecimal balance = userCapital.getBalance().add(BigDecimal.valueOf(1000));
+        UserCapital userCapitalCacheByType = userCapitalCacheService.getUserCapitalCacheByType(userId, UserCapitalTypeEnum.currency_2.getValue());
+        BigDecimal balance = userCapitalCacheByType.getBalance().add(BigDecimal.valueOf(1000));
         //生成捐赠道具订单
         String orderNo = OrderUtil.getOrder5Number();
         Long recordId = userDonateItemRecordService.addDonateItemRecord(userId, orderNo, UserCapitalTypeEnum.currency_2.getValue(), number, balance);
         //修改该用户的道具
-        gameService.updateUserBackpack(userId, String.valueOf(itemId),-number, LogUserBackpackTypeEnum.use);
+        gameService.updateUserBackpack(userId, itemId,-number, LogUserBackpackTypeEnum.use);
         userCapitalService.addUserBalanceByDonate(userId,balance,UserCapitalTypeEnum.currency_2.getValue(),recordId,userCapital);
-        addGold(params);
         BigDecimal gold = BigDecimal.valueOf(1000);
         JSONObject result = new JSONObject();
         JSONArray array = new JSONArray();
@@ -747,15 +746,7 @@ public class ManagerGameBaseService extends BaseService {
         return array;
     }
 
-    private void addGold(JSONObject params) {
-        Map<String,Object> parameters = new HashedMap<>();
-        parameters.put("userId", params.getLong("userId"));
-        UserCapital userCapital = userCapitalService.findOne(parameters);
-        parameters.put("capitalType", "2");
-        parameters.put("balance",userCapital.getBalance().add(BigDecimal.valueOf(100)));
-        params.put("obj",parameters);
-        userCapitalService.betUpdateBalance(params);
-    }
+
 
     private void deleteItem(JSONObject params) {
         Map<String, Object> mapParams = new HashMap<>();
