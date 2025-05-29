@@ -7,24 +7,24 @@
 		(
                `user_id`,
                `gift_num`,
+		 		`gift_type`,
                `create_time`
 		)
 		values
 		(
                #{userId},
                #{giftNum},
+		 		#{giftType},
                #{createTime}
 		)
 	</insert>
 
-	<insert id="insertOrUpdate" parameterType="UserGift">
-		INSERT INTO t_user_gift(`user_id`, `gift_num`, `create_time`)
-		VALUES (#{userId}, 1, NOW()) ON DUPLICATE KEY
-			UPDATE gift_num = gift_num+1;
-	</insert>
+	<update id="addUserGiftNumber" parameterType="UserGift">
+		update t_user_gift set gitf_number = gift_number+1 where user_id = #{userId}  and gift_type = #{giftType}
+	</update>
 
 	<update id="useGift" parameterType="UserGift">
-		update t_user_gift set gitf_number = gift_number-1 where user_id = #{userId} and gift_number-1 &gt; 1
+		update t_user_gift set gitf_number = gift_number-1 where user_id = #{userId} and gift_number-1 &gt; 1 and gift_type = #{giftType}
 	</update>
 
 	<delete id="delete">
@@ -34,6 +34,10 @@
 
 	<select id="findAll" resultType="UserGift">
 	    select * from t_user_gift
+	</select>
+
+	<select id="findUserGift" resultType="UserGift">
+		select * from t_user_gift where user_id=#{userId} and gift_type=#{giftType}
 	</select>
 
 

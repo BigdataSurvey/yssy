@@ -27,26 +27,42 @@ public class UserGiftService extends DaoService {
     }
 
     @Transactional
-    public void addUserGiftNumber(Long userId) {
-        // 插入或者修改数据 第一次买就插入 否则数量+1
-        Map<String, Object> params = new HashMap<>();
-        params.put("userId", userId);
-        int a = execute("insertOrUpdate", params);
-        if (a<1){
-            throwExp("购买礼包失败，请联系客服");
+    public void addUserGiftNumber(Long userId, int giftType) {
+        UserGift ug = findUserGift(userId, giftType);
+        if (ug==null){
+            UserGift userGift = new UserGift();
+            userGift.setUserId(userId);
+            userGift.setGiftNum(1);
+            userGift.setGiftType(giftType);
+            save(userGift);
+        }else {
+            Map<String, Object> params = new HashMap<>();
+            params.put("userId", userId);
+            params.put("giftType", giftType);
+            int a = execute("addUserGiftNumber", params);
         }
     }
 
+
+    public UserGift findUserGift(Long userId,int type) {
+        Map<String, Object> params = new HashMap<>();
+        params.put("userId", userId);
+        params.put("giftType",type);
+        return (UserGift) findOne("findUserGift",params);
+    }
+
     @Transactional
-    public void useGift(Long userId){
+    public void useGift(Long userId) {
         //使用或者赠送礼包，数量-1
         Map<String, Object> params = new HashMap<>();
         params.put("userId", userId);
-        int a = execute("useGift",params);
-        if (a<1){
+        int a = execute("useGift", params);
+        if (a < 1) {
             throwExp("激活失败，请联系客服");
         }
     }
+
+
 
 
 }

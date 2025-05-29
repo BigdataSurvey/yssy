@@ -6,7 +6,6 @@ import com.alibaba.fastjson2.JSONObject;
 import com.live.app.ws.bean.Command;
 import com.live.app.ws.enums.PushCode;
 import com.live.app.ws.util.Push;
-import com.sun.org.apache.bcel.internal.generic.IF_ACMPEQ;
 import com.zywl.app.base.bean.*;
 import com.zywl.app.base.bean.card.CanLogin;
 import com.zywl.app.base.bean.vo.UserSonVo;
@@ -17,12 +16,10 @@ import com.zywl.app.defaultx.annotation.ServiceClass;
 import com.zywl.app.defaultx.annotation.ServiceMethod;
 import com.zywl.app.defaultx.cache.UserCacheService;
 import com.zywl.app.defaultx.cache.UserCapitalCacheService;
-import com.zywl.app.defaultx.enmus.AnimaTreeFromEnum;
 import com.zywl.app.defaultx.enmus.UserCapitalTypeEnum;
 import com.zywl.app.defaultx.service.*;
 import com.zywl.app.defaultx.service.card.BuyVipRecordService;
 import com.zywl.app.defaultx.service.card.CanLoginService;
-import com.zywl.app.manager.bean.IDCardReportDataBean;
 import com.zywl.app.manager.context.MessageCodeContext;
 import com.zywl.app.manager.service.*;
 import com.zywl.app.manager.servlet.AppUploadFileServlet;
@@ -31,6 +28,8 @@ import com.zywl.app.manager.socket.ManagerSocketServer;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.http.HttpResponse;
+import org.apache.http.util.EntityUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -319,6 +318,42 @@ public class ManagerUserService extends BaseService {
     }
 
 
+
+
+    public static int aliyunAuthentication(String name,String idCard){
+        String host = "https://kzidcardv1.market.alicloudapi.com";
+        String path = "/api-mall/api/id_card/check";
+        String method = "POST";
+        String appcode = "7a24ebe338e547e8a0257283057e4867";
+        Map<String, String> headers = new HashMap<String, String>();
+        //最后在header中的格式(中间是英文空格)为Authorization:APPCODE 83359fd73fe94948385f570e3c139105
+        headers.put("Authorization", "APPCODE " + appcode);
+        //根据API的要求，定义相对应的Content-Type
+        headers.put("Content-Type", "application/x-www-form-urlencoded; charset=UTF-8");
+        Map<String, String> querys = new HashMap<String, String>();
+        Map<String, String> bodys = new HashMap<String, String>();
+        bodys.put("name", name);
+        bodys.put("idcard", idCard);
+        try {
+            HttpResponse response = HttpUtils.doPost(host, path, method, headers, querys, bodys);
+            System.out.println(response.toString());
+            JSONObject jsonObject = JSONObject.parseObject(EntityUtils.toString(response.getEntity()));
+            if (jsonObject.containsKey("success") && jsonObject.getBoolean("success")){
+                if (jsonObject.getString("code").equals("200")){
+                    return 1;
+                }else {
+                    return -2;
+                }
+            }else{
+                return -1;
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return -1;
+    }
+
+
     @Transactional
     @ServiceMethod(code = "008", description = "实名认证")
     public JSONObject authentication(ManagerSocketServer adminSocketServer, JSONObject data) {
@@ -358,17 +393,17 @@ public class ManagerUserService extends BaseService {
         if (authentication == 0) {//未认证
            // int status = idCardService.checkIDCard(userInfo.getId().toString(), realName, idCard);
             int status = 0;
+            status = aliyunAuthentication(realName,idCard);
             int age = IDCardUtil.getAgeForIdcard(idCard);
             if(age < 18) {
                 status = -102;
             }
-            if (status == 0) {
+            if (status == 1) {
                 JSONArray reward = JSONArray.parseArray(managerConfigService.getString(Config.REAL_NAME_REWARD));
-                gameService.addReward(userId, reward, null);
                 managerPromoteService.parentAddEffectiveFriendNumber(userId);
                 data.put("reward", reward);
-
                 userService.authentication(userId, realName, idCard);
+
                 userService.updateAuthentication(userId, 1);
                 if (userInfo.getParentId() != null) {
                     userCacheService.subSonCount(userInfo.getParentId(), 3);
@@ -385,6 +420,7 @@ public class ManagerUserService extends BaseService {
             } else if (status == -1) {
                 throwExp("网络拥挤，请稍后重试！");
             } else if (status == -2) {//待查询
+                throwExp("请输入正确的姓名和身份证号！");
                 userService.updateAuthentication(userId, 2);
                 throwExp("网络拥挤，请稍后重试！");
             } else if (status == -3) {

@@ -108,9 +108,6 @@ public class GameBaseService extends BaseService {
         if (user.getVip1() >= 1 || user.getVip2() >= 1) {
             return;
         }
-        /*if (user.getIsCash() == 0) {
-            throwExp("请先完成提现");
-        }*/
         if (user.getRisk() == 1 || user.getRiskPlus() == 1) {
             throwExp("广告异常");
         }

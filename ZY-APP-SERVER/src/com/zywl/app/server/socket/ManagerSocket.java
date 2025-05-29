@@ -218,7 +218,7 @@ public class ManagerSocket extends BaseClientSocket {
                             if (changeDevice) {
                                 appSocket.sendCommand(CommandBuilder.builder()
                                         .request(CommandConstants.CMD_LOGIN_TIMEOUT, fcLoginOutData,
-                                                "你已在其他地方登录")
+                                                "您的账号在别处登录，若非本人登录请检查是否泄漏个人数据。")
                                         .build());
                             } else {
                                 logger.info("相同设备ID，不推送登出指令");

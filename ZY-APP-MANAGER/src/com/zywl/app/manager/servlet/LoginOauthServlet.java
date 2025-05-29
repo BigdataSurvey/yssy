@@ -3,6 +3,7 @@ package com.zywl.app.manager.servlet;
 import com.alibaba.fastjson2.JSON;
 import com.alibaba.fastjson2.JSONObject;
 import com.zywl.app.base.bean.Config;
+import com.zywl.app.base.bean.User;
 import com.zywl.app.base.constant.RedisKeyConstant;
 import com.zywl.app.base.exp.AppException;
 import com.zywl.app.base.servlet.BaseServlet;
@@ -119,6 +120,7 @@ public class LoginOauthServlet extends BaseServlet {
                                 Response.doResponse(asyncContext,   "网络异常，连接服务器失败");
                                 return;
                             }
+                            wxInfo.put("password",accessToken);
                             Response.doResponse(asyncContext, loginService.loginOrRegister(openId, clientIp, versionId, oldWsid, inviteCode, wxInfo, accessTokenVail, deviceId, os).toJSONString());
                             return;
                         }
@@ -137,6 +139,8 @@ public class LoginOauthServlet extends BaseServlet {
         };
 
     }
+
+
 
 
     private void checkAccessToken(String urlParameters) {

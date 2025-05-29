@@ -6,15 +6,12 @@ import java.util.Date;
 public class UserGift {
     private Long userId;
 
-    private BigDecimal giftNum;
+    private int giftNum;
+
+    private int giftType;
 
     private Date createTime;
 
-    public UserGift(Long userId, BigDecimal giftNum, Date createTime) {
-        this.userId = userId;
-        this.giftNum = giftNum;
-        this.createTime = createTime;
-    }
 
     public UserGift() {
     }
@@ -27,12 +24,20 @@ public class UserGift {
         this.userId = userId;
     }
 
-    public BigDecimal getGiftNum() {
+    public int getGiftNum() {
         return giftNum;
     }
 
-    public void setGiftNum(BigDecimal giftNum) {
+    public void setGiftNum(int giftNum) {
         this.giftNum = giftNum;
+    }
+
+    public int getGiftType() {
+        return giftType;
+    }
+
+    public void setGiftType(int giftType) {
+        this.giftType = giftType;
     }
 
     public Date getCreateTime() {

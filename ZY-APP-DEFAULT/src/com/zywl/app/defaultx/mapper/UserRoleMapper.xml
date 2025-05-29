@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.zywl.app.defaultx.mapper.UserRoleMapper">
+
+
+    <insert id="insert" parameterType="UserRole" useGeneratedKeys="true" keyProperty="id" keyColumn="id">
+        insert into t_user_role
+        (
+            `user_id`,
+            `role_id`,
+            `hp`,
+            `un_receive`,
+            `last_look_time`,
+            `last_receive_time`,
+            `status`,
+            `create_time`,
+            `end_time`
+
+
+
+        )
+        values
+            (
+                #{userId},
+                #{roleId},
+                #{hp},
+                #{unReceive},
+                #{lastLookTime},
+                #{lastReceiveTime},
+                #{status},
+                #{createTime},
+                #{endTime}
+
+
+            )
+    </insert>
+
+
+</mapper>

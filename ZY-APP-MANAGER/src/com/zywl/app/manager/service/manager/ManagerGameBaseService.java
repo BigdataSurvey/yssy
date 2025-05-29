@@ -439,16 +439,18 @@ public class ManagerGameBaseService extends BaseService {
         Long userId = params.getLong("userId");
         synchronized (LockUtil.getlock(userId.toString())) {
             String taskId = params.getString("taskId");
-            boolean doubleReceive = params.containsKey("isLook") && params.getIntValue("isLook") == 1;
+            //获取这条每日任务的信息  在内存中存着  PlayGameService.dailyTaskInfo 是一个map
             DailyTask dailyTask = PlayGameService.dailyTaskInfo.get(taskId);
             if (dailyTask == null) {
                 throwExp("非法请求");
             }
+            //获取玩家每日任务的信息
             UserDailyTaskVo userTaskById = cardGameCacheService.getUserTaskById(userId, taskId);
             if (userTaskById.getStatus() == 2) {
                 throwExp("已领取过该奖励");
             }
             JSONArray rewards = dailyTask.getReward();
+            //添加奖励
             gameService.addReward(userId, rewards, LogCapitalTypeEnum.daily_task);
             JSONObject result = new JSONObject();
             result.put("rewardInfo", rewards);

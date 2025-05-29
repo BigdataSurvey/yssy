@@ -21,9 +21,9 @@ public class MessageCodeContext {
 	public final static String DZ_SERVER="020";
 	public final static String ALIPAY_SERVER="023";
 
-	public final static String GAME_INSTANCE_SERVER="040";
+	public final static String PAY_ROLE="040";
 
-	public final static String PLAYER_CARD="060";
+	public final static String USER_ROLE="060";
 	public final static String CHECKPOINT="061";
 
 	public final static String EQUIPMENT="062";

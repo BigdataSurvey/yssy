@@ -34,10 +34,10 @@ public class ManagerBuyGiftService extends BaseService {
     @Autowired
     private UserGiftRecordService userGiftRecordService;
 
-    public BigDecimal getGiftPriceById(Long giftId){
-        if (giftId == 1L){
+    public BigDecimal getGiftPriceById(int giftId){
+        if (giftId == 1){
             return  managerConfigService.getBigDecimal(Config.GIFT_PRICE_1);
-        } else if (giftId==2L) {
+        } else if (giftId==2) {
             return  managerConfigService.getBigDecimal(Config.GIFT_PRICE_2);
         }else {
             throwExp("非法请求");
@@ -52,7 +52,7 @@ public class ManagerBuyGiftService extends BaseService {
         checkNull(data);
         checkNull(data.get("userId"),data.get("giftId"));
         //根据礼包ID获取礼包价格
-        Long giftId = data.getLong("giftId");
+        int giftId = data.getIntValue("giftId");
         BigDecimal price = getGiftPriceById(giftId);
         //购买礼包的用户ID
         Long userId = data.getLong("userId");
@@ -65,7 +65,7 @@ public class ManagerBuyGiftService extends BaseService {
         //2.扣钱
         userCapitalService.subBalanceByGift(price,userId,orderNo,recordId);
         //3.礼包数+1
-        userGiftService.addUserGiftNumber(userId);
+        userGiftService.addUserGiftNumber(userId,giftId);
         //推送用户余额变化
         managerGameBaseService.pushCapitalUpdate(userId,UserCapitalTypeEnum.currency_2.getValue());
 

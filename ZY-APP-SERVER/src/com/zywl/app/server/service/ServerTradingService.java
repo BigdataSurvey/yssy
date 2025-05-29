@@ -89,9 +89,6 @@ public class ServerTradingService extends BaseService {
         if (user.getRiskPlus() != null && user.getRiskPlus() == 1) {
             throwExp("请求超时，请更换网络环境再试");
         }
-        if (user.getIsCash() == 0) {
-            throwExp("请先完成提现");
-        }
         Long itemId = params.getLong("itemId");
         if (!GameBaseService.itemMap.containsKey(itemId.toString())){
             throwExp("非法请求");
@@ -144,9 +141,6 @@ public class ServerTradingService extends BaseService {
         long tradingId = params.getLong("tradingId");
         long userId = appSocket.getWsidBean().getUserId();
         User user = userCacheService.getUserInfoById(userId);
-        if (user.getIsCash()==0){
-            throwExp("请先完成提现");
-        }
         // 获取用户上架信息，判断传过来的是否真的是自己的上架信息
         Trading trading = tradingCacheService.getTradingInfoById(tradingId);
         long itemId = trading.getItemId();
@@ -187,9 +181,6 @@ public class ServerTradingService extends BaseService {
         User user = userCacheService.getUserInfoById(userId);
         if (user.getRiskPlus() != null && user.getRiskPlus() == 1) {
             throwExp("请求超时，请更换网络环境再试");
-        }
-        if (user.getIsCash()==0){
-            throwExp("请先完成提现");
         }
         Long itemId = params.getLong("itemId");
         if (!GameBaseService.itemMap.containsKey(itemId.toString())){
@@ -248,9 +239,6 @@ public class ServerTradingService extends BaseService {
 
         long userId = appSocket.getWsidBean().getUserId();
         User user = userCacheService.getUserInfoById(userId);
-        if (user.getIsCash()==0){
-            throwExp("请先完成提现");
-        }
         long tradingId = params.getLong("tradingId");
         String key = "sell" + tradingId;
         // 验证是否能取消求购 判断是否是本人上架 判断该求购数量是否小于等于0
@@ -293,9 +281,6 @@ public class ServerTradingService extends BaseService {
         if (user.getRiskPlus() != null && user.getRiskPlus() == 1) {
             throwExp("请求超时，请更换网络环境再试");
         }
-        if (user.getIsCash()==0){
-            throwExp("请先完成提现");
-        }
         int number = params.getIntValue("num");
         if (number < 1 || number > 99999) {
             throwExp("请输入合理的道具数量");
@@ -332,9 +317,6 @@ public class ServerTradingService extends BaseService {
         User user = userCacheService.getUserInfoById(userId);
         if (user.getRiskPlus() != null && user.getRiskPlus() == 1) {
             throwExp("请求超时，请更换网络环境再试");
-        }
-        if (user.getIsCash()==0){
-            throwExp("请先完成提现");
         }
         int number = params.getIntValue("num");
         if (number < 1 || number > 99999) {
@@ -391,9 +373,6 @@ public class ServerTradingService extends BaseService {
         if (params.containsKey("itemType")) {
             itemType = params.getIntValue("itemType");
         }
-        if (user.getIsCash()==0){
-            throwExp("请先完成提现");
-        }
         int page = params.getIntValue("page");
         int num = params.getIntValue("num");
         List<TradingVo> tradings;
@@ -422,9 +401,6 @@ public class ServerTradingService extends BaseService {
         if (params.containsKey("itemType")) {
             itemType = params.getIntValue("itemType");
         }
-        if (user.getIsCash()==0){
-            throwExp("请先完成提现");
-        }
         int page = params.getIntValue("page");
         int num = params.getIntValue("num");
         List<TradingVo> tradings;
@@ -444,9 +420,6 @@ public class ServerTradingService extends BaseService {
         Long userId = appSocket.getWsidBean().getUserId();
         int type = params.getIntValue("type");
         User user = userCacheService.getUserInfoById(appSocket.getWsidBean().getUserId());
-        if (user.getIsCash()==0){
-            throwExp("请先完成提现");
-        }
         JSONObject result = new JSONObject();
         List<TradingRecordVo> list = tradingRecordService.getMyRecord(userId, params.getIntValue("page"),
                 params.getIntValue("num"),type);

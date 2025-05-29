@@ -36,7 +36,7 @@ public class ManagerUserVipService extends BaseService {
         //vip等级
         UserVip uservip = userVipService.findRechargeAmountByUserId(userId);
         //充值金额（经验）
-        uservip.getRechargeAmount().add( rechargeAmount);
+        uservip.setRechargeAmount(uservip.getRechargeAmount().add(rechargeAmount));
         userVipService.addExper(uservip);
     }
 

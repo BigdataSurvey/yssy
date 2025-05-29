@@ -88,7 +88,6 @@ if(!window.CtrlFn_${menuId}){
             TODAY_LUCKY:"优化线程数",
             VERSION_DAFUWENG:"大富翁表版本",
             LHD_STATUS:"2选1游戏状态",
-            XWMJ_STATUS:"虚妄迷局游戏状态",
             USER_CARD_MAX_COUNT:"玩家最大卡牌上限",
             IP_USER_NUMBER:"同IP最多注册账号上限",
             IP_LOGIN_RISK:"同IP最多登录账号限制",
@@ -98,7 +97,11 @@ if(!window.CtrlFn_${menuId}){
             SG_ISK:"军机情报游戏配置",
             GAME_DZ_GAME_ON:"打卡开关",
             GAME_DTS2_STATUS:"倩女幽魂游戏状态",
-            GAME_DTS2_NEED_BOT:"倩女幽魂人机"
+            GAME_DTS2_NEED_BOT:"倩女幽魂人机",
+            GIFT_PRICE_1:"礼包1的价格",
+            GIFT_PRICE_2:"礼包2的价格",
+            PAY_NOTIFY_URL:"第三方支付回调地址",
+            PAY_MERCHANT_ID:"第三方支付商户号"
 
 
         };

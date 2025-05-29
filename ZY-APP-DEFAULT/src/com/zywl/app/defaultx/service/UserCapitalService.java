@@ -884,18 +884,6 @@ public class UserCapitalService extends DaoService {
         }
         return a;
     }
-    public Long addTradingRecord(Long userId,BigDecimal amount) {
-        UserGift userGift = new UserGift();
-        userGift.setUserId(userId);
-        userGift.setGiftNum(amount);
-        userGift.setCreateTime(new Date());
-        save(userGift);
-        return userGift.getUserId();
-    }
-
-
-
-
 
 
     @Transactional
