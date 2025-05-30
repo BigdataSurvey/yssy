@@ -52,10 +52,8 @@ public class PlayGameService extends BaseService {
 
     public static Map<String, DicMine> DIC_MINE = new ConcurrentHashMap<>();
 
-    public static Map<String, DicMineHoe> DIC_MINE_HOE = new ConcurrentHashMap<>();
+    public  static final Map<String, DicRole> DIC_ROLE = new ConcurrentHashMap<>();
 
-
-    public final static Map<String, DicTower> DIC_TOWER = new ConcurrentHashMap<>();
 
     public static Map<String, UserCapital> playercoins = new ConcurrentHashMap<>();
     public static Map<String, User> channelUser = new ConcurrentHashMap<>();
@@ -91,7 +89,6 @@ public class PlayGameService extends BaseService {
 
 
 
-    public final static Map<String, Map<String, DicDrawProbability>> DIC_CARD_POOL_DRAW = new ConcurrentHashMap<>();
 
 
     @Autowired
@@ -159,13 +156,10 @@ public class PlayGameService extends BaseService {
     @Autowired
     private DicMineService dicMineService;
 
-
-    public static Map<String, DicPet> DIC_PET = new ConcurrentHashMap<>();
-
-    public static Map<String, List<DicTreasureMap>> TREASURE_MAP = new ConcurrentHashMap<>();
-
     @Autowired
-    private CardGameCacheService cardGameCacheService;
+    private DicRoleService dicRoleService;
+
+
 
     @Autowired
     private JDCardService jdCardService;
@@ -335,6 +329,14 @@ public class PlayGameService extends BaseService {
         List<DicMine> list = dicMineService.findAllMine();
         list.forEach(e -> DIC_MINE.put(String.valueOf(e.getIndex()), e));
         logger.info("初始化矿产信息完成,加载数据数量：" + DIC_MINE.size());
+    }
+
+    public void initRole() {
+        DIC_ROLE.clear();
+        logger.info("初始化角色相关信息");
+        List<DicRole> allRole = dicRoleService.findAllRole();
+        allRole.forEach(e->DIC_ROLE.put(e.getId().toString(),e));
+        logger.info("初始化角色信息完成,加载数据数量：" + DIC_MINE.size());
     }
 
 

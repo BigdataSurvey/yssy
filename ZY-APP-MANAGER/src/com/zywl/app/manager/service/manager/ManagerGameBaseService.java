@@ -143,13 +143,8 @@ public class ManagerGameBaseService extends BaseService {
     public JSONObject syncTableInfo(JSONObject params) {
         JSONObject tableInfos = new JSONObject();
         String itemV = managerConfigService.getString(Config.ITEM_VERSION);
-        String cardV = managerConfigService.getString(Config.CARD_VERSION);
-        String equipmentV = managerConfigService.getString(Config.EQUIPMENT_VERSION);
         //   String checkpointV = managerConfigService.getString(Config.CHECKPOINT_VERSION);
-        String equSynV = managerConfigService.getString(Config.EQU_SYN_VERSION);
         String mineV = managerConfigService.getString(Config.MINE_VERSION);
-        String petV = managerConfigService.getString(Config.PET_VERSION);
-        String artifactV = managerConfigService.getString(Config.ARTIFACT_VERSION);
         JSONObject tableInfo = params.getJSONObject("tableInfo");
         if (tableInfo != null
                 && (!tableInfo.containsKey("itemTable") || !itemV.equals(tableInfo.getString("itemTable")))) {

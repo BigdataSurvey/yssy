@@ -52,10 +52,11 @@ public class UserGiftService extends DaoService {
     }
 
     @Transactional
-    public void useGift(Long userId) {
+    public void useGift(Long userId,int type) {
         //使用或者赠送礼包，数量-1
         Map<String, Object> params = new HashMap<>();
         params.put("userId", userId);
+        params.put("giftType",type);
         int a = execute("useGift", params);
         if (a < 1) {
             throwExp("激活失败，请联系客服");

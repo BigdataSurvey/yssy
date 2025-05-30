@@ -10,4 +10,8 @@
 	</select>
 
 
+
+	<select id="findById" resultType="DicRole">
+		select * from dic_role where id=#{id}
+	</select>
 </mapper>

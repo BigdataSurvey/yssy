@@ -41,6 +41,8 @@ public class ManagerSocket extends BaseClientSocket {
 
     private ServerMineService serverMineService;
 
+    private ServerUserRoleService serverUserRoleService;
+
 
     private GameBaseService gameBaseService;
 
@@ -52,6 +54,7 @@ public class ManagerSocket extends BaseClientSocket {
         incomeRecordService = SpringUtil.getService(IncomeRecordService.class);
         serverMineService = SpringUtil.getService(ServerMineService.class);
         gameBaseService =SpringUtil.getService(GameBaseService.class);
+        serverUserRoleService = SpringUtil.getService(ServerUserRoleService.class);
         Push.addPushSuport(PushCode.syncAppOnline, new DefaultPushHandler() {
             public void onRegist(BaseSocket baseSocket, PushBean pushBean) {
                 Map<String, AppSocket> servers = SocketManager.getClients(TargetSocketType.app);
@@ -259,6 +262,9 @@ public class ManagerSocket extends BaseClientSocket {
                 // 推送至客户端，让客户端更新
                 if (obj.containsKey("mineTable")){
                     serverMineService.initMine();
+                }
+                if (obj.containsKey("rolesTable")){
+                    serverUserRoleService.initRole();
                 }
                 updateAppService.pushTableVersionUpdate(obj);
             }

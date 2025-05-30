@@ -8,6 +8,7 @@
         (
             `user_id`,
             `role_id`,
+            `index`,
             `hp`,
             `un_receive`,
             `last_look_time`,
@@ -23,6 +24,7 @@
             (
                 #{userId},
                 #{roleId},
+                #{index},
                 #{hp},
                 #{unReceive},
                 #{lastLookTime},
@@ -35,5 +37,67 @@
             )
     </insert>
 
+    <select id="findByUserId" resultType="UserRole">
+        select * from t_user_role where user_id=#{userId}
+    </select>
 
+    <update id="updateUserRole" parameterType="UserRole">
+        update t_user_role
+        <if test="hp != null">
+            hp=#{hp},
+        </if>
+        <if test="unReceive != null">
+            un_receive=#{unReceive},
+        </if>
+        <if test="index!= null">
+            index=#{index},
+        </if>
+        <if test="lastLookTime != null">
+            last_look_time=#{lastLookTime},
+        </if>
+        <if test="lastReceiveTime != null">
+            `last_receive_time`=#{lastReceiveTime},
+        </if>
+        <if test="status != null">
+            `status`=#{status},
+        </if>
+    </update>
+
+    <select id="findWorkingRoles" resultType="UserRole">
+        select * from t_user_role where user_id=#{userId} and status > 0;
+    </select>
+
+    <select id="findWorkingRoles" resultType="UserRole">
+        select * from t_user_role where user_id=#{userId} and status = 0;
+    </select>
+
+    <select id="findByUserRoleId" resultType="UserRole">
+        select * from t_user_role where id=#{id}
+    </select>
+    <update id="batchUpdateUserRole"  parameterType="java.util.List">
+        <foreach collection="list" item="item" index="index" open="" close="" separator=";">
+            update t_user_role
+            <set>
+                <if test="item.hp != null">
+                    hp=#{item.hp},
+                </if>
+                <if test="item.unReceive != null">
+                    un_receive=#{item.unReceive},
+                </if>
+                <if test="item.index!= null">
+                    index=#{item.index},
+                </if>
+                <if test="item.lastLookTime != null">
+                    last_look_time=#{item.lastLookTime},
+                </if>
+                <if test="item.lastReceiveTime != null">
+                    `last_receive_time`=#{item.lastReceiveTime},
+                </if>
+                <if test="item.status != null">
+                    `status`=#{item.status},
+                </if>
+            </set>
+            where id=#{item.id}
+        </foreach>
+    </update>
 </mapper>

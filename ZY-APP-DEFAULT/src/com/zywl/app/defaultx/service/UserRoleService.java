@@ -24,7 +24,7 @@ public class UserRoleService extends DaoService {
     }
 
     @Transactional
-    public UserRole addUserRole(Long userId,Long roleId,int days,int index,int oneReward) {
+    public UserRole addUserRole(Long userId,Long roleId,int days) {
         UserRole userRole = new UserRole();
         userRole.setUserId(userId);
         userRole.setRoleId(roleId);
@@ -38,6 +38,48 @@ public class UserRoleService extends DaoService {
         userRole.setStatus(0);
         save(userRole);
         return userRole;
+    }
+
+
+    public List<UserRole> findByUserId(Long userId){
+        Map<String,Object> params = new HashMap<>();
+        params.put("userId",userId);
+        return findList("findByUserId",params);
+    }
+
+
+    public UserRole findByUserRoleId(Long userRoleId){
+        Map<String,Object> params = new HashMap<>();
+        params.put("id",userRoleId);
+        return (UserRole) findOne("findByUserRoleId",params);
+    }
+
+    public List<UserRole> findWorkingRoles(Long userId){
+        Map<String,Object> params = new HashMap<>();
+        params.put("userId",userId);
+        return findList("findWorkingRoles",params);
+    }
+
+    public List<UserRole> findNoWorkingRoles(Long userId){
+        Map<String,Object> params = new HashMap<>();
+        params.put("userId",userId);
+        return findList("findNoWorkingRoles",params);
+    }
+
+
+    @Transactional
+    public void batchUpdateUserRole(List<UserRole> userRoles){
+        if (userRoles.size()>0){
+            execute("batchUpdateUserRole",userRoles);
+        }
+    }
+
+    @Transactional
+    public void updateUserRole(UserRole userRole){
+        int updateUserRole = execute("updateUserRole", userRole);
+        if (updateUserRole<1){
+            throwExp("角色信息更新失败，请稍后重试");
+        }
     }
 
 

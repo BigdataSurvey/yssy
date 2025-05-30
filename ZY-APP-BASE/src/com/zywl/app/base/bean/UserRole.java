@@ -12,6 +12,8 @@ public class UserRole extends BaseBean {
 
     private Long roleId;
 
+    private int index;
+
     private int hp;
 
     private JSONArray unReceive;
@@ -104,5 +106,13 @@ public class UserRole extends BaseBean {
 
     public void setEndTime(Date endTime) {
         this.endTime = endTime;
+    }
+
+    public int getIndex() {
+        return index;
+    }
+
+    public void setIndex(int index) {
+        this.index = index;
     }
 }

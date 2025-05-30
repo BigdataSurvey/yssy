@@ -13,7 +13,8 @@ public class MessageCodeContext {
 	public final static String GAME_BASE_SERVER= "100";
 	public final static String CAPITAL_SERVER="200";
 	public final static String TRADING_SERVER="300";
-	public final static String USER_CONFIG_SERVER="005";
+
+	public final static String USER_ROLE="400";
 	public final static String ACHIEVEMENT_SETVER="600";
 
 	public final static String BOOK_SERVER="700";

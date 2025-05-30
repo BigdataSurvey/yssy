@@ -8,6 +8,7 @@ import java.util.List;
 public class Config extends BaseBean {
 
 
+	public static final String ADD_HP_WFSB = "ADD_HP_WFSB";
 	public static final String PAY_NOTIFY_URL = "PAY_NOTIFY_URL";
 	public static final String PAY_MERCHANT_ID = "PAY_MERCHANT_ID";
 	public static final String GIFT_PRICE_1 = "GIFT_PRICE_1";
@@ -121,12 +122,11 @@ public class Config extends BaseBean {
 	// 物品表版本
 	public static final String ITEM_VERSION = "VERSION_ITEM";
 
-	public static final String BOSS_CARD_VERSION = "VERSION_BOSS_CARD";
-	public static final String EQU_SYN_VERSION = "VERSION_EQU_SYN";
 
 	public static final String MINE_VERSION = "VERSION_MINE";
 
-	public static final String PET_VERSION = "VERSION_PET";
+	public static final String ROLE_VERSION = "VERSION_ROLE";
+
 
 	public static final String ARTIFACT_VERSION = "VERSION_ARTIFACT";
 

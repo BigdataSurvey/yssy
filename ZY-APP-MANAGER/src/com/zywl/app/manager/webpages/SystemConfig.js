@@ -30,6 +30,7 @@ if(!window.CtrlFn_${menuId}){
             VERSION_EQUIPMENT: "装备表版本",
             VERSION_EQU_SYN: "装备合成表版本",
             VERSION_MINE:"矿场表版本",
+            VERSION_ROLE:"角色表版本",
             VERSION_TOWER:"试炼之塔表版本",
             VERSION_CARD_ASCEND:"卡牌升星表版本",
             SALVAGE_EXP_1:"分解1品质获得经验",

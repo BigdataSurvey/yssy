@@ -6,6 +6,7 @@ import com.live.app.ws.enums.PushCode;
 import com.live.app.ws.util.DefaultPushHandler;
 import com.live.app.ws.util.Push;
 import com.zywl.app.base.bean.Config;
+import com.zywl.app.base.bean.DicRole;
 import com.zywl.app.base.bean.Item;
 import com.zywl.app.base.bean.card.*;
 import com.zywl.app.base.bean.vo.ItemVo;
@@ -226,15 +227,14 @@ public class ManagerConfigService extends BaseService {
 			JSONObject tableInfo = new JSONObject();
 			tableInfo.put("mineTable",obj);
 			Push.push(PushCode.updateTableVersion,null,tableInfo);
-		}else if(key.equals(Config.SKILL_VERSION)){
-			cardGameCacheService.removeSkillCache();
-		}else if(key.equals(Config.ARTIFACT_VERSION)){
-			cardGameCacheService.removeArtifactCache();
+		}else if(key.equals(Config.ROLE_VERSION)){
+			gameService.initRole();
+			List<DicRole> roles = new ArrayList<>(PlayGameService.DIC_ROLE.values());
 			JSONObject obj = new JSONObject();
 			obj.put("version", value);
-			obj.put("data", null);
+			obj.put("data", roles);
 			JSONObject tableInfo = new JSONObject();
-			tableInfo.put("skillTable",obj);
+			tableInfo.put("rolesTable",obj);
 			Push.push(PushCode.updateTableVersion,null,tableInfo);
 		}
 		else if (key.equals(Config.SERVICE_STATUS)) {
