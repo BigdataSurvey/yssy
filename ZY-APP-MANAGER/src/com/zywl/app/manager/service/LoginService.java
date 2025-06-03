@@ -42,7 +42,9 @@ import java.util.concurrent.ConcurrentHashMap;
 @Service
 public class LoginService extends BaseService {
 
-    public static final String secret = "315077466fa7acb5794c02a9dc662700";
+    public static final String secret = "f323a1711b5791050e7382972e440999";
+
+    public static final String appId = "";
 
 
     @Autowired

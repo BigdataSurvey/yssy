@@ -70,7 +70,7 @@ public class ServerUserRoleService extends BaseService {
         params.put("number", 0);
         if (userGift != null) {
             params.put("number", userGift);
-        }
+        } 
         return params;
     }
 
@@ -171,7 +171,7 @@ public class ServerUserRoleService extends BaseService {
     }
 
 
-    @ServiceMethod(code = "004", description = "设置角色为工作状态")
+    @ServiceMethod(code = "005", description = "设置角色为工作状态")
     public JSONObject working(final AppSocket appSocket, Command appCommand, JSONObject params) {
         checkNull(params);
         checkNull(params.get("index"),params.get("userRoleId"));
@@ -195,7 +195,7 @@ public class ServerUserRoleService extends BaseService {
     }
 
 
-    @ServiceMethod(code = "005", description = "查询可选择的角色")
+    @ServiceMethod(code = "006", description = "查询可选择的角色")
     public Object getNoWorkingRoles(final AppSocket appSocket, Command appCommand, JSONObject params) {
         checkNull(params);
         //checkNull(params.get("index"));
@@ -203,7 +203,7 @@ public class ServerUserRoleService extends BaseService {
         return userRoleService.findNoWorkingRoles(userId);
     }
 
-    @ServiceMethod(code = "006", description = "补充体力")
+    @ServiceMethod(code = "007", description = "补充体力")
     public Object addHp(final AppSocket appSocket, Command appCommand, JSONObject params) {
         checkNull(params);
         Long userId = appSocket.getWsidBean().getUserId();
@@ -212,7 +212,7 @@ public class ServerUserRoleService extends BaseService {
         return async();
     }
 
-    @ServiceMethod(code = "007", description = "领取产出道具")
+    @ServiceMethod(code = "008", description = "领取产出道具")
     public Object receiveItem(final AppSocket appSocket, Command appCommand, JSONObject params) {
         checkNull(params);
         checkNull(params.get("userRoleId"));

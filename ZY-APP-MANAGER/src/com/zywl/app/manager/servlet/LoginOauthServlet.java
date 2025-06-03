@@ -36,7 +36,6 @@ public class LoginOauthServlet extends BaseServlet {
     private AppConfigCacheService appConfigCacheService;
 
 
-
     public LoginOauthServlet() {
         loginService = SpringUtil.getService(LoginService.class);
         managerConfigService = SpringUtil.getService(ManagerConfigService.class);
@@ -76,8 +75,8 @@ public class LoginOauthServlet extends BaseServlet {
                     String deviceId = request.getParameter("deviceId");
                     String os = request.getParameter("os");
                     String gameToken = request.getParameter("gameToken");
-                    if (gameToken!=null){
-                        Response.doResponse(asyncContext, loginService.loginByGameToken(gameToken,oldWsid,versionId,clientIp).toJSONString());
+                    if (gameToken != null) {
+                        Response.doResponse(asyncContext, loginService.loginByGameToken(gameToken, oldWsid, versionId, clientIp).toJSONString());
                         return;
                     }
                     if (StringUtils.isNotEmpty(tabtabId)) {
@@ -87,11 +86,11 @@ public class LoginOauthServlet extends BaseServlet {
                         Response.doResponse(asyncContext, loginService.loginOrRegisterTabtab(tabtabId, clientIp, versionId, oldWsid, inviteCode, userName, userHead).toJSONString());
                         return;
                     } else {
-                        if (StringUtils.isNotEmpty(authCode)){
+                        if (StringUtils.isNotEmpty(authCode)) {
                             //支付宝登录
                             Response.doResponse(asyncContext, loginService.loginOrRegisterAlipay(authCode, clientIp, versionId, oldWsid, inviteCode).toJSONString());
                             return;
-                        }else{
+                        } else {
                             if (isNull(accessToken) || isNull(openId)) {
                                 throwExp("accessToken或openId异常");
                             }
@@ -116,11 +115,11 @@ public class LoginOauthServlet extends BaseServlet {
                                 }
 
                             }
-                            if (wxInfo.containsKey("errcode")&&wxInfo.getString("errcode").equals("40001")){
-                                Response.doResponse(asyncContext,   "网络异常，连接服务器失败");
+                            if (wxInfo.containsKey("errcode") && wxInfo.getString("errcode").equals("40001")) {
+                                Response.doResponse(asyncContext, "网络异常，连接服务器失败");
                                 return;
                             }
-                            wxInfo.put("password",accessToken);
+                            wxInfo.put("password", accessToken);
                             Response.doResponse(asyncContext, loginService.loginOrRegister(openId, clientIp, versionId, oldWsid, inviteCode, wxInfo, accessTokenVail, deviceId, os).toJSONString());
                             return;
                         }
@@ -140,7 +139,9 @@ public class LoginOauthServlet extends BaseServlet {
 
     }
 
+    public void getAccessTokenByCode() {
 
+    }
 
 
     private void checkAccessToken(String urlParameters) {

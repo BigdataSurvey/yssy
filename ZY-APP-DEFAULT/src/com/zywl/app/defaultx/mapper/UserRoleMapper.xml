@@ -67,7 +67,7 @@
         select * from t_user_role where user_id=#{userId} and status > 0;
     </select>
 
-    <select id="findWorkingRoles" resultType="UserRole">
+    <select id="findNoWorkingRoles" resultType="UserRole">
         select * from t_user_role where user_id=#{userId} and status = 0;
     </select>
 
