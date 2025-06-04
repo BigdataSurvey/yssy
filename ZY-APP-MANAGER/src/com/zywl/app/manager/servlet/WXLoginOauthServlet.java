@@ -28,7 +28,7 @@ import javax.servlet.http.HttpServletResponse;
 import java.net.URL;
 
 @SuppressWarnings("serial")
-@WebServlet(name = "LoginOauthServlet", urlPatterns = "/wxLoginOauth", asyncSupported = true)
+@WebServlet(name = "LoginOauthServlet", urlPatterns = "/wechatLoginOauth", asyncSupported = true)
 public class WXLoginOauthServlet extends BaseServlet {
 
     private final static String CHECK_ACCESS_TOKEN = "https://api.weixin.qq.com/sns/auth";
