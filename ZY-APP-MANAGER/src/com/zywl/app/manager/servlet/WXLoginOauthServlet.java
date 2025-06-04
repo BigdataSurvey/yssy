@@ -53,16 +53,19 @@ public class WXLoginOauthServlet extends BaseServlet {
     /**
      * 处理微信回调
      */
-    public Object handleCallback(HttpServletRequest request, HttpServletResponse response, String clientIp,String code) throws Exception {
-        // 1. 获取access_token
-        WeChatAccessToken accessToken = getAccessToken(code);
+    public Object handleCallback(HttpServletRequest request, HttpServletResponse response, String clientIp) throws Exception {
 
-        // 2. 获取用户信息
-        WeChatUserInfo userInfo = getUserInfo(accessToken.getAccessToken(), accessToken.getOpenid());
+
+
 
         return new AsyncServletProcessor(request) {
             public void run() {
                 try {
+                    // 1. 获取access_token
+                    String code = request.getParameter("code");
+                    WeChatAccessToken accessToken = getAccessToken(code);
+                    // 2. 获取用户信息
+                    WeChatUserInfo userInfo = getUserInfo(accessToken.getAccessToken(), accessToken.getOpenid());
                     JSONObject result = new JSONObject();
                     request.getSession().invalidate();
                     if (managerConfigService.getInteger(Config.SERVICE_STATUS) == 0) {
@@ -72,11 +75,42 @@ public class WXLoginOauthServlet extends BaseServlet {
                             return;
                         }
                     }
+
                     String oldWsid = request.getParameter("oldWsid");
                     String versionId = request.getParameter("versionId");
+                    String inviteCode = request.getParameter("inviteCode");
+                    String tabtabId = request.getParameter("tabtabId");
+                    String authCode = request.getParameter("auth_code");
+                    String deviceId = request.getParameter("deviceId");
+                    String os = request.getParameter("os");
                     String gameToken = request.getParameter("gameToken");
+                    String openId = request.getParameter("openId");
+                    if (isNull(accessToken) || isNull(openId)) {
+                        throwExp("accessToken或openId异常");
+                    }
+                    String urlParameters = "?access_token=" + accessToken + "&openid=" + openId;
+                    String wxLoginURL = WX_LOGIN_URL + urlParameters;
+                    String getJSON;
+                    JSONObject wxInfo = new JSONObject();
+                    int accessTokenVail = 1;
+                    try {
+                            checkAccessToken(urlParameters);
+                            logger.info("请求微信登录接口[" + wxLoginURL + "]");
+                            getJSON = HTTPUtil.get(wxLoginURL);
+                            logger.info("微信登录接口请求结果[" + wxLoginURL + "]：" + getJSON);
+                            wxInfo = JSON.parseObject(getJSON);
+                            openId = wxInfo.getString("openid");
+                        } catch (Exception e) {
+                            logger.info("accessToken过期，跳过验证");
+                            accessTokenVail = 0;
+                        }
+
+                    if (wxInfo.containsKey("errcode") && wxInfo.getString("errcode").equals("40001")) {
+                        Response.doResponse(asyncContext, "网络异常，连接服务器失败");
+                        return;
+                    }
                     if (gameToken != null) {
-                        Response.doResponse(asyncContext, loginService.loginByGameToken(gameToken, oldWsid, versionId, clientIp).toJSONString());
+                        Response.doResponse(asyncContext, loginService.loginOrRegister(openId, clientIp,versionId,oldWsid, inviteCode,result, accessTokenVail,deviceId,os).toJSONString());
                         return;
                     }
                 } catch (AppException e) {
