@@ -9,7 +9,7 @@
 			 `price`,
 			 `order_no`,
 			 `number`,
-			 `create_time`,
+			 `create_time`
 		)
 		values
 		(

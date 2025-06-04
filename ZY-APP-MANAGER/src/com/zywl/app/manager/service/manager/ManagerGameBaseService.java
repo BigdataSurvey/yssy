@@ -714,30 +714,36 @@ public class ManagerGameBaseService extends BaseService {
     @ServiceMethod(code = "047", description = "捐赠道具")
     public JSONArray donateItem(ManagerSocketServer adminSocketServer, JSONObject params) throws Exception {
         checkNull(params);
-        checkNull(params.get("userId"), params.get("itemId"), params.get("num"));
-        long userId = (long) params.get("userId");
-        String itemId = params.getString("itemId");
+        checkNull(params.get("userId"), params.get("num"));
+        long userId = params.getLong("userId");
+        String itemId = "30";
         int number = params.getIntValue("num");
         gameService.checkUserItemNumber(userId,itemId,number);
         if(!"30".equals(itemId)){
             throw new Exception("该道具无法捐赠");
         }
         //每次捐赠可以获得一个道具 和一些数额（待定）的金币
-        UserCapital userCapital = userCapitalService.findOne(params);
-        UserCapital userCapitalCacheByType = userCapitalCacheService.getUserCapitalCacheByType(userId, UserCapitalTypeEnum.currency_2.getValue());
-        BigDecimal balance = userCapitalCacheByType.getBalance().add(BigDecimal.valueOf(1000));
+        UserCapital userCapitalCache = userCapitalCacheService.getUserCapitalCacheByType(userId, UserCapitalTypeEnum.currency_2.getValue());
         //生成捐赠道具订单
         String orderNo = OrderUtil.getOrder5Number();
-        Long recordId = userDonateItemRecordService.addDonateItemRecord(userId, orderNo, UserCapitalTypeEnum.currency_2.getValue(), number, balance);
+        Long recordId = userDonateItemRecordService.addDonateItemRecord(userId, orderNo, UserCapitalTypeEnum.currency_2.getValue(), number, BigDecimal.valueOf(1000));
+        String getItemId = managerConfigService.getString(Config.JZ_ITEM);
         //修改该用户的道具
         gameService.updateUserBackpack(userId, itemId,-number, LogUserBackpackTypeEnum.use);
-        userCapitalService.addUserBalanceByDonate(userId,balance,UserCapitalTypeEnum.currency_2.getValue(),recordId,userCapital);
-        BigDecimal gold = BigDecimal.valueOf(1000);
+        gameService.updateUserBackpack(userId, getItemId,+number, LogUserBackpackTypeEnum.use);
+        userCapitalService.addUserBalanceByDonate(userId,BigDecimal.valueOf(1000),UserCapitalTypeEnum.currency_2.getValue(),recordId,userCapitalCache);
+        pushCapitalUpdate(userId,UserCapitalTypeEnum.currency_2.getValue());
         JSONObject result = new JSONObject();
+        JSONObject itemResult = new JSONObject();
         JSONArray array = new JSONArray();
         result.put("type",1);
-        result.put("gold",gold);
+        result.put("id",2);
+        result.put("number",2);
+        itemResult.put("type",1);
+        itemResult.put("id",getItemId);
+        itemResult.put("number",2);
         array.add(result);
+        array.add(itemResult);
         return array;
     }
 
