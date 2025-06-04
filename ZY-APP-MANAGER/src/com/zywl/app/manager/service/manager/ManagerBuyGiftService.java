@@ -34,12 +34,20 @@ public class ManagerBuyGiftService extends BaseService {
     @Autowired
     private UserGiftRecordService userGiftRecordService;
 
-    public BigDecimal getGiftPriceById(int giftId){
-        if (giftId == 1){
-            return  managerConfigService.getBigDecimal(Config.GIFT_PRICE_1);
-        } else if (giftId==2) {
-            return  managerConfigService.getBigDecimal(Config.GIFT_PRICE_2);
-        }else {
+    public BigDecimal getGiftPriceById(int giftId, int priceType) {
+        if (giftId == 1) {
+            if (priceType == 1) {
+                return managerConfigService.getBigDecimal(Config.GIFT_PRICE_1);
+            } else {
+                return managerConfigService.getBigDecimal(Config.GIFT_PRICE_1_GAME);
+            }
+        } else if (giftId == 2) {
+            if (priceType == 1) {
+                return managerConfigService.getBigDecimal(Config.GIFT_PRICE_2);
+            } else {
+                return managerConfigService.getBigDecimal(Config.GIFT_PRICE_2_GAME);
+            }
+        } else {
             throwExp("非法请求");
         }
         return null;
@@ -50,24 +58,28 @@ public class ManagerBuyGiftService extends BaseService {
     @ServiceMethod(code = "011", description = "购买礼包")
     public JSONObject buy(JSONObject data) throws Exception {
         checkNull(data);
-        checkNull(data.get("userId"),data.get("giftId"));
+        checkNull(data.get("userId"), data.get("giftType"), data.get("priceType"));
         //根据礼包ID获取礼包价格
-        int giftId = data.getIntValue("giftId");
-        BigDecimal price = getGiftPriceById(giftId);
+        int giftId = data.getIntValue("giftType");
+        int priceType = data.getIntValue("priceType");
+        BigDecimal price = getGiftPriceById(giftId,priceType);
+        if (priceType==1){
+            throwExp("先用type2 支付还没接");
+        }
         //购买礼包的用户ID
         Long userId = data.getLong("userId");
         //礼包加数量之前先判断用户余额是否足够
-        managerGameBaseService.checkBalance(userId,price,UserCapitalTypeEnum.currency_2);
+        managerGameBaseService.checkBalance(userId, price, UserCapitalTypeEnum.currency_2);
         //余额充足 1.插入订单 2.扣钱  3.加礼包数量
         //1.插入订单
         String orderNo = OrderUtil.getOrder5Number();
         Long recordId = userGiftRecordService.addGiftRecord(userId, orderNo, UserCapitalTypeEnum.currency_2.getValue(), 1, price);
         //2.扣钱
-        userCapitalService.subBalanceByGift(price,userId,orderNo,recordId);
+        userCapitalService.subBalanceByGift(price, userId, orderNo, recordId);
         //3.礼包数+1
-        userGiftService.addUserGiftNumber(userId,giftId);
+        userGiftService.addUserGiftNumber(userId, giftId);
         //推送用户余额变化
-        managerGameBaseService.pushCapitalUpdate(userId,UserCapitalTypeEnum.currency_2.getValue());
+        managerGameBaseService.pushCapitalUpdate(userId, UserCapitalTypeEnum.currency_2.getValue());
 
         return new JSONObject();
     }

@@ -1,22 +1,20 @@
 package com.zywl.app.server.service;
 
+import cn.hutool.core.date.DateTime;
 import com.alibaba.fastjson2.JSONArray;
 import com.alibaba.fastjson2.JSONObject;
+import com.ijpay.core.utils.DateTimeZoneUtil;
 import com.live.app.ws.bean.Command;
 import com.live.app.ws.enums.TargetSocketType;
 import com.live.app.ws.util.CommandBuilder;
 import com.live.app.ws.util.Executer;
 import com.zywl.app.base.bean.*;
 import com.zywl.app.base.service.BaseService;
-import com.zywl.app.base.util.DateUtil;
-import com.zywl.app.base.util.JSONUtil;
+import com.zywl.app.base.util.*;
 import com.zywl.app.defaultx.annotation.ServiceClass;
 import com.zywl.app.defaultx.annotation.ServiceMethod;
 import com.zywl.app.defaultx.cache.UserCacheService;
-import com.zywl.app.defaultx.service.DicRoleService;
-import com.zywl.app.defaultx.service.RoleService;
-import com.zywl.app.defaultx.service.UserGiftService;
-import com.zywl.app.defaultx.service.UserRoleService;
+import com.zywl.app.defaultx.service.*;
 import com.zywl.app.server.context.MessageCodeContext;
 import com.zywl.app.server.socket.AppSocket;
 import com.zywl.app.server.util.RequestManagerListener;
@@ -25,6 +23,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import javax.annotation.PostConstruct;
+import java.math.BigDecimal;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -44,6 +43,12 @@ public class ServerUserRoleService extends BaseService {
     @Autowired
     private DicRoleService dicRoleService;
 
+    @Autowired
+    private TsgPayOrderService tsgPayOrderService;
+
+    @Autowired
+    private ServerConfigService serverConfigService;
+
     public static final Map<String, DicRole> DIC_ROLE = new ConcurrentHashMap<>();
 
     @PostConstruct
@@ -56,6 +61,77 @@ public class ServerUserRoleService extends BaseService {
         allRole.forEach(e -> DIC_ROLE.put(e.getId().toString(), e));
     }
 
+    public Object getPayAddress(Long userId, JSONObject params,String ip) throws Exception {
+        checkNull(params);
+        checkNull(params.get("giftType"));
+        Long productId = params.getLong("giftType");
+        BigDecimal price ;
+        String goodsName ;
+        if (productId==1L){
+            price = serverConfigService.getBigDecimal(Config.GIFT_PRICE_1).setScale(2);
+            goodsName = "角色小礼包";
+        } else if (productId==2L) {
+            price = serverConfigService.getBigDecimal(Config.GIFT_PRICE_2).setScale(2);
+            goodsName = "角色大礼包";
+        }else {
+            price = new BigDecimal("1").setScale(2);
+            goodsName = "测试礼包";
+        }
+        String merchantId = serverConfigService.getString(Config.PAY_MERCHANT_ID);
+        String merReqNo = OrderUtil.getOrder5Number();
+        String notifyUrl = serverConfigService.getString(Config.PAY_NOTIFY_URL);
+        String returnUrl = "";
+        String tranDateTime = DateUtil.getCurrent3();
+        String sign = "";
+        String timeExpire = DateTimeZoneUtil.dateToTimeZone(System.currentTimeMillis() + 1000 * 60 * 3);
+        DateTime dateTime = cn.hutool.core.date.DateUtil.parse(timeExpire);
+        Date expireDate = new Date(dateTime.getTime());
+        tsgPayOrderService.addOrder(userId,merReqNo,productId,price,expireDate);
+        Map<String,String> data = new HashMap<>();
+        data.put("merchantId",merchantId);
+        data.put("merReqNo",merReqNo);
+        data.put("amt", String.valueOf(price));
+        data.put("goodsName",goodsName);
+        data.put("creatip",ip);
+        data.put("notifyUrl",notifyUrl);
+        data.put("returnUrl",returnUrl);
+        data.put("tranDateTime",tranDateTime);
+        TreeMap<String,String> treeMap = new TreeMap<>(data);
+        StringBuffer stringBuffer = new StringBuffer();
+        treeMap.forEach((key, value) -> stringBuffer.append(key).append("=").append(value).append("&"));
+        stringBuffer.deleteCharAt(stringBuffer.length()-1);
+        stringBuffer.append("=================");
+        String signMd5 = MD5Util.md5(stringBuffer.toString());
+        data.put("sign",signMd5);
+        String result = HTTPUtil.postJSON("http://121.199.171.139/webapis/tran/addTrans.php","", data);
+        if (result==null){
+            throwExp("当前没有可用的支付地址，请联系客服或稍后再试");
+        }
+        JSONObject jsonResult = JSONObject.parseObject(result);
+        if (jsonResult.containsKey("success") && jsonResult.getBoolean("success")){
+            return jsonResult.getJSONObject("data");
+        }
+        throwExp("当前没有可用的支付地址，请联系客服或稍后再试");
+        return null;
+    }
+
+    @ServiceMethod(code = "000", description = "购买礼包")
+    public Object buy(final AppSocket appSocket, Command appCommand, JSONObject params) throws Exception {
+        checkNull(params);
+        checkNull(params.get("giftType"),params.get("priceType"));
+        //todo 验证giftId合理性
+        Long userId = appSocket.getWsidBean().getUserId();
+        //用户Id 插入到参数中 传到manager服务器   code 035011
+        params.put("userId", userId);
+        int priceType = params.getIntValue("priceType");
+        if (priceType==1){
+            return getPayAddress(userId,params, appSocket.getIp());
+        }else{
+            Executer.request(TargetSocketType.manager, CommandBuilder.builder().request("035011", params).build(), new RequestManagerListener(appCommand));
+            return async();
+        }
+
+    }
 
     @ServiceMethod(code = "001", description = "获取角色礼包信息")
     public JSONObject getUserConfig(final AppSocket appSocket, Command appCommand, JSONObject params) {
@@ -69,8 +145,18 @@ public class ServerUserRoleService extends BaseService {
         UserGift userGift = userGiftService.findUserGift(userId, type);
         params.put("number", 0);
         if (userGift != null) {
-            params.put("number", userGift);
-        } 
+            params.put("number", userGift.getGiftNum());
+        }
+        List<UserRole> byUserId = userRoleService.findByUserId(userId);
+        if (byUserId.size()==0){
+            params.put("status", 0);
+        }
+        for (UserRole userRole : byUserId) {
+            if (userRole.getStatus()!=2){
+                params.put("status",1);
+                break;
+            }
+        }
         return params;
     }
 
@@ -220,6 +306,19 @@ public class ServerUserRoleService extends BaseService {
         params.put("userId",userId);
         Executer.request(TargetSocketType.manager, CommandBuilder.builder().request("400002", params).build(), new RequestManagerListener(appCommand));
         return async();
+    }
+
+    @ServiceMethod(code = "009", description = "查看购买礼包信息")
+    public Object buyGiftInfo(final AppSocket appSocket, Command appCommand, JSONObject params) {
+        checkNull(params);
+        JSONObject result = new JSONObject();
+        result.put("rmbStatus",serverConfigService.getInteger(Config.GIFT_RMB_STATUS));
+        result.put("rmbPrice1",serverConfigService.getBigDecimal(Config.GIFT_PRICE_1));
+        result.put("rmbPrice2",serverConfigService.getBigDecimal(Config.GIFT_PRICE_2));
+        result.put("gameMoneyStatus",serverConfigService.getInteger(Config.GIFT_GAME_STATUS));
+        result.put("gamePrice1",serverConfigService.getBigDecimal(Config.GIFT_PRICE_1_GAME));
+        result.put("gamePrice2",serverConfigService.getBigDecimal(Config.GIFT_PRICE_2_GAME));
+        return result;
     }
 
 }

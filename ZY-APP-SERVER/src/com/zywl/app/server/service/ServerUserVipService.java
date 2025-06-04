@@ -18,7 +18,7 @@ import java.math.BigDecimal;
 
 @Service
 @ServiceClass(code = MessageCodeContext.USER_VIP)
-public class ServerUserVipService extends BaseService {
+public class          ServerUserVipService extends BaseService {
 
     @Autowired
     private ServerConfigService serverConfigService;

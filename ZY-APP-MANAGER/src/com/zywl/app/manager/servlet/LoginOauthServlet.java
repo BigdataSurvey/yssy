@@ -139,9 +139,7 @@ public class LoginOauthServlet extends BaseServlet {
 
     }
 
-    public void getAccessTokenByCode() {
 
-    }
 
 
     private void checkAccessToken(String urlParameters) {
