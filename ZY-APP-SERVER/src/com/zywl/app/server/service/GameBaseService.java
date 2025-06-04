@@ -662,4 +662,17 @@ public class GameBaseService extends BaseService {
                 new RequestManagerListener(command));
         return async();
     }
+
+    @ServiceMethod(code = "053", description = "捐赠")
+    public Object donateItem(AppSocket appSocket, Command command, JSONObject data) {
+        checkNull(data.get("num"));
+        Long userId = appSocket.getWsidBean().getUserId();
+        data.put("userId",userId);
+        Executer.request(TargetSocketType.manager, CommandBuilder.builder().request("100047", data).build(),
+                new RequestManagerListener(command));
+        return async();
+    }
+
+
+
 }

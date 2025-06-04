@@ -8,6 +8,8 @@ import java.util.List;
 public class Config extends BaseBean {
 
 
+
+	public static final String JZ_ITEM = "JZ_ITEM";
 	public static final String ADD_HP_WFSB = "ADD_HP_WFSB";
 	public static final String PAY_NOTIFY_URL = "PAY_NOTIFY_URL";
 	public static final String PAY_MERCHANT_ID = "PAY_MERCHANT_ID";
