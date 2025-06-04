@@ -15,7 +15,7 @@ public class WeChatConfig {
     }
 
     // 获取access_token地址
-    public String getAccessTokenUrl(String code) {
+    public String getAccessTokenUrl(String code,String appId,String appSecret) {
         return String.format("https://api.weixin.qq.com/sns/oauth2/access_token?" +
                         "appid=%s&secret=%s&code=%s&grant_type=authorization_code",
                 appId, appSecret, code);

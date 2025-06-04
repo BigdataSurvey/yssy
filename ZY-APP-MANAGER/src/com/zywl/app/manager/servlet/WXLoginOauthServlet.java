@@ -28,7 +28,7 @@ import javax.servlet.http.HttpServletResponse;
 import java.net.URL;
 
 @SuppressWarnings("serial")
-@WebServlet(name = "LoginOauthServlet", urlPatterns = "/wechatLoginOauth", asyncSupported = true)
+@WebServlet(name = "WXLoginOauthServlet", urlPatterns = "/wechatLoginOauth", asyncSupported = true)
 public class WXLoginOauthServlet extends BaseServlet {
 
     private final static String CHECK_ACCESS_TOKEN = "https://api.weixin.qq.com/sns/auth";
@@ -96,9 +96,8 @@ public class WXLoginOauthServlet extends BaseServlet {
      * 使用code获取access_token
      */
     private WeChatAccessToken getAccessToken(String code) throws Exception {
-        String url = weChatConfig.getAccessTokenUrl(code);
+        String url = weChatConfig.getAccessTokenUrl(code,APPID,AppSecret);
         String response = HttpUtil.get(url);
-
         WeChatAccessToken accessToken = JSON.parseObject(response, WeChatAccessToken.class);
         if (accessToken.getErrcode() != null) {
 
