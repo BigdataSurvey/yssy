@@ -67,8 +67,6 @@ public class WXLoginOauthServlet extends BaseServlet {
                     if (accessToken.getErrcode() != null) {
                         Response.doResponse(asyncContext, "网络异常，连接服务器失败");
                     }
-                    // 2. 获取用户信息
-                    WeChatUserInfo userInfo = getUserInfo(accessToken.getAccessToken(), accessToken.getOpenid());
                     JSONObject result = new JSONObject();
                     request.getSession().invalidate();
                     if (managerConfigService.getInteger(Config.SERVICE_STATUS) == 0) {
@@ -78,17 +76,13 @@ public class WXLoginOauthServlet extends BaseServlet {
                             return;
                         }
                     }
-
                     String oldWsid = request.getParameter("oldWsid");
                     String versionId = request.getParameter("versionId");
                     String inviteCode = request.getParameter("inviteCode");
                     String deviceId = request.getParameter("deviceId");
                     String os = request.getParameter("os");
                     String gameToken = request.getParameter("gameToken");
-                    String openId = request.getParameter("openId");
-                    if (isNull(accessToken) || isNull(openId)) {
-                        throwExp("accessToken或openId异常");
-                    }
+                    String openId = accessToken.getOpenid();
                     String urlParameters = "?access_token=" + accessToken + "&openid=" + openId;
                     String wxLoginURL = WX_LOGIN_URL + urlParameters;
                     String getJSON;
