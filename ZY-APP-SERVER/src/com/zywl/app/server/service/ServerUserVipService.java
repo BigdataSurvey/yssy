@@ -18,7 +18,7 @@ import java.math.BigDecimal;
 
 @Service
 @ServiceClass(code = MessageCodeContext.USER_VIP)
-public class          ServerUserVipService extends BaseService {
+public class ServerUserVipService extends BaseService {
 
     @Autowired
     private ServerConfigService serverConfigService;
@@ -30,15 +30,12 @@ public class          ServerUserVipService extends BaseService {
         //获取当前等级
         checkNull(params);
         Long userId = appSocket.getWsidBean().getUserId();
-        BigDecimal price1 = serverConfigService.getBigDecimal(Config.GIFT_PRICE_1);
-        BigDecimal price2 = serverConfigService.getBigDecimal(Config.GIFT_PRICE_2);
         JSONObject result = new JSONObject();
-        result.put("gift1",price1);
-        result.put("gift2",price2);
         UserVip rechargeAmountByUserId = userVipService.findRechargeAmountByUserId(userId);
         // 当前经验 升到下一级需要多少经验
         BigDecimal differ = comparToRechargeAmount(rechargeAmountByUserId.getRechargeAmount());
         result.put("differ",differ);
+        result.put("vipInfo",rechargeAmountByUserId);
         return result;
     }
     private BigDecimal comparToRechargeAmount(BigDecimal rechargeAmount){
