@@ -58,8 +58,20 @@ public class WXLoginOauthServlet extends BaseServlet {
             public void run() {
                 try {
                     // 1. 获取access_token
+                    String oldWsid = request.getParameter("oldWsid");
+                    String versionId = request.getParameter("versionId");
+                    String inviteCode = request.getParameter("inviteCode");
+                    String deviceId = request.getParameter("deviceId");
+                    String os = request.getParameter("os");
                     String code = request.getParameter("code");
                     logger.info("获取code:" + code);
+                    if (code==null){
+                        String gameToken = request.getParameter("gameToken");
+                        if (gameToken != null) {
+                            Response.doResponse(asyncContext, loginService.loginByGameToken(gameToken, oldWsid, versionId, clientIp).toJSONString());
+                            return;
+                        }
+                    }
                     WeChatAccessToken accessToken = getAccessToken(code);
                     logger.info("accessToken:" + accessToken);
                     if (accessToken.getErrcode() != null) {
@@ -76,16 +88,8 @@ public class WXLoginOauthServlet extends BaseServlet {
                             return;
                         }
                     }
-                    String oldWsid = request.getParameter("oldWsid");
-                    String versionId = request.getParameter("versionId");
-                    String inviteCode = request.getParameter("inviteCode");
-                    String deviceId = request.getParameter("deviceId");
-                    String os = request.getParameter("os");
-                    String gameToken = request.getParameter("gameToken");
-                    if (gameToken != null) {
-                        Response.doResponse(asyncContext, loginService.loginByGameToken(gameToken, oldWsid, versionId, clientIp).toJSONString());
-                        return;
-                    }
+
+
                     String openId = accessToken.getOpenid();
                     String wxLoginURL = WX_LOGIN_URL + "?access_token=" + accessToken.getAccess_token() + "&openid=" + openId;;
                     String getJSON;

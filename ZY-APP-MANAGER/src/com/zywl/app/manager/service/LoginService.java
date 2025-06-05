@@ -220,9 +220,11 @@ public class LoginService extends BaseService {
             }
             String password = wxInfo.getString("password");
 
+            /*
+                上架所需代码
             if (user.getUnionId()!=null && !user.getUnionId().equals(password)){
                 return JSONUtil.getReturnDate(0, null, "密码错误！");
-            }
+            }*/
             //包含用户  直接登录  更新用户信息
             uid = user.getId();
            /* if (ipService.isInternetAddress(clientIp)) {
