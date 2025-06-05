@@ -23,7 +23,7 @@
                #{recordTime}
 		)
 	</insert>
-<update id="update" parameterType="UserVip">
+<update id="updateUserVip" parameterType="UserVip">
 		update t_user_vip
 	<set>
 		<if test="vipLevel!=null">
@@ -39,7 +39,7 @@
 		update_time = #{updateTime}
 		</if>
 	    <where>
-			user_id = #{userId}
+			id = #{id}
 		</where>
 	</set>
 

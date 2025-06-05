@@ -65,7 +65,7 @@ public class PlayGameService extends BaseService {
 
     //道具信息
     public static Map<String, Item> itemMap = new ConcurrentHashMap<>();
-    private final static Map<String, DicVip> DIC_VIP_MAP = new ConcurrentHashMap<>();
+    public final static Map<String, DicVip> DIC_VIP_MAP = new ConcurrentHashMap<>();
 
 
     public static Map<String, PrizeDrawReward> prizeDrawRewardInfo = new ConcurrentHashMap<>();
