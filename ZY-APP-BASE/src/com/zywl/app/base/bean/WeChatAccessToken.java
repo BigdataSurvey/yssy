@@ -1,37 +1,17 @@
 package com.zywl.app.base.bean;
 
 public class WeChatAccessToken {
-    private String accessToken;
-    private Integer expiresIn;
-    private String refreshToken;
+    private String access_token;
+    private Integer expires_in;
+    private String refresh_token;
     private String openid;
+
+    private String unionid;
     private String scope;
     private Integer errcode;
     private String errmsg;
 
-    public String getAccessToken() {
-        return accessToken;
-    }
 
-    public void setAccessToken(String accessToken) {
-        this.accessToken = accessToken;
-    }
-
-    public Integer getExpiresIn() {
-        return expiresIn;
-    }
-
-    public void setExpiresIn(Integer expiresIn) {
-        this.expiresIn = expiresIn;
-    }
-
-    public String getRefreshToken() {
-        return refreshToken;
-    }
-
-    public void setRefreshToken(String refreshToken) {
-        this.refreshToken = refreshToken;
-    }
 
     public String getOpenid() {
         return openid;
@@ -68,13 +48,49 @@ public class WeChatAccessToken {
     public WeChatAccessToken() {
     }
 
-    public WeChatAccessToken(String accessToken, Integer expiresIn, String refreshToken, String openid, String scope, Integer errcode, String errmsg) {
-        this.accessToken = accessToken;
-        this.expiresIn = expiresIn;
-        this.refreshToken = refreshToken;
-        this.openid = openid;
-        this.scope = scope;
-        this.errcode = errcode;
-        this.errmsg = errmsg;
+    @Override
+    public String toString() {
+        return "WeChatAccessToken{" +
+                "access_token='" + access_token + '\'' +
+                ", expires_in=" + expires_in +
+                ", refresh_token='" + refresh_token + '\'' +
+                ", openid='" + openid + '\'' +
+                ", unionid='" + unionid + '\'' +
+                ", scope='" + scope + '\'' +
+                ", errcode=" + errcode +
+                ", errmsg='" + errmsg + '\'' +
+                '}';
+    }
+
+    public String getAccess_token() {
+        return access_token;
+    }
+
+    public void setAccess_token(String access_token) {
+        this.access_token = access_token;
+    }
+
+    public Integer getExpires_in() {
+        return expires_in;
+    }
+
+    public void setExpires_in(Integer expires_in) {
+        this.expires_in = expires_in;
+    }
+
+    public String getRefresh_token() {
+        return refresh_token;
+    }
+
+    public void setRefresh_token(String refresh_token) {
+        this.refresh_token = refresh_token;
+    }
+
+    public String getUnionid() {
+        return unionid;
+    }
+
+    public void setUnionid(String unionid) {
+        this.unionid = unionid;
     }
 }

@@ -55,8 +55,9 @@ public class ServerUserVipService extends BaseService {
         UserVip rechargeAmountByUserId = userVipService.findRechargeAmountByUserId(userId);
         // 当前经验 升到下一级需要多少经验
         BigDecimal differ = comparToRechargeAmount(rechargeAmountByUserId.getRechargeAmount());
-        result.put("differ", differ);
+
         result.put("vipInfo", rechargeAmountByUserId);
+
         return result;
     }
 
