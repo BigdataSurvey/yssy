@@ -127,6 +127,9 @@ public class WXLoginOauthServlet extends BaseServlet {
     public WeChatAccessToken getAccessToken(String code) throws Exception {
         String url = weChatConfig.getAccessTokenUrl(code,APPID,AppSecret);
         String response = HttpUtil.get(url);
+        if (response==null){
+            throwExp("请求微信失败");
+        }
         WeChatAccessToken accessToken = JSON.parseObject(response, WeChatAccessToken.class);
         return accessToken;
     }
