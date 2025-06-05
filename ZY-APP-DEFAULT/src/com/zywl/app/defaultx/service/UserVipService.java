@@ -26,6 +26,7 @@ public class UserVipService extends DaoService {
         params.put("userId", userVip.getUserId());
         //vip等级判断
         long vipLevel = buildVipLevel(userVip.getRechargeAmount());
+
         params.put("vipLevel",vipLevel);
         params.put("rechargeAmount", userVip.getRechargeAmount());
         params.put("createTime", new Date());
