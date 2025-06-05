@@ -65,6 +65,7 @@ public class PlayGameService extends BaseService {
 
     //道具信息
     public static Map<String, Item> itemMap = new ConcurrentHashMap<>();
+    private final static Map<String, DicVip> DIC_VIP_MAP = new ConcurrentHashMap<>();
 
 
     public static Map<String, PrizeDrawReward> prizeDrawRewardInfo = new ConcurrentHashMap<>();
@@ -110,6 +111,8 @@ public class PlayGameService extends BaseService {
 
     @Autowired
     private DicShopService dicShopService;
+    @Autowired
+    private DicVipService dicVipService;
 
     @Autowired
     private AppConfigCacheService appConfigCacheService;
@@ -267,6 +270,7 @@ public class PlayGameService extends BaseService {
         initAchievement();
         initMine();
         initShop();
+        initDicVip();
     }
 
 
@@ -304,11 +308,15 @@ public class PlayGameService extends BaseService {
         allIncome3.forEach(e -> channelIncomeMap.put(String.valueOf(e.getTier()), e));
     }
 
+    public void initDicVip(){
+        List<DicVip> allVip = dicVipService.findAllVip();
+        allVip.forEach(e->DIC_VIP_MAP.put(String.valueOf(e.getLv()),e));
+    }
+
     public void initProduct() {
         List<Product> allProduct = productService.findAllProduct();
         allProduct.forEach(e -> productMap.put(e.getId().toString(), e));
     }
-
 
     public void initDailyTask() {
         dailyTaskInfo.clear();
