@@ -47,13 +47,14 @@ public class ManagerUserVipService extends BaseService {
             Collection<DicVip> values = PlayGameService.DIC_VIP_MAP.values();
             for (DicVip value : values) {
                 if (uservip.getRechargeAmount().compareTo(new BigDecimal(value.getBeginExp())) > 0
-                        && uservip.getRechargeAmount().compareTo(new BigDecimal(value.getBeginExp())) < 0) {
+                        && uservip.getRechargeAmount().compareTo(new BigDecimal(value.getEndExp())) < 0) {
                     uservip.setVipLevel(value.getLv());
                 }
             }
         }
         userVipService.updateUserVipInfo(uservip);
     }
+
 
 
 }

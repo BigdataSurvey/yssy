@@ -34,6 +34,8 @@ public class ManagerBuyGiftService extends BaseService {
     @Autowired
     private UserGiftRecordService userGiftRecordService;
 
+    @Autowired
+    private ManagerUserVipService managerUserVipService;
     public BigDecimal getGiftPriceById(int giftId, int priceType) {
         if (giftId == 1) {
             if (priceType == 1) {
@@ -76,6 +78,7 @@ public class ManagerBuyGiftService extends BaseService {
         Long recordId = userGiftRecordService.addGiftRecord(userId, orderNo, UserCapitalTypeEnum.currency_2.getValue(), 1, price);
         //2.扣钱
         userCapitalService.subBalanceByGift(price, userId, orderNo, recordId);
+        managerUserVipService.addExper(userId,price);
         //3.礼包数+1
         userGiftService.addUserGiftNumber(userId, giftId);
         //推送用户余额变化
