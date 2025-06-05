@@ -64,8 +64,9 @@ public class WXLoginOauthServlet extends BaseServlet {
                     // 1. 获取access_token
                     String code = request.getParameter("code");
                     WeChatAccessToken accessToken = getAccessToken(code);
-                    // 2. 获取用户信息
-                    WeChatUserInfo userInfo = getUserInfo(accessToken.getAccessToken(), accessToken.getOpenid());
+                    if (accessToken.getErrcode() != null) {
+                        Response.doResponse(asyncContext, "网络异常，连接服务器失败");
+                    }
                     JSONObject result = new JSONObject();
                     request.getSession().invalidate();
                     if (managerConfigService.getInteger(Config.SERVICE_STATUS) == 0) {
@@ -75,19 +76,13 @@ public class WXLoginOauthServlet extends BaseServlet {
                             return;
                         }
                     }
-
                     String oldWsid = request.getParameter("oldWsid");
                     String versionId = request.getParameter("versionId");
                     String inviteCode = request.getParameter("inviteCode");
-                    String tabtabId = request.getParameter("tabtabId");
-                    String authCode = request.getParameter("auth_code");
                     String deviceId = request.getParameter("deviceId");
                     String os = request.getParameter("os");
                     String gameToken = request.getParameter("gameToken");
-                    String openId = request.getParameter("openId");
-                    if (isNull(accessToken) || isNull(openId)) {
-                        throwExp("accessToken或openId异常");
-                    }
+                    String openId = accessToken.getOpenid();
                     String urlParameters = "?access_token=" + accessToken + "&openid=" + openId;
                     String wxLoginURL = WX_LOGIN_URL + urlParameters;
                     String getJSON;
@@ -129,14 +124,10 @@ public class WXLoginOauthServlet extends BaseServlet {
     /**
      * 使用code获取access_token
      */
-    private WeChatAccessToken getAccessToken(String code) throws Exception {
+    public WeChatAccessToken getAccessToken(String code) throws Exception {
         String url = weChatConfig.getAccessTokenUrl(code,APPID,AppSecret);
         String response = HttpUtil.get(url);
         WeChatAccessToken accessToken = JSON.parseObject(response, WeChatAccessToken.class);
-        if (accessToken.getErrcode() != null) {
-
-        }
-
         return accessToken;
     }
 
@@ -146,11 +137,7 @@ public class WXLoginOauthServlet extends BaseServlet {
     private WeChatUserInfo getUserInfo(String accessToken, String openId) throws Exception {
         String url = weChatConfig.getUserInfoUrl(accessToken, openId);
         String response = HttpUtil.get(url);
-
         WeChatUserInfo userInfo = JSON.parseObject(response, WeChatUserInfo.class);
-        if (userInfo.getErrcode() != null) {
-        }
-
         return userInfo;
     }
 
@@ -160,11 +147,7 @@ public class WXLoginOauthServlet extends BaseServlet {
     public WeChatAccessToken refreshToken(String refreshToken) throws Exception {
         String url = weChatConfig.getRefreshTokenUrl(refreshToken);
         String response = HttpUtil.get(url);
-
         WeChatAccessToken accessToken = JSON.parseObject(response, WeChatAccessToken.class);
-        if (accessToken.getErrcode() != null) {
-        }
-
         return accessToken;
     }
 
