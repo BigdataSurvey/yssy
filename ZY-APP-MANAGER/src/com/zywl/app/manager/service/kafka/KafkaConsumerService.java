@@ -151,7 +151,6 @@ public class KafkaConsumerService extends BaseService {
         } else if (KafkaEventContext.LOGIN.equals(eventType)) {
             loginCheck(data);
             checkAchievement(data, AchievementGroupEnum.LOGIN.getValue());
-            checkTopLikeRed(data);
         } else if (KafkaEventContext.DO_DAILY_TASK.equals(eventType)) {
             userReceiveDailyTask(data);
         } else if (KafkaEventContext.PVE_WIN.equals(eventType)) {
@@ -197,50 +196,8 @@ public class KafkaConsumerService extends BaseService {
 
     }
 
-    public void checkTopLikeRed(JSONObject data) {
-        Long userId = data.getLong("userId");
-        Map topLike = userCacheService.getUserTopLike(userId);
-        int i1 = (int) topLike.getOrDefault(String.valueOf(TopTypeEnum.POWER.getValue()), 0);
-        int i2 = (int) topLike.getOrDefault(String.valueOf(TopTypeEnum.CHECK_POINT.getValue()), 0);
-        int i3 = (int) topLike.getOrDefault(String.valueOf(TopTypeEnum.POPULAR.getValue()), 0);
-        int i4 = (int) topLike.getOrDefault(String.valueOf(TopTypeEnum.PVP.getValue()), 0);
-        int i5 = (int) topLike.getOrDefault(String.valueOf(TopTypeEnum.INVITE.getValue()), 0);
-        if (i1 == 0) {
-            pushRedPoint(userId, KafkaEventContext.TOP_1);
-        }
-        if (i2 == 0) {
-            pushRedPoint(userId, KafkaEventContext.TOP_2);
-        }
-        if (i3 == 0) {
-            List<JSONObject> lastWeekList = cardGameCacheService.getLastWeekList();
-            if (lastWeekList.size() != 0) {
-                pushRedPoint(userId, KafkaEventContext.TOP_3);
-            }
-        }
-        if (i4 == 0) {
-            pushRedPoint(userId, KafkaEventContext.TOP_4);
-        }
-        if (i5 == 0) {
-            pushRedPoint(userId, KafkaEventContext.TOP_5);
-        }
 
-    }
 
-    public Long findEquIdByPosition(PlayerCard playerCard, int position) {
-        if (playerCard == null) {
-            return null;
-        }
-        if (position == 1) {
-            return playerCard.getEquA();
-        } else if (position == 2) {
-            return playerCard.getEquB();
-        } else if (position == 3) {
-            return playerCard.getEquC();
-        } else if (position == 4) {
-            return playerCard.getEquD();
-        }
-        return null;
-    }
 
 
     public void userBuyShop(JSONObject data) {

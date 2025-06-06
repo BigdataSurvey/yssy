@@ -1,6 +1,8 @@
 package com.zywl.app.defaultx.service;
 
 import com.zywl.app.base.bean.UserVip;
+import com.zywl.app.base.bean.vo.DSTopVo;
+import com.zywl.app.base.bean.vo.VipTopVo;
 import com.zywl.app.base.util.LockUtil;
 import com.zywl.app.defaultx.dbutil.DaoService;
 import com.zywl.app.defaultx.enmus.UserCapitalTypeEnum;
@@ -12,6 +14,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 @Service
@@ -47,5 +50,10 @@ public class UserVipService extends DaoService {
         }
         return userVip;
 
+    }
+
+
+    public List<VipTopVo> findTopByVip(){
+        return findList("findTopByVip",null);
     }
 }

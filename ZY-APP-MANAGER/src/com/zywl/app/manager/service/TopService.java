@@ -3,16 +3,10 @@ package com.zywl.app.manager.service;
 import com.alibaba.fastjson2.JSONArray;
 import com.zywl.app.base.bean.UserPower;
 import com.zywl.app.base.bean.card.UserCheckpointTopVo;
-import com.zywl.app.base.bean.vo.CapitalTopVo;
-import com.zywl.app.base.bean.vo.DSTopVo;
-import com.zywl.app.base.bean.vo.OneJuniorNumTopVo;
-import com.zywl.app.base.bean.vo.UserPowerVo;
+import com.zywl.app.base.bean.vo.*;
 import com.zywl.app.base.bean.vo.card.UserTowerVo;
 import com.zywl.app.base.service.BaseService;
-import com.zywl.app.defaultx.service.UserCapitalService;
-import com.zywl.app.defaultx.service.UserPowerService;
-import com.zywl.app.defaultx.service.UserService;
-import com.zywl.app.defaultx.service.UserStatisticService;
+import com.zywl.app.defaultx.service.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -40,7 +34,7 @@ public class TopService extends BaseService {
 
     public static JSONArray TOP_FRIEND = new JSONArray();
 
-    public static JSONArray TOP_DS = new JSONArray();
+    public static JSONArray TOP_VIP = new JSONArray();
 
 
     @Autowired
@@ -58,26 +52,16 @@ public class TopService extends BaseService {
     private UserService userService;
 
 
+    @Autowired
+    private UserVipService userVipService;
 
 
     public void updateTop1Info() {
 
 
-      /*  time = System.currentTimeMillis();
-        CAPITAL_TOP_2.clear();
-        List<CapitalTopVo> capitalTop1 = userCapitalService.findCapitalTop(UserCapitalTypeEnum.currency_3.getValue());
-        CAPITAL_TOP_2.addAll(capitalTop1);
-        logger.info("更新仙晶排行榜--用时：" + (System.currentTimeMillis() - time));*/
+
 
         long time = System.currentTimeMillis();
-
-         time = System.currentTimeMillis();
-        TOP_4.clear();
-
-        logger.info("更新战力排行榜--用时：" + (System.currentTimeMillis() - time));
-
-
-        time = System.currentTimeMillis();
         TOP_5.clear();
         List<OneJuniorNumTopVo> toByJuniorNum = userStatisticService.findToByJuniorNum();
         for (OneJuniorNumTopVo oneJuniorNumTopVo : toByJuniorNum) {
@@ -96,49 +80,13 @@ public class TopService extends BaseService {
         TOP_5.addAll(toByJuniorNum);
         logger.info("更新好友排行榜--用时：" + (System.currentTimeMillis() - time));
 
-        time = System.currentTimeMillis();
 
 
         time = System.currentTimeMillis();
-        TOP_FRIEND.clear();
-        List<CapitalTopVo> capitalTopVos = userStatisticService.findTop();
-        for (CapitalTopVo capitalTopVo : capitalTopVos) {
-            if (capitalTopVo.getRoleId()==3){
-                capitalTopVo.setIsPopular(1);
-            }
-            if (capitalTopVo.getRoleId()==2){
-                capitalTopVo.setIsPopular(2);
-            }
-        }
-        TOP_FRIEND.addAll(capitalTopVos);
-        logger.info("更新友情值排行榜--用时：" + (System.currentTimeMillis() - time));
-
-        time = System.currentTimeMillis();
-        TOP_DS.clear();
-        List<DSTopVo> dsTopVos = userService.findTopByDs();
-        for (DSTopVo dsTopVo : dsTopVos) {
-            if (dsTopVo.getRoleId()==3){
-                dsTopVo.setIsPopular(1);
-            }
-            if (dsTopVo.getRoleId()==2){
-                dsTopVo.setIsPopular(2);
-            }
-        }
-        List<DSTopVo> dsTopVos2 = userService.findTopByDl();
-        for (DSTopVo dsTopVo : dsTopVos2) {
-            if (dsTopVo.getRoleId()==3){
-                dsTopVo.setIsPopular(1);
-            }
-            if (dsTopVo.getRoleId()==2){
-                dsTopVo.setIsPopular(2);
-            }
-        }
-        Collections.shuffle(dsTopVos);
-        Collections.shuffle(dsTopVos2);
-        TOP_DS.addAll(dsTopVos);
-        TOP_DS.addAll(dsTopVos2);
-
-        logger.info("更新至尊榜--用时：" + (System.currentTimeMillis() - time));
+        TOP_VIP.clear();
+        List<VipTopVo> vipTopVos = userVipService.findTopByVip();
+        TOP_VIP.addAll(vipTopVos);
+        logger.info("更新vip榜--用时：" + (System.currentTimeMillis() - time));
     }
 
 }

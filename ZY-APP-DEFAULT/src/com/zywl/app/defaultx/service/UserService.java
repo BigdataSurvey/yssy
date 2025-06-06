@@ -850,9 +850,9 @@ public class UserService extends DaoService {
         return findList("temp", null);
     }
 
-    public List<DSTopVo> findTopByDs(){
-        return findList("findTopByDs",null);
-    }
+
+
+
     public List<DSTopVo> findTopByDl(){
         return findList("findTopByDl",null);
     }

@@ -1,6 +1,7 @@
 package com.zywl.app.server.service;
 
 import cn.hutool.core.date.DateTime;
+import cn.hutool.http.HttpUtil;
 import com.alibaba.fastjson2.JSONArray;
 import com.alibaba.fastjson2.JSONObject;
 import com.ijpay.core.utils.DateTimeZoneUtil;
@@ -51,6 +52,13 @@ public class ServerUserRoleService extends BaseService {
 
     public static final Map<String, DicRole> DIC_ROLE = new ConcurrentHashMap<>();
 
+    public static final String VERSION ="v1.0";
+    public static final String TYPE = "10005";
+    public static final String USER_ID = "88162050";
+
+    public static final String SECRET = "e7a15a9d4e6946bb97edf329035297d1";
+
+
     @PostConstruct
     public void _serverUserRoleService() {
         initRole();
@@ -80,41 +88,46 @@ public class ServerUserRoleService extends BaseService {
         String merchantId = serverConfigService.getString(Config.PAY_MERCHANT_ID);
         String merReqNo = OrderUtil.getOrder5Number();
         String notifyUrl = serverConfigService.getString(Config.PAY_NOTIFY_URL);
-        String returnUrl = "";
-        String tranDateTime = DateUtil.getCurrent3();
-        String sign = "";
+        String returnUrl = serverConfigService.getString(Config.PAY_REDIRECT_URL);
+
         String timeExpire = DateTimeZoneUtil.dateToTimeZone(System.currentTimeMillis() + 1000 * 60 * 3);
         DateTime dateTime = cn.hutool.core.date.DateUtil.parse(timeExpire);
         Date expireDate = new Date(dateTime.getTime());
         tsgPayOrderService.addOrder(userId,merReqNo,productId,price,expireDate);
-        Map<String,String> data = new HashMap<>();
-        data.put("merchantId",merchantId);
-        data.put("merReqNo",merReqNo);
-        data.put("amt", String.valueOf(price));
-        data.put("goodsName",goodsName);
-        data.put("creatip",ip);
-        data.put("notifyUrl",notifyUrl);
-        data.put("returnUrl",returnUrl);
-        data.put("tranDateTime",tranDateTime);
-        TreeMap<String,String> treeMap = new TreeMap<>(data);
+        Map<String,Object> data = new HashMap<>();
+        data.put("version",VERSION);
+        data.put("type",TYPE);
+        data.put("userId", USER_ID);
+        data.put("buyerId", String.valueOf(userId));
+        data.put("requestNo",merReqNo);
+        data.put("amount", String.valueOf(price.multiply(new BigDecimal(100)).setScale(0)));
+        data.put("callBackURL",notifyUrl);
+        data.put("redirectUrl",returnUrl);
+        data.put("ip",ip);
+        TreeMap<String,Object> treeMap = new TreeMap<>(data);
         StringBuffer stringBuffer = new StringBuffer();
         treeMap.forEach((key, value) -> stringBuffer.append(key).append("=").append(value).append("&"));
-        stringBuffer.deleteCharAt(stringBuffer.length()-1);
-        stringBuffer.append("=================");
-        String signMd5 = MD5Util.md5(stringBuffer.toString());
+        String s = stringBuffer+"key="+SECRET;
+        System.out.println(s);
+        String signMd5 = MD5Util.md5(s).toLowerCase();
         data.put("sign",signMd5);
-        String result = HTTPUtil.postJSON("http://121.199.171.139/webapis/tran/addTrans.php","", data);
+        String result = HttpUtil.post("https://api-kaite.jjoms.com/api/pay",data);
         if (result==null){
             throwExp("当前没有可用的支付地址，请联系客服或稍后再试");
         }
         JSONObject jsonResult = JSONObject.parseObject(result);
-        if (jsonResult.containsKey("success") && jsonResult.getBoolean("success")){
-            return jsonResult.getJSONObject("data");
+        if (jsonResult.containsKey("message") && jsonResult.getString("message").equals("000000")){
+            JSONObject returnResult = new JSONObject();
+            returnResult.put("payUrl",jsonResult.getJSONObject("payUrl"));
+            return returnResult;
+        }else{
+            logger.error("请求支付接口错误"+result);
         }
         throwExp("当前没有可用的支付地址，请联系客服或稍后再试");
         return null;
     }
 
+    @Transactional
     @ServiceMethod(code = "000", description = "购买礼包")
     public Object buy(final AppSocket appSocket, Command appCommand, JSONObject params) throws Exception {
         checkNull(params);
@@ -124,7 +137,8 @@ public class ServerUserRoleService extends BaseService {
         //用户Id 插入到参数中 传到manager服务器   code 035011
         params.put("userId", userId);
         int priceType = params.getIntValue("priceType");
-        if (priceType==1){
+
+        if (priceType==2){
             return getPayAddress(userId,params, appSocket.getIp());
         }else{
             Executer.request(TargetSocketType.manager, CommandBuilder.builder().request("035011", params).build(), new RequestManagerListener(appCommand));
@@ -321,4 +335,12 @@ public class ServerUserRoleService extends BaseService {
         return result;
     }
 
+    public static void main(String[] args) {
+        String s = "amount=9900&buyerId=928371&callBackURL=http://8.130.102.236:8080/ZY-APP-MANAGER/tsgPayNotify&ip=172.16.3.127&redirectUrl=&requestNo=2025060609413822536&type=aliPayH5&userId=88162050&version=v1.0key=e7a15a9d4e6946bb97edf329035297d1";
+        String s2 = "amount=9900&buyerId=928371&callBackURL=http://8.130.102.236:8080/ZY-APP-MANAGER/tsgPayNotify&ip=172.16.3.127&redirectUrl=&requestNo=2025060609413822536&type=aliPayH5&userId=88162050&version=v1.0&key=e7a15a9d4e6946bb97edf329035297d1";
+        String s1 = MD5Util.md5(s).toLowerCase();
+        String s3 = MD5Util.md5(s2).toLowerCase();
+        System.out.println(s1);
+        System.out.println(s3);
+    }
 }

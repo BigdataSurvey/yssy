@@ -9,7 +9,7 @@ package com.zywl.app.defaultx.enmus;
 public enum TopTypeEnum {
 
 	POPULAR("人气排行榜", 3),
-	PVP("pvp", 2),
+	VIP("vip", 2),
 	INVITE("邀请榜",1),
 	TOWER_TOP("试炼之塔",4),
 	POWER("战力排行榜",5),

@@ -97,6 +97,9 @@ public class ManagerGameBaseService extends BaseService {
     @Autowired
     private UserService userService;
 
+    @Autowired
+    private UserVipService userVipService;
+
 
     @Autowired
     private ManagerUserService managerUserService;
@@ -233,22 +236,25 @@ public class ManagerGameBaseService extends BaseService {
         checkNull(params);
         checkNull(params.get("type"));
         Long userId = params.getLong("userId");
+        User user = userCacheService.getUserInfoById(userId);
         //开服活动
         JSONObject result = new JSONObject();
         int type = params.getIntValue("type");
-        if (type == TopTypeEnum.POPULAR.getValue()) {
-            result.put("topList", TopService.TOP_DS);
+        if (type == TopTypeEnum.VIP.getValue()) {
+            result.put("topList", TopService.TOP_VIP);
+            UserVip userVip = userVipService.findRechargeAmountByUserId(userId);
+            VipTopVo vo = new VipTopVo();
+            vo.setUserId(userId);
+            vo.setNum((int) userVip.getVipLevel());
+            vo.setUserNo(user.getUserNo());
+            vo.setUserHeadImg(user.getHeadImageUrl());
+            vo.setUserName(user.getName());
+            result.put("my", vo);
         } else if (type == TopTypeEnum.INVITE.getValue()) {
             result.put("topList", TopService.TOP_5);
             OneJuniorNumTopVo myJuniorNum = userStatisticService.findMyJuniorNum(userId);
             myJuniorNum.setNum(myJuniorNum.getNum() + myJuniorNum.getNum2());
             result.put("my", myJuniorNum);
-        } else if (type == TopTypeEnum.TOWER_TOP.getValue()) {
-            result.put("topList", TopService.TOWER_TOP);
-        } else if (type == TopTypeEnum.POWER.getValue()) {
-            result.put("topList", TopService.TOP_4);
-        } else if (type == TopTypeEnum.CHECK_POINT.getValue()) {
-            result.put("topList", TopService.TOP_FRIEND);
         }
         result.put("isOpen", managerConfigService.getInteger(Config.RANK_IS_OPEN));
 

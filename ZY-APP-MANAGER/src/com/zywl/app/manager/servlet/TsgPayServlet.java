@@ -48,6 +48,8 @@ public class TsgPayServlet extends HttpServlet {
 	}
 
 	public void doProcess(HttpServletRequest request, HttpServletResponse response) {
+		System.out.println("========================================");
+		System.out.println(request.getParameterMap());
 		String morderid = request.getParameter("morderid");
 		String orderid = request.getParameter("orderid");
 		String amt = request.getParameter("amt");
