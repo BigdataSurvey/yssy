@@ -54,6 +54,8 @@ public class ManagerUserVipService extends BaseService {
     private ManagerSocketService managerSocketService;
     @Autowired
     private DicVipService dicVipService;
+    @Autowired
+    private PlayGameService playGameService;
     private final static Map<String, DicVip> DIC_VIP_MAP = new ConcurrentHashMap<>();
     private final static String RECEIVED = "1";
     private final static String UNRECEIVE = "0";
@@ -93,33 +95,25 @@ public class ManagerUserVipService extends BaseService {
 
     @Transactional
     @ServiceMethod(code = "011", description = "领取vip礼包")
-    public synchronized JSONObject receiveUserVipGift(JSONObject data) throws Exception {
+    public  JSONObject receiveUserVipGift(JSONObject data) throws Exception {
         checkNull(data);
-        Integer userId = (Integer) data.get("userId");
-        UserVip userVip = userVipService.findRechargeAmountByUserId(Long.valueOf(userId));
+        long userId = data.getLong("userId");
+        synchronized (LockUtil.getlock(userId)) {UserVip userVip = userVipService.findRechargeAmountByUserId(userId);
         long vipLevel = userVip.getVipLevel();
         JSONArray reward = DIC_VIP_MAP.get(String.valueOf(vipLevel)).getReward();
         String orderNo = OrderUtil.getOrder5Number();
-
-       // synchronized (LockUtil.getlock(userId.toString())) {
-            List<VipReceiveRecord> vipReceiveRecord = vipReceiveRecordService.findVipReceiveRecordByLevel(Long.valueOf(userId), vipLevel);
+            List<VipReceiveRecord> vipReceiveRecord = vipReceiveRecordService.findVipReceiveRecordByLevel(userId, vipLevel);
             if (vipReceiveRecord.size() > 0) {
                 throwExp("已领取过该奖励");
             }
 
             //获取当前用户已经当前用户等级，新增一条记录到记录表
-            long id = vipReceiveRecordService.addVipReceiveRecord(Long.valueOf(userId), orderNo, vipLevel, reward.toString(), new Date(), new Date());
-            if (reward.size() > 0) {
-                HashMap<String, Object> map = (HashMap<String, Object>) reward.get(0);
-                Integer amount = (Integer) map.get("number");
-                userCapitalService.addUserBalanceByAddReward(BigDecimal.valueOf(amount), Long.valueOf(userId), UserCapitalTypeEnum.currency_2.getValue(), LogCapitalTypeEnum.VIP_RECEIVE);
-                pushCapitalUpdate(Long.valueOf(userId), UserCapitalTypeEnum.currency_2.getValue());
-            }
-
+            long id = vipReceiveRecordService.addVipReceiveRecord(userId, orderNo, vipLevel, reward.toString(), new Date(), new Date());
+            playGameService.addReward(userId,reward,LogCapitalTypeEnum.VIP_RECEIVE);
             JSONObject result = new JSONObject();
             result.put("id", id);
             return result;
-       // }
+        }
 
 
     }

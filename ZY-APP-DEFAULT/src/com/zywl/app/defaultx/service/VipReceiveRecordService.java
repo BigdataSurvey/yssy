@@ -5,6 +5,7 @@ import com.zywl.app.base.bean.VipReceiveRecord;
 import com.zywl.app.defaultx.dbutil.DaoService;
 import org.apache.commons.collections4.map.HashedMap;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.util.Date;
@@ -26,6 +27,7 @@ public class VipReceiveRecordService extends DaoService {
     }
 
 
+    @Transactional
     public long addVipReceiveRecord(Long userId, String orderNo, Long vipLevel, String reward, Date crteTime, Date upteTime) {
         VipReceiveRecord vipReceiveRecord = new VipReceiveRecord();
         vipReceiveRecord.setUserId(userId);
