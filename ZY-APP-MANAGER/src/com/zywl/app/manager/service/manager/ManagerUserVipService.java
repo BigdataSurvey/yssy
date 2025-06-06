@@ -1,24 +1,33 @@
 package com.zywl.app.manager.service.manager;
 
+import com.alibaba.fastjson2.JSONArray;
 import com.alibaba.fastjson2.JSONObject;
-import com.zywl.app.base.bean.DicVip;
-import com.zywl.app.base.bean.UserCapital;
-import com.zywl.app.base.bean.UserVip;
+import com.zywl.app.base.bean.*;
+import com.zywl.app.base.bean.vo.UserDailyTaskVo;
+import com.zywl.app.base.constant.KafkaEventContext;
+import com.zywl.app.base.constant.KafkaTopicContext;
 import com.zywl.app.base.service.BaseService;
+import com.zywl.app.base.util.LockUtil;
 import com.zywl.app.base.util.OrderUtil;
+import com.zywl.app.defaultx.annotation.KafkaProducer;
 import com.zywl.app.defaultx.annotation.ServiceClass;
 import com.zywl.app.defaultx.annotation.ServiceMethod;
 import com.zywl.app.defaultx.cache.UserCapitalCacheService;
+import com.zywl.app.defaultx.enmus.LogCapitalTypeEnum;
 import com.zywl.app.defaultx.enmus.UserCapitalTypeEnum;
 import com.zywl.app.defaultx.service.UserVipService;
+import com.zywl.app.defaultx.service.VipReceiveRecordService;
 import com.zywl.app.manager.context.MessageCodeContext;
 import com.zywl.app.manager.service.PlayGameService;
+import com.zywl.app.manager.socket.ManagerSocketServer;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.util.Collection;
+import java.util.Date;
+import java.util.List;
 
 @Service
 @ServiceClass(code = MessageCodeContext.USER_VIP)
@@ -30,6 +39,9 @@ public class ManagerUserVipService extends BaseService {
     private UserCapitalCacheService userCapitalCacheService;
     @Autowired
     private UserVipService userVipService;
+
+    @Autowired
+    private VipReceiveRecordService vipReceiveRecordService;
 
 
     /**
@@ -49,11 +61,13 @@ public class ManagerUserVipService extends BaseService {
                 if (uservip.getRechargeAmount().compareTo(new BigDecimal(value.getBeginExp())) > 0
                         && uservip.getRechargeAmount().compareTo(new BigDecimal(value.getEndExp())) < 0) {
                     uservip.setVipLevel(value.getLv());
+                    break;
                 }
             }
         }
         userVipService.updateUserVipInfo(uservip);
     }
+
 
 
 

@@ -31,28 +31,22 @@
     </update>
 
 
-    <select id="findRechargeAmountByUserId" resultType="UserVip">
-        select *
-        from t_user_vip
-        where user_id = #{userId}
-    </select>
+	<select id="findRechargeAmountByUserId" resultType="UserVip">
+		select * from t_user_vip where user_id = #{userId}
+	</select>
 
 
-    <select id="findOne" resultType="UserVip">
-        select *
-        from t_user_vip
-        where id = #{id}
-    </select>
+	<select id="findOne" resultType="UserVip">
+	    select * from t_user_vip where id = #{id}
+	</select>
+	
+	<select id="findAll" resultType="UserVip">
+	    select * from t_user_vip
+	</select>
 
-    <select id="findAll" resultType="UserVip">
-        select *
-        from t_user_vip
-    </select>
-
-    <select id="countByConditions" resultType="Long">
-        select count(1)
-        from t_user_vip
-    </select>
-
+	<select id="countByConditions" resultType="Long">
+		select count(1) from t_user_vip
+	</select>
+	
 
 </mapper>
