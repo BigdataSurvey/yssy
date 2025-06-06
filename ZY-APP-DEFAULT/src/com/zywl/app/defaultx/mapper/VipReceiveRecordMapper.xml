@@ -27,7 +27,7 @@
         delete from r_vip_receive_record where id= #{id}
     </delete>
 
-    <select id="findByLevel" resultType="VipReceiveRecord">
+    <select id="findByConditions" resultType="VipReceiveRecord">
         select * from r_vip_receive_record where user_id = #{userId} and vip_level = #{vipLevel}
     </select>
 

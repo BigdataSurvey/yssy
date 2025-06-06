@@ -25,15 +25,16 @@ public class VipReceiveRecordService extends DaoService {
         return findByConditions(params);
     }
 
-    public Long addVipReceiveRecord(long userId, String orderNo, int value, int number, BigDecimal balance) {
-        UserDonateItemRecord userDonateItemRecord = new UserDonateItemRecord();
-        userDonateItemRecord.setUserId(userId);
-        userDonateItemRecord.setOrderNo(orderNo);
-        userDonateItemRecord.setNumber(number);
-        userDonateItemRecord.setPrice(balance);
-        userDonateItemRecord.setType(value);
-        userDonateItemRecord.setCreateTime(new Date());
-        save(userDonateItemRecord);
-        return userDonateItemRecord.getId();
+
+    public long addVipReceiveRecord(Long userId, String orderNo, Long vipLevel, String reward, Date crteTime, Date upteTime) {
+        VipReceiveRecord vipReceiveRecord = new VipReceiveRecord();
+        vipReceiveRecord.setUserId(userId);
+        vipReceiveRecord.setOrderNo(orderNo);
+        vipReceiveRecord.setReward(reward);
+        vipReceiveRecord.setVipLevel(vipLevel);
+        vipReceiveRecord.setCreateTime(crteTime);
+        vipReceiveRecord.setCreateTime(crteTime);
+        save(vipReceiveRecord);
+        return vipReceiveRecord.getId();
     }
 }

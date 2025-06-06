@@ -2,15 +2,17 @@ package com.zywl.app.base.bean;
 
 import com.zywl.app.base.BaseBean;
 
+import java.util.Date;
+
 public class VipReceiveRecord extends BaseBean {
 
     private long id;
     private long userId;
-    private long orderNo;
+    private String  orderNo;
     private long vipLevel;
-    private long reward;
-    private long createTime;
-    private long updateTime;
+    private String reward;
+    private Date createTime;
+    private Date updateTime;
 
     public long getId() {
         return id;
@@ -28,11 +30,11 @@ public class VipReceiveRecord extends BaseBean {
         this.userId = userId;
     }
 
-    public long getOrderNo() {
+    public String getOrderNo() {
         return orderNo;
     }
 
-    public void setOrderNo(long orderNo) {
+    public void setOrderNo(String orderNo) {
         this.orderNo = orderNo;
     }
 
@@ -44,34 +46,31 @@ public class VipReceiveRecord extends BaseBean {
         this.vipLevel = vipLevel;
     }
 
-    public long getReward() {
+    public String getReward() {
         return reward;
     }
 
-    public void setReward(long reward) {
+    public void setReward(String reward) {
         this.reward = reward;
     }
 
-    public long getCreateTime() {
+    public Date getCreateTime() {
         return createTime;
     }
 
-    public void setCreateTime(long createTime) {
+    public void setCreateTime(Date createTime) {
         this.createTime = createTime;
     }
 
-    public long getUpdateTime() {
+    public Date getUpdateTime() {
         return updateTime;
     }
 
-    public void setUpdateTime(long updateTime) {
+    public void setUpdateTime(Date updateTime) {
         this.updateTime = updateTime;
     }
 
-    public VipReceiveRecord() {
-    }
-
-    public VipReceiveRecord(long id, long userId, long orderNo, long vipLevel, long reward, long createTime, long updateTime) {
+    public VipReceiveRecord(long id, long userId, String orderNo, long vipLevel, String reward, Date createTime, Date updateTime) {
         this.id = id;
         this.userId = userId;
         this.orderNo = orderNo;
@@ -79,5 +78,8 @@ public class VipReceiveRecord extends BaseBean {
         this.reward = reward;
         this.createTime = createTime;
         this.updateTime = updateTime;
+    }
+
+    public VipReceiveRecord() {
     }
 }

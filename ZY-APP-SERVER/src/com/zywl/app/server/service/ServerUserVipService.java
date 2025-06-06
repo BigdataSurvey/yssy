@@ -1,28 +1,43 @@
 package com.zywl.app.server.service;
 
+import cn.hutool.core.lang.hash.Hash;
 import com.alibaba.fastjson2.JSONArray;
 import com.alibaba.fastjson2.JSONObject;
 import com.live.app.ws.bean.Command;
-import com.zywl.app.base.bean.Config;
-import com.zywl.app.base.bean.DicVip;
-import com.zywl.app.base.bean.UserVip;
-import com.zywl.app.base.bean.VipReceiveRecord;
+import com.live.app.ws.enums.PushCode;
+import com.live.app.ws.enums.TargetSocketType;
+import com.live.app.ws.util.CommandBuilder;
+import com.live.app.ws.util.Executer;
+import com.live.app.ws.util.Push;
+import com.zywl.app.base.bean.*;
+import com.zywl.app.base.bean.vo.UserDailyTaskVo;
+import com.zywl.app.base.constant.KafkaEventContext;
+import com.zywl.app.base.constant.KafkaTopicContext;
 import com.zywl.app.base.service.BaseService;
+import com.zywl.app.base.util.Async;
+import com.zywl.app.base.util.LockUtil;
+import com.zywl.app.base.util.OrderUtil;
+import com.zywl.app.defaultx.annotation.KafkaProducer;
 import com.zywl.app.defaultx.annotation.ServiceClass;
 import com.zywl.app.defaultx.annotation.ServiceMethod;
+import com.zywl.app.defaultx.cache.UserCapitalCacheService;
+import com.zywl.app.defaultx.enmus.LogCapitalTypeEnum;
+import com.zywl.app.defaultx.enmus.UserCapitalTypeEnum;
 import com.zywl.app.defaultx.enmus.VipLevelTypeEnum;
 import com.zywl.app.defaultx.service.DicVipService;
+import com.zywl.app.defaultx.service.UserCapitalService;
 import com.zywl.app.defaultx.service.UserVipService;
 import com.zywl.app.defaultx.service.VipReceiveRecordService;
 import com.zywl.app.server.context.MessageCodeContext;
 import com.zywl.app.server.socket.AppSocket;
+import com.zywl.app.server.util.RequestManagerListener;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import javax.annotation.PostConstruct;
 import java.math.BigDecimal;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
 @Service
@@ -39,6 +54,11 @@ public class ServerUserVipService extends BaseService {
 
     @Autowired
     private VipReceiveRecordService vipReceiveRecordService;
+    @Autowired
+    private UserCapitalService userCapitalService;
+    @Autowired
+    private UserCapitalCacheService userCapitalCacheService;
+
 
     private final static Map<String, DicVip> DIC_VIP_MAP = new ConcurrentHashMap<>();
     private final static String RECEIVED  = "1";
@@ -80,6 +100,20 @@ public class ServerUserVipService extends BaseService {
         result.put("vipInfo", rechargeAmountByUserId);
         return result;
     }
+
+
+    @Transactional
+    @ServiceMethod(code = "002", description = "领取vip特权礼包")
+    @KafkaProducer(topic = KafkaTopicContext.RED_POINT, event = KafkaEventContext.DO_DAILY_TASK, sendParams = true)
+    public Async receiveUserVipGift(final AppSocket appSocket, Command appCommand, JSONObject params) {
+            checkNull(params);
+            params.put("userId", appSocket.getWsidBean().getUserId());
+            Executer.request(TargetSocketType.manager, CommandBuilder.builder().request("9008011", params).build(),
+                    new RequestManagerListener(appCommand));
+            return async();
+        }
+
+
 
     private BigDecimal comparToRechargeAmount(BigDecimal rechargeAmount) {
         BigDecimal differ = BigDecimal.ZERO;
