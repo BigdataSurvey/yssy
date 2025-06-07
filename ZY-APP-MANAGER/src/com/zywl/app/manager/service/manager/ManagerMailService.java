@@ -73,6 +73,8 @@ public class ManagerMailService extends BaseService {
 
     @Autowired
     private GuildDailyStaticsService guildDailyStaticsService;
+    @Autowired
+    private UserVipService userVipService;
 
 
     @PostConstruct
@@ -173,6 +175,10 @@ public class ManagerMailService extends BaseService {
     public JSONObject sendMail(ManagerSocketServer adminSocketServer, JSONObject data) {
         checkNull(data);
         checkNull(data.get("toUserId"), data.get("userId"));
+        //第一个是赠送的文房四宝
+        JSONObject detail = new JSONObject();
+        //第二个是根据等级额外获得的信封道具
+        JSONObject detail1 = new JSONObject();
         long userId = data.getLongValue("userId");
         long toUserId = data.getLongValue("toUserId");
         String context = data.getString("context");
@@ -181,9 +187,36 @@ public class ManagerMailService extends BaseService {
             throwExp("数值异常");
         }
         String itemId = "5";
+        String useItemId = "31";
+        String smallItemId = "32";
+        String bigItemId = "33";
         String title = data.getString("title");
         User user = userCacheService.getUserInfoById(userId);
         gameService.checkUserItemNumber(userId, itemId, number);
+        //根据userId查询出当前用户的vip等级
+        UserVip uservip = userVipService.findRechargeAmountByUserId(userId);
+        UserVip toUservip = userVipService.findRechargeAmountByUserId(toUserId);
+        if(uservip.getVipLevel()<4 ){
+            //需要消耗一个信鸽
+            gameService.checkUserItemNumber(userId, useItemId, number);
+            //修改该用户的道具
+            gameService.updateUserBackpack(userId, useItemId,-number, LogUserBackpackTypeEnum.use);
+        }
+        if(uservip.getVipLevel()<4 && toUservip.getVipLevel() == 4){
+            //收件人将获得一个小信封
+            //修改该用户的道具
+            gameService.updateUserBackpack(toUserId, smallItemId,number, LogUserBackpackTypeEnum.use);
+            detail1.put("type", 1);
+            detail1.put("id", smallItemId);
+            detail1.put("number", number);
+            detail1.put("channel", MailGoldTypeEnum.FRIEND.getValue());
+        }else if(uservip.getVipLevel()<4 && toUservip.getVipLevel() > 4){
+            gameService.updateUserBackpack(toUserId, bigItemId,number, LogUserBackpackTypeEnum.use);
+            detail1.put("type", 1);
+            detail1.put("id", bigItemId);
+            detail1.put("number", number);
+            detail1.put("channel", MailGoldTypeEnum.FRIEND.getValue());
+        }
         if (title == null) {
             title = "好友赠送";
         }
@@ -191,15 +224,18 @@ public class ManagerMailService extends BaseService {
             context = user.getName() + "(" + user.getUserNo() + ")赠送" + PlayGameService.itemMap.get(itemId).getName()
                     + ":" + number;
         }
-        JSONObject detail = new JSONObject();
+
         detail.put("type", 1);
         detail.put("id", itemId);
         detail.put("number", number);
         detail.put("channel", MailGoldTypeEnum.FRIEND.getValue());
+
+
         //添加邮件记录
         int isAttachments = 1;
         JSONArray array = new JSONArray();
         array.add(detail);
+        array.add(detail1);
         Long mailId = mailService.sendMail(userId, toUserId, title, context, null, isAttachments, array);
         String orderNo = OrderUtil.getOrder5Number();
         //如果是赠送   则再扣除赠送的金额  增加流水  赠送记录
