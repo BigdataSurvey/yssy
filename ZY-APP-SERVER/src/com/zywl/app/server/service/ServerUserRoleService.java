@@ -1,7 +1,6 @@
 package com.zywl.app.server.service;
 
 import cn.hutool.core.date.DateTime;
-import cn.hutool.http.HttpUtil;
 import com.alibaba.fastjson2.JSONArray;
 import com.alibaba.fastjson2.JSONObject;
 import com.ijpay.core.utils.DateTimeZoneUtil;
@@ -52,7 +51,7 @@ public class ServerUserRoleService extends BaseService {
 
     public static final Map<String, DicRole> DIC_ROLE = new ConcurrentHashMap<>();
 
-    public static final String VERSION ="v1.0";
+    public static final String VERSION = "v1.0";
     public static final String TYPE = "10005";
     public static final String USER_ID = "88162050";
 
@@ -69,21 +68,17 @@ public class ServerUserRoleService extends BaseService {
         allRole.forEach(e -> DIC_ROLE.put(e.getId().toString(), e));
     }
 
-    public Object getPayAddress(Long userId, JSONObject params,String ip) throws Exception {
+    public Object getPayAddress(Long userId, JSONObject params, String ip) throws Exception {
         checkNull(params);
         checkNull(params.get("giftType"));
         Long productId = params.getLong("giftType");
-        BigDecimal price ;
-        String goodsName ;
-        if (productId==1L){
+        BigDecimal price;
+        if (productId == 1L) {
             price = serverConfigService.getBigDecimal(Config.GIFT_PRICE_1).setScale(2);
-            goodsName = "角色小礼包";
-        } else if (productId==2L) {
+        } else if (productId == 2L) {
             price = serverConfigService.getBigDecimal(Config.GIFT_PRICE_2).setScale(2);
-            goodsName = "角色大礼包";
-        }else {
+        } else {
             price = new BigDecimal("1").setScale(2);
-            goodsName = "测试礼包";
         }
         String merchantId = serverConfigService.getString(Config.PAY_MERCHANT_ID);
         String merReqNo = OrderUtil.getOrder5Number();
@@ -93,58 +88,72 @@ public class ServerUserRoleService extends BaseService {
         String timeExpire = DateTimeZoneUtil.dateToTimeZone(System.currentTimeMillis() + 1000 * 60 * 3);
         DateTime dateTime = cn.hutool.core.date.DateUtil.parse(timeExpire);
         Date expireDate = new Date(dateTime.getTime());
-        tsgPayOrderService.addOrder(userId,merReqNo,productId,price,expireDate);
-        Map<String,Object> data = new HashMap<>();
-        data.put("version",VERSION);
-        data.put("type",TYPE);
+        tsgPayOrderService.addOrder(userId, merReqNo, productId, price, expireDate);
+        Map<String, Object> data = new HashMap<>();
+        data.put("version", VERSION);
+        data.put("type", TYPE);
         data.put("userId", USER_ID);
         data.put("buyerId", String.valueOf(userId));
-        data.put("requestNo",merReqNo);
+        data.put("requestNo", merReqNo);
         data.put("amount", String.valueOf(price.multiply(new BigDecimal(100)).setScale(0)));
-        data.put("callBackURL",notifyUrl);
-        data.put("redirectUrl",returnUrl);
-        data.put("ip",ip);
-        TreeMap<String,Object> treeMap = new TreeMap<>(data);
+        data.put("callBackURL", notifyUrl);
+        data.put("redirectUrl", returnUrl);
+        data.put("ip", ip);
+        TreeMap<String, Object> treeMap = new TreeMap<>(data);
         StringBuffer stringBuffer = new StringBuffer();
         treeMap.forEach((key, value) -> stringBuffer.append(key).append("=").append(value).append("&"));
-        String s = stringBuffer+"key="+SECRET;
+        String s = stringBuffer + "key=" + SECRET;
         System.out.println(s);
         String signMd5 = MD5Util.md5(s).toLowerCase();
-        data.put("sign",signMd5);
-        String result = HttpUtil.post("https://api-kaite.jjoms.com/api/pay",data);
-        if (result==null){
+        data.put("sign", signMd5);
+        Long time = System.currentTimeMillis();
+        JSONObject from = JSONObject.from(data);
+        String s1 = from.toJSONString();
+        String result =HTTPUtil.postJSON("https://api-kaite.jjoms.com/api/pay",s1);
+        System.out.println("请求支付地址耗时:"+(System.currentTimeMillis()-time));
+        System.out.println(result);
+        if (result == null) {
             throwExp("当前没有可用的支付地址，请联系客服或稍后再试");
         }
         JSONObject jsonResult = JSONObject.parseObject(result);
-        if (jsonResult.containsKey("message") && jsonResult.getString("message").equals("000000")){
+        if (jsonResult.containsKey("message") && jsonResult.getString("message").equals("000000")) {
             JSONObject returnResult = new JSONObject();
-            returnResult.put("payUrl",jsonResult.getJSONObject("payUrl"));
+            returnResult.put("payUrl", jsonResult.getString("payUrl"));
             return returnResult;
-        }else{
-            logger.error("请求支付接口错误"+result);
+        } else {
+            logger.error("请求支付接口错误" + result);
         }
         throwExp("当前没有可用的支付地址，请联系客服或稍后再试");
         return null;
     }
 
     @Transactional
+    @ServiceMethod(code = "100", description = "购买礼包")
+    public Object buyByRmb(final AppSocket appSocket, Command appCommand, JSONObject params) throws Exception {
+        checkNull(params);
+        checkNull(params.get("giftType"));
+        int giftType = params.getIntValue("giftType");
+        if (giftType!=1 && giftType!=2){
+            throwExp("参数异常");
+        }
+        Long userId = appSocket.getWsidBean().getUserId();
+        return getPayAddress(userId,params,appSocket.getIp());
+    }
+
+    @Transactional
     @ServiceMethod(code = "000", description = "购买礼包")
     public Object buy(final AppSocket appSocket, Command appCommand, JSONObject params) throws Exception {
         checkNull(params);
-        checkNull(params.get("giftType"),params.get("priceType"));
-        //todo 验证giftId合理性
+        checkNull(params.get("giftType"));
+        int giftType = params.getIntValue("giftType");
+        if (giftType!=1 && giftType!=2){
+            throwExp("参数异常");
+        }
         Long userId = appSocket.getWsidBean().getUserId();
         //用户Id 插入到参数中 传到manager服务器   code 035011
         params.put("userId", userId);
-        int priceType = params.getIntValue("priceType");
-
-        if (priceType==2){
-            return getPayAddress(userId,params, appSocket.getIp());
-        }else{
-            Executer.request(TargetSocketType.manager, CommandBuilder.builder().request("035011", params).build(), new RequestManagerListener(appCommand));
-            return async();
-        }
-
+        Executer.request(TargetSocketType.manager, CommandBuilder.builder().request("035011", params).build(), new RequestManagerListener(appCommand));
+        return async();
     }
 
     @ServiceMethod(code = "001", description = "获取角色礼包信息")
@@ -162,12 +171,12 @@ public class ServerUserRoleService extends BaseService {
             params.put("number", userGift.getGiftNum());
         }
         List<UserRole> byUserId = userRoleService.findByUserId(userId);
-        if (byUserId.size()==0){
+        if (byUserId.size() == 0) {
             params.put("status", 0);
         }
         for (UserRole userRole : byUserId) {
-            if (userRole.getStatus()!=2){
-                params.put("status",1);
+            if (userRole.getStatus() != 2) {
+                params.put("status", 1);
                 break;
             }
         }
@@ -274,18 +283,18 @@ public class ServerUserRoleService extends BaseService {
     @ServiceMethod(code = "005", description = "设置角色为工作状态")
     public JSONObject working(final AppSocket appSocket, Command appCommand, JSONObject params) {
         checkNull(params);
-        checkNull(params.get("index"),params.get("userRoleId"));
+        checkNull(params.get("index"), params.get("userRoleId"));
         Long userId = appSocket.getWsidBean().getUserId();
         int index = params.getIntValue("index");
         Long userRoleId = params.getLong("userRoleId");
         UserRole userRole = userRoleService.findByUserRoleId(userRoleId);
-        if (userRole==null){
+        if (userRole == null) {
             throwExp("未查询到角色信息");
         }
-        if (!Objects.equals(userRole.getUserId(), userId)){
+        if (!Objects.equals(userRole.getUserId(), userId)) {
             throwExp("非法请求");
         }
-        if (userRole.getStatus()==2){
+        if (userRole.getStatus() == 2) {
             throwExp("角色已到期");
         }
         userRole.setIndex(index);
@@ -307,7 +316,7 @@ public class ServerUserRoleService extends BaseService {
     public Object addHp(final AppSocket appSocket, Command appCommand, JSONObject params) {
         checkNull(params);
         Long userId = appSocket.getWsidBean().getUserId();
-        params.put("userId",userId);
+        params.put("userId", userId);
         Executer.request(TargetSocketType.manager, CommandBuilder.builder().request("400001", params).build(), new RequestManagerListener(appCommand));
         return async();
     }
@@ -317,7 +326,7 @@ public class ServerUserRoleService extends BaseService {
         checkNull(params);
         checkNull(params.get("userRoleId"));
         Long userId = appSocket.getWsidBean().getUserId();
-        params.put("userId",userId);
+        params.put("userId", userId);
         Executer.request(TargetSocketType.manager, CommandBuilder.builder().request("400002", params).build(), new RequestManagerListener(appCommand));
         return async();
     }
@@ -326,12 +335,12 @@ public class ServerUserRoleService extends BaseService {
     public Object buyGiftInfo(final AppSocket appSocket, Command appCommand, JSONObject params) {
         checkNull(params);
         JSONObject result = new JSONObject();
-        result.put("rmbStatus",serverConfigService.getInteger(Config.GIFT_RMB_STATUS));
-        result.put("rmbPrice1",serverConfigService.getBigDecimal(Config.GIFT_PRICE_1));
-        result.put("rmbPrice2",serverConfigService.getBigDecimal(Config.GIFT_PRICE_2));
-        result.put("gameMoneyStatus",serverConfigService.getInteger(Config.GIFT_GAME_STATUS));
-        result.put("gamePrice1",serverConfigService.getBigDecimal(Config.GIFT_PRICE_1_GAME));
-        result.put("gamePrice2",serverConfigService.getBigDecimal(Config.GIFT_PRICE_2_GAME));
+        result.put("rmbStatus", serverConfigService.getInteger(Config.GIFT_RMB_STATUS));
+        result.put("rmbPrice1", serverConfigService.getBigDecimal(Config.GIFT_PRICE_1));
+        result.put("rmbPrice2", serverConfigService.getBigDecimal(Config.GIFT_PRICE_2));
+        result.put("gameMoneyStatus", serverConfigService.getInteger(Config.GIFT_GAME_STATUS));
+        result.put("gamePrice1", serverConfigService.getBigDecimal(Config.GIFT_PRICE_1_GAME));
+        result.put("gamePrice2", serverConfigService.getBigDecimal(Config.GIFT_PRICE_2_GAME));
         return result;
     }
 

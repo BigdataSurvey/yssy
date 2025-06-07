@@ -82,7 +82,18 @@
     <select id="findRec" resultType="TsgPayOrder">
         select * from t_tsg_pay_order where user_id = #{userId}  and status=1
     </select>
-	
+    <update id="updateOrder" parameterType="TsgPayOrder">
+        update t_tsg_pay_order
+        <set>
+            <if test="status!=null">
+                status = #{status}
+            </if>
+            <if test="remark!=null">
+                remark = #{remark}
+            </if>
+        </set>
+        where id=#{id}
+    </update>
 	
 	
 

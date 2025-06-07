@@ -49,6 +49,8 @@
             t1.id=t2.user_id   ORDER BY t2.vip_level desc,t2.recharge_amount desc limit 0, 50;
     </select>
 
+
+
 	<select id="findOne" resultType="UserVip">
 	    select * from t_user_vip where id = #{id}
 	</select>
