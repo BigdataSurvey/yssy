@@ -100,8 +100,7 @@ public class ManagerUserVipService extends BaseService {
         long vipLevel = userVip.getVipLevel();
         JSONArray reward = DIC_VIP_MAP.get(String.valueOf(vipLevel)).getReward();
         String orderNo = OrderUtil.getOrder5Number();
-
-       // synchronized (LockUtil.getlock(userId.toString())) {
+        synchronized (LockUtil.getlock(userId.toString())) {
             List<VipReceiveRecord> vipReceiveRecord = vipReceiveRecordService.findVipReceiveRecordByLevel(Long.valueOf(userId), vipLevel);
             if (vipReceiveRecord.size() > 0) {
                 throwExp("已领取过该奖励");
@@ -109,17 +108,12 @@ public class ManagerUserVipService extends BaseService {
 
             //获取当前用户已经当前用户等级，新增一条记录到记录表
             long id = vipReceiveRecordService.addVipReceiveRecord(Long.valueOf(userId), orderNo, vipLevel, reward.toString(), new Date(), new Date());
-            if (reward.size() > 0) {
-                HashMap<String, Object> map = (HashMap<String, Object>) reward.get(0);
-                Integer amount = (Integer) map.get("number");
-                userCapitalService.addUserBalanceByAddReward(BigDecimal.valueOf(amount), Long.valueOf(userId), UserCapitalTypeEnum.currency_2.getValue(), LogCapitalTypeEnum.VIP_RECEIVE);
-                pushCapitalUpdate(Long.valueOf(userId), UserCapitalTypeEnum.currency_2.getValue());
-            }
+
 
             JSONObject result = new JSONObject();
             result.put("id", id);
             return result;
-       // }
+        }
 
 
     }

@@ -76,4 +76,10 @@ public class TsgPayOrderService extends DaoService {
         params.put("time", new Date());
         return execute("updateOrderExpire",params);
     }
+
+    @Transactional
+    public int updateOrder(TsgPayOrder order){
+
+        return execute("updateOrder",order);
+    }
 }

@@ -26,8 +26,8 @@ public class HTTPUtil {
 	protected static final String ENCODING = "UTF-8";
 	
 	private static RequestConfig requestConfig = RequestConfig.custom()
-    		.setSocketTimeout(1000)
-    		.setConnectTimeout(1000).setConnectionRequestTimeout(1000).build();
+    		.setSocketTimeout(10000)
+    		.setConnectTimeout(10000).setConnectionRequestTimeout(10000).build();
 
     public static String postJSON(String url, JSONObject data) {
     	return postJSON(url, JSON.toJSONString(data));
