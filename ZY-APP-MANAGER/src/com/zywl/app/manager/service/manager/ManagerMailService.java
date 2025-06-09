@@ -224,13 +224,10 @@ public class ManagerMailService extends BaseService {
             context = user.getName() + "(" + user.getUserNo() + ")赠送" + PlayGameService.itemMap.get(itemId).getName()
                     + ":" + number;
         }
-
         detail.put("type", 1);
         detail.put("id", itemId);
         detail.put("number", number);
         detail.put("channel", MailGoldTypeEnum.FRIEND.getValue());
-
-
         //添加邮件记录
         int isAttachments = 1;
         JSONArray array = new JSONArray();

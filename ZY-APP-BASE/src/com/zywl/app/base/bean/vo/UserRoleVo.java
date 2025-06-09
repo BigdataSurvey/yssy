@@ -1,11 +1,11 @@
-package com.zywl.app.base.bean;
+package com.zywl.app.base.bean.vo;
 
 import com.alibaba.fastjson2.JSONArray;
 import com.zywl.app.base.BaseBean;
 
 import java.util.Date;
 
-public class UserRole extends BaseBean {
+public class UserRoleVo extends BaseBean {
     private Long id;
 
     private Long userId;
@@ -16,17 +16,9 @@ public class UserRole extends BaseBean {
 
     private int hp;
 
-    private int maxHp;
-
-    private JSONArray unReceive;
-
-    private Date lastLookTime;
-
-    private Date lastReceiveTime;
 
     private int status;
 
-    private Date createTime;
 
     private Date endTime;
 
@@ -62,29 +54,6 @@ public class UserRole extends BaseBean {
         this.hp = hp;
     }
 
-    public JSONArray getUnReceive() {
-        return unReceive;
-    }
-
-    public void setUnReceive(JSONArray unReceive) {
-        this.unReceive = unReceive;
-    }
-
-    public Date getLastLookTime() {
-        return lastLookTime;
-    }
-
-    public void setLastLookTime(Date lastLookTime) {
-        this.lastLookTime = lastLookTime;
-    }
-
-    public Date getLastReceiveTime() {
-        return lastReceiveTime;
-    }
-
-    public void setLastReceiveTime(Date lastReceiveTime) {
-        this.lastReceiveTime = lastReceiveTime;
-    }
 
     public int getStatus() {
         return status;
@@ -94,13 +63,6 @@ public class UserRole extends BaseBean {
         this.status = status;
     }
 
-    public Date getCreateTime() {
-        return createTime;
-    }
-
-    public void setCreateTime(Date createTime) {
-        this.createTime = createTime;
-    }
 
     public Date getEndTime() {
         return endTime;
@@ -116,13 +78,5 @@ public class UserRole extends BaseBean {
 
     public void setIndex(int index) {
         this.index = index;
-    }
-
-    public int getMaxHp() {
-        return maxHp;
-    }
-
-    public void setMaxHp(int maxHp) {
-        this.maxHp = maxHp;
     }
 }

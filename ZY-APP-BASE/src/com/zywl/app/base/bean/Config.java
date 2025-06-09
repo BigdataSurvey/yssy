@@ -137,23 +137,6 @@ public class Config extends BaseBean {
 	public static final String ROLE_VERSION = "VERSION_ROLE";
 
 
-	public static final String ARTIFACT_VERSION = "VERSION_ARTIFACT";
-
-	public static final String SKILL_VERSION = "VERSION_SKILL";
-
-	public static final String SALVAGE_EXP_1 = "SALVAGE_EXP_1";
-
-	public static final String SALVAGE_EXP_2 = "SALVAGE_EXP_2";
-	public static final String SALVAGE_EXP_3 = "SALVAGE_EXP_3";
-	public static final String SALVAGE_EXP_4 = "SALVAGE_EXP_4";
-	public static final String SALVAGE_EXP_5 = "SALVAGE_EXP_5";
-	public static final String DISPATCH_VERSION = "VERSION_DISPATCH";
-
-	public static final String TOWER_VERSION = "VERSION_TOWER";
-
-	public static final String VERSION_CARD_ASCEND = "VERSION_CARD_ASCEND";
-	//抽奖费用
-	public static final String PRIZE_DRAW_FEE = "PRIZE_DRAW_FEE";
 
 
 

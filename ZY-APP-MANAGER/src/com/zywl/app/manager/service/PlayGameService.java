@@ -270,6 +270,7 @@ public class PlayGameService extends BaseService {
         initAchievement();
         initMine();
         initShop();
+        initRole();
         initDicVip();
     }
 

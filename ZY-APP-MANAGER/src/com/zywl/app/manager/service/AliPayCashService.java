@@ -75,21 +75,16 @@ public class AliPayCashService extends BaseService {
 
     public void cash(Long dataId, Long userId, BigDecimal amount, String tel, String name, String outBizNo, String originalOrderId, String alipayUserId) throws AlipayApiException {
         try {
-
-
             // 初始化SDK
             //AlipayClient alipayClient = new DefaultAlipayClient(getAlipayConfig());
             amount.setScale(2, BigDecimal.ROUND_DOWN);
             // 构造请求参数以调用接口
             AlipayFundTransUniTransferRequest request = new AlipayFundTransUniTransferRequest();
             AlipayFundTransUniTransferModel model = new AlipayFundTransUniTransferModel();
-
             // 设置转账业务的标题
             model.setOrderTitle("颤抖吧三国提现");
-
             // 设置描述特定的业务场景
             model.setBizScene("DIRECT_TRANSFER");
-
         /*// 设置签名信息
         SignData signData = new SignData();
         signData.setOriSign("EqHFP0z4a9iaQ1ep==");
@@ -153,7 +148,7 @@ public class AliPayCashService extends BaseService {
                 Push.push(PushCode.updateUserCapital, managerSocketService.getServerIdByUserId(userId), pushData);
             }
         } catch (Exception e) {
-            logger.info("提现失败,"+e.getMessage());
+            logger.info("提现失败," + e.getMessage());
         }
     }
 
@@ -163,9 +158,6 @@ public class AliPayCashService extends BaseService {
         alipayConfig.setPrivateKey(privateKey);
         alipayConfig.setServerUrl("https://openapi.alipay.com/gateway.do");
         alipayConfig.setAppId("2021005111696226");
-        //alipayConfig.setCharset("UTF-8");
-        //alipayConfig.setSignType("RSA2");
-        //alipayConfig.setFormat("json");
         ClassLoader classLoader = this.getClass().getClassLoader();
 
         URL resource = classLoader.getResource("appCertPublicKey_2021005111696226.crt");

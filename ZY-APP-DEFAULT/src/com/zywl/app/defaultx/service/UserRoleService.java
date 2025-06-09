@@ -30,6 +30,7 @@ public class UserRoleService extends DaoService {
         userRole.setRoleId(roleId);
         userRole.setEndTime(DateUtil.getDateByDay(days));
         userRole.setHp(100);
+        userRole.setMaxHp(100);
         userRole.setUnReceive(new JSONArray());
         userRole.setLastLookTime(new Date());
         userRole.setLastReceiveTime(new Date());
@@ -41,10 +42,25 @@ public class UserRoleService extends DaoService {
     }
 
 
+    public UserRole findByUserIdAndRoleId(Long userId,int roleId){
+        Map<String,Object> params = new HashMap<>();
+        params.put("userId",userId);
+        params.put("roleId",roleId);
+        return (UserRole) findOne("findByUserIdAndRoleId",params);
+    }
+
+
     public List<UserRole> findByUserId(Long userId){
         Map<String,Object> params = new HashMap<>();
         params.put("userId",userId);
         return findList("findByUserId",params);
+    }
+
+    public UserRole findByIndex(Long userId,int index){
+        Map<String,Object> params = new HashMap<>();
+        params.put("userId",userId);
+        params.put("index",index);
+        return (UserRole) findOne("findByIndex",params);
     }
 
 
@@ -60,10 +76,19 @@ public class UserRoleService extends DaoService {
         return findList("findWorkingRoles",params);
     }
 
-    public List<UserRole> findNoWorkingRoles(Long userId){
+    public List<UserRole> findNoWorkingRolesByIndex(Long userId,int index){
         Map<String,Object> params = new HashMap<>();
+        int skill ;
+        if (index==1 || index==2){
+            skill=1;
+        } else if (index==3 || index==4) {
+            skill=2;
+        }else {
+            skill=3;
+        }
         params.put("userId",userId);
-        return findList("findNoWorkingRoles",params);
+        params.put("skill",skill);
+        return findList("findNoWorkingRolesByIndex",params);
     }
 
 

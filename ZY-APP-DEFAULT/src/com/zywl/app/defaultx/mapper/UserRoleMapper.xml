@@ -10,6 +10,7 @@
             `role_id`,
             `index`,
             `hp`,
+            `max_hp`,
             `un_receive`,
             `last_look_time`,
             `last_receive_time`,
@@ -26,6 +27,7 @@
                 #{roleId},
                 #{index},
                 #{hp},
+                #{maxHp},
                 #{unReceive},
                 #{lastLookTime},
                 #{lastReceiveTime},
@@ -41,8 +43,12 @@
         select * from t_user_role where user_id=#{userId}
     </select>
 
+    <select id="findByIndex" resultType="UserRole">
+        select * from t_user_role where user_id=#{userId} and `index`=#{index}
+    </select>
     <update id="updateUserRole" parameterType="UserRole">
         update t_user_role
+        <set>
         <if test="hp != null">
             hp=#{hp},
         </if>
@@ -50,10 +56,10 @@
             un_receive=#{unReceive},
         </if>
         <if test="index!= null">
-            index=#{index},
+            `index`=#{index},
         </if>
         <if test="lastLookTime != null">
-            last_look_time=#{lastLookTime},
+            `last_look_time`=#{lastLookTime},
         </if>
         <if test="lastReceiveTime != null">
             `last_receive_time`=#{lastReceiveTime},
@@ -61,18 +67,24 @@
         <if test="status != null">
             `status`=#{status},
         </if>
+        </set>
+            where id=#{id}
     </update>
 
     <select id="findWorkingRoles" resultType="UserRole">
         select * from t_user_role where user_id=#{userId} and status > 0;
     </select>
 
-    <select id="findNoWorkingRoles" resultType="UserRole">
-        select * from t_user_role where user_id=#{userId} and status = 0;
+    <select id="findNoWorkingRolesByIndex" resultType="UserRole">
+        select * from t_user_role t1,dic_role t2 where t1.user_id=#{userId} and t1.`status` = 0 and t1.role_id=t2.id and t2.skill=#{skill};
     </select>
 
     <select id="findByUserRoleId" resultType="UserRole">
         select * from t_user_role where id=#{id}
+    </select>
+
+    <select id="findByUserIdAndRoleId" resultType="UserRole">
+        select * from t_user_role where user_id=#{userId} and id=#{id}
     </select>
     <update id="batchUpdateUserRole"  parameterType="java.util.List">
         <foreach collection="list" item="item" index="index" open="" close="" separator=";">
@@ -85,7 +97,7 @@
                     un_receive=#{item.unReceive},
                 </if>
                 <if test="item.index!= null">
-                    index=#{item.index},
+                    `index`=#{item.index},
                 </if>
                 <if test="item.lastLookTime != null">
                     last_look_time=#{item.lastLookTime},

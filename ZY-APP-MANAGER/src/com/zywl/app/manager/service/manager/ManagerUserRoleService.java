@@ -13,6 +13,7 @@ import com.zywl.app.defaultx.service.UserRoleService;
 import com.zywl.app.manager.context.MessageCodeContext;
 import com.zywl.app.manager.service.PlayGameService;
 import com.zywl.app.manager.socket.AdminSocketServer;
+import com.zywl.app.manager.socket.ManagerSocketServer;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -38,7 +39,7 @@ public class ManagerUserRoleService extends BaseService {
 
     @Transactional
     @ServiceMethod(code = "001", description = "恢复角色体力")
-    public  JSONObject addHp(AdminSocketServer adminSocketServer, JSONObject data) {
+    public  JSONObject addHp(ManagerSocketServer adminSocketServer,  JSONObject data) {
         checkNull(data);
         checkNull(data.get("userId"),data.get("userRoleId"),data.get("number"));
         Long userId = data.getLong("userId");
@@ -63,7 +64,7 @@ public class ManagerUserRoleService extends BaseService {
 
     @Transactional
     @ServiceMethod(code = "002", description = "领取产出道具")
-    public  JSONObject receiveItem(AdminSocketServer adminSocketServer, JSONObject data) {
+    public  JSONObject receiveItem(ManagerSocketServer adminSocketServer, JSONObject data) {
         checkNull(data);
         checkNull(data.get("userId"),data.get("userRoleId"));
         Long userRoleId = data.getLong("userRoleId");

@@ -263,7 +263,7 @@ public class ManagerSocket extends BaseClientSocket {
                 if (obj.containsKey("mineTable")){
                     serverMineService.initMine();
                 }
-                if (obj.containsKey("rolesTable")){
+                if (obj.containsKey("roleTable")){
                     serverUserRoleService.initRole();
                 }
                 updateAppService.pushTableVersionUpdate(obj);

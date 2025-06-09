@@ -146,8 +146,8 @@ public class ManagerGameBaseService extends BaseService {
     public JSONObject syncTableInfo(JSONObject params) {
         JSONObject tableInfos = new JSONObject();
         String itemV = managerConfigService.getString(Config.ITEM_VERSION);
-        //   String checkpointV = managerConfigService.getString(Config.CHECKPOINT_VERSION);
         String mineV = managerConfigService.getString(Config.MINE_VERSION);
+        String roleV = managerConfigService.getString(Config.ROLE_VERSION);
         JSONObject tableInfo = params.getJSONObject("tableInfo");
         if (tableInfo != null
                 && (!tableInfo.containsKey("itemTable") || !itemV.equals(tableInfo.getString("itemTable")))) {
@@ -175,6 +175,16 @@ public class ManagerGameBaseService extends BaseService {
             obj.put("version", mineV);
             obj.put("data", dicMines);
             tableInfos.put("mineTable", obj);
+        }
+
+        if (tableInfo != null
+                && (!tableInfo.containsKey("roleTable") || !roleV.equals(tableInfo.getString("roleTable")))) {
+            // 需要同步装备表
+            List<DicRole> dicRoles = new ArrayList<>(PlayGameService.DIC_ROLE.values());
+            JSONObject obj = new JSONObject();
+            obj.put("version", roleV);
+            obj.put("data", dicRoles);
+            tableInfos.put("roleTable", obj);
         }
 
         return tableInfos;

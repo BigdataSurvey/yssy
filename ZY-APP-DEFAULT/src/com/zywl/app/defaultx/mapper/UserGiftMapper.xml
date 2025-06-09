@@ -24,7 +24,7 @@
 	</update>
 
 	<update id="useGift" parameterType="UserGift">
-		update t_user_gift set gift_num = gift_num-1 where user_id = #{userId} and gift_num-1 &gt; 1 and gift_type = #{giftType}
+		update t_user_gift set gift_num = gift_num-1 where user_id = #{userId} and gift_num-1 &gt;= 0 and gift_type = #{giftType}
 	</update>
 
 	<delete id="delete">

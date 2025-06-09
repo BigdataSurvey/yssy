@@ -27,6 +27,7 @@ import java.math.BigDecimal;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
+
 @Service
 @ServiceClass(code = MessageCodeContext.USER_ROLE)
 public class ServerUserRoleService extends BaseService {
@@ -212,12 +213,25 @@ public class ServerUserRoleService extends BaseService {
 
 
     public void useSmallGift(Long userId) {
-        userRoleService.addUserRole(userId, 1L, 30);
+        UserRole byUserIdAndRoleId = userRoleService.findByUserIdAndRoleId(userId, 1);
+        if (byUserIdAndRoleId!=null){
+            byUserIdAndRoleId.setEndTime(DateUtil.getDateByDay(byUserIdAndRoleId.getEndTime(),30));
+            userRoleService.updateUserRole(byUserIdAndRoleId);
+        }else{
+            userRoleService.addUserRole(userId, 1L, 30);
+        }
+
     }
 
     public void useBigGift(Long userId) {
         for (int i = 1; i <= 5; i++) {
-            userRoleService.addUserRole(userId, (long) i, 30);
+            UserRole byUserIdAndRoleId = userRoleService.findByUserIdAndRoleId(userId, i);
+            if (byUserIdAndRoleId!=null){
+                byUserIdAndRoleId.setEndTime(DateUtil.getDateByDay(byUserIdAndRoleId.getEndTime(),30));
+                userRoleService.updateUserRole(byUserIdAndRoleId);
+            }else{
+                userRoleService.addUserRole(userId, (long) i, 30);
+            }
         }
     }
 
@@ -288,6 +302,11 @@ public class ServerUserRoleService extends BaseService {
         int index = params.getIntValue("index");
         Long userRoleId = params.getLong("userRoleId");
         UserRole userRole = userRoleService.findByUserRoleId(userRoleId);
+        UserRole byIndex = userRoleService.findByIndex(userId, index);
+        if (byIndex!=null){
+            throwExp("该位置已经有角色啦");
+        }
+
         if (userRole == null) {
             throwExp("未查询到角色信息");
         }
@@ -307,9 +326,17 @@ public class ServerUserRoleService extends BaseService {
     @ServiceMethod(code = "006", description = "查询可选择的角色")
     public Object getNoWorkingRoles(final AppSocket appSocket, Command appCommand, JSONObject params) {
         checkNull(params);
-        //checkNull(params.get("index"));
+        checkNull(params.get("index"));
+        int index = params.getIntValue("index");
+        if (index<1 || index>5){
+            throwExp("参数异常");
+        }
         Long userId = appSocket.getWsidBean().getUserId();
-        return userRoleService.findNoWorkingRoles(userId);
+        List<UserRole> noWorkingRoles = userRoleService.findNoWorkingRolesByIndex(userId,index);
+        JSONObject result = new JSONObject();
+        result.put("roles",noWorkingRoles);
+        result.put("index",index);
+        return result;
     }
 
     @ServiceMethod(code = "007", description = "补充体力")

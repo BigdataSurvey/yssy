@@ -234,7 +234,7 @@ public class ManagerConfigService extends BaseService {
 			obj.put("version", value);
 			obj.put("data", roles);
 			JSONObject tableInfo = new JSONObject();
-			tableInfo.put("rolesTable",obj);
+			tableInfo.put("roleTable",obj);
 			Push.push(PushCode.updateTableVersion,null,tableInfo);
 		}
 		else if (key.equals(Config.SERVICE_STATUS)) {
