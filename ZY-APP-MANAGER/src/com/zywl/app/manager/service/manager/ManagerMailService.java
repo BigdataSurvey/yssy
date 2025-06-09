@@ -175,6 +175,7 @@ public class ManagerMailService extends BaseService {
     public JSONObject sendMail(ManagerSocketServer adminSocketServer, JSONObject data) {
         checkNull(data);
         checkNull(data.get("toUserId"), data.get("userId"));
+        JSONArray array = new JSONArray();
         //第一个是赠送的文房四宝
         JSONObject detail = new JSONObject();
         //第二个是根据等级额外获得的信封道具
@@ -210,12 +211,14 @@ public class ManagerMailService extends BaseService {
             detail1.put("id", smallItemId);
             detail1.put("number", number);
             detail1.put("channel", MailGoldTypeEnum.FRIEND.getValue());
+            array.add(detail1);
         }else if(uservip.getVipLevel()<4 && toUservip.getVipLevel() > 4){
             gameService.updateUserBackpack(toUserId, bigItemId,number, LogUserBackpackTypeEnum.use);
             detail1.put("type", 1);
             detail1.put("id", bigItemId);
             detail1.put("number", number);
             detail1.put("channel", MailGoldTypeEnum.FRIEND.getValue());
+            array.add(detail1);
         }
         if (title == null) {
             title = "好友赠送";
@@ -230,9 +233,9 @@ public class ManagerMailService extends BaseService {
         detail.put("channel", MailGoldTypeEnum.FRIEND.getValue());
         //添加邮件记录
         int isAttachments = 1;
-        JSONArray array = new JSONArray();
+
         array.add(detail);
-        array.add(detail1);
+
         Long mailId = mailService.sendMail(userId, toUserId, title, context, null, isAttachments, array);
         String orderNo = OrderUtil.getOrder5Number();
         //如果是赠送   则再扣除赠送的金额  增加流水  赠送记录
