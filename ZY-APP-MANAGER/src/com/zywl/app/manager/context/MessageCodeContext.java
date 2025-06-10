@@ -71,6 +71,7 @@ public class MessageCodeContext {
 
 	public final static String TIME_TASK= "9007";
 	public final static String USER_VIP= "9008";
+	public final static String Activity= "9009";
 
 
 }
