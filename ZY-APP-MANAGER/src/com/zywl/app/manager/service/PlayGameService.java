@@ -85,7 +85,7 @@ public class PlayGameService extends BaseService {
     public static Map<String, Map<String, Achievement>> achievementMap = new ConcurrentHashMap<>();
 
     public static Map<String,Map<String,DicShop>> DIC_SHOP_MAP = new ConcurrentHashMap<>();
-
+    public static Map<String,List<DicShop>> DIC_SHOP_LIST = new ConcurrentHashMap<>();
     public static Map<String, UserAchievement> userAchievementMap = new ConcurrentHashMap<>();
 
 
@@ -283,6 +283,12 @@ public class PlayGameService extends BaseService {
             orDefault.put(dicShop.getId().toString(),dicShop);
             if (!DIC_SHOP_MAP.containsKey(String.valueOf(dicShop.getShopType()))){
                 DIC_SHOP_MAP.put(String.valueOf(dicShop.getShopType()),orDefault);
+            }
+
+            List<DicShop> shops = DIC_SHOP_LIST.getOrDefault(String.valueOf(dicShop.getShopType()), new ArrayList<>());
+            shops.add(dicShop);
+            if (!DIC_SHOP_LIST.containsKey(String.valueOf(dicShop.getShopType()))){
+                DIC_SHOP_LIST.put(String.valueOf(dicShop.getShopType()),shops);
             }
         }
     }

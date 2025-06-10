@@ -45,18 +45,22 @@ public class ManagerUserRoleService extends BaseService {
         Long userId = data.getLong("userId");
         Long userRoleId = data.getLong("userRoleId");
         int number = data.getIntValue("number");
-        gameService.checkUserItemNumber(userId,"30",number);
-        gameService.updateUserBackpack(userId,"30",-number, LogUserBackpackTypeEnum.use);
+        gameService.checkUserItemNumber(userId,"5",number);
+        gameService.updateUserBackpack(userId,"5",-number, LogUserBackpackTypeEnum.use);
         int oneItemAddHp = managerConfigService.getInteger(Config.ADD_HP_WFSB);
         int allHp = oneItemAddHp*number;
-        UserRole userRole = userRoleService.findByUserRoleId(userRoleId);
+        UserRole userRole = userRoleService.findByUserIdAndRoleId(userId,userRoleId);
+        if (userRole==null){
+            throwExp("未查询到角色信息");
+        }
         DicRole dicRole = PlayGameService.DIC_ROLE.get(userRole.getRoleId().toString());
         int maxHp = dicRole.getHp();
         if (allHp+userRole.getHp()>maxHp){
             userRole.setHp(maxHp);
         }else {
-            userRole.setHp(allHp);
+            userRole.setHp(userRole.getHp()+allHp);
         }
+        userRoleService.updateUserRole(userRole);
         JSONObject result = new JSONObject();
         result.put("userRole",userRole);
         return result;
@@ -69,15 +73,16 @@ public class ManagerUserRoleService extends BaseService {
         checkNull(data.get("userId"),data.get("userRoleId"));
         Long userRoleId = data.getLong("userRoleId");
         Long userId = data.getLong("userId");
-        UserRole userRole = userRoleService.findByUserRoleId(userRoleId);
-        if (!Objects.equals(userRole.getUserId(), userId)){
-            throwExp("非法请求");
+        UserRole userRole = userRoleService.findByUserIdAndRoleId(userId,userRoleId);
+        if (userRole==null){
+            throwExp("未查询到角色信息");
         }
-        gameService.addReward(userId,userRole.getUnReceive(),null);
+        JSONArray reward = userRole.getUnReceive();
+        gameService.addReward(userId,reward,null);
         userRole.setUnReceive(new JSONArray());
         userRoleService.updateUserRole(userRole);
         JSONObject result = new JSONObject();
-        result.put("userRole",userRole);
+        result.put("rewards",reward);
         return result;
     }
 }

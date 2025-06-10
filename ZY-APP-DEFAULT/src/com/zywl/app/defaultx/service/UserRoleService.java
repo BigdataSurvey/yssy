@@ -49,6 +49,13 @@ public class UserRoleService extends DaoService {
         return (UserRole) findOne("findByUserIdAndRoleId",params);
     }
 
+    public UserRole findByUserIdAndRoleId(Long userId,Long roleId){
+        Map<String,Object> params = new HashMap<>();
+        params.put("userId",userId);
+        params.put("roleId",roleId);
+        return (UserRole) findOne("findByUserIdAndRoleId",params);
+    }
+
 
     public List<UserRole> findByUserId(Long userId){
         Map<String,Object> params = new HashMap<>();

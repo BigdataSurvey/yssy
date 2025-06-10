@@ -6,8 +6,10 @@ import com.live.app.ws.enums.TargetSocketType;
 import com.live.app.ws.util.CommandBuilder;
 import com.live.app.ws.util.Executer;
 import com.zywl.app.base.bean.User;
+import com.zywl.app.base.bean.vo.UserSonVo;
 import com.zywl.app.base.service.BaseService;
 import com.zywl.app.base.util.Async;
+import com.zywl.app.base.util.BeanUtils;
 import com.zywl.app.defaultx.annotation.ServiceClass;
 import com.zywl.app.defaultx.annotation.ServiceMethod;
 import com.zywl.app.defaultx.cache.UserCacheService;
@@ -17,6 +19,9 @@ import com.zywl.app.server.socket.AppSocket;
 import com.zywl.app.server.util.RequestManagerListener;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+
+import java.util.ArrayList;
+import java.util.List;
 
 @Service
 @ServiceClass(code = MessageCodeContext.USER_SERVER)
@@ -77,10 +82,49 @@ public class ServerUserService extends BaseService {
     @ServiceMethod(code = "004", description = "获取好友列表")
     public Object getSon(final AppSocket appSocket, Command appCommand, JSONObject params) {
         checkNull(params);
-        params.put("userId", appSocket.getWsidBean().getUserId());
-        Executer.request(TargetSocketType.manager, CommandBuilder.builder().request("010020", params).build(),
-                new RequestManagerListener(appCommand));
-        return async();
+        int vip = params.getIntValue("vip");
+        Long userId =appSocket.getWsidBean().getUserId();
+        int type = 1;
+        if (params.containsKey("type")) {
+            type = params.getIntValue("type");
+        }
+        List<User> users = null;
+        if (type == 1) {
+            users = userService.findUsersByParentId(userId, params.getInteger("page"), params.getInteger("num"), vip);
+        } else if (type == 2) {
+            users = userService.findUsersByGrandfaId(userId, params.getInteger("page"), params.getInteger("num"), vip);
+        } else if (type == 3) {
+            users = userService.findMySonNoAuthicatino(userId, params.getInteger("page"), params.getInteger("num"), vip);
+        }
+        long count = userCacheService.getMySonCount(userId, type);
+        List<UserSonVo> list = new ArrayList<>();
+        for (User user1 : users) {
+            UserSonVo userSonVo = new UserSonVo();
+            BeanUtils.copy(user1, userSonVo);
+            double todayCreateParentIncome = 0.0;
+            double todayMyCreateAnima = 0.0;
+            if (type==1){
+                todayCreateParentIncome= userCacheService.getTodayCreateParentIncome(user1.getId());
+                todayMyCreateAnima = userCacheService.getTodayMyCreateAnima(user1.getId());
+            }else if(type==2){
+                todayCreateParentIncome= userCacheService.getGrandfaTodayIncome(user1.getId());
+                todayMyCreateAnima = userCacheService.getTodayMyCreateGrandfaAnima(user1.getId());
+            }
+            userSonVo.setTodayCreateIncome(Math.round(todayCreateParentIncome * 100.0) / 100.0);
+            userSonVo.setTodayCreatAnima(Math.round(todayMyCreateAnima * 100.0) / 100.0);
+            userSonVo.setLastLoginTime(user1.getLastLoginTime().getTime());
+            list.add(userSonVo);
+        }
+        long oneJuniorCount = userService.getOneJuniorCount(userId);
+        long twoJuniorCount = userService.getTwoJuniorCount(userId);
+        long noAuthCount = userService.countNoAuthenticationJunior(userId);
+        JSONObject result = new JSONObject();
+        result.put("userList", list);
+        result.put("count", count < 0 ? 0 : count);
+        result.put("oneFriend", oneJuniorCount);
+        result.put("twoFriend", twoJuniorCount);
+        result.put("threeFriend",noAuthCount);
+        return result;
     }
 
     @ServiceMethod(code = "005", description = "获取好友信息")

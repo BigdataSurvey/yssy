@@ -318,9 +318,7 @@ public class ManagerUserService extends BaseService {
     }
 
 
-
-
-    public static int aliyunAuthentication(String name,String idCard){
+    public static int aliyunAuthentication(String name, String idCard) {
         String host = "https://kzidcardv1.market.alicloudapi.com";
         String path = "/api-mall/api/id_card/check";
         String method = "POST";
@@ -338,13 +336,13 @@ public class ManagerUserService extends BaseService {
             HttpResponse response = HttpUtils.doPost(host, path, method, headers, querys, bodys);
             System.out.println(response.toString());
             JSONObject jsonObject = JSONObject.parseObject(EntityUtils.toString(response.getEntity()));
-            if (jsonObject.containsKey("success") && jsonObject.getBoolean("success")){
-                if (jsonObject.getString("code").equals("200")){
+            if (jsonObject.containsKey("success") && jsonObject.getBoolean("success")) {
+                if (jsonObject.getString("code").equals("200")) {
                     return 1;
-                }else {
+                } else {
                     return -2;
                 }
-            }else{
+            } else {
                 return -1;
             }
         } catch (Exception e) {
@@ -374,28 +372,28 @@ public class ManagerUserService extends BaseService {
             for (String card : idCards) {
                 String conStr = idCard.substring(Math.max(0, idCard.length() - 6));
                 if (card.contains(conStr)) {
-                    contain=true;
+                    contain = true;
                 }
             }
-            if (!contain){
+            if (!contain) {
                 throwExp("未开放注册权限，请联系官方客服获取测试账号");
             }
         }
         if (!IDCardUtil.check(idCard)) {
             throwExp("身份证格式错误！");
         }
-        Map<String,Object> obj = new HashMap<>();
+        Map<String, Object> obj = new HashMap<>();
         obj.put("idCard", idCard);
         long count = userService.count("countByConditions", obj);
         if (count >= 3) {
             throwExp("认证数量已达上限！");
         }
         if (authentication == 0) {//未认证
-           // int status = idCardService.checkIDCard(userInfo.getId().toString(), realName, idCard);
+            // int status = idCardService.checkIDCard(userInfo.getId().toString(), realName, idCard);
             int status = 0;
-            status = aliyunAuthentication(realName,idCard);
+            status = aliyunAuthentication(realName, idCard);
             int age = IDCardUtil.getAgeForIdcard(idCard);
-            if(age < 18) {
+            if (age < 18) {
                 status = -102;
             }
             if (status == 1) {
@@ -433,16 +431,16 @@ public class ManagerUserService extends BaseService {
                 throwExp("系统错误！");
             }
         } else if (authentication == 1) {//已认证
-            if(userInfo.getIsUpdateIdCard()==1){
+            if (userInfo.getIsUpdateIdCard() == 1) {
                 UserCapital userCapital = userCapitalCacheService.getUserCapitalCacheByType(userId, UserCapitalTypeEnum.currency_2.getValue());
                 if (userCapital.getBalance().compareTo(new BigDecimal("100")) < 0) {
                     throwExp("金币不足");
                 }
                 userCapitalService.subUserBalanceByUpdateIdCard(userId, new BigDecimal("100"), UserCapitalTypeEnum.currency_2.getValue());
-                managerGameBaseService.pushCapitalUpdate(userId,UserCapitalTypeEnum.currency_2.getValue());
+                managerGameBaseService.pushCapitalUpdate(userId, UserCapitalTypeEnum.currency_2.getValue());
             }
 //            int status = idCardService.checkIDCard(userInfo.getId().toString(), realName, idCard);
-             int status=0;
+            int status = 0;
             if (status == 0) {
                 userService.authentication2(userId, realName, idCard);
                 userService.updateAuthentication(userId, 1);
@@ -552,7 +550,7 @@ public class ManagerUserService extends BaseService {
             userService.updateUserCNo(user.getCno(), userId);
             managerPromoteService.parentAddEffectiveFriendNumber(userId);
             userStatisticService.addOneCount(parentId);
-            if (parentUser.getGrandfaId()!=null){
+            if (parentUser.getGrandfaId() != null) {
                 userStatisticService.addTwoCount(parentUser.getParentId());
             }
             result.put("name", parentUser.getName());
@@ -576,12 +574,12 @@ public class ManagerUserService extends BaseService {
         List<ApplyFor> allApplyFor = applyForService.findAllApplyFor();
         if (allApplyFor.size() >= managerConfigService.getInteger(Config.CHANNEL_MAX_NUM)) {
             if (userStatistic.getGetAllIncome().compareTo(new BigDecimal("10000")) < 0
-                    && userStatistic.getGetAnima2().compareTo(new BigDecimal("15000"))<0) {
+                    && userStatistic.getGetAnima2().compareTo(new BigDecimal("15000")) < 0) {
                 throwExp("广告收益累计10000或友情值累计15000可申请开通");
             }
-        }else{
+        } else {
             if (userStatistic.getGetAllIncome().compareTo(new BigDecimal("5000")) < 0
-                    && userStatistic.getGetAnima2().compareTo(new BigDecimal("7500"))<0) {
+                    && userStatistic.getGetAnima2().compareTo(new BigDecimal("7500")) < 0) {
                 throwExp("广告收益累计5000或友情值累计7500可申请开通");
             }
         }
@@ -660,8 +658,8 @@ public class ManagerUserService extends BaseService {
             String serverIdByUserId = managerSocketService.getServerIdByUserId(userId);
             Push.push(PushCode.updateAdCount, serverIdByUserId, pushData);
             pushAddUser();//同步首页广告观看次数
-        }catch (Exception e){
-            logger.error("广告异常"+e.getMessage());
+        } catch (Exception e) {
+            logger.error("广告异常" + e.getMessage());
             e.printStackTrace();
         }
 
@@ -695,7 +693,7 @@ public class ManagerUserService extends BaseService {
             income = PlayGameService.parentIncomeMap.get(String.valueOf(registerDays)).getIncomeByNum((Integer.parseInt(userAdAllLookNum.toString())));
             result.put("parentId", user.getParentId());
             User parent = userCacheService.getUserInfoById(user.getParentId());
-            if (parent.getIsChannel()==1){
+            if (parent.getIsChannel() == 1) {
                 income = income.multiply(new BigDecimal("1.5"));
             }
             result.put("parentIncome", income);
@@ -704,8 +702,8 @@ public class ManagerUserService extends BaseService {
         if (user.getGrandfaId() != null) {
             grandfaIncome = PlayGameService.grandfaIncomeMap.get(String.valueOf(registerDays)).getIncomeByNum((Integer.parseInt(userAdAllLookNum.toString())));
             User grandfa = userCacheService.getUserInfoById(user.getGrandfaId());
-            if (grandfa.getIsChannel()==1){
-                income = income.multiply(new BigDecimal( "1.5"));
+            if (grandfa.getIsChannel() == 1) {
+                income = income.multiply(new BigDecimal("1.5"));
             }
             result.put("grandfaId", user.getGrandfaId());
             result.put("grandfaIncome", grandfaIncome);
@@ -818,7 +816,7 @@ public class ManagerUserService extends BaseService {
             return;
         }
         User user = userCacheService.getUserInfoById(userId);
-        if (user.getIsCash()==0){
+        if (user.getIsCash() == 0) {
             return;
         }
         if (user.getParentId() != null) {
@@ -880,11 +878,11 @@ public class ManagerUserService extends BaseService {
             BeanUtils.copy(user1, userSonVo);
             double todayCreateParentIncome = 0.0;
             double todayMyCreateAnima = 0.0;
-            if (type==1){
-                todayCreateParentIncome= userCacheService.getTodayCreateParentIncome(user1.getId());
+            if (type == 1) {
+                todayCreateParentIncome = userCacheService.getTodayCreateParentIncome(user1.getId());
                 todayMyCreateAnima = userCacheService.getTodayMyCreateAnima(user1.getId());
-            }else if(type==2){
-                todayCreateParentIncome= userCacheService.getGrandfaTodayIncome(user1.getId());
+            } else if (type == 2) {
+                todayCreateParentIncome = userCacheService.getGrandfaTodayIncome(user1.getId());
                 todayMyCreateAnima = userCacheService.getTodayMyCreateGrandfaAnima(user1.getId());
             }
             userSonVo.setTodayCreateIncome(Math.round(todayCreateParentIncome * 100.0) / 100.0);
@@ -900,7 +898,7 @@ public class ManagerUserService extends BaseService {
         result.put("count", count < 0 ? 0 : count);
         result.put("oneFriend", oneJuniorCount);
         result.put("twoFriend", twoJuniorCount);
-        result.put("threeFriend",noAuthCount);
+        result.put("threeFriend", noAuthCount);
         return result;
     }
 
@@ -915,6 +913,46 @@ public class ManagerUserService extends BaseService {
             throwExp("不能搜索自己");
         }
         User sonUser = userCacheService.getUserInfoByUserNo(userNo);
+        checkSonUser(sonUser, myId);
+        if (sonUser.getParentId() != null) {
+            User parent = userCacheService.getUserInfoById(sonUser.getParentId());
+            if (parent != null) {
+                result.put("parentUserNo", parent.getUserNo());
+            } else {
+                result.put("parentUserNo", "暂无");
+            }
+
+        }
+        long userId = sonUser.getId();
+        UserStatistic userStatistic = gameService.getUserStatistic(String.valueOf(userId));
+        BigDecimal all;
+        double today;
+        if (sonUser.getParentId().toString().equals(String.valueOf(myId))) {
+            all = userStatistic.getCreateIncome();
+            today = userCacheService.getTodayCreateParentIncome(userId);
+            result.put("todaySw", userCacheService.getUserTodayCreateSw(userId));
+            result.put("allSw", userStatistic.getCreateSw());
+        } else {
+            today = userCacheService.getGrandfaTodayIncome(userId);
+            all = userStatistic.getCreateGrandfaIncome();
+            result.put("todaySw", BigDecimal.ZERO);
+            result.put("allSw", BigDecimal.ZERO);
+        }
+        result.put("name", sonUser.getName());
+        result.put("userNo", sonUser.getUserNo());
+        result.put("headImageUrl", sonUser.getHeadImageUrl());
+        result.put("wx", sonUser.getWechatId() == null ? "暂未填写" : sonUser.getWechatId());
+        result.put("qq", sonUser.getQq() == null ? "暂未填写" : sonUser.getQq());
+        result.put("todayIncome", Math.round(today * 100.0) / 100.0);
+        result.put("allIncome", all);
+        result.put("registTime", sonUser.getRegistTime());
+        result.put("loginTime", sonUser.getLastLoginTime());
+        BigDecimal hisAllFriend = userStatisticService.findHisAllFriend(sonUser.getId());
+        result.put("teamAll",hisAllFriend==null?BigDecimal.ZERO:hisAllFriend);
+        return result;
+    }
+
+    public void checkSonUser(User sonUser, Long myId) {
         if (sonUser == null) {
             throwExp("不存在该好友");
         }
@@ -926,43 +964,6 @@ public class ManagerUserService extends BaseService {
                 throwExp("该玩家不是您的好友");
             }
         }
-        if (sonUser.getParentId()!=null){
-            User parent = userCacheService.getUserInfoById(sonUser.getParentId());
-            if (parent!=null){
-                result.put("parentUserNo",parent.getUserNo());
-            }else{
-                result.put("parentUserNo","暂无");
-            }
-
-        }
-        long userId = sonUser.getId();
-        UserStatistic userStatistic = gameService.getUserStatistic(String.valueOf(userId));
-        BigDecimal all;
-        double today;
-        if (sonUser.getParentId().toString().equals(String.valueOf(myId))) {
-            all = userStatistic.getCreateIncome();
-            today = userCacheService.getTodayCreateParentIncome(userId);
-            result.put("todaySw",userCacheService.getUserTodayCreateSw(userId));
-            result.put("allSw",userStatistic.getCreateSw());
-        } else {
-            today = userCacheService.getGrandfaTodayIncome(userId);
-            all = userStatistic.getCreateGrandfaIncome();
-            result.put("todaySw",BigDecimal.ZERO);
-            result.put("allSw",BigDecimal.ZERO);
-        }
-        result.put("isCash",sonUser.getIsCash());
-        result.put("name", sonUser.getName());
-        result.put("userNo", sonUser.getUserNo());
-        result.put("headImageUrl", sonUser.getHeadImageUrl());
-        result.put("wx", sonUser.getWechatId() == null ? "暂未填写" : sonUser.getWechatId());
-        result.put("qq", sonUser.getQq() == null ? "暂未填写" : sonUser.getQq());
-        result.put("todayIncome", Math.round(today * 100.0) / 100.0);
-        result.put("isVip1", sonUser.getVip1());
-        result.put("isVip2", sonUser.getVip2());
-        result.put("allIncome", all);
-        result.put("registTime", sonUser.getRegistTime());
-        result.put("loginTime", sonUser.getLastLoginTime());
-        return result;
     }
 
 

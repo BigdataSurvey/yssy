@@ -84,7 +84,7 @@
     </select>
 
     <select id="findByUserIdAndRoleId" resultType="UserRole">
-        select * from t_user_role where user_id=#{userId} and id=#{id}
+        select * from t_user_role where user_id=#{userId} and role_id=#{roleId}
     </select>
     <update id="batchUpdateUserRole"  parameterType="java.util.List">
         <foreach collection="list" item="item" index="index" open="" close="" separator=";">

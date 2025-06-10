@@ -732,29 +732,26 @@ public class ManagerGameBaseService extends BaseService {
         checkNull(params);
         checkNull(params.get("userId"), params.get("num"));
         long userId = params.getLong("userId");
-        String itemId = "30";
+        String itemId = "5";
         int number = params.getIntValue("num");
         gameService.checkUserItemNumber(userId,itemId,number);
-        if(!"30".equals(itemId)){
-            throw new Exception("该道具无法捐赠");
-        }
         //每次捐赠可以获得一个道具 和一些数额（待定）的金币
         UserCapital userCapitalCache = userCapitalCacheService.getUserCapitalCacheByType(userId, UserCapitalTypeEnum.currency_2.getValue());
         //生成捐赠道具订单
         String orderNo = OrderUtil.getOrder5Number();
-        Long recordId = userDonateItemRecordService.addDonateItemRecord(userId, orderNo, UserCapitalTypeEnum.currency_2.getValue(), number, BigDecimal.valueOf(1000));
+        Long recordId = userDonateItemRecordService.addDonateItemRecord(userId, orderNo, UserCapitalTypeEnum.currency_2.getValue(), number, BigDecimal.valueOf(100L *number));
         String getItemId = managerConfigService.getString(Config.JZ_ITEM);
         //修改该用户的道具
         gameService.updateUserBackpack(userId, itemId,-number, LogUserBackpackTypeEnum.use);
         gameService.updateUserBackpack(userId, getItemId,+number, LogUserBackpackTypeEnum.use);
-        userCapitalService.addUserBalanceByDonate(userId,BigDecimal.valueOf(1000),UserCapitalTypeEnum.currency_2.getValue(),recordId,userCapitalCache);
+        userCapitalService.addUserBalanceByDonate(userId,BigDecimal.valueOf(100L*number),UserCapitalTypeEnum.currency_2.getValue(),recordId,userCapitalCache);
         pushCapitalUpdate(userId,UserCapitalTypeEnum.currency_2.getValue());
         JSONObject result = new JSONObject();
         JSONObject itemResult = new JSONObject();
         JSONArray array = new JSONArray();
         result.put("type",1);
         result.put("id",2);
-        result.put("number",2);
+        result.put("number",100);
         itemResult.put("type",1);
         itemResult.put("id",getItemId);
         itemResult.put("number",2);
@@ -856,9 +853,8 @@ public class ManagerGameBaseService extends BaseService {
     public Object shopInfo(ManagerSocketServer adminSocketServer, JSONObject params) {
         Long userId = params.getLong("userId");
         int shopType = params.getIntValue("type");
-        Map<String, DicShop> shopInfo = PlayGameService.DIC_SHOP_MAP.get(String.valueOf(shopType));
-        JSONObject result = new JSONObject();
-        return shopInfo.values();
+        List< DicShop> shopInfo = PlayGameService.DIC_SHOP_LIST.get(String.valueOf(shopType));
+        return shopInfo;
     }
 
 
@@ -868,20 +864,20 @@ public class ManagerGameBaseService extends BaseService {
         String userId = params.getString("userId");
         synchronized (LockUtil.getlock(userId)) {
             UserStatistic userStatistic = gameService.getUserStatistic(userId);
-            BigDecimal nowIncome = userStatistic.getGetIncome();
             BigDecimal getAnima = userStatistic.getGetAnima();
-            if (nowIncome.compareTo(new BigDecimal("20")) > 0) {
+            if (getAnima.compareTo(new BigDecimal("20")) > 0) {
                 String orderNo = OrderUtil.getOrder5Number();
-                Long dataId = convertIncomeRecordService.addRecord(Long.parseLong(userId), orderNo, nowIncome, userStatistic.getGetIncome(), BigDecimal.ZERO);
-                PlayGameService.userStatisticMap.get(userId).setGetIncome(BigDecimal.ZERO);
-                userCapitalService.addUserBalanceByStatic(Long.parseLong(userId), orderNo, dataId, nowIncome);
-                pushCapitalUpdate(Long.valueOf(userId), UserCapitalTypeEnum.rmb.getValue());
+                Long dataId = convertIncomeRecordService.addRecord(Long.parseLong(userId), orderNo, getAnima, userStatistic.getGetAnima(), BigDecimal.ZERO);
+                PlayGameService.userStatisticMap.get(userId).setGetAnima(BigDecimal.ZERO);
+                PlayGameService.userStatisticMap.get(userId).setGetAnima2(PlayGameService.userStatisticMap.get(userId).getGetAnima2().add(getAnima));
+                userCapitalService.addUserBalanceByReceiveFriend( getAnima,Long.parseLong(userId), orderNo, dataId);
+                pushCapitalUpdate(Long.valueOf(userId), UserCapitalTypeEnum.currency_2.getValue());
+            }else {
+                throwExp("累积达到20通宝后可领取");
             }
-
             userStatisticService.updateStatic(PlayGameService.userStatisticMap.get(userId));
             JSONObject result = new JSONObject();
-            result.put("canReceiveIncome", userStatistic.getGetIncome());
-            result.put("friendNumber", userStatistic.getGetAnima());
+            result.put("amount", getAnima);
             return result;
         }
     }
@@ -921,6 +917,7 @@ public class ManagerGameBaseService extends BaseService {
         UserStatistic byUserId = userStatisticService.findByUserId(userId);
         int number = byUserId.getOneJuniorNum() + byUserId.getTwoJuniorNum();
         result.put("number", number);
+        result.put("canReceive",0);
         return result;
     }
 

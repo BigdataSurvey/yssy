@@ -235,21 +235,6 @@ public class UserCacheService extends RedisService {
     // 获取下级人数
     public Long getMySonCount(Long userId, int type) {
         return userService.findMySonCount(userId, type);
-
-        /*String key = RedisKeyConstant.APP_USER_SON_COUNT +  userId + ":" + type + "-";
-
-        String count = get(key);
-        if (count == null) {
-
-            if (allCount > 0) {
-                incr(key, allCount);
-                expire(key, 86400L );
-                return allCount;
-            } else {
-                return 0L;
-            }
-        }
-        return Long.parseLong(count);*/
     }
 
     // 下级人数增加

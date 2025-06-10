@@ -39,6 +39,9 @@ public class ServerUserRoleService extends BaseService {
     private UserCacheService userCacheService;
 
     @Autowired
+    private UserService userService;
+
+    @Autowired
     private UserRoleService userRoleService;
 
     @Autowired
@@ -48,12 +51,15 @@ public class ServerUserRoleService extends BaseService {
     private TsgPayOrderService tsgPayOrderService;
 
     @Autowired
+    private ActiveGiftRecordService activeGiftRecordService;
+
+    @Autowired
     private ServerConfigService serverConfigService;
 
     public static final Map<String, DicRole> DIC_ROLE = new ConcurrentHashMap<>();
 
     public static final String VERSION = "v1.0";
-    public static final String TYPE = "10005";
+    public static final String TYPE = "10006";
     public static final String USER_ID = "88162050";
 
     public static final String SECRET = "e7a15a9d4e6946bb97edf329035297d1";
@@ -94,7 +100,7 @@ public class ServerUserRoleService extends BaseService {
         data.put("version", VERSION);
         data.put("type", TYPE);
         data.put("userId", USER_ID);
-        data.put("buyerId", String.valueOf(userId));
+        //data.put("buyerId", String.valueOf(userId));
         data.put("requestNo", merReqNo);
         data.put("amount", String.valueOf(price.multiply(new BigDecimal(100)).setScale(0)));
         data.put("callBackURL", notifyUrl);
@@ -171,15 +177,11 @@ public class ServerUserRoleService extends BaseService {
         if (userGift != null) {
             params.put("number", userGift.getGiftNum());
         }
-        List<UserRole> byUserId = userRoleService.findByUserId(userId);
-        if (byUserId.size() == 0) {
+        List<ActiveGiftRecord> userActiveRecords = activeGiftRecordService.findByUserId(userId);
+        if (userActiveRecords.size() == 0) {
             params.put("status", 0);
-        }
-        for (UserRole userRole : byUserId) {
-            if (userRole.getStatus() != 2) {
-                params.put("status", 1);
-                break;
-            }
+        }else{
+            params.put("status",1);
         }
         return params;
     }
@@ -208,6 +210,11 @@ public class ServerUserRoleService extends BaseService {
         } else {
             useBigGift(user.getId());
         }
+        if (user.getVip2()==0){
+            user.setVip2(1);
+            userService.updateUserVip2(user.getId());
+        }
+        activeGiftRecordService.addRecord(myId,user.getId(),type);
         return params;
     }
 
@@ -274,7 +281,7 @@ public class ServerUserRoleService extends BaseService {
                 hour = userRole.getHp() / oneHourCostHp;
             }
             //实际消耗体力
-            if (hour > 1) {
+            if (hour >= 1) {
                 long useHp = hour * oneHourCostHp;
                 userRole.setHp((int) (userRole.getHp() - useHp));
                 JSONArray reward = dicRole.getReward();
@@ -301,17 +308,16 @@ public class ServerUserRoleService extends BaseService {
         Long userId = appSocket.getWsidBean().getUserId();
         int index = params.getIntValue("index");
         Long userRoleId = params.getLong("userRoleId");
-        UserRole userRole = userRoleService.findByUserRoleId(userRoleId);
+        UserRole userRole = userRoleService.findByUserIdAndRoleId(userId,userRoleId);
         UserRole byIndex = userRoleService.findByIndex(userId, index);
         if (byIndex!=null){
             throwExp("该位置已经有角色啦");
         }
-
         if (userRole == null) {
             throwExp("未查询到角色信息");
         }
-        if (!Objects.equals(userRole.getUserId(), userId)) {
-            throwExp("非法请求");
+        if (userRole.getIndex()!=0 || userRole.getStatus()==1){
+            throwExp("角色已经在工作啦");
         }
         if (userRole.getStatus() == 2) {
             throwExp("角色已到期");
@@ -319,7 +325,7 @@ public class ServerUserRoleService extends BaseService {
         userRole.setIndex(index);
         userRole.setStatus(1);
         userRoleService.updateUserRole(userRole);
-        return null;
+        return params;
     }
 
 
@@ -333,8 +339,12 @@ public class ServerUserRoleService extends BaseService {
         }
         Long userId = appSocket.getWsidBean().getUserId();
         List<UserRole> noWorkingRoles = userRoleService.findNoWorkingRolesByIndex(userId,index);
+        List<UserRole> list = new ArrayList<>();
+        if (noWorkingRoles.size()>0){
+            list.add(noWorkingRoles.get(0));
+        }
         JSONObject result = new JSONObject();
-        result.put("roles",noWorkingRoles);
+        result.put("roles",list);
         result.put("index",index);
         return result;
     }

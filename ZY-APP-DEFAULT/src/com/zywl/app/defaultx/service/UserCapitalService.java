@@ -929,6 +929,20 @@ public class UserCapitalService extends DaoService {
         }
     }
 
+
+    public void addUserBalanceByReceiveFriend(BigDecimal amount, Long userId, String orderNo, Long dataId) {
+        UserCapital userCapital = userCapitalCacheService.getUserCapitalCacheByType(userId, UserCapitalTypeEnum.currency_2.getValue());
+        int a = addUserBalance(amount, userId, UserCapitalTypeEnum.currency_2.getValue(), userCapital.getBalance(), userCapital.getOccupyBalance(), orderNo, dataId, LogCapitalTypeEnum.receive_income, TableNameConstant.CONVERT_INCOME_RECORD);
+        if (a < 1) {
+            userCapitalCacheService.deltedUserCapitalCache(userId, UserCapitalTypeEnum.currency_2.getValue());
+            userCapital = userCapitalCacheService.getUserCapitalCacheByType(userId, UserCapitalTypeEnum.currency_2.getValue());
+            int b = addUserBalance(amount, userId, UserCapitalTypeEnum.currency_2.getValue(), userCapital.getBalance(), userCapital.getOccupyBalance(), orderNo, dataId, LogCapitalTypeEnum.receive_income, TableNameConstant.CONVERT_INCOME_RECORD);
+            if (b < 1) {
+                userCapitalCacheService.deltedUserCapitalCache(userId, UserCapitalTypeEnum.currency_2.getValue());
+                throwExp("领取收益失败");
+            }
+        }
+    }
     public void addUserBalanceByFriendPlayGame(BigDecimal amount, Long userId, String orderNo, Long dataId) {
         UserCapital userCapital = userCapitalCacheService.getUserCapitalCacheByType(userId, UserCapitalTypeEnum.rmb.getValue());
         int a = addUserBalance(amount, userId, UserCapitalTypeEnum.rmb.getValue(), userCapital.getBalance(), userCapital.getOccupyBalance(), orderNo, dataId, LogCapitalTypeEnum.friend_play_game, TableNameConstant.DUO_YOU_ORDER);

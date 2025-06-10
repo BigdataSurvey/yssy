@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.zywl.app.defaultx.mapper.ActiveGiftRecordMapper">
+
+   <insert id="insert" parameterType="ActiveGiftRecord" useGeneratedKeys="true" keyProperty="id" keyColumn="id">
+		insert into r_active_gift_record
+		(
+               `operator_id`,
+			   `user_id`,
+               `gift_type`,
+             	`create_time`
+		)
+		values
+		(
+               #{operatorId},
+               #{userId},
+               #{giftType},
+               #{createTime}
+             
+             
+		)
+	</insert>
+	
+	<select id="findByUserId" resultType="ActiveGiftRecord">
+		select * from r_active_gift_record where user_id=#{userId} and create_time>#{time}
+	</select>
+	
+
+	
+</mapper>

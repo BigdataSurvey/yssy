@@ -583,7 +583,7 @@ public class GameBaseService extends BaseService {
 
 
 
-    @ServiceMethod(code = "receiveAdIncome", description = "一键领取收益")
+    @ServiceMethod(code = "038", description = "一键领取收益")
     public Object receiveAdIncome(AppSocket appSocket, Command command, JSONObject data) {
         Long userId = appSocket.getWsidBean().getUserId();
         data.put("userId", userId);

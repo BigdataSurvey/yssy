@@ -350,26 +350,26 @@
 	
 	<select id="countMySonNoAuthen" resultType="Long">
 		select count(1) from t_user
-		where (parent_id =#{parentId} or grandfa_id = #{grandfaId}) and authentication=0 and status=1
+		where (parent_id =#{parentId} or grandfa_id = #{grandfaId}) and vip2=0 and status=1
 	</select>
 	<select id="countMySonAuthen" resultType="Long">
 		select count(1) from t_user
-		where parent_id =#{parentId}  and authentication=1 and status=1
+		where parent_id =#{parentId}  and vip2=1 and status=1
 	</select>
 	
 	<select id="countMySonSonAuthen" resultType="Long">
 		select count(1) from t_user
-		where  grandfa_id = #{grandfaId} and authentication=1 and status=1
+		where  grandfa_id = #{grandfaId} and vip2=1 and status=1
 	</select>
 	
 	
 	
 	<select id="countOneJunior" resultType="Long">
-		select count(*) from t_user where parent_id=#{parentId} and is_cash=1 and status=1
+		select count(*) from t_user where parent_id=#{parentId} and vip2=1 and status=1
 	</select>
 	
 	<select id="countTwoJunior" resultType="Long">
-		select count(*) from t_user where grandfa_id=#{grandfaId} and is_cash=1 and status=1
+		select count(*) from t_user where grandfa_id=#{grandfaId} and vip2=1 and status=1
 	</select>
 
 	<select id="findCountByIp" resultType="Long">
@@ -384,7 +384,7 @@
 	</select>
 	
 	<select id="countNoAuthenticationJunior" resultType="Long">
-		select count(*) from t_user where (grandfa_id=#{parentId} or parent_id=#{parentId}) and is_cash=0 and status=1
+		select count(*) from t_user where (grandfa_id=#{parentId} or parent_id=#{parentId}) and vip2=0 and status=1
 	</select>
 	<select id="findByConditions" resultType="User">
 	    select * from t_user 
@@ -399,7 +399,7 @@
 	</select>
 	
 	<select id="findByParentId" resultType="User">
-		select id,user_no,`name`,head_image_url,last_login_time,role_id,is_channel,first_charge from t_user where parent_id=#{parentId} and is_cash=1  and status=1
+		select id,user_no,`name`,head_image_url,last_login_time,role_id,is_channel,first_charge from t_user where parent_id=#{parentId} and vip2=1  and status=1
 	ORDER BY regist_time desc 
 		<if test="start != null and limit != null">
 	   	 limit #{start}, #{limit} 
@@ -408,7 +408,7 @@
 	
 	
 	<select id="findByGrandfaId" resultType="User">
-		SELECT `t_user`.`id`, `t_user`.`user_no`, `t_user`.`name`, `t_user`.`head_image_url`, `t_user`.`last_login_time` , `t_user`.`role_id`, `t_user`.`is_channel`, `t_user`.`first_charge` FROM `t_user` INNER JOIN ( SELECT `id` FROM `t_user` WHERE `grandfa_id` = #{grandfaId} AND `is_cash` = 1  AND `status` = 1 ORDER BY `regist_time` DESC LIMIT #{start}, #{limit} ) `tmp_0` USING (`id`)
+		SELECT `t_user`.`id`, `t_user`.`user_no`, `t_user`.`name`, `t_user`.`head_image_url`, `t_user`.`last_login_time` , `t_user`.`role_id`, `t_user`.`is_channel`, `t_user`.`first_charge` FROM `t_user` INNER JOIN ( SELECT `id` FROM `t_user` WHERE `grandfa_id` = #{grandfaId} AND vip2=1   AND `status` = 1 ORDER BY `regist_time` DESC LIMIT #{start}, #{limit} ) `tmp_0` USING (`id`)
 	</select>
 	
 	
@@ -554,7 +554,7 @@
 	
 	
 	<select id="findMySonNoAuthicatino" resultType="User">
-		SELECT `t_user`.`id`, `t_user`.`user_no`, `t_user`.`name`, `t_user`.`head_image_url`, `t_user`.`last_login_time` , `t_user`.`role_id`, `t_user`.`is_channel`, `t_user`.`first_charge` FROM `t_user` INNER JOIN ( SELECT `id` FROM `t_user` WHERE (`parent_id` = #{parentId} OR `grandfa_id` = #{parentId}) AND `is_cash` = 0 AND `status` = 1 LIMIT #{start}, #{limit} ) `tmp_0` USING (`id`)
+		SELECT `t_user`.`id`, `t_user`.`user_no`, `t_user`.`name`, `t_user`.`head_image_url`, `t_user`.`last_login_time` , `t_user`.`role_id`, `t_user`.`is_channel`, `t_user`.`first_charge` FROM `t_user` INNER JOIN ( SELECT `id` FROM `t_user` WHERE (`parent_id` = #{parentId} OR `grandfa_id` = #{parentId}) AND vip2 = 0 AND `status` = 1 LIMIT #{start}, #{limit} ) `tmp_0` USING (`id`)
 		</select>
 
 	<update id="updateUserRoleId" parameterType="User">
@@ -581,6 +581,10 @@
 	</update>
 	<update id="updateUserCNo" parameterType="User">
 		update t_user set cno =  #{cno}  where id=#{userId}
+	</update>
+
+	<update id="updateUserVip2" parameterType="User">
+		update t_user set vip2 =  1  where id=#{userId}
 	</update>
 
 	<update id="openWeek" parameterType="User">
