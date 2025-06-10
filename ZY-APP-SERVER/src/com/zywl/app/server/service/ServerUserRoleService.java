@@ -9,16 +9,19 @@ import com.live.app.ws.enums.TargetSocketType;
 import com.live.app.ws.util.CommandBuilder;
 import com.live.app.ws.util.Executer;
 import com.zywl.app.base.bean.*;
+import com.zywl.app.base.constant.RedisKeyConstant;
 import com.zywl.app.base.service.BaseService;
 import com.zywl.app.base.util.*;
 import com.zywl.app.defaultx.annotation.ServiceClass;
 import com.zywl.app.defaultx.annotation.ServiceMethod;
 import com.zywl.app.defaultx.cache.UserCacheService;
+import com.zywl.app.defaultx.cache.impl.RedisService;
 import com.zywl.app.defaultx.service.*;
 import com.zywl.app.server.context.MessageCodeContext;
 import com.zywl.app.server.socket.AppSocket;
 import com.zywl.app.server.util.RequestManagerListener;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -48,6 +51,10 @@ public class ServerUserRoleService extends BaseService {
 
     @Autowired
     private ServerConfigService serverConfigService;
+    @Autowired
+    private RedisTemplate redisTemplate;
+    @Autowired
+    private RedisService redisService;
 
     public static final Map<String, DicRole> DIC_ROLE = new ConcurrentHashMap<>();
 
@@ -56,6 +63,7 @@ public class ServerUserRoleService extends BaseService {
     public static final String USER_ID = "88162050";
 
     public static final String SECRET = "e7a15a9d4e6946bb97edf329035297d1";
+
 
 
     @PostConstruct
@@ -186,10 +194,14 @@ public class ServerUserRoleService extends BaseService {
     @ServiceMethod(code = "002", description = "激活角色礼包")
     public JSONObject useGift(final AppSocket appSocket, Command appCommand, JSONObject params) {
         checkNull(params);
-        checkNull(params.get("userNo"), params.get("type"));
+        checkNull(params.get("userNo"), params.get("type"),params.get("number"));
+        //定义积分参数
+        BigDecimal addPoint = BigDecimal.ZERO;
+        ArrayList<Object> array = new ArrayList<>();
         String userNo = params.getString("userNo");
         Long myId = appSocket.getWsidBean().getUserId();
         int type = params.getIntValue("type");
+        BigDecimal number = params.getBigDecimal("number");
         if (type != 1 && type != 2) {
             throwExp("非法请求");
         }
@@ -206,6 +218,31 @@ public class ServerUserRoleService extends BaseService {
             useSmallGift(user.getId());
         } else {
             useBigGift(user.getId());
+            JSONObject info = new JSONObject();
+            info.put("userHeadImg",user.getHeadImageUrl());
+            info.put("userId",user.getId());
+            info.put("userName",user.getName());
+            info.put("userNo",user.getUserNo());
+            info.put("openId",user.getOpenId());
+            info.put("userName",user.getName());
+            info.put("realName",user.getRealName());
+            info.put("tel",user.getPhone());
+            //已经激活大礼包的用户 给他上级加积分并存入redis
+            //存之前要先判断父级id的积分是否大于10 大于10 加1.05分 如果大于20.5的话加1.1分
+            //用户父id的积分
+            //存放zset格式为了得出排名
+            Double oldPoint = redisTemplate.opsForZSet().score(RedisKeyConstant.APP_TOP_lIST+  DateUtil.format2(new Date()), user.getParentId());
+            if (oldPoint==null){
+                oldPoint=0.0;
+            }
+            if(oldPoint>10){
+                info.put("point",oldPoint+1.05);
+            }else if(oldPoint>20.5){
+                info.put("point",oldPoint+1.1);
+            }else {
+                info.put("point",oldPoint+1);
+            }
+            redisService.set(RedisKeyConstant.APP_TOP_lIST+  DateUtil.format2(new Date()),array,86400*10);
         }
         return params;
     }

@@ -38,5 +38,6 @@ public class MessageCodeContext {
 	public final static String ROLE="076";
 
 	public final static String USER_VIP="078";
+	public final static String Activity="079";
 
 }

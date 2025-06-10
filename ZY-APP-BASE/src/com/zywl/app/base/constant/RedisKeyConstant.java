@@ -375,4 +375,6 @@ public class RedisKeyConstant {
 	public final  static  String APP_CONFIG_CASH_LIMIT_TIPS = "t:app:config:cashlimitTips";
 
 	public final  static  String APP_CASH_DAY_COUNT = "t:app:cash:dayCount";
+	public final  static  String APP_TOP_lIST = "t:top:list";
 }
+

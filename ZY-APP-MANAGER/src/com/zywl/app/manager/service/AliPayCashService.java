@@ -168,7 +168,7 @@ public class AliPayCashService extends BaseService {
         //alipayConfig.setFormat("json");
         ClassLoader classLoader = this.getClass().getClassLoader();
 
-        URL resource = classLoader.getResource("appCertPublicKey_2021005111696226.crt");
+        URL resource = classLoader.getResource("appCertPublicKey_2021005159610595.crt");
         String path = resource.getPath();
         alipayConfig.setAppCertPath(path);
         alipayConfig.setAlipayPublicCertPath(this.getClass().getClassLoader().getResource("alipayCertPublicKey_RSA2.crt").getPath());
