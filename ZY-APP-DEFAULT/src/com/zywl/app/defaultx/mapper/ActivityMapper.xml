@@ -45,12 +45,12 @@
         delete from t_activity where  id= #{id}
     </delete>
 
-    <select id="findById" resultType="Achievement">
+    <select id="findById" resultType="Activity">
         select * from t_activity where id = #{id}
     </select>
 
 
-    <select id="findAll" resultType="Achievement">
+    <select id="findAll" resultType="Activity">
         select * from t_activity
     </select>
 

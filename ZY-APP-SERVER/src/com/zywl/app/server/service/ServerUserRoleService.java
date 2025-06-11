@@ -201,6 +201,7 @@ public class ServerUserRoleService extends BaseService {
         String userNo = params.getString("userNo");
         Long myId = appSocket.getWsidBean().getUserId();
         int type = params.getIntValue("type");
+        List<Object> array = new ArrayList<>();
         if (type != 1 && type != 2) {
             throwExp("非法请求");
         }
@@ -217,6 +218,26 @@ public class ServerUserRoleService extends BaseService {
             useSmallGift(user.getId());
         } else {
             useBigGift(user.getId());
+            JSONObject info = new JSONObject();
+            info.put("userId",user.getId());
+            //已经激活大礼包的用户 给他上级加积分并存入redis
+            //存之前要先判断父级id的积分是否大于10 大于10 加1.05分 如果大于20.5的话加1.1分
+            //用户父id的积分
+            //存放zset格式为了得出排名
+
+            Double oldPoint = redisTemplate.opsForZSet().score(RedisKeyConstant.APP_TOP_lIST+  DateUtil.format2(new Date()), String.valueOf(user.getParentId()));
+            if (oldPoint==null){
+                oldPoint=0.0;
+            }
+            if(oldPoint>10){
+                info.put("point",oldPoint+1.05);
+            }else if(oldPoint>20.5){
+                info.put("point",oldPoint+1.1);
+            }else {
+                info.put("point",oldPoint+1);
+            }
+            array.add(info);
+            redisService.set(RedisKeyConstant.APP_TOP_lIST+  DateUtil.format2(new Date()),array,86400*10);
         }
         if (user.getVip2()==0){
             user.setVip2(1);

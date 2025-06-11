@@ -7,8 +7,10 @@ import com.zywl.app.base.bean.User;
 import com.zywl.app.base.bean.vo.KillNsRecordRandVo;
 import com.zywl.app.base.constant.RedisKeyConstant;
 import com.zywl.app.base.util.DateUtil;
+import com.zywl.app.base.util.OrderUtil;
 import com.zywl.app.defaultx.cache.impl.RedisService;
 import com.zywl.app.defaultx.enmus.GameTypeEnum;
+import com.zywl.app.defaultx.service.CashRecordService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.ZSetOperations;
 import org.springframework.stereotype.Service;
@@ -23,6 +25,8 @@ public class GameCacheService extends RedisService {
 
     @Autowired
     private UserCacheService userCacheService;
+    @Autowired
+    private CashRecordService cashRecordService;
 
     public static final List<String> LAST_WEEK_USER_IDS = new ArrayList<>();
 
@@ -161,6 +165,48 @@ public class GameCacheService extends RedisService {
     }
 
 
+    public List<JSONObject> getTopList(String key){
+        List<JSONObject> list = getList(key,JSONObject.class);
+        if (list==null || list.size()==0){
+            Map<String, Double> thisTopList = getThisTopList(key, 10);
+            Set<String> ids = thisTopList.keySet();
+            String orderNo = OrderUtil.getOrder5Number();
+            list =new ArrayList<>();
+            for (String id : ids) {
+                User userInfoById = userCacheService.getUserInfoById(id);
+                JSONObject info = new JSONObject();
+                info.put("userHeadImg",userInfoById.getHeadImageUrl());
+                info.put("userId",id);
+                info.put("userName",userInfoById.getName());
+                info.put("userNo",userInfoById.getUserNo());
+                Double score = thisTopList.get(id);
+                BigDecimal RawrdsAmont;
+                if(score==1){
+                    RawrdsAmont =  BigDecimal.valueOf(score).multiply(BigDecimal.valueOf(50)).add(BigDecimal.valueOf(10));
+                }else if(thisTopList.get(id)==2){
+                    RawrdsAmont =  BigDecimal.valueOf(score).multiply(BigDecimal.valueOf(50)).add(BigDecimal.valueOf(5));
+                }else{
+                    RawrdsAmont =  BigDecimal.valueOf(score).multiply(BigDecimal.valueOf(50));
+                }
+                info.put("score",RawrdsAmont);
+                cashRecordService.addCashOrder(userInfoById.getOpenId(), userInfoById.getId(), userInfoById.getUserNo(), userInfoById.getName(), userInfoById.getRealName(), orderNo,RawrdsAmont,2,userInfoById.getPhone());
+                list.add(info);
+            }
+            set(key,list,60);
+        }
+        return list;
+    }
+
+    private Map<String, Double> getThisTopList(String key, int count) {
+        Set<ZSetOperations.TypedTuple<String>> zset = getZset(key, count);
+        Map<String,Double> map = new HashMap<>();
+        for (ZSetOperations.TypedTuple<String> s : zset) {
+            Double score = s.getScore();
+            map.put(s.getValue(), score);
+        }
+        return map;
+    }
+
     public List<JSONObject> getThisWeekList(){
         String key  = RedisKeyConstant.GAME_RANK_LIST;
         List<JSONObject> list = getList(key,JSONObject.class);
@@ -211,5 +257,15 @@ public class GameCacheService extends RedisService {
 
     public Long getLastWeekUserRank(String userId){
         return getZsetRank(userId,RedisKeyConstant.GAME_RANK_DTS+DateUtil.getFirstDayOfLastWeek());
+    }
+
+    public Long getUserTopList(String key, Long userId) {
+        return getZsetRank(RedisKeyConstant.GAME_RANK_DTS+ DateUtil.getFirstDayOfWeek(new Date()),String.valueOf(userId));
+
+    }
+
+    public Double getUserTopScore(String key, String userId) {
+
+      return getZsetScore(key,userId);
     }
 }
