@@ -265,7 +265,24 @@ public class GameCacheService extends RedisService {
     }
 
     public Double getUserTopScore(String key, String userId) {
-
       return getZsetScore(key,userId);
+    }
+
+    public void addPoint(String key, String userId) {
+        //存之前要先判断父级id的积分是否大于10 大于10 加1.05分 如果大于20.5的话加1.1分
+        //存放zset格式为了得出排名
+        Double oldPoint = getZsetScore(key, userId);
+        Double point = 0.0;
+        if (oldPoint==null){
+            oldPoint=0.0;
+        }
+        if(oldPoint<10){
+            point = oldPoint+1;
+        }else if(oldPoint>= 10 && oldPoint<20.5){
+            point = oldPoint+1.05;
+        }else {
+            point = oldPoint+1.1;
+        }
+        addZset(key,userId, (double) point);
     }
 }
