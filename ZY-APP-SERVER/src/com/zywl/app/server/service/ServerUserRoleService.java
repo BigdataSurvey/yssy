@@ -197,14 +197,10 @@ public class ServerUserRoleService extends BaseService {
     @ServiceMethod(code = "002", description = "激活角色礼包")
     public JSONObject useGift(final AppSocket appSocket, Command appCommand, JSONObject params) {
         checkNull(params);
-        checkNull(params.get("userNo"), params.get("type"),params.get("number"));
-        //定义积分参数
-        BigDecimal addPoint = BigDecimal.ZERO;
-        ArrayList<Object> array = new ArrayList<>();
+        checkNull(params.get("userNo"), params.get("type"));
         String userNo = params.getString("userNo");
         Long myId = appSocket.getWsidBean().getUserId();
         int type = params.getIntValue("type");
-        BigDecimal number = params.getBigDecimal("number");
         if (type != 1 && type != 2) {
             throwExp("非法请求");
         }
@@ -221,31 +217,6 @@ public class ServerUserRoleService extends BaseService {
             useSmallGift(user.getId());
         } else {
             useBigGift(user.getId());
-            JSONObject info = new JSONObject();
-            info.put("userHeadImg",user.getHeadImageUrl());
-            info.put("userId",user.getId());
-            info.put("userName",user.getName());
-            info.put("userNo",user.getUserNo());
-            info.put("openId",user.getOpenId());
-            info.put("userName",user.getName());
-            info.put("realName",user.getRealName());
-            info.put("tel",user.getPhone());
-            //已经激活大礼包的用户 给他上级加积分并存入redis
-            //存之前要先判断父级id的积分是否大于10 大于10 加1.05分 如果大于20.5的话加1.1分
-            //用户父id的积分
-            //存放zset格式为了得出排名
-            Double oldPoint = redisTemplate.opsForZSet().score(RedisKeyConstant.APP_TOP_lIST+  DateUtil.format2(new Date()), user.getParentId());
-            if (oldPoint==null){
-                oldPoint=0.0;
-            }
-            if(oldPoint>10){
-                info.put("point",oldPoint+1.05);
-            }else if(oldPoint>20.5){
-                info.put("point",oldPoint+1.1);
-            }else {
-                info.put("point",oldPoint+1);
-            }
-            redisService.set(RedisKeyConstant.APP_TOP_lIST+  DateUtil.format2(new Date()),array,86400*10);
         }
         if (user.getVip2()==0){
             user.setVip2(1);
@@ -321,7 +292,8 @@ public class ServerUserRoleService extends BaseService {
             if (hour >= 1) {
                 long useHp = hour * oneHourCostHp;
                 userRole.setHp((int) (userRole.getHp() - useHp));
-                JSONArray reward = dicRole.getReward();
+                JSONArray reward = new JSONArray();
+                reward.addAll(dicRole.getReward());
                 for (Object o : reward) {
                     JSONObject info = (JSONObject) o;
                     Integer oneHourNumber = info.getInteger("number");
@@ -329,7 +301,7 @@ public class ServerUserRoleService extends BaseService {
                 }
                 JSONArray nowReward = JSONUtil.mergeJSONArray(userRole.getUnReceive(), reward);
                 userRole.setUnReceive(nowReward);
-                userRole.setLastReceiveTime(DateUtil.getDateByHour(userRole.getLastReceiveTime(), (int) hour));
+                userRole.setLastReceiveTime(new Date());
                 needUpdate.add(userRole);
             }
         }

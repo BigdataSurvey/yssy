@@ -53,6 +53,9 @@ public class ManagerUserRoleService extends BaseService {
         if (userRole==null){
             throwExp("未查询到角色信息");
         }
+        if (userRole.getEndTime().getTime()<System.currentTimeMillis()){
+            throwExp("角色已到期，请重新激活礼包");
+        }
         DicRole dicRole = PlayGameService.DIC_ROLE.get(userRole.getRoleId().toString());
         int maxHp = dicRole.getHp();
         if (allHp+userRole.getHp()>maxHp){

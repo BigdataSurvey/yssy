@@ -28,6 +28,8 @@ public class DicMine extends BaseBean {
 
     private String miningItem;
 
+    private int miningItemCount;
+
     private BigDecimal rewardFriend;
 
     private BigDecimal seasonRewardFriend;
@@ -126,5 +128,13 @@ public class DicMine extends BaseBean {
 
     public void setIndex(int index) {
         this.index = index;
+    }
+
+    public int getMiningItemCount() {
+        return miningItemCount;
+    }
+
+    public void setMiningItemCount(int miningItemCount) {
+        this.miningItemCount = miningItemCount;
     }
 }

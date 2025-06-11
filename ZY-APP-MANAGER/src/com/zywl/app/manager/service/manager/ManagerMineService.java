@@ -146,7 +146,7 @@ public class ManagerMineService extends BaseService {
                 throwExp("当前正在探索，无需重复探索");
             }
             String useItemId = PlayGameService.DIC_MINE.get(userMine.getMineId().toString()).getMiningItem();
-            int number = 10;
+            int number = PlayGameService.DIC_MINE.get(userMine.getMineId().toString()).getMiningItemCount();
             gameService.checkUserItemNumber(userId,useItemId,10);
             gameService.updateUserBackpack(userId,useItemId,-number,LogUserBackpackTypeEnum.use);
             userMine.setIsMining(1);

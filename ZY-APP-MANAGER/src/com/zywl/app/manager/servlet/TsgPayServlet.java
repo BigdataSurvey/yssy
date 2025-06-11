@@ -42,22 +42,32 @@ public class TsgPayServlet extends BaseServlet {
     @Override
     public Object doProcess(HttpServletRequest request, HttpServletResponse response, String ip) throws IOException {
         System.out.println("========================================");
-        String morderid = request.getHeader("userId");
+        StringBuffer data = new StringBuffer();
+        String line = null;
+        BufferedReader reader = null;
+        reader = request.getReader();
+        while (null != (line = reader.readLine())) {
+            data.append(line);
+        }
+        String jsonSt = data.toString();
+        JSONObject info = JSONObject.parseObject(jsonSt);
+        String morderid = info.getString("morderid");
+        logger.info("morderid = " + jsonSt);
         //1:预下单成功,2:预下单失败3:交易成功,4:交易超时,5:交易失败,6:处理中
-        int status = Integer.parseInt(request.getHeader("status"));
+        int status = info.getIntValue("status");
         //成功则返回”success”,失败返回原因
-        String message = request.getHeader("message");
+        String message = info.getString("message");
         //以分为单位
-        String amount = request.getHeader("amount");
+        String amount = info.getString("amount");
         //实际支付金额
-        String payAmount = request.getHeader("payAmount");
+        String payAmount = info.getString("payAmount");
         //订单号
-        String requestNo = request.getHeader("requestNo");
-        String orderNo = request.getHeader("orderNo");
-        String payTime = request.getHeader("payTime");
-        String sign = request.getHeader("sign");
+        String requestNo = info.getString("requestNo");
+        String orderNo = info.getString("orderNo");
+        String payTime = info.getString("payTime");
+        String sign = info.getString("sign");
         TreeMap<String, String> treeMap = new TreeMap<>();
-        treeMap.put("userId", morderid);
+        treeMap.put("userId", jsonSt);
         treeMap.put("status", String.valueOf(status));
         treeMap.put("message", message);
         treeMap.put("amount", amount);
@@ -68,20 +78,19 @@ public class TsgPayServlet extends BaseServlet {
         StringBuffer stringBuffer = new StringBuffer();
         treeMap.forEach((key, value) -> stringBuffer.append(key).append("=").append(value).append("&"));
         String signMd5 = MD5Util.md5(stringBuffer + "key=e7a15a9d4e6946bb97edf329035297d1").toLowerCase();
-        if (signMd5.equals(sign)) {
-             updatePayOrder(status,requestNo);
-        }
+        updatePayOrder(status, requestNo);
         return null;
     }
 
 
     public void updatePayOrder(int status, String requestNo) {
         TsgPayOrder tsgPayOrder = tsgPayOrderService.findByOrderNo(requestNo);
-        if (tsgPayOrder==null){
-            return ;
+        if (tsgPayOrder == null) {
+            logger.info("未查询到订单+"+requestNo);
+            return;
         }
         tsgPayOrder.setStatus(status);
-		if (status==3){
+        if (status == 3) {
             Long userId = tsgPayOrder.getUserId();
             int productId = Math.toIntExact(tsgPayOrder.getProductId());
             userGiftService.addUserGiftNumber(userId, productId);
