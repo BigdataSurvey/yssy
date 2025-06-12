@@ -9,6 +9,7 @@ public enum ItemIdEnum {
     MONEY_1("银币", "1"),
     FRIEND("友情点", "7"),
     GOLD("金币", "2"),
+    YYQ("游园券", "3"),
     CARD_EXP("卡牌经验", "2"),
     PVP_SCORE("PVP积分", "5"),
     YUANBAO("金币", "4"),

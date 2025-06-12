@@ -693,7 +693,7 @@ public class ManagerGameBaseService extends BaseService {
         DicShop dicShop = PlayGameService.DIC_SHOP_MAP.get(type).get(id);
         int price = dicShop.getPrice() * number;
         BigDecimal amount = new BigDecimal(String.valueOf(price));
-        if (dicShop.getUseItemId() == 1 || dicShop.getUseItemId() == 2) {
+        if (dicShop.getUseItemId() == 1 || dicShop.getUseItemId() == 2 || dicShop.getUseItemId() == 3) {
             UserCapital userCapital = userCapitalCacheService.getUserCapitalCacheByType(userId, dicShop.getUseItemId().intValue());
             if (userCapital.getBalance().compareTo(amount) < 0) {
                 throwExp("余额不足");
@@ -710,13 +710,13 @@ public class ManagerGameBaseService extends BaseService {
                 gameService.updateUserBackpack(userId, dicShop.getUseItemId().toString(), -price, LogUserBackpackTypeEnum.use);
             }
         }
-        gameService.updateUserBackpack(userId, dicShop.getItemId().toString(), number, LogUserBackpackTypeEnum.shopping);
         JSONObject result = new JSONObject();
         JSONArray array = new JSONArray();
         result.put("type", 1);
         result.put("id", dicShop.getItemId());
         result.put("number", number);
         array.add(result);
+        gameService.addReward(userId,array,LogCapitalTypeEnum.shopping);
         return array;
     }
 

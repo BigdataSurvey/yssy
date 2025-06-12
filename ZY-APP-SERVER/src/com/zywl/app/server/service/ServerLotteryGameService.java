@@ -309,7 +309,7 @@ public class ServerLotteryGameService extends BaseService {
             result.put("myRank",rank==null?-1:rank+1);
         } else if (type==0) {
             result.put("remainingTime", DateUtil.thisWeekRemainingTime());
-            result.put("rankList",gameCacheService.getThisWeekList() );
+            result.put("rankList",gameCacheService.getThisWeekList());
             Double userRankScore = gameCacheService.getUserRankScore(GameTypeEnum.battleRoyale.getValue(), String.valueOf(userId));
             result.put("myScore", userRankScore ==null?0.0:userRankScore);
             Long thisWeekUserRank = gameCacheService.getThisWeekUserRank(String.valueOf(userId));

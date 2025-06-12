@@ -198,6 +198,14 @@ public class DateUtil {
         }
     }
 
+
+    public static final String getHfOrderExpireTime(){
+        synchronized (sdf3) {
+            Date dateByM = getDateByM(new Date(), 10);
+            return sdf3.format(dateByM);
+        }
+    }
+
     /**
      * 获取当前日期
      *

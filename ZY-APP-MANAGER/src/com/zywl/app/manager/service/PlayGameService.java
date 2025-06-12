@@ -44,7 +44,6 @@ import java.util.concurrent.ConcurrentHashMap;
 public class PlayGameService extends BaseService {
 
 
-
     public static Map<String, Card> CARD_INFO = new ConcurrentHashMap<>();
 
     public static Set<String> ARTIFACT_ID = new HashSet<>();
@@ -52,7 +51,7 @@ public class PlayGameService extends BaseService {
 
     public static Map<String, DicMine> DIC_MINE = new ConcurrentHashMap<>();
 
-    public  static final Map<String, DicRole> DIC_ROLE = new ConcurrentHashMap<>();
+    public static final Map<String, DicRole> DIC_ROLE = new ConcurrentHashMap<>();
 
 
     public static Map<String, UserCapital> playercoins = new ConcurrentHashMap<>();
@@ -84,12 +83,9 @@ public class PlayGameService extends BaseService {
 
     public static Map<String, Map<String, Achievement>> achievementMap = new ConcurrentHashMap<>();
 
-    public static Map<String,Map<String,DicShop>> DIC_SHOP_MAP = new ConcurrentHashMap<>();
-    public static Map<String,List<DicShop>> DIC_SHOP_LIST = new ConcurrentHashMap<>();
+    public static Map<String, Map<String, DicShop>> DIC_SHOP_MAP = new ConcurrentHashMap<>();
+    public static Map<String, List<DicShop>> DIC_SHOP_LIST = new ConcurrentHashMap<>();
     public static Map<String, UserAchievement> userAchievementMap = new ConcurrentHashMap<>();
-
-
-
 
 
     @Autowired
@@ -145,7 +141,6 @@ public class PlayGameService extends BaseService {
     private ProductService productService;
 
 
-
     @Autowired
     private GiveParentIncomeService giveParentIncomeService;
 
@@ -161,7 +156,6 @@ public class PlayGameService extends BaseService {
 
     @Autowired
     private DicRoleService dicRoleService;
-
 
 
     @Autowired
@@ -275,20 +269,19 @@ public class PlayGameService extends BaseService {
     }
 
 
-
-    public void initShop(){
+    public void initShop() {
         List<DicShop> allShop = dicShopService.findAllShop();
         for (DicShop dicShop : allShop) {
             Map<String, DicShop> orDefault = DIC_SHOP_MAP.getOrDefault(String.valueOf(dicShop.getShopType()), new ConcurrentHashMap<>());
-            orDefault.put(dicShop.getId().toString(),dicShop);
-            if (!DIC_SHOP_MAP.containsKey(String.valueOf(dicShop.getShopType()))){
-                DIC_SHOP_MAP.put(String.valueOf(dicShop.getShopType()),orDefault);
+            orDefault.put(dicShop.getId().toString(), dicShop);
+            if (!DIC_SHOP_MAP.containsKey(String.valueOf(dicShop.getShopType()))) {
+                DIC_SHOP_MAP.put(String.valueOf(dicShop.getShopType()), orDefault);
             }
 
             List<DicShop> shops = DIC_SHOP_LIST.getOrDefault(String.valueOf(dicShop.getShopType()), new ArrayList<>());
             shops.add(dicShop);
-            if (!DIC_SHOP_LIST.containsKey(String.valueOf(dicShop.getShopType()))){
-                DIC_SHOP_LIST.put(String.valueOf(dicShop.getShopType()),shops);
+            if (!DIC_SHOP_LIST.containsKey(String.valueOf(dicShop.getShopType()))) {
+                DIC_SHOP_LIST.put(String.valueOf(dicShop.getShopType()), shops);
             }
         }
     }
@@ -315,9 +308,9 @@ public class PlayGameService extends BaseService {
         allIncome3.forEach(e -> channelIncomeMap.put(String.valueOf(e.getTier()), e));
     }
 
-    public void initDicVip(){
+    public void initDicVip() {
         List<DicVip> allVip = dicVipService.findAllVip();
-        allVip.forEach(e->DIC_VIP_MAP.put(String.valueOf(e.getLv()),e));
+        allVip.forEach(e -> DIC_VIP_MAP.put(String.valueOf(e.getLv()), e));
     }
 
     public void initProduct() {
@@ -350,7 +343,7 @@ public class PlayGameService extends BaseService {
         DIC_ROLE.clear();
         logger.info("初始化角色相关信息");
         List<DicRole> allRole = dicRoleService.findAllRole();
-        allRole.forEach(e->DIC_ROLE.put(e.getId().toString(),e));
+        allRole.forEach(e -> DIC_ROLE.put(e.getId().toString(), e));
         logger.info("初始化角色信息完成,加载数据数量：" + DIC_MINE.size());
     }
 
@@ -473,7 +466,7 @@ public class PlayGameService extends BaseService {
     }
 
 
-    public void updateUserBackpackCache(Long userId,String itemId,int number){
+    public void updateUserBackpackCache(Long userId, String itemId, int number) {
         synchronized (LockUtil.getlock(userId)) {
             if (playerItems.containsKey(userId)) {
                 if (playerItems.get(userId).containsKey(itemId)) {
@@ -657,7 +650,7 @@ public class PlayGameService extends BaseService {
             String id = reward.getString("id");
             int number = reward.getIntValue("number");
             if (type == 1) {
-                if (id.equals(ItemIdEnum.GOLD.getValue())) {
+                if (id.equals(ItemIdEnum.GOLD.getValue()) || id.equals(ItemIdEnum.YYQ.getValue())) {
                     BigDecimal amount = reward.getBigDecimal("number");
                     if (reward.containsKey("channel")) {
                         int channel = reward.getIntValue("channel");
@@ -671,7 +664,7 @@ public class PlayGameService extends BaseService {
                     }
                     userCapitalService.addUserBalanceByAddReward(amount, userId, UserCapitalTypeEnum.currency_2.getValue(), em);
                     managerGameBaseService.pushCapitalUpdate(userId, UserCapitalTypeEnum.currency_2.getValue());
-                }  else {
+                } else {
                     //正常道具
                     if (!id.equals("1001")) {
                         updateUserBackpack(userId, id, number, LogUserBackpackTypeEnum.game);
@@ -684,14 +677,12 @@ public class PlayGameService extends BaseService {
                         jdCardService.userExchange(userId, jdCardId);
                     }
                 }
-            } else if (type == 4) {
-                //神兵
             }
         }
     }
 
     @KafkaProducer(topic = KafkaTopicContext.RED_POINT, event = KafkaEventContext.DTS, sendParams = true)
-    public void updateYyItemCacheByDts(String a,JSONObject orderInfo){
+    public void updateYyItemCacheByDts(String a, JSONObject orderInfo) {
         //只是为了触发kafka
         String id = orderInfo.getString("userId");
         int number = orderInfo.getIntValue("betAmount");
@@ -699,7 +690,7 @@ public class PlayGameService extends BaseService {
     }
 
     @KafkaProducer(topic = KafkaTopicContext.RED_POINT, event = KafkaEventContext.LHD, sendParams = true)
-    public void updateYyItemCacheByLhd(String a,JSONObject orderInfo){
+    public void updateYyItemCacheByLhd(String a, JSONObject orderInfo) {
         //只是为了触发kafka
         String id = orderInfo.getString("userId");
         int number = orderInfo.getIntValue("betAmount");

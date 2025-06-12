@@ -50,7 +50,7 @@ public enum LogCapitalTypeEnum {
     get_buff("合成/升级 底座", 40),
     sell_sys("卖出道具", 41),
     study_skill("领悟/升级 技能", 42),
-    shopping("商城购买道具", 43),
+    shopping("游戏商城", 43),
     receive_invite("活动奖励", 44),
     guild("公会质押",45),
     guild_receive("公会发放",46),
