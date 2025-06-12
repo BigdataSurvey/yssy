@@ -221,12 +221,13 @@ public class ServerUserRoleService extends BaseService {
         if (type == 1) {
             useSmallGift(user.getId());
         } else {
+
             useBigGift(user.getId());
             JSONObject info = new JSONObject();
             info.put("userId",user.getId());
             //已经激活大礼包的用户 给他上级加积分并存入redis
             //用户父id的积分
-            gameCacheService.addPoint(key, String.valueOf(user.getParentId()));
+            gameCacheService.addPoint(key, user);
         }
         if (user.getVip2()==0){
             user.setVip2(1);

@@ -115,25 +115,7 @@ public class ManagerActivityService  extends BaseService {
             return result;
         }*/
 
-    @Transactional
-    @ServiceMethod(code = "002", description = "获取榜单信息")
-    public JSONObject getTopListInfo1(ManagerSocketServer adminSocketServer, JSONObject data) {
-        checkNull(data);
-        Long userId = data.getLong("userId");
-        String key = RedisKeyConstant.APP_TOP_lIST+  DateUtil.format2(new Date());
-        User user = userCacheService.getUserInfoById(userId);
-        if (user == null) {
-            throwExp("用户信息异常");
-        }
-        JSONObject result = new JSONObject();
-        Double userRankScore = gameCacheService.getUserTopScore(key,String.valueOf(userId));
-        result.put("remainingTime", DateUtil.thisWeekRemainingTime());
-        result.put("rankList",gameCacheService.getTopList(key));
-        result.put("myScore", userRankScore ==null?0.0:userRankScore);
-        Long thisWeekUserRank = gameCacheService.getThisWeekUserRank(String.valueOf(userId));
-        result.put("myRank",thisWeekUserRank==null?-1:thisWeekUserRank+1);
-        return result;
-    }
+
     @Transactional
     @ServiceMethod(code = "003", description = "获取领奖记录")
     public JSONObject getRawrdsRecord(ManagerSocketServer adminSocketServer, JSONObject data) {
@@ -141,57 +123,51 @@ public class ManagerActivityService  extends BaseService {
         checkNull(data);
         checkNull(data.get("page"), data.get("num"));
         Long userId = data.getLong("userId");
+        User user = userService.findById(userId);
+        if(null == user.getAlipayId()){
+            throwExp("您没有绑定提现方式，请绑定后重试");
+        }
         List<CashRecord> cashRecord= cashRecordService.findCashRecordByUserId(userId, data.getIntValue("page"), data.getIntValue("num"));
         result.put("cashRecord",cashRecord);
+        return result;
+    }
+    @Transactional
+    @ServiceMethod(code = "002", description = "获取榜单信息")
+    public JSONObject getTopListInfo1(ManagerSocketServer adminSocketServer, JSONObject data) {
+        checkNull(data);
+        Long userId = data.getLong("userId");
+        String key = RedisKeyConstant.APP_TOP_lIST+  DateUtil.format2(new Date());
+        String rankKey =RedisKeyConstant.POINT_RANK_LIST+  DateUtil.format2(new Date());
+        User user = userCacheService.getUserInfoById(userId);
+        if (user == null) {
+            throwExp("用户信息异常");
+        }
+        JSONObject result = new JSONObject();
+        result.put("remainingTime", DateUtil.thisWeekRemainingTime());
+        result.put("rankList",gameCacheService.getTopList(key,rankKey));
+        Double userRankScore = gameCacheService.getUserTopScore(String.valueOf(userId));
+        result.put("myScore", userRankScore ==null?0.0:userRankScore);
+        Long thisWeekUserRank = gameCacheService.getTopRank(String.valueOf(userId));
+        result.put("myRank",thisWeekUserRank==null?-1:thisWeekUserRank+1);
         return result;
     }
     @Transactional
     @ServiceMethod(code = "004", description = "上期榜单")
     public JSONObject getLastTopList(ManagerSocketServer adminSocketServer, JSONObject data) {
         JSONObject result = new JSONObject();
+        Long userId = data.getLong("userId");
         Calendar calendar = Calendar.getInstance();
         calendar.setTime(new Date());
         calendar.add(Calendar.DATE, -1); // 减去一天
         Date yesterday = calendar.getTime();
         String key = RedisKeyConstant.APP_TOP_lIST+yesterday;
-        List<JSONObject> array = JSONArray.parseArray(redisService.get(key), JSONObject.class);
-        //todo 红包金额 积分*50 如果第一名或者第二名会有额外的红包奖励
-        for (JSONObject jsonObject : array) {
-            Double point = (Double) jsonObject.get("point");
-            Long userId = jsonObject.getLong("userId");
-            result.put("remainingTime", DateUtil.thisWeekRemainingTime());
-            result.put("rankList",gameCacheService.getTopList(key));
-            Double userRankScore = gameCacheService.getUserTopScore(key, String.valueOf(userId));
-            result.put("myScore", userRankScore ==null?0.0:userRankScore);
-            Long thisWeekUserRank = gameCacheService.getThisWeekUserRank(String.valueOf(userId));
-            result.put("myRank",thisWeekUserRank==null?-1:thisWeekUserRank+1);
-            long score =gameCacheService.getUserTopList(String.valueOf(userId),redisService.get(RedisKeyConstant.APP_TOP_lIST + DateUtil.format2(new Date())));
-            BigDecimal  rawrdsAmont ;
-            if(score==1){
-                rawrdsAmont =  BigDecimal.valueOf(point).multiply(BigDecimal.valueOf(50)).add(BigDecimal.valueOf(10));
-            }else if(score==2){
-                rawrdsAmont =  BigDecimal.valueOf(point).multiply(BigDecimal.valueOf(50)).add(BigDecimal.valueOf(5));
-            }else{
-                rawrdsAmont = BigDecimal.valueOf(point).multiply(BigDecimal.valueOf(50));
-            }
-            if(point<3){
-                array.remove(jsonObject);
-            }
-            result.put("point",rawrdsAmont);
-        }
-        result.put("array",array);
-        return result;
-    }
-    @Transactional
-    @ServiceMethod(code = "005", description = "获取领奖记录")
-    public JSONObject judgeBind(ManagerSocketServer adminSocketServer, JSONObject data) {
-        JSONObject result = new JSONObject();
-        checkNull(data);
-        Long userId = data.getLong("userId");
-        User user = userService.findById(userId);
-        if(null == user.getAlipayId()){
-            throwExp("您没有绑定提现方式，请绑定后重试");
-        }
+        String rankKey =RedisKeyConstant.POINT_RANK_LIST+ yesterday;
+        result.put("rankList",gameCacheService.getLastTopList(key,rankKey));
+        Double userRankScore = gameCacheService.getLastUserTopScore(String.valueOf(userId),key);
+        result.put("remainingTime", DateUtil.thisWeekRemainingTime());
+        result.put("myScore", userRankScore ==null?0.0:userRankScore);
+        Long thisWeekUserRank = gameCacheService.getTopRank(String.valueOf(userId));
+        result.put("myRank",thisWeekUserRank==null?-1:thisWeekUserRank+1);
         return result;
     }
 

@@ -165,8 +165,8 @@ public class GameCacheService extends RedisService {
     }
 
 
-    public List<JSONObject> getTopList(String pointKey){
-        String rankKey = RedisKeyConstant.POINT_RANK_LIST+DateUtil.format2(new Date());
+    public List<JSONObject> getTopList(String pointKey,String rankKey){
+
         List<JSONObject> list = getList(rankKey,JSONObject.class);
         if (list==null || list.size()==0){
             Map<String, Double> thisTopList = getThisTopList(pointKey, 10);
@@ -174,6 +174,7 @@ public class GameCacheService extends RedisService {
             String orderNo = OrderUtil.getOrder5Number();
             list =new ArrayList<>();
             for (String id : ids) {
+                Long rank = getTopRank(id);
                 User userInfoById = userCacheService.getUserInfoById(id);
                 JSONObject info = new JSONObject();
                 info.put("userHeadImg",userInfoById.getHeadImageUrl());
@@ -181,19 +182,62 @@ public class GameCacheService extends RedisService {
                 info.put("userName",userInfoById.getName());
                 info.put("userNo",userInfoById.getUserNo());
                 Double score = thisTopList.get(id);
-                BigDecimal RawrdsAmont;
-                if(score==1){
-                    RawrdsAmont =  BigDecimal.valueOf(score).multiply(BigDecimal.valueOf(50)).add(BigDecimal.valueOf(10));
-                }else if(thisTopList.get(id)==2){
-                    RawrdsAmont =  BigDecimal.valueOf(score).multiply(BigDecimal.valueOf(50)).add(BigDecimal.valueOf(5));
-                }else{
-                    RawrdsAmont =  BigDecimal.valueOf(score).multiply(BigDecimal.valueOf(50));
+                BigDecimal rawrdsAmont;
+                if(score<3){
+                    info.remove(id);
                 }
-                info.put("score",RawrdsAmont);
-                cashRecordService.addCashOrder(userInfoById.getOpenId(), userInfoById.getId(), userInfoById.getUserNo(), userInfoById.getName(), userInfoById.getRealName(), orderNo,RawrdsAmont,2,userInfoById.getPhone());
+                if(rank==1){
+                    rawrdsAmont =  BigDecimal.valueOf(score).multiply(BigDecimal.valueOf(50)).add(BigDecimal.valueOf(10));
+                }else if(rank==2){
+                    rawrdsAmont =  BigDecimal.valueOf(score).multiply(BigDecimal.valueOf(50)).add(BigDecimal.valueOf(5));
+                }else{
+                    rawrdsAmont =  BigDecimal.valueOf(score).multiply(BigDecimal.valueOf(50));
+                }
+
+                info.put("score",score);
+                info.put("rawrdsAmont",rawrdsAmont);
+                cashRecordService.addCashOrder(userInfoById.getOpenId(), userInfoById.getId(), userInfoById.getUserNo(), userInfoById.getName(), userInfoById.getRealName(), orderNo,rawrdsAmont,2,userInfoById.getPhone());
                 list.add(info);
             }
             set(rankKey,list,60);
+        }
+        return list;
+    }
+
+    public List<JSONObject> getLastTopList(String pointKey,String rankKey){
+        List<JSONObject> list = getList(rankKey,JSONObject.class);
+        if (list==null || list.size()==0){
+            Map<String, Double> thisTopList = getThisTopList(pointKey, 10);
+            Set<String> ids = thisTopList.keySet();
+            String orderNo = OrderUtil.getOrder5Number();
+            list =new ArrayList<>();
+            for (String id : ids) {
+                Long rank = getTopRank(id);
+                User userInfoById = userCacheService.getUserInfoById(id);
+                JSONObject info = new JSONObject();
+                info.put("userHeadImg",userInfoById.getHeadImageUrl());
+                info.put("userId",id);
+                info.put("userName",userInfoById.getName());
+                info.put("userNo",userInfoById.getUserNo());
+                Double score = thisTopList.get(id);
+                BigDecimal rawrdsAmont;
+                if(score<3){
+                    info.remove(id);
+                }
+                if(rank==1){
+                    rawrdsAmont =  BigDecimal.valueOf(score).multiply(BigDecimal.valueOf(50)).add(BigDecimal.valueOf(10));
+                }else if(rank==2){
+                    rawrdsAmont =  BigDecimal.valueOf(score).multiply(BigDecimal.valueOf(50)).add(BigDecimal.valueOf(5));
+                }else{
+                    rawrdsAmont =  BigDecimal.valueOf(score).multiply(BigDecimal.valueOf(50));
+                }
+
+                info.put("score",score);
+                info.put("rawrdsAmont",rawrdsAmont);
+                cashRecordService.addCashOrder(userInfoById.getOpenId(), userInfoById.getId(), userInfoById.getUserNo(), userInfoById.getName(), userInfoById.getRealName(), orderNo,rawrdsAmont,2,userInfoById.getPhone());
+                list.add(info);
+            }
+            set(rankKey,list,86400*10);
         }
         return list;
     }
@@ -254,25 +298,31 @@ public class GameCacheService extends RedisService {
 
     public Long getThisWeekUserRank(String userId){
         return getZsetRank(userId,RedisKeyConstant.GAME_RANK_DTS+ DateUtil.getFirstDayOfWeek(new Date()));
+    }  public Long getTopRank(String userId){
+        return getZsetRank(userId,RedisKeyConstant.APP_TOP_lIST+  DateUtil.format2(new Date()));
     }
 
     public Long getLastWeekUserRank(String userId){
-        return getZsetRank(userId,RedisKeyConstant.GAME_RANK_DTS+DateUtil.getFirstDayOfLastWeek());
+        return getZsetRank(userId,RedisKeyConstant.POINT_RANK_LIST+DateUtil.getFirstDayOfLastWeek());
     }
 
     public Long getUserTopList(String key, Long userId) {
         return getZsetRank(RedisKeyConstant.GAME_RANK_DTS+ DateUtil.getFirstDayOfWeek(new Date()),String.valueOf(userId));
-
     }
 
-    public Double getUserTopScore(String key, String userId) {
+    public Double getUserTopScore( String userId) {
+        String key = RedisKeyConstant.APP_TOP_lIST+ DateUtil.format2(new Date());
+      return getZsetScore(key,userId);
+    }
+    public Double getLastUserTopScore( String userId,String key ) {
       return getZsetScore(key,userId);
     }
 
-    public void addPoint(String key, String userId) {
+    public void addPoint(String key, User user) {
         //存之前要先判断父级id的积分是否大于10 大于10 加1.05分 如果大于20.5的话加1.1分
         //存放zset格式为了得出排名
-        Double oldPoint = getZsetScore(key, userId);
+        String orderNo = OrderUtil.getOrder5Number();
+        Double oldPoint = getZsetScore(key, String.valueOf(user.getParentId()));
         Double point = 0.0;
         if (oldPoint==null){
             oldPoint=0.0;
@@ -284,6 +334,6 @@ public class GameCacheService extends RedisService {
         }else {
             point = oldPoint+1.1;
         }
-        addZset(key,userId, (double) point);
+        addZset(key,String.valueOf(user.getId()), point);
     }
 }
