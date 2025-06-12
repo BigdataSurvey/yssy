@@ -376,5 +376,6 @@ public class RedisKeyConstant {
 
 	public final  static  String APP_CASH_DAY_COUNT = "t:app:cash:dayCount";
 	public final  static  String APP_TOP_lIST = "t:top:list";
+	public final static String POINT_RANK_LIST="t:app:pointlist:";
 }
 

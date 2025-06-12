@@ -165,10 +165,11 @@ public class GameCacheService extends RedisService {
     }
 
 
-    public List<JSONObject> getTopList(String key){
-        List<JSONObject> list = getList(key,JSONObject.class);
+    public List<JSONObject> getTopList(String pointKey){
+        String rankKey = RedisKeyConstant.POINT_RANK_LIST+DateUtil.format2(new Date());
+        List<JSONObject> list = getList(rankKey,JSONObject.class);
         if (list==null || list.size()==0){
-            Map<String, Double> thisTopList = getThisTopList(key, 10);
+            Map<String, Double> thisTopList = getThisTopList(pointKey, 10);
             Set<String> ids = thisTopList.keySet();
             String orderNo = OrderUtil.getOrder5Number();
             list =new ArrayList<>();
@@ -192,7 +193,7 @@ public class GameCacheService extends RedisService {
                 cashRecordService.addCashOrder(userInfoById.getOpenId(), userInfoById.getId(), userInfoById.getUserNo(), userInfoById.getName(), userInfoById.getRealName(), orderNo,RawrdsAmont,2,userInfoById.getPhone());
                 list.add(info);
             }
-            set(key,list,60);
+            set(rankKey,list,60);
         }
         return list;
     }
