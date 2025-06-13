@@ -125,7 +125,8 @@ public class ManagerActivityService  extends BaseService {
         Long userId = data.getLong("userId");
         User user = userService.findById(userId);
         if(null == user.getAlipayId()){
-            throwExp("您没有绑定提现方式，请绑定后重试");
+           result.put("bingState",0);
+           return result;
         }
         List<CashRecord> cashRecord= cashRecordService.findCashRecordByUserId(userId, data.getIntValue("page"), data.getIntValue("num"));
         result.put("cashRecord",cashRecord);
