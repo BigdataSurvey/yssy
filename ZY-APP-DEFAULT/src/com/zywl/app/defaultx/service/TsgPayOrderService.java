@@ -2,6 +2,7 @@ package com.zywl.app.defaultx.service;
 
 import com.zywl.app.base.bean.RechargeOrder;
 import com.zywl.app.base.bean.TsgPayOrder;
+import com.zywl.app.base.util.DateUtil;
 import com.zywl.app.defaultx.dbutil.DaoService;
 import com.zywl.app.defaultx.enmus.RechargeStatusEnum;
 import org.springframework.stereotype.Service;
@@ -21,10 +22,11 @@ public class TsgPayOrderService extends DaoService {
     }
 
     @Transactional
-    public TsgPayOrder addOrder(Long userId, String orderNo, Long productId, BigDecimal price, Date expireTime) {
+    public TsgPayOrder addOrder(Long userId, String orderNo, Long productId, BigDecimal price, Date expireTime,int channel) {
         TsgPayOrder order = new TsgPayOrder();
         order.setOrderNo(orderNo);
         order.setStatus(0);
+        order.setChannel(channel);
         order.setUserId(userId);
         order.setProductId(productId);
         order.setPrice(price);
@@ -52,6 +54,12 @@ public class TsgPayOrderService extends DaoService {
     @Transactional
     public int rechargeExpire(String orderNo, String remark, String payer) {
         return updateStatus(orderNo, RechargeStatusEnum.EXPIRE.getValue(), remark, payer);
+    }
+
+    public List<TsgPayOrder> findNoPayOrder(){
+        Map<String,Object> params = new HashMap<>();
+        params.put("time", DateUtil.getDateByM(-3));
+        return findList("findNoPayOrder",params);
     }
 
     public TsgPayOrder findByOrderNo(String orderNo) {

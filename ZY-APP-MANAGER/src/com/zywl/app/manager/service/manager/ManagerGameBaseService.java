@@ -200,41 +200,29 @@ public class ManagerGameBaseService extends BaseService {
         Long userId = params.getLong("userId");
         synchronized (LockUtil.getlock(userId)) {
             JSONObject result = new JSONObject();
-            if (userId != null) {
-                User user = userCacheService.getUserInfoById(userId);
-                UserVo vo = new UserVo();
-                BeanUtils.copy(user, vo);
-                List<String> redMinderList = userCacheService.getPlayerRedReminderList(userId);
-                List<UserCapitalVo> userCapitals = userCapitalCacheService.getAllUserCapitalCache(userId);
-                if (managerConfigService.getInteger(Config.IP_LOGIN_RISK) == 1) {
-                    String lastLoginIp = user.getLastLoginIp();
-                    userCacheService.canLogin(lastLoginIp, userId);
-                    userCacheService.addIpUser(lastLoginIp, userId);
-                }
-                gameService.getUserAchievement(String.valueOf(userId));
-                JSONObject lvInfo = new JSONObject();
-                result.put("userInfo", vo);
-                result.put("parentId", user.getParentId() == null ? "" : user.getParentId());
-                result.put("lvInfo", lvInfo);
-                result.put("userCapitals", userCapitals);
-                result.put("alipayAuth", user.getAlipayId() == null ? 0 : 1);
-                result.put("AdLookInfo", gameService.getUserAdCountInfo(userId));
-                result.put("redMinderList", redMinderList);
-                result.put("notice", managerConfigService.getString(Config.HOME_POPUP));
-                result.put("exLim", managerConfigService.getDouble(Config.TRAD_MIN));
-                result.put("exMax", managerConfigService.getDouble(Config.TRAD_MAX));
-                result.put("serverTime", System.currentTimeMillis());
-                result.put("tableInfo", syncTableInfo(params));
-                result.put("version", authService.getVersion().getVersionName());
-                result.put("sy1", managerConfigService.getInteger(Config.PLAYGAME_1_STATUS));
-                result.put("sy2", managerConfigService.getInteger(Config.PLAYGAME_2_STATUS));
-                if (user.getAuthentication() == 0) {
-                    result.put("realNameReward", JSONArray.parseArray(managerConfigService.getString(Config.REAL_NAME_REWARD)));
-                }
-                result.put("backpackInfo", getBackpack(userId).get("backPackInfo"));
-            } else {
-                throwExp("获取用户信息失败！");
+            User user = userCacheService.getUserInfoById(userId);
+            UserVo vo = new UserVo();
+            BeanUtils.copy(user, vo);
+            List<UserCapitalVo> userCapitals = userCapitalCacheService.getAllUserCapitalCache(userId);
+            if (managerConfigService.getInteger(Config.IP_LOGIN_RISK) == 1) {
+                String lastLoginIp = user.getLastLoginIp();
+                userCacheService.canLogin(lastLoginIp, userId);
+                userCacheService.addIpUser(lastLoginIp, userId);
             }
+            gameService.getUserAchievement(String.valueOf(userId));
+            result.put("userInfo", vo);
+            result.put("parentId", user.getParentId() == null ? "" : user.getParentId());
+            result.put("userCapitals", userCapitals);
+            result.put("alipayAuth", user.getAlipayId() == null ? 0 : 1);
+            result.put("notice", managerConfigService.getString(Config.HOME_POPUP));
+            result.put("exLim", managerConfigService.getDouble(Config.TRAD_MIN));
+            result.put("exMax", managerConfigService.getDouble(Config.TRAD_MAX));
+            result.put("serverTime", System.currentTimeMillis());
+            result.put("tableInfo", syncTableInfo(params));
+            result.put("version", authService.getVersion().getVersionName());
+            result.put("sy1", managerConfigService.getInteger(Config.PLAYGAME_1_STATUS));
+            result.put("sy2", managerConfigService.getInteger(Config.PLAYGAME_2_STATUS));
+            result.put("backpackInfo", getBackpack(userId).get("backPackInfo"));
             return result;
         }
     }
@@ -854,6 +842,9 @@ public class ManagerGameBaseService extends BaseService {
         Long userId = params.getLong("userId");
         int shopType = params.getIntValue("type");
         List< DicShop> shopInfo = PlayGameService.DIC_SHOP_LIST.get(String.valueOf(shopType));
+        if (shopInfo==null){
+            return new ArrayList<>();
+        }
         return shopInfo;
     }
 
@@ -887,11 +878,11 @@ public class ManagerGameBaseService extends BaseService {
     @ServiceMethod(code = "044", description = "我的信息")
     public Object getMyInfo(ManagerSocketServer adminSocketServer, JSONObject params) {
         Long userId = params.getLong("userId");
-        UserIncomeStatement byUserIdAndYmd = userIncomeStatementService.findByUserIdAndYmd(userId);
+        double todayMyGetAnima = userCacheService.getTodayMyGetAnima(userId);
         UserStatistic userStatistic = gameService.getUserStatistic(String.valueOf(userId));
         JSONObject result = new JSONObject();
-        result.put("today", byUserIdAndYmd == null ? BigDecimal.ZERO : byUserIdAndYmd.getOneIncome().add(byUserIdAndYmd.getTwoIncome()));
-        result.put("all", userStatistic.getGetAllIncome().setScale(2, BigDecimal.ROUND_DOWN));
+        result.put("today", todayMyGetAnima);
+        result.put("all", userStatistic.getGetAnima2().setScale(2, BigDecimal.ROUND_DOWN));
         User user = userCacheService.getUserInfoById(userId);
         JSONObject parentInfo = new JSONObject();
         parentInfo.put("userNo", "");
@@ -911,13 +902,13 @@ public class ManagerGameBaseService extends BaseService {
         }
         result.put("inviterInfo", parentInfo);
         result.put("isChannel", 0);
-        if (user.getIsChannel() == 1) {
+        if (user!=null && user.getIsChannel() == 1) {
             result.put("isChannel", 1);
         }
         UserStatistic byUserId = userStatisticService.findByUserId(userId);
         int number = byUserId.getOneJuniorNum() + byUserId.getTwoJuniorNum();
         result.put("number", number);
-        result.put("canReceive",0);
+        result.put("canReceive",userStatistic.getGetAnima());
         return result;
     }
 

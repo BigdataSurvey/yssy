@@ -1,9 +1,10 @@
-package com.zywl.app.server.huifu;
+package com.zywl.app.base.bean.huifu;
 
 import com.huifu.bspay.sdk.opps.client.BasePayClient;
 import com.huifu.bspay.sdk.opps.core.BasePay;
 import com.huifu.bspay.sdk.opps.core.config.MerConfig;
 import com.huifu.bspay.sdk.opps.core.request.BaseRequest;
+import com.zywl.app.base.BaseBean;
 
 import java.io.File;
 import java.util.Map;
@@ -11,7 +12,7 @@ import java.util.Map;
 /***
  * @Description 功能描述：公共的参数封装DEMO
  * @Date 2021/4/19 15:41
- */public class BaseCommon {
+ */public class BaseCommon  {
     /***
      * @Description: 初始化设置商户公共参数（全局只需设置一次）
      * @param merConfig

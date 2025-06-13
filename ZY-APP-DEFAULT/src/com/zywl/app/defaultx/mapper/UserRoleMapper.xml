@@ -67,6 +67,9 @@
         <if test="status != null">
             `status`=#{status},
         </if>
+            <if test="endTime != null">
+                `end_time`=#{endTime},
+            </if>
         </set>
             where id=#{id}
     </update>

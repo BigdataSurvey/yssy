@@ -94,7 +94,7 @@ public class ServerUserRoleService extends BaseService {
         String timeExpire = DateTimeZoneUtil.dateToTimeZone(System.currentTimeMillis() + 1000 * 60 * 3);
         DateTime dateTime = cn.hutool.core.date.DateUtil.parse(timeExpire);
         Date expireDate = new Date(dateTime.getTime());
-        tsgPayOrderService.addOrder(userId,merReqNo,productId,price,expireDate);
+        tsgPayOrderService.addOrder(userId,merReqNo,productId,price,expireDate,1);
         Map<String, Object> data = new HashMap<>();
         data.put("version", VERSION);
         data.put("type", TYPE);
@@ -136,7 +136,8 @@ public class ServerUserRoleService extends BaseService {
         String timeExpire = DateTimeZoneUtil.dateToTimeZone(System.currentTimeMillis() + 1000 * 60 * 10);
         DateTime dateTime = cn.hutool.core.date.DateUtil.parse(timeExpire);
         Date expireDate = new Date(dateTime.getTime());
-        tsgPayOrderService.addOrder(userId,orderNo,productId,price,expireDate);
+        //通道Id  1 野鸡  2汇付
+        tsgPayOrderService.addOrder(userId,orderNo,productId,price,expireDate,2);
         String payUrl = null;
         try {
             payUrl = HfScanPay.scanPay(price, serverConfigService.getString(Config.PAY_NOTIFY_HF_URL));
@@ -159,10 +160,8 @@ public class ServerUserRoleService extends BaseService {
         BigDecimal price;
         if (giftType == 1L) {
             price = serverConfigService.getBigDecimal(Config.GIFT_PRICE_1).setScale(2);
-        } else if (giftType == 2L) {
-            price = serverConfigService.getBigDecimal(Config.GIFT_PRICE_2).setScale(2);
         } else {
-            price = new BigDecimal("1").setScale(2);
+            price = serverConfigService.getBigDecimal(Config.GIFT_PRICE_2).setScale(2);
         }
         Long userId = appSocket.getWsidBean().getUserId();
         JSONObject result = new JSONObject();
@@ -226,7 +225,6 @@ public class ServerUserRoleService extends BaseService {
         Long myId = appSocket.getWsidBean().getUserId();
         int type = params.getIntValue("type");
         String key = RedisKeyConstant.APP_TOP_lIST + DateUtil.format2(new Date());
-        List<Object> array = new ArrayList<>();
         if (type != 1 && type != 2) {
             throwExp("非法请求");
         }
@@ -234,7 +232,7 @@ public class ServerUserRoleService extends BaseService {
         if (user == null) {
             throwExp("玩家不存在");
         }
-        UserGift userGift = userGiftService.findUserGift(user.getId(), type);
+        UserGift userGift = userGiftService.findUserGift(myId, type);
         if (userGift == null || userGift.getGiftNum() < 1) {
             throwExp("礼包数量不足");
         }
@@ -242,7 +240,6 @@ public class ServerUserRoleService extends BaseService {
         if (type == 1) {
             useSmallGift(user.getId());
         } else {
-
             useBigGift(user.getId());
             JSONObject info = new JSONObject();
             info.put("userId", user.getId());
@@ -365,6 +362,8 @@ public class ServerUserRoleService extends BaseService {
         }
         userRole.setIndex(index);
         userRole.setStatus(1);
+        userRole.setLastReceiveTime(new Date());
+        userRole.setLastLookTime(new Date());
         userRoleService.updateUserRole(userRole);
         return params;
     }

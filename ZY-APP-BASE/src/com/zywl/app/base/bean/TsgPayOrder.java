@@ -13,6 +13,9 @@ public class TsgPayOrder extends BaseBean {
     private String orderNo;
 
 
+    private int channel;
+
+
     private Long productId;
 
     private String remark;
@@ -99,4 +102,11 @@ public class TsgPayOrder extends BaseBean {
         this.remark = remark;
     }
 
+    public int getChannel() {
+        return channel;
+    }
+
+    public void setChannel(int channel) {
+        this.channel = channel;
+    }
 }

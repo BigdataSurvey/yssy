@@ -4,9 +4,11 @@ import com.alibaba.fastjson2.JSONArray;
 import com.alibaba.fastjson2.JSONObject;
 import com.huifu.bspay.sdk.opps.core.request.V2TradePaymentJspayRequest;
 import com.huifu.bspay.sdk.opps.core.utils.DateTools;
+import com.zywl.app.base.bean.huifu.BaseCommon;
+import com.zywl.app.base.bean.huifu.HFPayContext;
+import com.zywl.app.base.bean.huifu.OppsMerchantConfig;
 import com.zywl.app.base.util.DateUtil;
 import com.zywl.app.base.util.OrderUtil;
-import com.zywl.app.server.context.HFPayContext;
 
 import java.math.BigDecimal;
 import java.util.HashMap;

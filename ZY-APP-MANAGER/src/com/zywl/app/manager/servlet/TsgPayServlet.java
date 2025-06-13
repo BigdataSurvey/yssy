@@ -79,7 +79,7 @@ public class TsgPayServlet extends BaseServlet {
         treeMap.forEach((key, value) -> stringBuffer.append(key).append("=").append(value).append("&"));
         String signMd5 = MD5Util.md5(stringBuffer + "key=e7a15a9d4e6946bb97edf329035297d1").toLowerCase();
         updatePayOrder(status, requestNo);
-        return null;
+        return "ok";
     }
 
 

@@ -2,12 +2,11 @@
  * 汇付天下有限公司
  * Copyright (c) 2006-2021 ChinaPnR,Inc.All Rights Reserved.
  */
-package com.zywl.app.server.huifu;
+package com.zywl.app.base.bean.huifu;
 
 
 import com.huifu.bspay.sdk.opps.core.BasePay;
 import com.huifu.bspay.sdk.opps.core.config.MerConfig;
-import com.zywl.app.server.context.HFPayContext;
 
 
 /**
