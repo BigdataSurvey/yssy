@@ -236,6 +236,11 @@ public class DateUtil {
             return sdf5.format(new Date());
         }
     }
+    public static final String getCurrent9() {
+        synchronized (sdf9) {
+            return sdf9.format(new Date());
+        }
+    }
 
     /**
      * 获取当前日期

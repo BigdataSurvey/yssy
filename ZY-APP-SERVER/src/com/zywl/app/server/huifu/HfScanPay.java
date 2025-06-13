@@ -4,10 +4,11 @@ import com.alibaba.fastjson2.JSONArray;
 import com.alibaba.fastjson2.JSONObject;
 import com.huifu.bspay.sdk.opps.core.request.V2TradePaymentJspayRequest;
 import com.huifu.bspay.sdk.opps.core.utils.DateTools;
-import com.huifu.bspay.sdk.opps.core.utils.SequenceTools;
 import com.zywl.app.base.util.DateUtil;
+import com.zywl.app.base.util.OrderUtil;
 import com.zywl.app.server.context.HFPayContext;
 
+import java.math.BigDecimal;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -17,42 +18,48 @@ import java.util.Map;
  * @author sdk-generator
  * @Description
  */
-public class V2TradePaymentJspayRequestDemo extends BaseCommon {
+public class HfScanPay extends BaseCommon {
 
     public static void main(String[] args) throws Exception {
+        scanPay(BigDecimal.ONE,"");
+    }
 
+
+    public static String scanPay(BigDecimal price,String notifyUrl) throws Exception {
         // 1. 数据初始化
         doInit(OppsMerchantConfig.getMerchantConfig());
-
         // 2.组装请求参数
         V2TradePaymentJspayRequest request = new V2TradePaymentJspayRequest();
         // 请求日期
         request.setReqDate(DateTools.getCurrentDateYYYYMMDD());
         // 请求流水号
-        request.setReqSeqId(SequenceTools.getReqSeqId32());
+        request.setReqSeqId(OrderUtil.getOrder5Number());
         // 商户号
         request.setHuifuId(HFPayContext.SYS_ID);
         // 交易类型
         request.setTradeType("A_NATIVE");
         // 交易金额
-        request.setTransAmt("0.10");
+        request.setTransAmt(price.toString());
         // 商品描述
-        request.setGoodsDesc("hibs自动化-通用版验证");
-
+        request.setGoodsDesc("角色礼包");
         // 设置非必填字段
-        Map<String, Object> extendInfoMap = getExtendInfos();
+        Map<String, Object> extendInfoMap = getExtendInfos(notifyUrl);
         request.setExtendInfo(extendInfoMap);
-
         // 3. 发起API调用
         Map<String, Object> response = doExecute(request);
+        String payUrl = null;
+        if (response!=null && response.containsKey("qr_code")){
+             payUrl = (String) response.get("qr_code");
+        }
         System.out.println("返回数据:" + JSONObject.toJSONString(response));
+        return payUrl;
     }
 
     /**
      * 非必填字段
      * @return
      */
-    private static Map<String, Object> getExtendInfos() {
+    private static Map<String, Object> getExtendInfos(String notifyUrl) {
         // 设置非必填字段
         Map<String, Object> extendInfoMap = new HashMap<>();
         // 交易有效期
@@ -88,7 +95,7 @@ public class V2TradePaymentJspayRequestDemo extends BaseCommon {
         // 商户贴息标记
         extendInfoMap.put("fq_mer_discount_flag", "N");
         // 异步通知地址
-        extendInfoMap.put("notify_url", "http://www.baidu.com");
+        extendInfoMap.put("notify_url", notifyUrl);
         // 备注
         extendInfoMap.put("remark", "string");
         // 账户号

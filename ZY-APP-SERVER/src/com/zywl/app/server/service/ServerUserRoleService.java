@@ -19,6 +19,7 @@ import com.zywl.app.defaultx.cache.UserCacheService;
 import com.zywl.app.defaultx.cache.impl.RedisService;
 import com.zywl.app.defaultx.service.*;
 import com.zywl.app.server.context.MessageCodeContext;
+import com.zywl.app.server.huifu.HfScanPay;
 import com.zywl.app.server.socket.AppSocket;
 import com.zywl.app.server.util.RequestManagerListener;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -75,7 +76,6 @@ public class ServerUserRoleService extends BaseService {
     public static final String SECRET = "e7a15a9d4e6946bb97edf329035297d1";
 
 
-
     @PostConstruct
     public void _serverUserRoleService() {
         initRole();
@@ -86,27 +86,15 @@ public class ServerUserRoleService extends BaseService {
         allRole.forEach(e -> DIC_ROLE.put(e.getId().toString(), e));
     }
 
-    public Object getPayAddress(Long userId, JSONObject params, String ip) throws Exception {
-        checkNull(params);
-        checkNull(params.get("giftType"));
-        Long productId = params.getLong("giftType");
-        BigDecimal price;
-        if (productId == 1L) {
-            price = serverConfigService.getBigDecimal(Config.GIFT_PRICE_1).setScale(2);
-        } else if (productId == 2L) {
-            price = serverConfigService.getBigDecimal(Config.GIFT_PRICE_2).setScale(2);
-        } else {
-            price = new BigDecimal("1").setScale(2);
-        }
+    public String getPayAddress(Long userId, Long productId,BigDecimal price, String ip) throws Exception {
         String merchantId = serverConfigService.getString(Config.PAY_MERCHANT_ID);
         String merReqNo = OrderUtil.getOrder5Number();
         String notifyUrl = serverConfigService.getString(Config.PAY_NOTIFY_URL);
         String returnUrl = serverConfigService.getString(Config.PAY_REDIRECT_URL);
-
         String timeExpire = DateTimeZoneUtil.dateToTimeZone(System.currentTimeMillis() + 1000 * 60 * 3);
         DateTime dateTime = cn.hutool.core.date.DateUtil.parse(timeExpire);
         Date expireDate = new Date(dateTime.getTime());
-        tsgPayOrderService.addOrder(userId, merReqNo, productId, price, expireDate);
+        tsgPayOrderService.addOrder(userId,merReqNo,productId,price,expireDate);
         Map<String, Object> data = new HashMap<>();
         data.put("version", VERSION);
         data.put("type", TYPE);
@@ -124,11 +112,11 @@ public class ServerUserRoleService extends BaseService {
         System.out.println(s);
         String signMd5 = MD5Util.md5(s).toLowerCase();
         data.put("sign", signMd5);
-        Long time = System.currentTimeMillis();
+        long time = System.currentTimeMillis();
         JSONObject from = JSONObject.from(data);
         String s1 = from.toJSONString();
-        String result =HTTPUtil.postJSON("https://api-kaite.jjoms.com/api/pay",s1);
-        System.out.println("请求支付地址耗时:"+(System.currentTimeMillis()-time));
+        String result = HTTPUtil.postJSON("https://api-kaite.jjoms.com/api/pay", s1);
+        System.out.println("请求支付地址耗时:" + (System.currentTimeMillis() - time));
         System.out.println(result);
         if (result == null) {
             throwExp("当前没有可用的支付地址，请联系客服或稍后再试");
@@ -136,13 +124,27 @@ public class ServerUserRoleService extends BaseService {
         JSONObject jsonResult = JSONObject.parseObject(result);
         if (jsonResult.containsKey("message") && jsonResult.getString("message").equals("000000")) {
             JSONObject returnResult = new JSONObject();
-            returnResult.put("payUrl", jsonResult.getString("payUrl"));
-            return returnResult;
+            return jsonResult.getString("payUrl");
         } else {
             logger.error("请求支付接口错误" + result);
         }
         throwExp("当前没有可用的支付地址，请联系客服或稍后再试");
         return null;
+    }
+    public String getHfPayAddress(Long userId, Long productId,BigDecimal price) throws Exception {
+        String orderNo = OrderUtil.getOrder5Number();
+        String timeExpire = DateTimeZoneUtil.dateToTimeZone(System.currentTimeMillis() + 1000 * 60 * 10);
+        DateTime dateTime = cn.hutool.core.date.DateUtil.parse(timeExpire);
+        Date expireDate = new Date(dateTime.getTime());
+        tsgPayOrderService.addOrder(userId,orderNo,productId,price,expireDate);
+        String payUrl = null;
+        try {
+            payUrl = HfScanPay.scanPay(price, serverConfigService.getString(Config.PAY_NOTIFY_HF_URL));
+        }catch (Exception e){
+            e.printStackTrace();
+            throwExp("当前没有可用的支付地址，请联系客服或稍后再试");
+        }
+        return payUrl;
     }
 
     @Transactional
@@ -150,13 +152,32 @@ public class ServerUserRoleService extends BaseService {
     public Object buyByRmb(final AppSocket appSocket, Command appCommand, JSONObject params) throws Exception {
         checkNull(params);
         checkNull(params.get("giftType"));
-        int giftType = params.getIntValue("giftType");
-        if (giftType!=1 && giftType!=2){
+        Long giftType = params.getLong("giftType");
+        if (giftType != 1 && giftType != 2) {
             throwExp("参数异常");
         }
+        BigDecimal price;
+        if (giftType == 1L) {
+            price = serverConfigService.getBigDecimal(Config.GIFT_PRICE_1).setScale(2);
+        } else if (giftType == 2L) {
+            price = serverConfigService.getBigDecimal(Config.GIFT_PRICE_2).setScale(2);
+        } else {
+            price = new BigDecimal("1").setScale(2);
+        }
         Long userId = appSocket.getWsidBean().getUserId();
-        return getPayAddress(userId,params,appSocket.getIp());
+        JSONObject result = new JSONObject();
+        int channel = serverConfigService.getInteger(Config.PAY_CHANNEL);
+        result.put("channel", channel);
+        String url = ";";
+        if (channel == 1) {
+            url = getPayAddress(userId, giftType,price, appSocket.getIp());
+        } else if (channel == 2) {
+            url = getHfPayAddress(userId, giftType,price);
+        }
+        result.put("payUrl", url);
+        return result;
     }
+
 
     @Transactional
     @ServiceMethod(code = "000", description = "购买礼包")
@@ -164,7 +185,7 @@ public class ServerUserRoleService extends BaseService {
         checkNull(params);
         checkNull(params.get("giftType"));
         int giftType = params.getIntValue("giftType");
-        if (giftType!=1 && giftType!=2){
+        if (giftType != 1 && giftType != 2) {
             throwExp("参数异常");
         }
         Long userId = appSocket.getWsidBean().getUserId();
@@ -191,8 +212,8 @@ public class ServerUserRoleService extends BaseService {
         List<ActiveGiftRecord> userActiveRecords = activeGiftRecordService.findByUserId(userId);
         if (userActiveRecords.size() == 0) {
             params.put("status", 0);
-        }else{
-            params.put("status",1);
+        } else {
+            params.put("status", 1);
         }
         return params;
     }
@@ -204,7 +225,7 @@ public class ServerUserRoleService extends BaseService {
         String userNo = params.getString("userNo");
         Long myId = appSocket.getWsidBean().getUserId();
         int type = params.getIntValue("type");
-        String key  = RedisKeyConstant.APP_TOP_lIST+  DateUtil.format2(new Date());
+        String key = RedisKeyConstant.APP_TOP_lIST + DateUtil.format2(new Date());
         List<Object> array = new ArrayList<>();
         if (type != 1 && type != 2) {
             throwExp("非法请求");
@@ -224,26 +245,26 @@ public class ServerUserRoleService extends BaseService {
 
             useBigGift(user.getId());
             JSONObject info = new JSONObject();
-            info.put("userId",user.getId());
+            info.put("userId", user.getId());
             //已经激活大礼包的用户 给他上级加积分并存入redis
             //用户父id的积分
             gameCacheService.addPoint(key, user);
         }
-        if (user.getVip2()==0){
+        if (user.getVip2() == 0) {
             user.setVip2(1);
             userService.updateUserVip2(user.getId());
         }
-        activeGiftRecordService.addRecord(myId,user.getId(),type);
+        activeGiftRecordService.addRecord(myId, user.getId(), type);
         return params;
     }
 
 
     public void useSmallGift(Long userId) {
         UserRole byUserIdAndRoleId = userRoleService.findByUserIdAndRoleId(userId, 1);
-        if (byUserIdAndRoleId!=null){
-            byUserIdAndRoleId.setEndTime(DateUtil.getDateByDay(byUserIdAndRoleId.getEndTime(),30));
+        if (byUserIdAndRoleId != null) {
+            byUserIdAndRoleId.setEndTime(DateUtil.getDateByDay(byUserIdAndRoleId.getEndTime(), 30));
             userRoleService.updateUserRole(byUserIdAndRoleId);
-        }else{
+        } else {
             userRoleService.addUserRole(userId, 1L, 30);
         }
 
@@ -252,10 +273,10 @@ public class ServerUserRoleService extends BaseService {
     public void useBigGift(Long userId) {
         for (int i = 1; i <= 5; i++) {
             UserRole byUserIdAndRoleId = userRoleService.findByUserIdAndRoleId(userId, i);
-            if (byUserIdAndRoleId!=null){
-                byUserIdAndRoleId.setEndTime(DateUtil.getDateByDay(byUserIdAndRoleId.getEndTime(),30));
+            if (byUserIdAndRoleId != null) {
+                byUserIdAndRoleId.setEndTime(DateUtil.getDateByDay(byUserIdAndRoleId.getEndTime(), 30));
                 userRoleService.updateUserRole(byUserIdAndRoleId);
-            }else{
+            } else {
                 userRoleService.addUserRole(userId, (long) i, 30);
             }
         }
@@ -328,15 +349,15 @@ public class ServerUserRoleService extends BaseService {
         Long userId = appSocket.getWsidBean().getUserId();
         int index = params.getIntValue("index");
         Long userRoleId = params.getLong("userRoleId");
-        UserRole userRole = userRoleService.findByUserIdAndRoleId(userId,userRoleId);
+        UserRole userRole = userRoleService.findByUserIdAndRoleId(userId, userRoleId);
         UserRole byIndex = userRoleService.findByIndex(userId, index);
-        if (byIndex!=null){
+        if (byIndex != null) {
             throwExp("该位置已经有角色啦");
         }
         if (userRole == null) {
             throwExp("未查询到角色信息");
         }
-        if (userRole.getIndex()!=0 || userRole.getStatus()==1){
+        if (userRole.getIndex() != 0 || userRole.getStatus() == 1) {
             throwExp("角色已经在工作啦");
         }
         if (userRole.getStatus() == 2) {
@@ -354,18 +375,18 @@ public class ServerUserRoleService extends BaseService {
         checkNull(params);
         checkNull(params.get("index"));
         int index = params.getIntValue("index");
-        if (index<1 || index>5){
+        if (index < 1 || index > 5) {
             throwExp("参数异常");
         }
         Long userId = appSocket.getWsidBean().getUserId();
-        List<UserRole> noWorkingRoles = userRoleService.findNoWorkingRolesByIndex(userId,index);
+        List<UserRole> noWorkingRoles = userRoleService.findNoWorkingRolesByIndex(userId, index);
         List<UserRole> list = new ArrayList<>();
-        if (noWorkingRoles.size()>0){
+        if (noWorkingRoles.size() > 0) {
             list.add(noWorkingRoles.get(0));
         }
         JSONObject result = new JSONObject();
-        result.put("roles",list);
-        result.put("index",index);
+        result.put("roles", list);
+        result.put("index", index);
         return result;
     }
 

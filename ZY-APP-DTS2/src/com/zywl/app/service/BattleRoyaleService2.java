@@ -508,7 +508,7 @@ public class BattleRoyaleService2 extends BaseService {
             }
             Map<String, String> myOrder = new HashMap<>();
             if (!BOT_USER.containsKey(userId)) {
-                myOrder = updateItem(userId, amount, orderNo, dataId);
+                myOrder = updateCapital(userId, amount, orderNo, dataId);
             }
             try {
                 BigDecimal allAmount = amount;

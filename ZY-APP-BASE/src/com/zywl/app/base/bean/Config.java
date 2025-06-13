@@ -7,6 +7,9 @@ import java.util.List;
 
 public class Config extends BaseBean {
 
+	public static final String PAY_CHANNEL = "PAY_CHANNEL";
+
+	public static final String PAY_NOTIFY_HF_URL = "PAY_NOTIFY_HF_URL";
 
 	public static final String GIFT_PRICE_2_GAME = "GIFT_PRICE_2_GAME";
 	public static final String GIFT_PRICE_1_GAME = "GIFT_PRICE_1_GAME";
