@@ -37,6 +37,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.util.*;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 @Service
 @ServiceClass(code = MessageCodeContext.GAME_BASE_SERVER)
@@ -68,6 +70,12 @@ public class ManagerGameBaseService extends BaseService {
 
     @Autowired
     private UserCacheService userCacheService;
+    @Autowired
+    private UserVipService userVipService;
+    @Autowired
+    private GoodNoService goodNoService;
+    @Autowired
+    private GameCacheService gameCacheService;
 
 
     @Autowired
@@ -91,14 +99,10 @@ public class ManagerGameBaseService extends BaseService {
     @Autowired
     private SellSysRecordService sellSysRecordService;
 
-    @Autowired
-    private GoodNoService goodNoService;
 
     @Autowired
     private UserService userService;
 
-    @Autowired
-    private UserVipService userVipService;
 
 
     @Autowired
@@ -595,6 +599,80 @@ public class ManagerGameBaseService extends BaseService {
             return new JSONObject();
         }
     }
+    @Transactional
+    @ServiceMethod(code = "048", description = "使用道具")
+    public JSONObject selectItem(ManagerSocketServer adminSocketServer, JSONObject params) {
+        JSONObject result = new JSONObject();
+        int random = 9;
+        Long userId = params.getLong("userId");
+        UserVip userVip = userVipService.findUserVipByUserId(userId);
+        int itemId = 37;
+        //大小靓号选择的道具
+        //v4小靓号 v5大靓号
+        if(itemId == 37 || itemId == 38){
+            long vipLevel = userVip.getVipLevel();
+            List<GoodNo> allGoodNoList = goodNoService.findAllGoodNo();
+            List<GoodNo> smallGoodNoList = allGoodNoList.stream().filter(e -> 0 == e.getType()).collect(Collectors.toList());
+            List<GoodNo> bigGoodNoList = allGoodNoList.stream().filter(e -> 1 == e.getType()).collect(Collectors.toList());
+            List<GoodNo> randomSamllList = getRandomElements(smallGoodNoList, random);
+            List<GoodNo> randomBigList = getRandomElements(bigGoodNoList, random);
+            List<JSONObject> list = gameCacheService.getList("randomGoodNoList",JSONObject.class);
+
+                if(vipLevel==4){
+                    //随机返回9个靓号的list
+                    result.put("randomGoodNoList",randomSamllList);
+                    if (list==null || list.size()==0) {
+                        gameCacheService.set("randomGoodNoList", randomSamllList);
+                    }
+
+                }else if(vipLevel >4 ){
+                    result.put("randomGoodNoList",randomBigList);
+                    if (list==null || list.size()==0) {
+                        gameCacheService.set("randomGoodNoList", randomBigList);
+                    }
+
+                }
+            result.put("type","1");
+        }
+
+        return result;
+    }
+    @Transactional
+    @ServiceMethod(code = "049", description = "选择靓号")
+    public JSONObject useItem(ManagerSocketServer adminSocketServer, JSONObject params) {
+        JSONObject result = new JSONObject();
+        Long goodNoId = params.getLong("data");
+        Long userId = params.getLong("userId");
+        int number = 1;
+        UserVip uservip = userVipService.findUserVipByUserId(userId);
+        //修改user表中userno 并删掉redis中缓存数据
+        GoodNo goodNo = goodNoService.findById(goodNoId);
+        List<GoodNo> list = gameCacheService.getList("randomGoodNoList",JSONObject.class);
+        if(list!=null && list.size()>0){
+            if(!list.contains(goodNo)){
+              throwExp("当前靓号不属于选择范围内");
+            }
+        }
+        userService.updateUserGoodNo(goodNo.getGoodNo(), userId);
+        //指定itemid为37、38 减掉背包大小靓号道具
+        if(uservip.getVipLevel() == 4){
+            gameService.updateUserBackpack(userId, String.valueOf(37),-number, LogUserBackpackTypeEnum.use);
+        }else if(uservip.getVipLevel() > 4) {
+            gameService.updateUserBackpack(userId,  String.valueOf(38),-number, LogUserBackpackTypeEnum.use);
+        }
+        return result;
+    }
+
+
+
+
+    public static <T> List<com.zywl.app.base.bean.GoodNo> getRandomElements(List<GoodNo> allGoodNoList, int count) {
+        // 创建一个ArrayList的拷贝，因为我们需要打乱原始列表而不影响它
+        List<GoodNo> tempList = new ArrayList<>(allGoodNoList);
+        Collections.shuffle(tempList); // 打乱列表顺序
+        // 取前count个元素作为结果，如果count大于列表大小，则返回整个列表
+        return new ArrayList<>(tempList.subList(0, Math.min(count, tempList.size())));
+    }
 
 
     public JSONObject useItem(String itemId, String userId, int number) {
@@ -921,6 +999,7 @@ public class ManagerGameBaseService extends BaseService {
         return name;
     }
 
+
     @Transactional
     @ServiceMethod(code = "046", description = "合成道具")
     @KafkaProducer(topic = KafkaTopicContext.RED_POINT, event = KafkaEventContext.SYN, sendParams = true)
@@ -965,6 +1044,9 @@ public class ManagerGameBaseService extends BaseService {
             throwExp(em.getName() + "不足");
         }
     }
+
+
+
 
 
 }

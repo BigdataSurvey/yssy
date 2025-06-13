@@ -9,15 +9,21 @@ import com.zywl.app.base.bean.User;
 import com.zywl.app.base.service.BaseService;
 import com.zywl.app.defaultx.annotation.ServiceClass;
 import com.zywl.app.defaultx.annotation.ServiceMethod;
+import com.zywl.app.defaultx.service.UserService;
 import com.zywl.app.server.context.MessageCodeContext;
 import com.zywl.app.server.socket.AppSocket;
 import com.zywl.app.server.util.RequestManagerListener;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @ServiceClass(code = MessageCodeContext.Activity)
 public class ServerActivityService extends BaseService {
+
+
+    @Autowired
+    private UserService userService;
 
     @ServiceMethod(code = "001", description = "获取活动信息")
     public Object getAchievementInfo(final AppSocket appSocket, Command appCommand, JSONObject params) {
@@ -53,14 +59,17 @@ public class ServerActivityService extends BaseService {
         Executer.request(TargetSocketType.manager, CommandBuilder.builder().request("9009004", params).build(), new RequestManagerListener(appCommand));
         return async();
     }
-    @ServiceMethod(code = "005", description = "获取领奖记录")
-    public Object judgeBind(final AppSocket appSocket, Command appCommand, JSONObject params) {
-        checkNull(params);
+    @ServiceMethod(code = "005", description = "绑定支付宝账号")
+    public Object bingZfb(final AppSocket appSocket, Command appCommand, JSONObject params) {
         long userId = appSocket.getWsidBean().getUserId();
         params.put("userId",userId);
-        Executer.request(TargetSocketType.manager, CommandBuilder.builder().request("9009005", params).build(), new RequestManagerListener(appCommand));
+        String alipayId = params.getString("alipayId");
+        checkNull(params);
+        checkNull(params.get("alipayId"));
+        userService.addAliPayUserId(userId,alipayId);
         return async();
     }
+
 
 
 

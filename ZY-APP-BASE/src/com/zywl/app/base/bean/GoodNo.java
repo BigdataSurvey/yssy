@@ -15,6 +15,7 @@ public class GoodNo extends BaseBean {
     private Integer number;
 
     private Integer status;
+    private Integer type;
 
     public Long getId() {
         return id;
@@ -54,5 +55,25 @@ public class GoodNo extends BaseBean {
 
     public void setStatus(Integer status) {
         this.status = status;
+    }
+
+    public Integer getType() {
+        return type;
+    }
+
+    public void setType(Integer type) {
+        this.type = type;
+    }
+
+    public GoodNo() {
+    }
+
+    public GoodNo(Long id, String goodNo, BigDecimal price, Integer number, Integer status, Integer type) {
+        this.id = id;
+        this.goodNo = goodNo;
+        this.price = price;
+        this.number = number;
+        this.status = status;
+        this.type = type;
     }
 }

@@ -92,8 +92,8 @@ public class ServerUserVipService extends BaseService {
         }
         // 当前经验 升到下一级需要多少经验
         //BigDecimal differ = comparToRechargeAmount(rechargeAmountByUserId.getRechargeAmount());
-        int endExp = DIC_VIP_MAP.get(String.valueOf(rechargeAmountByUserId.getVipLevel())).getEndExp();
-        JSONArray reward = DIC_VIP_MAP.get(String.valueOf(rechargeAmountByUserId.getVipLevel())).getReward();
+        int endExp = DIC_VIP_MAP.get(String.valueOf(rechargeAmountByUserId.getVipLevel()-1)).getEndExp();
+        JSONArray reward = DIC_VIP_MAP.get(String.valueOf(rechargeAmountByUserId.getVipLevel()-1)).getReward();
         result.put("endExp", endExp);
         result.put("receiveState", receiveState);
         result.put("reward", reward);
