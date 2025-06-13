@@ -68,53 +68,6 @@ public class ManagerActivityService  extends BaseService {
         }
     }
 
-   /* @Transactional
-    @ServiceMethod(code = "002", description = "获取榜单信息")
-    public JSONObject getTopListInfo(ManagerSocketServer adminSocketServer, JSONObject data) {
-        checkNull(data);
-        checkNull(data.get("type"));
-        Long userId = data.getLong("userId");
-        User user = userCacheService.getUserInfoById(userId);
-        if (user == null) {
-            throwExp("用户信息异常");
-        }
-            JSONObject result = new JSONObject();
-            String key = RedisKeyConstant.APP_TOP_lIST+  DateUtil.format2(new Date());
-            List<JSONObject> array = JSONArray.parseArray(redisService.get(key), JSONObject.class);
-            for (JSONObject jsonObject : array) {
-                String orderNo = OrderUtil.getOrder5Number();
-                Double point = (Double) jsonObject.get("point");
-                Long type = jsonObject.getLong("type");
-                User userInfo = userCacheService.getUserInfoById(userId);
-                String openId = userInfo.getOpenId();
-                String userNo = userInfo.getUserNo();
-                String userName = userInfo.getName();
-                String realName = userInfo.getRealName();
-                String tel = userInfo.getPhone();
-                result.put("remainingTime", DateUtil.thisWeekRemainingTime());
-                result.put("rankList",gameCacheService.getTopList(key));
-                Double userRankScore = gameCacheService.getUserTopScore(key, String.valueOf(userId));
-                result.put("myScore", userRankScore ==null?0.0:userRankScore);
-                Long thisWeekUserRank = gameCacheService.getThisWeekUserRank(String.valueOf(userId));
-                result.put("myRank",thisWeekUserRank==null?-1:thisWeekUserRank+1);
-                Long score =gameCacheService.getUserTopList(String.valueOf(userId),redisService.get(key));
-                BigDecimal RawrdsAmont;
-                if(score==1){
-                    RawrdsAmont =  BigDecimal.valueOf(point).multiply(BigDecimal.valueOf(50)).add(BigDecimal.valueOf(10));
-                }else if(score==2){
-                    RawrdsAmont =  BigDecimal.valueOf(point).multiply(BigDecimal.valueOf(50)).add(BigDecimal.valueOf(5));
-                }else{
-                    RawrdsAmont =  BigDecimal.valueOf(point).multiply(BigDecimal.valueOf(50));
-                }
-                cashRecordService.addCashOrder(openId, userId, userNo, userName, realName, orderNo,RawrdsAmont,2,tel);
-                if(point<3){
-                    array.remove(jsonObject);
-                }
-            }
-            result.put("array",array);
-            return result;
-        }*/
-
 
     @Transactional
     @ServiceMethod(code = "003", description = "获取领奖记录")
@@ -130,6 +83,7 @@ public class ManagerActivityService  extends BaseService {
         }
         List<CashRecord> cashRecord= cashRecordService.findCashRecordByUserId(userId, data.getIntValue("page"), data.getIntValue("num"));
         result.put("cashRecord",cashRecord);
+        result.put("bingState",1);
         return result;
     }
     @Transactional
@@ -160,7 +114,7 @@ public class ManagerActivityService  extends BaseService {
         Calendar calendar = Calendar.getInstance();
         calendar.setTime(new Date());
         calendar.add(Calendar.DATE, -1); // 减去一天
-        Date yesterday = calendar.getTime();
+        String yesterday =  DateUtil.format2(calendar.getTime());
         String key = RedisKeyConstant.APP_TOP_lIST+yesterday;
         String rankKey =RedisKeyConstant.POINT_RANK_LIST+ yesterday;
         result.put("rankList",gameCacheService.getLastTopList(key,rankKey));
@@ -171,6 +125,8 @@ public class ManagerActivityService  extends BaseService {
         result.put("myRank",thisWeekUserRank==null?-1:thisWeekUserRank+1);
         return result;
     }
+
+
 
 
 

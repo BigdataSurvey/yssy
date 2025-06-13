@@ -23,10 +23,12 @@ import java.util.*;
 public class GameCacheService extends RedisService {
 
 
+    public static final double DOUBLE = 20.5;
     @Autowired
     private UserCacheService userCacheService;
     @Autowired
     private CashRecordService cashRecordService;
+
 
     public static final List<String> LAST_WEEK_USER_IDS = new ArrayList<>();
 
@@ -186,9 +188,9 @@ public class GameCacheService extends RedisService {
                 if(score<3){
                     info.remove(id);
                 }
-                if(rank==1){
+                if(1 == rank){
                     rawrdsAmont =  BigDecimal.valueOf(score).multiply(BigDecimal.valueOf(50)).add(BigDecimal.valueOf(10));
-                }else if(rank==2){
+                }else if(2 == rank){
                     rawrdsAmont =  BigDecimal.valueOf(score).multiply(BigDecimal.valueOf(50)).add(BigDecimal.valueOf(5));
                 }else{
                     rawrdsAmont =  BigDecimal.valueOf(score).multiply(BigDecimal.valueOf(50));
@@ -212,7 +214,7 @@ public class GameCacheService extends RedisService {
             String orderNo = OrderUtil.getOrder5Number();
             list =new ArrayList<>();
             for (String id : ids) {
-                Long rank = getTopRank(id);
+                Long rank = getLastTopRank(pointKey,id);
                 User userInfoById = userCacheService.getUserInfoById(id);
                 JSONObject info = new JSONObject();
                 info.put("userHeadImg",userInfoById.getHeadImageUrl());
@@ -240,6 +242,10 @@ public class GameCacheService extends RedisService {
             set(rankKey,list,86400*10);
         }
         return list;
+    }
+
+    private Long getLastTopRank(String key,String id) {
+        return getZsetRank(id,key);
     }
 
     private Map<String, Double> getThisTopList(String key, int count) {
@@ -298,7 +304,8 @@ public class GameCacheService extends RedisService {
 
     public Long getThisWeekUserRank(String userId){
         return getZsetRank(userId,RedisKeyConstant.GAME_RANK_DTS+ DateUtil.getFirstDayOfWeek(new Date()));
-    }  public Long getTopRank(String userId){
+    }
+    public Long getTopRank(String userId){
         return getZsetRank(userId,RedisKeyConstant.APP_TOP_lIST+  DateUtil.format2(new Date()));
     }
 
@@ -321,19 +328,21 @@ public class GameCacheService extends RedisService {
     public void addPoint(String key, User user) {
         //存之前要先判断父级id的积分是否大于10 大于10 加1.05分 如果大于20.5的话加1.1分
         //存放zset格式为了得出排名
-        String orderNo = OrderUtil.getOrder5Number();
-        Double oldPoint = getZsetScore(key, String.valueOf(user.getParentId()));
-        Double point = 0.0;
-        if (oldPoint==null){
-            oldPoint=0.0;
+        if(user.getParentId()!=null){
+            Double oldPoint = getZsetScore(key, String.valueOf(user.getParentId()));
+            Double point = 0.0;
+            if (oldPoint==null){
+                oldPoint=0.0;
+            }
+            if( oldPoint<10){
+                point = oldPoint+1;
+            }else if(oldPoint>= 10 && oldPoint<30.05){
+                point = oldPoint+1.05;
+            }else if( oldPoint>30 ){
+                point = oldPoint+1.1;
+            }
+            addForZset(key,String.valueOf(user.getParentId()), point);
         }
-        if(oldPoint<10){
-            point = oldPoint+1;
-        }else if(oldPoint>= 10 && oldPoint<20.5){
-            point = oldPoint+1.05;
-        }else {
-            point = oldPoint+1.1;
-        }
-        addZset(key,String.valueOf(user.getId()), point);
+
     }
 }

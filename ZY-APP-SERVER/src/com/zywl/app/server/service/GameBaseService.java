@@ -672,6 +672,22 @@ public class GameBaseService extends BaseService {
                 new RequestManagerListener(command));
         return async();
     }
+    @ServiceMethod(code = "054", description = "使用道具")
+    public Object selectItem(AppSocket appSocket, Command command, JSONObject data) {
+        Long userId = appSocket.getWsidBean().getUserId();
+        data.put("userId",userId);
+        Executer.request(TargetSocketType.manager, CommandBuilder.builder().request("100048", data).build(),
+                new RequestManagerListener(command));
+        return async();
+    }
+    @ServiceMethod(code = "055", description = "选择靓号")
+    public Object useGoodNoItem(AppSocket appSocket, Command command, JSONObject data) {
+        Long userId = appSocket.getWsidBean().getUserId();
+        data.put("userId",userId);
+        Executer.request(TargetSocketType.manager, CommandBuilder.builder().request("100049", data).build(),
+                new RequestManagerListener(command));
+        return async();
+    }
 
 
 

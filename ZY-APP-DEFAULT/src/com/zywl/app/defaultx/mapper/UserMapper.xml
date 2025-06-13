@@ -582,6 +582,9 @@
 	<update id="updateUserCNo" parameterType="User">
 		update t_user set cno =  #{cno}  where id=#{userId}
 	</update>
+	<update id="updateUserGoodNo" parameterType="User">
+		update t_user set user_no =  #{userNo}  where id=#{userId}
+	</update>
 
 	<update id="updateUserVip2" parameterType="User">
 		update t_user set vip2 =  1  where id=#{userId}

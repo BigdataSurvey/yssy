@@ -54,6 +54,9 @@
 	<select id="findOne" resultType="UserVip">
 	    select * from t_user_vip where id = #{id}
 	</select>
+    <select id="findUserVipByUserId" resultType="UserVip">
+	    select * from t_user_vip where user_id = #{userId}
+	</select>
 
 	<select id="findAll" resultType="UserVip">
 	    select * from t_user_vip

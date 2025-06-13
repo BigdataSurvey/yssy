@@ -226,7 +226,6 @@ public class ServerUserRoleService extends BaseService {
         Long myId = appSocket.getWsidBean().getUserId();
         int type = params.getIntValue("type");
         String key = RedisKeyConstant.APP_TOP_lIST + DateUtil.format2(new Date());
-        List<Object> array = new ArrayList<>();
         if (type != 1 && type != 2) {
             throwExp("非法请求");
         }

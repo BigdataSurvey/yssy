@@ -878,6 +878,9 @@ public class RedisService extends BaseService {
         }
         redisTemplate.opsForZSet().add(key,value,score+oldScore);
     }
+    public void addForZset(String key, String value,Double score){
+        redisTemplate.opsForZSet().add(key,value,score);
+    }
 
 
 
