@@ -6,6 +6,7 @@
 		insert into t_tsg_pay_order
 		(
                `user_id`,
+		        `channel`,
                `order_no`,
                `product_id`,
 		        `remark`,
@@ -19,6 +20,7 @@
 		values
 		(
                #{userId},
+		        #{channel},
                #{orderNo},
                #{productId},
 		        #{remark},

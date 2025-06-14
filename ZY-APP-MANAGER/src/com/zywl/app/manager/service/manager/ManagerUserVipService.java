@@ -81,7 +81,8 @@ public class ManagerUserVipService extends BaseService {
         //获取当前等级vip信息
         DicVip dicVip = PlayGameService.DIC_VIP_MAP.get(String.valueOf(uservip.getVipLevel()));
         //如果当前的经验大于了当前等级的最大经验  就是升级了  遍历map判断升到几级了
-        if (Integer.parseInt(uservip.getRechargeAmount().setScale(0).toString()) > dicVip.getEndExp()) {
+        int i = Integer.parseInt(uservip.getRechargeAmount().setScale(0).toString());
+        if (i > dicVip.getEndExp()) {
             Collection<DicVip> values = PlayGameService.DIC_VIP_MAP.values();
             for (DicVip value : values) {
                 if (uservip.getRechargeAmount().compareTo(new BigDecimal(value.getBeginExp())) > 0

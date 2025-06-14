@@ -143,7 +143,7 @@ public class ServerUserRoleService extends BaseService {
         tsgPayOrderService.addOrder(userId, orderNo, productId, price, expireDate, 2);
         String payUrl = null;
         try {
-            payUrl = HfScanPay.scanPay(price, serverConfigService.getString(Config.PAY_NOTIFY_HF_URL));
+            payUrl = HfScanPay.scanPay(price, serverConfigService.getString(Config.PAY_NOTIFY_HF_URL),orderNo);
         } catch (Exception e) {
             e.printStackTrace();
             throwExp("当前没有可用的支付地址，请联系客服或稍后再试");

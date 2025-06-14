@@ -23,11 +23,10 @@ import java.util.Map;
 public class HfScanPay extends BaseCommon {
 
     public static void main(String[] args) throws Exception {
-        scanPay(BigDecimal.ONE,"");
     }
 
 
-    public static String scanPay(BigDecimal price,String notifyUrl) throws Exception {
+    public static String scanPay(BigDecimal price,String notifyUrl,String orderNo) throws Exception {
         // 1. 数据初始化
         doInit(OppsMerchantConfig.getMerchantConfig());
         // 2.组装请求参数
@@ -35,7 +34,7 @@ public class HfScanPay extends BaseCommon {
         // 请求日期
         request.setReqDate(DateTools.getCurrentDateYYYYMMDD());
         // 请求流水号
-        request.setReqSeqId(OrderUtil.getOrder5Number());
+        request.setReqSeqId(orderNo);
         // 商户号
         request.setHuifuId(HFPayContext.SYS_ID);
         // 交易类型
