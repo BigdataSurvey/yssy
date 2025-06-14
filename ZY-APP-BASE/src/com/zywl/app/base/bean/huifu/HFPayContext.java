@@ -1,4 +1,4 @@
-package com.zywl.app.server.context;
+package com.zywl.app.base.bean.huifu;
 
 public class HFPayContext {
 

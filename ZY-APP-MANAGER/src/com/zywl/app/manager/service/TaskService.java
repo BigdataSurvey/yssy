@@ -2,7 +2,10 @@ package com.zywl.app.manager.service;
 
 import com.alibaba.fastjson2.JSONArray;
 import com.alibaba.fastjson2.JSONObject;
-import com.zywl.app.base.bean.*;
+import com.zywl.app.base.bean.GuildMember;
+import com.zywl.app.base.bean.UserDzPeriods;
+import com.zywl.app.base.bean.UserDzRecord;
+import com.zywl.app.base.bean.UserStatistic;
 import com.zywl.app.base.service.BaseService;
 import com.zywl.app.base.util.DateUtil;
 import com.zywl.app.base.util.LockUtil;
@@ -29,8 +32,6 @@ public class TaskService extends BaseService {
     @Autowired
     private AdminSocketService adminSocketService;
 
-    @Autowired
-    private UserService userService;
 
     @Autowired
     private UserStatisticService userStatisticService;
@@ -38,8 +39,6 @@ public class TaskService extends BaseService {
     @Autowired
     private CardGameCacheService cardGameCacheService;
 
-    @Autowired
-    private AdminMailService adminMailService;
 
     @Autowired
     private DzCacheService dzCacheService;
@@ -65,7 +64,7 @@ public class TaskService extends BaseService {
     private GuildMemberService guildMemberService;
 
     @Autowired
-    private ManagerConfigService managerConfigService;
+    private TsgPayOrderCheckService tsgPayOrderCheckService;
 
 
 
@@ -73,9 +72,6 @@ public class TaskService extends BaseService {
     private PlayGameService gameService;
 
 
-
-    @Autowired
-    private MailService mailService;
 
     public static double ALL_JUNIOR_NUM = 0;
 
@@ -198,6 +194,16 @@ public class TaskService extends BaseService {
                 }
             }
         }, DateUtil.getTopNeed(), 60000 * 30);
+
+        new Timer("检查支付超时订单").schedule(new TimerTask() {
+            public void run() {
+                try {
+                    tsgPayOrderCheckService.checkOrder();
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+        }, 1000, 60000 );
 
 
         new Timer("计算奖池信息").schedule(new TimerTask() {

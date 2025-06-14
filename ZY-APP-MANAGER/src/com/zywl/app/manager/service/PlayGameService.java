@@ -579,8 +579,6 @@ public class PlayGameService extends BaseService {
         userStatisticMap.get(userId.toString()).setCreateAnima(userStatisticMap.get(userId.toString()).getCreateAnima().add(amount));
         userCacheService.addParentAnima(userId, parentId, amount);
     }
-
-
     public void addGrandfaGetAnima(Long userId, String grandfaId, BigDecimal amount) {
         getUserStatistic(grandfaId);
         userStatisticMap.get(grandfaId).setGetAnima(userStatisticMap.get(grandfaId).getGetAnima().add(amount));
@@ -662,8 +660,8 @@ public class PlayGameService extends BaseService {
                             em = LogCapitalTypeEnum.sell;
                         }
                     }
-                    userCapitalService.addUserBalanceByAddReward(amount, userId, UserCapitalTypeEnum.currency_2.getValue(), em);
-                    managerGameBaseService.pushCapitalUpdate(userId, UserCapitalTypeEnum.currency_2.getValue());
+                    userCapitalService.addUserBalanceByAddReward(amount, userId, Integer.parseInt(id), em);
+                    managerGameBaseService.pushCapitalUpdate(userId, Integer.parseInt(id));
                 } else {
                     //正常道具
                     if (!id.equals("1001")) {

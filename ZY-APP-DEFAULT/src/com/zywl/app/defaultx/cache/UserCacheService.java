@@ -251,24 +251,7 @@ public class UserCacheService extends RedisService {
         expire(key, 86400);
     }
 
-    // 获取今日偷蛋刷新列表次数
-    public Long todayRerfeshStolenCount(Long userId) {
-        String key = RedisKeyConstant.APP_USER_REFRESH_STOLEN_COUNT + DateUtil.format2(new Date()) + ":" + userId + "-";
-        return getaLong(key);
-    }
 
-    // 今日偷蛋刷新列表次数增加
-    public void addTodayRerfeshStolenCount(Long userId) {
-        String key = RedisKeyConstant.APP_USER_REFRESH_STOLEN_COUNT + DateUtil.format2(new Date()) + ":" + userId + "-";
-        incr(key, 1L);
-        expire(key, 86400);
-    }
-
-    // 获取今日偷蛋次数
-    public Long todayStolenEggCount(Long userId) {
-        String key = RedisKeyConstant.APP_USER_STOLEN_COUNT + DateUtil.format2(new Date()) + ":" + userId + "-";
-        return getaLong(key);
-    }
 
     private Long getaLong(String key) {
         String count = get(key);
@@ -286,83 +269,9 @@ public class UserCacheService extends RedisService {
         return Double.parseDouble(count);
     }
 
-    // 今日偷蛋次数增加
-    public void addTodayStolenEggCount(Long userId) {
-        String key = RedisKeyConstant.APP_USER_STOLEN_COUNT + DateUtil.format2(new Date()) + ":" + userId + "-";
-        incr(key, 1L);
-        expire(key, 86400);
-    }
-
-    //获取今日用户技能释放次数
-    public Long getSkillUseCount(Long userId, int type) {
-        String key = RedisKeyConstant.APP_USER_SKILL_COUNT + DateUtil.format2(new Date()) + ":" + userId + ":" + type + "-";
-        return getaLong(key);
-    }
-
-    //获取完成每日任务的数量
 
 
-    public void removeUserDailyTask(Long userId) {
-        String key = RedisKeyConstant.APP_USER_TASK + DateUtil.format2(new Date()) + ":" + userId + "-";
-        del(key);
-    }
 
-    //完成每日任务数量+1
-
-    //获取今日用户抽奖次数
-    public Long getUserPrizeDrawCount(Long userId) {
-        String key = RedisKeyConstant.APP_USER_PRIZE_COUNT + DateUtil.format2(new Date()) + ":" + userId + "-";
-        return getaLong(key);
-    }
-
-    //今日释放技能次数增加
-
-    public void addTodayPrizeDrawCount(Long userId, Long count) {
-        String key = RedisKeyConstant.APP_USER_PRIZE_COUNT + DateUtil.format2(new Date()) + ":" + userId + "-";
-        incr(key, count);
-        expire(key, 86400);
-    }
-
-    public Long getUserAddCoinCount(Long userId) {
-        String key = RedisKeyConstant.APP_USER_ADD_COIN_COUNT + DateUtil.format2(new Date()) + ":" + userId + "-";
-        return getaLong(key);
-    }
-
-
-    public void addTodayAddCoinCount(Long userId, Long count) {
-        String key = RedisKeyConstant.APP_USER_ADD_COIN_COUNT + DateUtil.format2(new Date()) + ":" + userId + "-";
-        incr(key, count);
-        expire(key, 86400);
-    }
-
-    public Long getUserAddMpCount(Long userId) {
-        String key = RedisKeyConstant.APP_USER_ADD_MP_COUNT + DateUtil.format2(new Date()) + ":" + userId + "-";
-        return getaLong(key);
-    }
-
-
-    public void addTodayAddMpCount(Long userId, Long count) {
-        String key = RedisKeyConstant.APP_USER_ADD_MP_COUNT + DateUtil.format2(new Date()) + ":" + userId + "-";
-        incr(key, count);
-        expire(key, 86400);
-    }
-
-    public Long getUserElixirSpeedCount(Long userId) {
-        String key = RedisKeyConstant.APP_USER_ELIXIR_SPEED_COUNT + DateUtil.format2(new Date()) + ":" + userId + "-";
-        return getaLong(key);
-    }
-
-
-    public void addTodayElixirSpeedCount(Long userId, Long count) {
-        String key = RedisKeyConstant.APP_USER_ELIXIR_SPEED_COUNT + DateUtil.format2(new Date()) + ":" + userId + "-";
-        incr(key, count);
-        expire(key, 86400);
-    }
-
-    public Long getTodayUserPlayCount(Long userId) {
-        String key = RedisKeyConstant.APP_USER_PLAYER_AREA + DateUtil.format2(new Date()) + ":" + userId + "-";
-        return getaLong(key);
-    }
 
 
     public void addTodayUserPlayCount(Long userId) {
@@ -372,36 +281,11 @@ public class UserCacheService extends RedisService {
     }
 
 
-    public Long getUserAreaCount(Long userId) {
-        String key = RedisKeyConstant.APP_USER_AREA_COUNT + DateUtil.format2(new Date()) + ":" + userId + "-";
-        return getaLong(key);
-    }
 
 
-    public void addTodayAreaCount(Long userId, Long count) {
-        String key = RedisKeyConstant.APP_USER_AREA_COUNT + DateUtil.format2(new Date()) + ":" + userId + "-";
-        incr(key, count);
-        expire(key, 86400);
-    }
-
-    public Long getUserAddPlCount(Long userId) {
-        String key = RedisKeyConstant.APP_USER_ADD_PL_COUNT + DateUtil.format2(new Date()) + ":" + userId + "-";
-        return getaLong(key);
-    }
 
 
-    public void addTodayAddPlCount(Long userId, Long count) {
-        String key = RedisKeyConstant.APP_USER_ADD_PL_COUNT + DateUtil.format2(new Date()) + ":" + userId + "-";
-        incr(key, count);
-        expire(key, 86400);
-    }
 
-
-    public void addTodaySkillUseCount(Long userId, int type) {
-        String key = RedisKeyConstant.APP_USER_SKILL_COUNT + DateUtil.format2(new Date()) + ":" + userId + ":" + type + "-";
-        incr(key, 1L);
-        expire(key, 86400);
-    }
 
 
     @Transactional
@@ -412,13 +296,6 @@ public class UserCacheService extends RedisService {
         userStatisticService.updateUserGetAnima(Long.parseLong(parentId), number);
     }
 
-    @Transactional
-    public void addParentAnima2(Long myId, String parentId, BigDecimal number) {
-        User user = getUserInfoById(myId);
-        addTodayMyCreateAnima2(myId, number);
-        userStatisticService.updateUserCreateAnima2(myId, number);
-        userStatisticService.updateUserGetAnima2(Long.parseLong(parentId), number);
-    }
 
     @Transactional
     public void addGrandfaAnima(Long myId, String grandfaId, BigDecimal number) {

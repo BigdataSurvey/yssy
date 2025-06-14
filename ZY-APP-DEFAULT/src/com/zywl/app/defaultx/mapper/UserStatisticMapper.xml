@@ -330,6 +330,9 @@
             <if test="getAnima != null">
                 get_anima=get_anima+#{getAnima},
             </if>
+            <if test="getAnima2 != null">
+                get_anima2=get_anima2+#{getAnima2},
+            </if>
         </set>
         where user_id=#{userId}
     </update>

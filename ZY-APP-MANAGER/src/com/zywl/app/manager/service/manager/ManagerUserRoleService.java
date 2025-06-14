@@ -4,10 +4,12 @@ import com.alibaba.fastjson2.JSONArray;
 import com.alibaba.fastjson2.JSONObject;
 import com.zywl.app.base.bean.Config;
 import com.zywl.app.base.bean.DicRole;
+import com.zywl.app.base.bean.User;
 import com.zywl.app.base.bean.UserRole;
 import com.zywl.app.base.service.BaseService;
 import com.zywl.app.defaultx.annotation.ServiceClass;
 import com.zywl.app.defaultx.annotation.ServiceMethod;
+import com.zywl.app.defaultx.cache.UserCacheService;
 import com.zywl.app.defaultx.enmus.LogUserBackpackTypeEnum;
 import com.zywl.app.defaultx.service.UserRoleService;
 import com.zywl.app.manager.context.MessageCodeContext;
@@ -18,6 +20,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.util.Objects;
 
 
@@ -33,6 +36,9 @@ public class ManagerUserRoleService extends BaseService {
 
     @Autowired
     private ManagerGameBaseService managerGameBaseService;
+
+    @Autowired
+    private UserCacheService userCacheService;
 
     @Autowired
     private ManagerConfigService managerConfigService;
@@ -62,6 +68,13 @@ public class ManagerUserRoleService extends BaseService {
             userRole.setHp(maxHp);
         }else {
             userRole.setHp(userRole.getHp()+allHp);
+        }
+        User user = userCacheService.getUserInfoById(userId);
+        if (user.getParentId()!=null){
+            gameService.addParentGetAnima(userId,user.getParentId().toString(),new BigDecimal("0.25").multiply(new BigDecimal(number)));
+        }
+        if (user.getGrandfaId()!=null){
+            gameService.addGrandfaGetAnima(userId,user.getGrandfaId().toString(),new BigDecimal("0.15").multiply(new BigDecimal(number)));
         }
         userRoleService.updateUserRole(userRole);
         JSONObject result = new JSONObject();

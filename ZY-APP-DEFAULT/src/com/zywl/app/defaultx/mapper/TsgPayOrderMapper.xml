@@ -75,6 +75,11 @@
         select * from t_tsg_pay_order where  order_no = #{orderNo}
     </select>
 
+    <select id="findNoPayOrder" resultType="TsgPayOrder">
+        select * from t_tsg_pay_order where  create_time> #{time} and status !=3
+    </select>
+
+
     <update id="updateOrderExpire" parameterType="TsgPayOrder">
         update t_tsg_pay_order set status = 3  where expire_time &lt; #{time} and status = 0
     </update>
