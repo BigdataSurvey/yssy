@@ -36,6 +36,17 @@ public class TsgPayOrderService extends DaoService {
         return order;
     }
 
+    public Long findTodayAll(int productId,int status){
+        Map<String,Object> params = new HashMap<>();
+        params.put("todayBegin",DateUtil.getToDayBegin());
+        params.put("productId",productId);
+        params.put("status",status);
+        return count("countTodayAll", params);
+    }
+
+
+
+
 
     public List<RechargeOrder> findAllRechargeOrder() {
         return findAll();

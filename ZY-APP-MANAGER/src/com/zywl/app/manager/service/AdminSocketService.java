@@ -16,10 +16,7 @@ import com.zywl.app.defaultx.annotation.ServiceClass;
 import com.zywl.app.defaultx.annotation.ServiceMethod;
 import com.zywl.app.defaultx.cache.UserCacheService;
 import com.zywl.app.defaultx.enmus.UserCapitalTypeEnum;
-import com.zywl.app.defaultx.service.AdminService;
-import com.zywl.app.defaultx.service.CashRecordService;
-import com.zywl.app.defaultx.service.UserCapitalService;
-import com.zywl.app.defaultx.service.UserService;
+import com.zywl.app.defaultx.service.*;
 import com.zywl.app.manager.service.manager.ManagerSocketService;
 import com.zywl.app.manager.service.manager.ManagerUserService;
 import com.zywl.app.manager.socket.AdminSocketServer;
@@ -59,9 +56,9 @@ public class AdminSocketService extends BaseService {
 
 	@Autowired
 	private UserCacheService userCacheService;
-	
+
 	@Autowired
-	private ManagerSocketService managerSocketService;
+	private TsgPayOrderService tsgPayOrderService;
 
 	@Autowired
 	private CashRecordService cashRecordService;
@@ -69,6 +66,8 @@ public class AdminSocketService extends BaseService {
 	public static Map<String,BigDecimal> allBalance = new ConcurrentHashMap<>();
 
 	public static Map<String,String> keepAlive = new ConcurrentHashMap<>();
+
+	public static Map<String,Long> gift = new ConcurrentHashMap<>();
 
 	public static Map<String,String> invest = new ConcurrentHashMap<>();
 
@@ -80,14 +79,14 @@ public class AdminSocketService extends BaseService {
 		/*sumBalance = userCapitalService.findSumBalance(UserCapitalTypeEnum.currency_3.getValue());
 		allBalance.put("xianjing",sumBalance);*/
 
-		sumBalance = userCapitalService.findSumBalance(UserCapitalTypeEnum.rmb.getValue());
-		allBalance.put("rmb",sumBalance);
+		BigDecimal no1 = userCapitalService.findNo1(UserCapitalTypeEnum.currency_2.getValue());
+		allBalance.put("no1",no1);
 
 		sumBalance = userCapitalService.findSumBalance2(UserCapitalTypeEnum.currency_2.getValue());
 		allBalance.put("canUseC2",sumBalance);
 
-		sumBalance = userCapitalService.findSumBalance2(UserCapitalTypeEnum.rmb.getValue());
-		allBalance.put("canUseRmb",sumBalance);
+		BigDecimal totalNo10 = userCapitalService.findSumBalanceNo10(UserCapitalTypeEnum.currency_2.getValue());
+		allBalance.put("totalNo10",totalNo10);
 
 		List<CashTotalInfo> info = cashRecordService.findWaitTotalInfo();
 		if(info.size() > 0) {
@@ -105,6 +104,15 @@ public class AdminSocketService extends BaseService {
 		managerUserService.pushAddUser();
 	}
 
+	//查询今日礼包信息
+	public void initGiftInfo(){
+		long time = System.currentTimeMillis();
+		gift.put("gift99All", tsgPayOrderService.findTodayAll(1, 0));
+		gift.put("gift499All", tsgPayOrderService.findTodayAll(2, 0));
+		gift.put("gift99Pay", tsgPayOrderService.findTodayAll(1, 3));
+		gift.put("gift499Pay", tsgPayOrderService.findTodayAll(2, 3));
+		logger.info("查询礼包用时："+(System.currentTimeMillis()-time));
+	}
 
 	public void initKeepAlive(){
 		keepAlive.put("one", userService.getKeepAlive(2,1));
@@ -164,9 +172,9 @@ public class AdminSocketService extends BaseService {
 		
 		data.put("totalCur2", allBalance.getOrDefault("lingshi",BigDecimal.ZERO));
 		data.put("totalCur3", allBalance.getOrDefault("xianjing",BigDecimal.ZERO));
-		data.put("totalRMB", allBalance.getOrDefault("rmb",BigDecimal.ZERO));
+		data.put("no1", allBalance.getOrDefault("no1",BigDecimal.ZERO));
 		data.put("totalCanUseCur2", allBalance.getOrDefault("canUseC2",BigDecimal.ZERO));
-		data.put("totalCanUseRMB", allBalance.getOrDefault("canUseRmb",BigDecimal.ZERO));
+		data.put("totalNo10", allBalance.getOrDefault("totalNo10",BigDecimal.ZERO));
 		data.put("totalCashOrder", "还没写");
 
 		data.put("waitCashCount", allBalance.getOrDefault("waitCashCount",BigDecimal.ZERO));
@@ -178,6 +186,13 @@ public class AdminSocketService extends BaseService {
 		data.put("threeKeepAlive",keepAlive.getOrDefault("three","未查询到结果"));
 		data.put("sevenKeepAlive",keepAlive.getOrDefault("seven","未查询到结果"));
 		data.put("monthKeepAlive",keepAlive.getOrDefault("month","未查询到结果"));
+
+
+		//礼包相关
+		data.put("gift99All",gift.getOrDefault("gift99All",0L));
+		data.put("gift499All",gift.getOrDefault("gift499All",0L));
+		data.put("gift99Pay",gift.getOrDefault("gift99Pay",0L));
+		data.put("gift499Pay",gift.getOrDefault("gift499Pay",0L));
 
 		data.put("vipInfo",invest.getOrDefault("vipInfo","未查询到结果"));
 		data.put("petUserInfo",invest.getOrDefault("petUserInfo","未查询到结果"));

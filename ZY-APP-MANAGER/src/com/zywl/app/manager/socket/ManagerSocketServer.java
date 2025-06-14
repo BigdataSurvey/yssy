@@ -20,14 +20,17 @@ import com.zywl.app.defaultx.cache.UserCapitalCacheService;
 import com.zywl.app.defaultx.cache.WsidCaCheService;
 import com.zywl.app.defaultx.service.UserService;
 import com.zywl.app.defaultx.util.SpringUtil;
+import com.zywl.app.manager.service.AdminSocketService;
 import com.zywl.app.manager.service.PlayGameService;
 import com.zywl.app.manager.service.manager.ManagerGameBaseService;
 import com.zywl.app.manager.service.manager.ManagerPromoteService;
 import com.zywl.app.manager.service.manager.ManagerSocketService;
+import com.zywl.app.manager.service.manager.ManagerUserService;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
 import javax.websocket.server.ServerEndpoint;
+import java.util.Date;
 import java.util.Set;
 
 @ServerEndpoint(value = "/ManagerServer" + SocketConstants.SOCKET_CONNECT_SHAKE_HANDS, configurator = HttpSessionConfigurator.class)
@@ -43,6 +46,8 @@ private static final Log logger = LogFactory.getLog(ManagerSocketServer.class);
 	private double weight = 1; //权重
 	
 	private ManagerSocketService managerSocketService;
+
+	private ManagerUserService managerUserService;
 
 
 	private PropertiesUtil staticProperties;
@@ -72,6 +77,7 @@ private static final Log logger = LogFactory.getLog(ManagerSocketServer.class);
 		userCapitalCacheService= SpringUtil.getService(UserCapitalCacheService.class);
 		userService = SpringUtil.getService(UserService.class);
 		managerPromoteService = SpringUtil.getService(ManagerPromoteService.class);
+		managerUserService = SpringUtil.getService(ManagerUserService.class);
 	}
 
 	public ConnectedData onConnect(JSONObject shakeHandsData) {
@@ -209,6 +215,28 @@ private static final Log logger = LogFactory.getLog(ManagerSocketServer.class);
 				}
 			}
 		}, this);
+		//注册监听订单消息
+		Push.registPush(new PushBean(PushCode.syncTsgOrder), new PushListener() {
+			public void onRegist(BaseSocket baseSocket, Object data) {
+			}
+
+			public void onReceive(BaseSocket baseSocket, Object data) {
+				logger.info("收到订单变动推送:"+data);
+				JSONObject jsonObject =(JSONObject) data;
+				if (jsonObject.containsKey("productId")){
+					Long productId = jsonObject.getLong("productId");
+					if (productId==1L){
+						AdminSocketService.gift.put("gift99All",AdminSocketService.gift.getOrDefault("gift99All",0L)+1);
+					}
+					if (productId==2L){
+						AdminSocketService.gift.put("gift499All",AdminSocketService.gift.getOrDefault("gift499All",0L)+1);
+					}
+					managerUserService.pushAddUser();
+				}
+
+			}
+		}, this);
+
 
 
 	}

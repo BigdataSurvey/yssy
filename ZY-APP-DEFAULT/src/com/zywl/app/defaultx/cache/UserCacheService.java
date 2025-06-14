@@ -588,6 +588,21 @@ public class UserCacheService extends RedisService {
         set(key, 1, 2L);
     }
 
+    public void beginPay(String userId) {
+        String key = RedisKeyConstant.BEGIN_PAY + userId + "-";
+        set(key, 1, 30L);
+    }
+
+    public void endPay(String userId) {
+        String key = RedisKeyConstant.BEGIN_PAY + userId + "-";
+        del(key);
+    }
+
+    public boolean canPay(String userId){
+        String key = RedisKeyConstant.BEGIN_PAY + userId + "-";
+        return hasKey(key);
+    }
+
     public boolean canReceiveMail(String userId) {
         String key = RedisKeyConstant.RECEIVE_MAIL + userId + "-";
         return hasKey(key);

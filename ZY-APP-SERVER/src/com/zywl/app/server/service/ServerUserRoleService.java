@@ -5,9 +5,11 @@ import com.alibaba.fastjson2.JSONArray;
 import com.alibaba.fastjson2.JSONObject;
 import com.ijpay.core.utils.DateTimeZoneUtil;
 import com.live.app.ws.bean.Command;
+import com.live.app.ws.enums.PushCode;
 import com.live.app.ws.enums.TargetSocketType;
 import com.live.app.ws.util.CommandBuilder;
 import com.live.app.ws.util.Executer;
+import com.live.app.ws.util.Push;
 import com.zywl.app.base.bean.*;
 import com.zywl.app.base.constant.RedisKeyConstant;
 import com.zywl.app.base.service.BaseService;
@@ -86,7 +88,7 @@ public class ServerUserRoleService extends BaseService {
         allRole.forEach(e -> DIC_ROLE.put(e.getId().toString(), e));
     }
 
-    public String getPayAddress(Long userId, Long productId,BigDecimal price, String ip) throws Exception {
+    public String getPayAddress(Long userId, Long productId, BigDecimal price, String ip) throws Exception {
         String merchantId = serverConfigService.getString(Config.PAY_MERCHANT_ID);
         String merReqNo = OrderUtil.getOrder5Number();
         String notifyUrl = serverConfigService.getString(Config.PAY_NOTIFY_URL);
@@ -94,7 +96,7 @@ public class ServerUserRoleService extends BaseService {
         String timeExpire = DateTimeZoneUtil.dateToTimeZone(System.currentTimeMillis() + 1000 * 60 * 3);
         DateTime dateTime = cn.hutool.core.date.DateUtil.parse(timeExpire);
         Date expireDate = new Date(dateTime.getTime());
-        tsgPayOrderService.addOrder(userId,merReqNo,productId,price,expireDate,1);
+        tsgPayOrderService.addOrder(userId, merReqNo, productId, price, expireDate, 1);
         Map<String, Object> data = new HashMap<>();
         data.put("version", VERSION);
         data.put("type", TYPE);
@@ -131,17 +133,18 @@ public class ServerUserRoleService extends BaseService {
         throwExp("当前没有可用的支付地址，请联系客服或稍后再试");
         return null;
     }
-    public String getHfPayAddress(Long userId, Long productId,BigDecimal price) throws Exception {
+
+    public String getHfPayAddress(Long userId, Long productId, BigDecimal price) throws Exception {
         String orderNo = OrderUtil.getOrder5Number();
         String timeExpire = DateTimeZoneUtil.dateToTimeZone(System.currentTimeMillis() + 1000 * 60 * 10);
         DateTime dateTime = cn.hutool.core.date.DateUtil.parse(timeExpire);
         Date expireDate = new Date(dateTime.getTime());
         //通道Id  1 野鸡  2汇付
-        tsgPayOrderService.addOrder(userId,orderNo,productId,price,expireDate,2);
+        tsgPayOrderService.addOrder(userId, orderNo, productId, price, expireDate, 2);
         String payUrl = null;
         try {
             payUrl = HfScanPay.scanPay(price, serverConfigService.getString(Config.PAY_NOTIFY_HF_URL));
-        }catch (Exception e){
+        } catch (Exception e) {
             e.printStackTrace();
             throwExp("当前没有可用的支付地址，请联系客服或稍后再试");
         }
@@ -154,6 +157,11 @@ public class ServerUserRoleService extends BaseService {
         checkNull(params);
         checkNull(params.get("giftType"));
         Long giftType = params.getLong("giftType");
+        Long userId = appSocket.getWsidBean().getUserId();
+        if (userCacheService.canPay(userId.toString())) {
+            throwExp("请勿频繁发起支付");
+        }
+        userCacheService.beginPay(userId.toString());
         if (giftType != 1 && giftType != 2) {
             throwExp("参数异常");
         }
@@ -163,20 +171,29 @@ public class ServerUserRoleService extends BaseService {
         } else {
             price = serverConfigService.getBigDecimal(Config.GIFT_PRICE_2).setScale(2);
         }
-        Long userId = appSocket.getWsidBean().getUserId();
+        pushOrder(giftType);
+
         JSONObject result = new JSONObject();
         int channel = serverConfigService.getInteger(Config.PAY_CHANNEL);
         result.put("channel", channel);
         String url = ";";
         if (channel == 1) {
-            url = getPayAddress(userId, giftType,price, appSocket.getIp());
+            url = getPayAddress(userId, giftType, price, appSocket.getIp());
         } else if (channel == 2) {
-            url = getHfPayAddress(userId, giftType,price);
+            url = getHfPayAddress(userId, giftType, price);
         }
         result.put("payUrl", url);
+        pushOrder(giftType);
+        userCacheService.endPay(userId.toString());
         return result;
     }
 
+    public void pushOrder(Long productId) {
+        logger.info("推送订单");
+        JSONObject pushDate = new JSONObject();
+        pushDate.put("productId", productId);
+        Push.push(PushCode.syncTsgOrder, null, pushDate);
+    }
 
     @Transactional
     @ServiceMethod(code = "000", description = "购买礼包")
@@ -187,6 +204,7 @@ public class ServerUserRoleService extends BaseService {
         if (giftType != 1 && giftType != 2) {
             throwExp("参数异常");
         }
+
         Long userId = appSocket.getWsidBean().getUserId();
         //用户Id 插入到参数中 传到manager服务器   code 035011
         params.put("userId", userId);

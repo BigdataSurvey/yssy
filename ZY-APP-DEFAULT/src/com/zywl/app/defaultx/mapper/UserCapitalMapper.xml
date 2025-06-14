@@ -276,13 +276,23 @@
 		</if>
 	</select>
 	<select id="findSumBalance2" resultType="java.util.Map">
-		select sum(balance) as allBalance from t_user_capital where capital_type=#{capitalType} and balance&gt;100
+		select sum(balance) as allBalance from t_user_capital where capital_type=#{capitalType} and balance&gt;20
 
 		<if test="start != null and limit != null">
 			limit #{start}, #{limit}
 		</if>
 	</select>
 
+	<select id="findSumBalanceNo10" resultType="java.util.Map">
+		select sum(balance) as allBalance from t_user_capital where capital_type=#{capitalType}  order by balance desc limit 10
+
+
+	</select>
+	<select id="findNo1"  resultType="UserCapital">
+		select * from t_user_capital where capital_type=#{capitalType} order by balance desc limit 1
+
+
+	</select>
 
 
 	<insert id="batchInsert" parameterType="java.util.List">

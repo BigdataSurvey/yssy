@@ -100,7 +100,7 @@
 												</div>
 												<div class="col-8 p-l-0 text-left">
 													<h5>{{${menuId}.monitorData.totalCur2.toFixed(4)}}</h5>
-													<p class="text-muted m-b-0">用户总金币</p>
+													<p class="text-muted m-b-0">用户总通宝</p>
 												</div>
 											</div>
 										</div>
@@ -110,8 +110,8 @@
 													<i class="fas fa-stop-circle f-24" style="color:#ff5b9d"></i>
 												</div>
 												<div class="col-8 p-l-0 text-left">
-													<h5>{{${menuId}.monitorData.totalRMB}}</h5>
-													<p class="text-muted m-b-0">用户总余额</p>
+													<h5>{{${menuId}.monitorData.no1}}</h5>
+													<p class="text-muted m-b-0">排名第一通宝数</p>
 												</div>
 											</div>
 										</div>
@@ -124,7 +124,7 @@
 												</div>
 												<div class="col-8 p-l-0 text-left">
 													<h5>{{${menuId}.monitorData.totalCanUseCur2 || 0}}</h5>
-													<p class="text-muted m-b-0">流通金币</p>
+													<p class="text-muted m-b-0">流通通宝</p>
 												</div>
 											</div>
 										</div>
@@ -134,8 +134,8 @@
 													<i class="fas fa-money text-c-blue f-24"></i>
 												</div>
 												<div class="col-8 p-l-0 text-left">
-													<h5>{{${menuId}.monitorData.totalCanUseRMB || 0}}</h5>
-													<p class="text-muted m-b-0">流通余额</p>
+													<h5>{{${menuId}.monitorData.totalNo10 || 0}}</h5>
+													<p class="text-muted m-b-0">前10通宝总和</p>
 												</div>
 											</div>
 										</div>
@@ -272,8 +272,8 @@
 													<i class="fas fa-stop-circle text-c-yellow f-24"></i>
 												</div>
 												<div class="col-8 p-l-0 text-left">
-													<h5>{{${menuId}.monitorData.oneKeepAlive}}</h5>
-													<p class="text-muted m-b-0">次日留存</p>
+													<h5>{{${menuId}.monitorData.gift99All}}</h5>
+													<p class="text-muted m-b-0">99礼包订单数量</p>
 												</div>
 											</div>
 										</div>
@@ -283,8 +283,8 @@
 													<i class="fas fa-stop-circle f-24" style="color:#ff5b9d"></i>
 												</div>
 												<div class="col-8 p-l-0 text-left">
-													<h5>{{${menuId}.monitorData.threeKeepAlive}}</h5>
-													<p class="text-muted m-b-0">3日留存</p>
+													<h5>{{${menuId}.monitorData.gift499All}}</h5>
+													<p class="text-muted m-b-0">499礼包订单数量</p>
 												</div>
 											</div>
 										</div>
@@ -296,8 +296,8 @@
 													<i class="fas fa-dollar text-c-red f-24"></i>
 												</div>
 												<div class="col-8 p-l-0 text-left">
-													<h5>{{${menuId}.monitorData.sevenKeepAlive}}</h5>
-													<p class="text-muted m-b-0">7日留存</p>
+													<h5>{{${menuId}.monitorData.gift99Pay}}</h5>
+													<p class="text-muted m-b-0">99礼包成交数量</p>
 												</div>
 											</div>
 										</div>
@@ -307,8 +307,8 @@
 													<i class="fas fa-money text-c-blue f-24"></i>
 												</div>
 												<div class="col-8 p-l-0 text-left">
-													<h5>{{${menuId}.monitorData.monthKeepAlive}}</h5>
-													<p class="text-muted m-b-0">月留存</p>
+													<h5>{{${menuId}.monitorData.gift499Pay}}</h5>
+													<p class="text-muted m-b-0">499礼包成交数量</p>
 												</div>
 											</div>
 										</div>

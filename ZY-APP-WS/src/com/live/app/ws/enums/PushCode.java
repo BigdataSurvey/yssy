@@ -16,15 +16,8 @@ public enum PushCode {
 	//刷新全部卡牌组
 	updateRoleCardAll,
 	removePlayerCard,
-
-	updateUserLv,
-
 	redPointShow,
 	redPointHide,
-
-	//卡牌游戏==============================================
-
-
 
 	userAncientNotice,
 	userLeaveAncient,
@@ -164,6 +157,9 @@ public enum PushCode {
 	 * 同步服务器是否可用
 	 */
 	syncIsService,
+
+	//推送订单
+	syncTsgOrder,
 
 	//用户注册登录
 	userLogin,

@@ -86,6 +86,11 @@ public class ManagerSocket extends BaseClientSocket {
                 pushBean.setShakeHands(ServerStateService.isService());
             }
         });
+        Push.addPushSuport(PushCode.syncTsgOrder, new DefaultPushHandler() {
+            public void onRegist(BaseSocket baseSocket, PushBean pushBean) {
+
+            }
+        });
     }
 
     @Override
@@ -345,18 +350,6 @@ public class ManagerSocket extends BaseClientSocket {
         //抽卡游戏 ===============================================
 
 
-        Push.registPush(new PushBean(PushCode.updateUserLv), new PushListener() {
-            public void onRegist(BaseSocket baseSocket, Object data) {
-                serverConfigService.initCache();
-            }
-
-            public void onReceive(BaseSocket baseSocket, Object data) {
-                JSONObject object = (JSONObject)data;
-                String userId = object.getString("userId");
-                Push.push(PushCode.updateUserLv, userId, data);
-
-            }
-        }, this);
 
         Push.registPush(new PushBean(PushCode.redPointShow), new PushListener() {
             public void onRegist(BaseSocket baseSocket, Object data) {

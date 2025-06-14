@@ -148,7 +148,7 @@ public class ServerLotteryGameService extends BaseService {
         checkNull(params.get("gameId"));
         //params.put("gameId",5);
         if (!isOnline(params.getIntValue("gameId"))) {
-            throwExp("游戏暂未开放");
+            throwExp("小游戏正在维护");
         }
         long userId = appSocket.getWsidBean().getUserId();
         User user = userCacheService.getUserInfoById(userId);
@@ -198,7 +198,7 @@ public class ServerLotteryGameService extends BaseService {
         checkNull(params.get("betAmount"), params.get("bet"));
         int gameId = params.getIntValue("gameId");
         if (!isOnline(gameId)) {
-            throwExp("游戏暂未开放");
+            throwExp("小游戏正在维护");
         }
         long userId = appSocket.getWsidBean().getUserId();
         User user = userCacheService.getUserInfoById(userId);
@@ -207,7 +207,7 @@ public class ServerLotteryGameService extends BaseService {
         }
         BigDecimal amount = params.getBigDecimal("betAmount");
         if (gameId != 5) {
-            if (betList.indexOf(amount) < 0) {
+            if (!betList.contains(amount)) {
                 throwExp("非法请求");
             }
         }

@@ -358,6 +358,8 @@ public class RedisKeyConstant {
 
 	public final static String RECEIVE_MAIL="t:app:user:receiveMail:";
 
+	public final static String BEGIN_PAY="t:app:user:beginPay:";
+
 
 	public final static String USER_PET_TYPES="t:app:user:petTypes:";
 

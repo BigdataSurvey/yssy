@@ -99,7 +99,10 @@
         </set>
         where id=#{id}
     </update>
-	
-	
+
+    <select id="countTodayAll" resultType="Long">
+        select count(1) from t_tsg_pay_order
+        where  create_time >#{todayBegin} and product_id=#{productId} and status=#{status}
+    </select>
 
 </mapper>

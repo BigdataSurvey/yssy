@@ -89,6 +89,7 @@ public class TaskService extends BaseService {
         adminSocketService.initAllBalance();
         topService.updateTop1Info();
         adminSocketService.initKeepAlive();
+        adminSocketService.initGiftInfo();
         initPrizePool();
 
         //=========

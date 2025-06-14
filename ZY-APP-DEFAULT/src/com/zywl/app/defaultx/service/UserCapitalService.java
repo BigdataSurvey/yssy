@@ -1233,6 +1233,17 @@ public class UserCapitalService extends DaoService {
         }
         return balance;
     }
+    
+    public BigDecimal findNo1(int capitalType){
+        BigDecimal balance = BigDecimal.ZERO;
+        Map<String,Object> params = new HashedMap<>();
+        params.put("capitalType", capitalType);
+        UserCapital findNo1 = (UserCapital) findOne("findNo1", params);
+        if (findNo1 != null ) {
+            return findNo1.getBalance();
+        }
+        return BigDecimal.ZERO;
+    }
 
     public BigDecimal findSumBalance2(int capitalType) {
 
@@ -1245,6 +1256,17 @@ public class UserCapitalService extends DaoService {
         }
         return balance;
     }
+    public BigDecimal findSumBalanceNo10(int capitalType) {
+        BigDecimal balance = BigDecimal.ZERO;
+        Map<String,Object> params = new HashedMap<>();
+        params.put("capitalType", capitalType);
+        Map<String, BigDecimal> findSumBalance = (Map<String, BigDecimal>) findOne("findSumBalanceNo10", params);
+        if (findSumBalance != null && findSumBalance.containsKey("allBalance")) {
+            balance = balance.add(findSumBalance.get("allBalance"));
+        }
+        return balance;
+    }
+
 
     @Transactional
     public void deletedOneMonthNoLogin(List<User> users) {
