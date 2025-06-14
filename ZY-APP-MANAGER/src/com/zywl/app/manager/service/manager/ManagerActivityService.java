@@ -90,6 +90,7 @@ public class ManagerActivityService  extends BaseService {
     @ServiceMethod(code = "002", description = "获取榜单信息")
     public JSONObject getTopListInfo1(ManagerSocketServer adminSocketServer, JSONObject data) {
         checkNull(data);
+        List<Activity> activityList = activityService.findAllActivity();
         Long userId = data.getLong("userId");
         String key = RedisKeyConstant.APP_TOP_lIST+  DateUtil.format2(new Date());
         String rankKey =RedisKeyConstant.POINT_RANK_LIST+  DateUtil.format2(new Date());

@@ -243,6 +243,7 @@ public class ServerUserRoleService extends BaseService {
         Long myId = appSocket.getWsidBean().getUserId();
         int type = params.getIntValue("type");
         String key = RedisKeyConstant.APP_TOP_lIST + DateUtil.format2(new Date());
+        String lastKey = RedisKeyConstant.APP_TOP_lIST +"lastActivity";
         if (type != 1 && type != 2) {
             throwExp("非法请求");
         }
@@ -264,12 +265,15 @@ public class ServerUserRoleService extends BaseService {
             //已经激活大礼包的用户 给他上级加积分并存入redis
             //用户父id的积分
             gameCacheService.addPoint(key, user);
+            //存放本期订单等待活动结束作为上期榜单列表。
+            gameCacheService.addPoint(lastKey, user);
         }
         if (user.getVip2() == 0) {
             user.setVip2(1);
             userService.updateUserVip2(user.getId());
         }
         activeGiftRecordService.addRecord(myId, user.getId(), type);
+
         return params;
     }
 

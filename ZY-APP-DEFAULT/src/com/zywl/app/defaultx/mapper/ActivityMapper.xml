@@ -31,7 +31,7 @@
             <if test="cycle!=null">
                 cycle = #{cycle},
             </if>
-            <if test="begin_time!=null">
+            <if test="beginTime!=null">
                 begin_time = #{beginTime},
             </if>
             <if test="endTime!=null">
@@ -52,6 +52,10 @@
 
     <select id="findAll" resultType="Activity">
         select * from t_activity
+    </select>
+    <select id="findByTime" resultType="Activity" parameterType="com.zywl.app.base.bean.Activity">
+        select * from t_activity
+               where 1= 1 and #{date}>=date_format(begin_time,'%Y-%m-%d') and date_format(end_time,'%Y-%m-%d') <![CDATA[<=]]> #{date}
     </select>
 
 
