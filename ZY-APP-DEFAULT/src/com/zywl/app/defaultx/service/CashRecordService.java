@@ -140,7 +140,7 @@ public class CashRecordService extends DaoService{
 		Map<String, Object> params = new HashedMap<>();
 		params.put("userId", userId);
 		params.put("start", page*num);
-		params.put("num", num);
+		params.put("limit", num);
 		return findByConditions(params);
 	}
 

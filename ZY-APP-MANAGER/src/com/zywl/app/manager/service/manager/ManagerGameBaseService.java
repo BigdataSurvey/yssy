@@ -622,6 +622,7 @@ public class ManagerGameBaseService extends BaseService {
         //大小靓号选择的道具
         //v4小靓号 v5大靓号
         if(itemId == 37 || itemId == 38){
+            result.put("type","1");
             long vipLevel = userVip.getVipLevel();
             List<GoodNo> allGoodNoList = goodNoService.findAllGoodNo();
             List<GoodNo> smallGoodNoList = allGoodNoList.stream().filter(e -> 0 == e.getType()).collect(Collectors.toList());
@@ -629,22 +630,19 @@ public class ManagerGameBaseService extends BaseService {
             List<GoodNo> randomSamllList = getRandomElements(smallGoodNoList, random);
             List<GoodNo> randomBigList = getRandomElements(bigGoodNoList, random);
             List<JSONObject> list = gameCacheService.getList("randomGoodNoList",JSONObject.class);
-
+            if(list==null || list.size()==0) {
                 if(vipLevel==4){
                     //随机返回9个靓号的list
                     result.put("randomGoodNoList",randomSamllList);
-                    if (list==null || list.size()==0) {
-                        gameCacheService.set("randomGoodNoList", randomSamllList);
-                    }
+                    gameCacheService.set("randomGoodNoList", randomSamllList);
 
                 }else if(vipLevel >4 ){
                     result.put("randomGoodNoList",randomBigList);
-                    if (list==null || list.size()==0) {
-                        gameCacheService.set("randomGoodNoList", randomBigList);
-                    }
-
+                    gameCacheService.set("randomGoodNoList", randomBigList);
                 }
-            result.put("type","1");
+            }else {
+                result.put("randomGoodNoList",list);
+            }
         }
 
         return result;
@@ -655,23 +653,22 @@ public class ManagerGameBaseService extends BaseService {
         JSONObject result = new JSONObject();
         Long goodNoId = params.getLong("data");
         Long userId = params.getLong("userId");
+        String itemId = params.getString("itemId");
         int number = 1;
         UserVip uservip = userVipService.findUserVipByUserId(userId);
         //修改user表中userno 并删掉redis中缓存数据
         GoodNo goodNo = goodNoService.findById(goodNoId);
-        List<GoodNo> list = gameCacheService.getList("randomGoodNoList",JSONObject.class);
+        List<GoodNo> list = gameCacheService.getList("randomGoodNoList",GoodNo.class);
         if(list!=null && list.size()>0){
-            if(!list.contains(goodNo)){
+            List<String> goodNoList = list.stream().map(GoodNo::getGoodNo).collect(Collectors.toList());
+            if(!goodNoList.contains(goodNo.getGoodNo())){
               throwExp("当前靓号不属于选择范围内");
             }
         }
         userService.updateUserGoodNo(goodNo.getGoodNo(), userId);
         //指定itemid为37、38 减掉背包大小靓号道具
-        if(uservip.getVipLevel() == 4){
-            gameService.updateUserBackpack(userId, String.valueOf(37),-number, LogUserBackpackTypeEnum.use);
-        }else if(uservip.getVipLevel() > 4) {
-            gameService.updateUserBackpack(userId,  String.valueOf(38),-number, LogUserBackpackTypeEnum.use);
-        }
+        gameService.updateUserBackpack(userId, itemId,-number, LogUserBackpackTypeEnum.use);
+        gameCacheService.deleteByKey("randomGoodNoList");
         return result;
     }
 
