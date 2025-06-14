@@ -176,32 +176,34 @@ public class GameCacheService extends RedisService {
             String orderNo = OrderUtil.getOrder5Number();
             list =new ArrayList<>();
             for (String id : ids) {
-                Long rank = getTopRank(id);
-                User userInfoById = userCacheService.getUserInfoById(id);
-                JSONObject info = new JSONObject();
-                info.put("userHeadImg",userInfoById.getHeadImageUrl());
-                info.put("userId",id);
-                info.put("userName",userInfoById.getName());
-                info.put("userNo",userInfoById.getUserNo());
                 Double score = thisTopList.get(id);
-                BigDecimal rawrdsAmont;
-                if(score<3){
-                    info.remove(id);
-                }
-                if(1 == rank){
-                    rawrdsAmont =  BigDecimal.valueOf(score).multiply(BigDecimal.valueOf(50)).add(BigDecimal.valueOf(10));
-                }else if(2 == rank){
-                    rawrdsAmont =  BigDecimal.valueOf(score).multiply(BigDecimal.valueOf(50)).add(BigDecimal.valueOf(5));
-                }else{
-                    rawrdsAmont =  BigDecimal.valueOf(score).multiply(BigDecimal.valueOf(50));
-                }
+                if(score>3){
+                    Long rank = getTopRank(id);
+                    User userInfoById = userCacheService.getUserInfoById(id);
+                    JSONObject info = new JSONObject();
+                    info.put("userHeadImg",userInfoById.getHeadImageUrl());
+                    info.put("userId",id);
+                    info.put("userName",userInfoById.getName());
+                    info.put("userNo",userInfoById.getUserNo());
 
-                info.put("score",score);
-                info.put("rawrdsAmont",rawrdsAmont);
-                cashRecordService.addCashOrder(userInfoById.getOpenId(), userInfoById.getId(), userInfoById.getUserNo(), userInfoById.getName(), userInfoById.getRealName(), orderNo,rawrdsAmont,2,userInfoById.getPhone());
-                list.add(info);
+                    BigDecimal rawrdsAmont;
+
+                    if(1 == rank){
+                        rawrdsAmont =  BigDecimal.valueOf(score).multiply(BigDecimal.valueOf(50)).add(BigDecimal.valueOf(10));
+                    }else if(2 == rank){
+                        rawrdsAmont =  BigDecimal.valueOf(score).multiply(BigDecimal.valueOf(50)).add(BigDecimal.valueOf(5));
+                    }else{
+                        rawrdsAmont =  BigDecimal.valueOf(score).multiply(BigDecimal.valueOf(50));
+                    }
+
+                    info.put("score",score);
+                    info.put("rawrdsAmont",rawrdsAmont);
+                    cashRecordService.addCashOrder(userInfoById.getOpenId(), userInfoById.getId(), userInfoById.getUserNo(), userInfoById.getName(), userInfoById.getRealName(), orderNo,rawrdsAmont,2,userInfoById.getPhone());
+                    list.add(info);
+                }
+                set(rankKey,list,60);
             }
-            set(rankKey,list,60);
+
         }
         return list;
     }
