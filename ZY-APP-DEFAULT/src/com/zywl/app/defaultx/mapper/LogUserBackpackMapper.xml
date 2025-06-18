@@ -80,21 +80,21 @@
 
 
 	<select id="dbCountByConditions" resultType="Long">
-		select count(1) from `kapai-log`.${tableName}
+		select count(1) from `tsg-log`.${tableName}
 		<where>
 			<include refid="conditions"></include>
 		</where>
 	</select>
 
 	<select id="findLQG" resultType="LogUserBackpack">
-		select * from `kapai-log`.${tableName}
+		select * from `tsg-log`.${tableName}
 		<where>
 			<include refid="conditions"></include>
 		</where>
 	</select>
 
 	<select id="dbFindByConditions" resultType="LogUserBackpack">
-		select * from `kapai-log`.${tableName}
+		select * from `tsg-log`.${tableName}
 		<where>
 			<include refid="conditions"></include>
 		</where>

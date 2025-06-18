@@ -121,7 +121,7 @@ public enum LogCapitalTypeEnum {
     from_item("使用道具",1007),
     dispatch("悬赏任务",1008),
     wander("云游天下",1009),
-    dice("大富翁",1010),
+    dice("捐赠获得",1010),
     buy_gift("购买每日礼包",1011),
     buy_vip("开通会员",1012),
     afk("快速作战",1013),

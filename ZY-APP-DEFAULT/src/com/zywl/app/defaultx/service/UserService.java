@@ -31,11 +31,11 @@ public class UserService extends DaoService {
     private UserCacheService userCacheService;
 
     @Transactional
-    public User insertUserInfo(String clientIp, String wxOpenId, String inviteCode, String userNo, JSONObject wxInfo, String city, String province,String gameToken,String cno) {
-        User newPlayer = createUser(clientIp, inviteCode, userNo,gameToken, cno);
+    public User insertUserInfo(String clientIp, String wxOpenId, String inviteCode, String userNo, JSONObject wxInfo, String city, String province, String gameToken, String cno) {
+        User newPlayer = createUser(clientIp, inviteCode, userNo, gameToken, cno);
         newPlayer.setName(wxInfo.getString("nickname"));
-        if (newPlayer.getName()==null){
-            newPlayer.setName("账号"+wxOpenId);
+        if (newPlayer.getName() == null) {
+            newPlayer.setName("账号" + wxOpenId);
         }
         newPlayer.setNameStatus(0);
         newPlayer.setMail(null);
@@ -54,11 +54,11 @@ public class UserService extends DaoService {
     }
 
     @Transactional
-    public User insertUserInfoText(Long id,String clientIp, String wxOpenId, String inviteCode, String userNo, JSONObject wxInfo, String city, String province,String gameToken,String cno) {
-        User newPlayer = createUser(clientIp, inviteCode, userNo,gameToken, cno);
+    public User insertUserInfoText(Long id, String clientIp, String wxOpenId, String inviteCode, String userNo, JSONObject wxInfo, String city, String province, String gameToken, String cno) {
+        User newPlayer = createUser(clientIp, inviteCode, userNo, gameToken, cno);
         newPlayer.setName(wxInfo.getString("nickname"));
-        if (newPlayer.getName()==null){
-            newPlayer.setName("账号"+wxOpenId);
+        if (newPlayer.getName() == null) {
+            newPlayer.setName("账号" + wxOpenId);
         }
         newPlayer.setId(id);
         newPlayer.setNameStatus(0);
@@ -77,7 +77,7 @@ public class UserService extends DaoService {
         return newPlayer;
     }
 
-    private User createUser(String clientIp, String inviteCode, String userNo,String gameToken,String cno) {
+    private User createUser(String clientIp, String inviteCode, String userNo, String gameToken, String cno) {
         User newPlayer = new User();
         if (inviteCode != null && !inviteCode.equals("")) {
             User parentUser = findUserByInviteCode(inviteCode);
@@ -116,10 +116,9 @@ public class UserService extends DaoService {
     }
 
 
-
     @Transactional
-    public User insertUserInfoByTabtabId(String clientIp, String tabtabId, String inviteCode, String userNo, String userName, String userHead,String gameToken) {
-        User newPlayer = createUser(clientIp, inviteCode, userNo,gameToken,"");
+    public User insertUserInfoByTabtabId(String clientIp, String tabtabId, String inviteCode, String userNo, String userName, String userHead, String gameToken) {
+        User newPlayer = createUser(clientIp, inviteCode, userNo, gameToken, "");
         newPlayer.setName(userName);
         newPlayer.setNameStatus(0);
         newPlayer.setMail(null);
@@ -137,9 +136,10 @@ public class UserService extends DaoService {
         save(newPlayer);
         return newPlayer;
     }
+
     @Transactional
-    public User insertUserInfoByAlipay(String clientIp, String alipayUserId, String inviteCode, String userNo, String userName, String userHead,String gameToken,String cno, String city, String province) {
-        User newPlayer = createUser(clientIp, inviteCode, userNo,gameToken, cno);
+    public User insertUserInfoByAlipay(String clientIp, String alipayUserId, String inviteCode, String userNo, String userName, String userHead, String gameToken, String cno, String city, String province) {
+        User newPlayer = createUser(clientIp, inviteCode, userNo, gameToken, cno);
         newPlayer.setName(userName);
         newPlayer.setNameStatus(0);
         newPlayer.setMail(null);
@@ -224,12 +224,12 @@ public class UserService extends DaoService {
         return (User) findOne("findOneByGameToken", params);
     }
 
-    public List<User> findByGZSFK1(){
-        return findList("findByGzsfk1",null);
+    public List<User> findByGZSFK1() {
+        return findList("findByGzsfk1", null);
     }
 
-    public List<User> findByGZSFK2(){
-        return findList("findByGzsfk2",null);
+    public List<User> findByGZSFK2() {
+        return findList("findByGzsfk2", null);
     }
 
     public User findById(Long userId) {
@@ -238,10 +238,10 @@ public class UserService extends DaoService {
         return findOne(params);
     }
 
-    public List<Long> findIdByParentId(List<Long> ids){
+    public List<Long> findIdByParentId(List<Long> ids) {
         Map<String, Object> params = new HashedMap<>();
-        params.put("ids",ids);
-        return findList("findIdByParentId",params);
+        params.put("ids", ids);
+        return findList("findIdByParentId", params);
     }
 
     public User findByIdAllStatus(Long userId) {
@@ -349,13 +349,13 @@ public class UserService extends DaoService {
     }
 
     @Transactional
-    public int loginSuccess(Long userId, String ip, String name, String headImageUrl,String gameToken,Date tokenTime) {
+    public int loginSuccess(Long userId, String ip, String name, String headImageUrl, String gameToken, Date tokenTime) {
         Map<String, Object> params = new HashedMap<>();
         params.put("userId", userId);
         params.put("lastLoginTime", new Date());
         params.put("ip", ip);
-        params.put("gameToken",gameToken);
-        params.put("tokenTime",tokenTime);
+        params.put("gameToken", gameToken);
+        params.put("tokenTime", tokenTime);
         if (name != null) {
             params.put("name", name);
         }
@@ -505,7 +505,7 @@ public class UserService extends DaoService {
         return nos;
     }
 
-    public List<User> findBot(){
+    public List<User> findBot() {
         List<User> users = findList("findAllBotUser", null);
         return users;
     }
@@ -576,7 +576,7 @@ public class UserService extends DaoService {
         return (float) count / users.size() * 100 + "%";
     }
 
-    public List<User> findYesterdayRegUser(){
+    public List<User> findYesterdayRegUser() {
         Map<String, Object> params = new HashMap<>();
         params.put("registStartDate", DateUtil.getDaysAgoBegin(1));
         params.put("registEndDate", DateUtil.getDaysAgoBegin(0));
@@ -584,21 +584,21 @@ public class UserService extends DaoService {
     }
 
     @Transactional
-    public void openWeek(Long userId,Date expireTime){
+    public void openWeek(Long userId, Date expireTime) {
         Map<String, Object> params = new HashMap<>();
         params.put("userId", userId);
         params.put("expireTime", expireTime);
-        execute("openWeek",params);
+        execute("openWeek", params);
         userCacheService.removeUserInfoCache(userId);
 
     }
 
     @Transactional
-    public void openMonth(Long userId,Date expireTime){
+    public void openMonth(Long userId, Date expireTime) {
         Map<String, Object> params = new HashMap<>();
         params.put("userId", userId);
         params.put("expireTime", expireTime);
-        execute("openMonth",params);
+        execute("openMonth", params);
         userCacheService.removeUserInfoCache(userId);
     }
 
@@ -635,6 +635,7 @@ public class UserService extends DaoService {
         userCacheService.removeUserInfoCache(userId);
         return a;
     }
+
     @Transactional
     public int updateUserNo(String goodNo, Long userId) {
         Map<String, Object> params = new HashMap<>();
@@ -646,7 +647,7 @@ public class UserService extends DaoService {
     }
 
     @Transactional
-    public int updateUserVip2( Long userId) {
+    public int updateUserVip2(Long userId) {
         Map<String, Object> params = new HashMap<>();
         params.put("userId", userId);
         int a = execute("updateUserVip2", params);
@@ -701,7 +702,6 @@ public class UserService extends DaoService {
         userCacheService.removeUserInfoCache(userId);
         return execute("updateUserAddVip", params);
     }
-
 
 
     @Transactional
@@ -833,34 +833,35 @@ public class UserService extends DaoService {
     }
 
     @Transactional
-    public int updateUserNoPassIdCard(Long userId) {
+    public void updateUserNoPassIdCard(Long userId) {
         Map<String, Object> map = new HashMap<>();
         map.put("risk", 1);
         map.put("riskPlus", 1);
         map.put("userId", userId);
+        execute("updateUserNoPassIdCard", map);
         userCacheService.removeUserInfoCache(userId);
-        return execute("updateUserNoPassIdCard", map);
     }
 
     @Transactional
-    public int addAliPayUserId(Long userId,String aliPayUserId){
+    public void addAliPayUserId(Long userId, String aliPayUserId) {
         Map<String, Object> map = new HashMap<>();
         map.put("userId", userId);
         map.put("alipayId", aliPayUserId);
-        return execute("addAliPayUserId",map);
+        execute("addAliPayUserId", map);
+        userCacheService.removeUserInfoCache(userId);
     }
 
-    public List<User> findByAliUserId(String aliPayUserId){
+    public List<User> findByAliUserId(String aliPayUserId) {
         Map<String, Object> map = new HashMap<>();
         map.put("alipayId", aliPayUserId);
-        return findList("findByAliUserId",map);
+        return findList("findByAliUserId", map);
     }
 
 
-    public Long findCountByIp(String ip){
+    public Long findCountByIp(String ip) {
         Map<String, Object> map = new HashMap<>();
         map.put("ip", ip);
-        return (Long) findOne("findCountByIp",map);
+        return (Long) findOne("findCountByIp", map);
     }
 
 
@@ -869,10 +870,8 @@ public class UserService extends DaoService {
     }
 
 
-
-
-    public List<DSTopVo> findTopByDl(){
-        return findList("findTopByDl",null);
+    public List<DSTopVo> findTopByDl() {
+        return findList("findTopByDl", null);
     }
 
 }

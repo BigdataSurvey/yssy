@@ -21,6 +21,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.util.Date;
 import java.util.Objects;
 
 
@@ -61,6 +62,9 @@ public class ManagerUserRoleService extends BaseService {
         }
         if (userRole.getEndTime().getTime()<System.currentTimeMillis()){
             throwExp("角色已到期，请重新激活礼包");
+        }
+        if (userRole.getHp()==0){
+            userRole.setLastReceiveTime(new Date());
         }
         DicRole dicRole = PlayGameService.DIC_ROLE.get(userRole.getRoleId().toString());
         int maxHp = dicRole.getHp();

@@ -35,7 +35,7 @@
     </update>
 
     <select id="findByUserIdAndYmd" resultType="UserIncomeStatement">
-        select * from `kapai-log`.t_user_income_statement where user_id = #{userId} and ymd=#{ymd}
+        select * from `tsg-log`.t_user_income_statement where user_id = #{userId} and ymd=#{ymd}
     </select>
 
     <select id="findByUserId" resultType="UserIncomeStatement">
@@ -43,7 +43,7 @@
     </select>
 
     <select id="findByUserIdSync" resultType="UserIncomeStatement">
-        select * from `kapai-log`.t_user_income_statement where user_id = #{userId} order by id desc limit #{start},#{limit}
+        select * from `tsg-log`.t_user_income_statement where user_id = #{userId} order by id desc limit #{start},#{limit}
     </select>
 
 </mapper>

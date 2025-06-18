@@ -17,7 +17,7 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
 @SuppressWarnings("serial")
-@WebServlet(name = "AuthServlet", urlPatterns = "/getServer")
+@WebServlet(name = "AuthServlet", urlPatterns = "/afdagfwae")
 public class AuthServlet extends BaseServlet {
 
 	private static final Log logger = LogFactory.getLog(AuthServlet.class);

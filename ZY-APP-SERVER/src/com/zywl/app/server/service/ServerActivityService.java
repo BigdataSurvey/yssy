@@ -1,16 +1,13 @@
 package com.zywl.app.server.service;
 
 import com.alibaba.fastjson2.JSONObject;
+import com.alipay.service.schema.util.StringUtil;
 import com.live.app.ws.bean.Command;
-import com.live.app.ws.enums.TargetSocketType;
-import com.live.app.ws.util.CommandBuilder;
-import com.live.app.ws.util.Executer;
 import com.zywl.app.base.bean.Activity;
 import com.zywl.app.base.bean.CashRecord;
 import com.zywl.app.base.bean.User;
 import com.zywl.app.base.constant.RedisKeyConstant;
 import com.zywl.app.base.service.BaseService;
-import com.zywl.app.base.util.DateUtil;
 import com.zywl.app.defaultx.annotation.ServiceClass;
 import com.zywl.app.defaultx.annotation.ServiceMethod;
 import com.zywl.app.defaultx.cache.GameCacheService;
@@ -20,13 +17,11 @@ import com.zywl.app.defaultx.service.CashRecordService;
 import com.zywl.app.defaultx.service.UserService;
 import com.zywl.app.server.context.MessageCodeContext;
 import com.zywl.app.server.socket.AppSocket;
-import com.zywl.app.server.util.RequestManagerListener;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
-import java.util.Calendar;
-import java.util.Date;
+import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.List;
 
 @Service
@@ -46,76 +41,101 @@ public class ServerActivityService extends BaseService {
     private CashRecordService cashRecordService;
 
 
-
     @ServiceMethod(code = "002", description = "获取榜单信息")
     public Object getTopListInfo(final AppSocket appSocket, Command appCommand, JSONObject params) {
         checkNull(params);
         long userId = appSocket.getWsidBean().getUserId();
-        String date = DateUtil.format2(new Date());
-        List<Activity> activityList = activityService.findActivityByTime(date);
-        String key = RedisKeyConstant.APP_TOP_lIST+  DateUtil.format2(new Date());
-        String rankKey =RedisKeyConstant.POINT_RANK_LIST+  DateUtil.format2(new Date());
+        Activity activity = activityService.findActivityByTime();
+        if (activity == null) {
+            throwExp("未查询到活动信息");
+        }
+        String key = RedisKeyConstant.APP_TOP_lIST + activity.getId();
+        String rankKey = RedisKeyConstant.POINT_RANK_LIST;
         User user = userCacheService.getUserInfoById(userId);
         if (user == null) {
             throwExp("用户信息异常");
         }
         JSONObject result = new JSONObject();
-        result.put("remainingTime", DateUtil.thisWeekRemainingTime());
-        result.put("rankList",gameCacheService.getTopList(key,rankKey));
+        List<JSONObject> topList = gameCacheService.getTopList(key, rankKey);
+        result.put("rankList", topList);
         Double userRankScore = gameCacheService.getUserTopScore(String.valueOf(userId));
-        result.put("myScore", userRankScore ==null?0.0:userRankScore);
-        Long thisWeekUserRank = gameCacheService.getTopRank(String.valueOf(userId));
-        result.put("myRank",thisWeekUserRank==null?-1:thisWeekUserRank+1);
-        result.put("activityList",activityList);
+        result.put("myScore", userRankScore == null ? 0.0 : userRankScore);
+        Long myRank = gameCacheService.getTopRankByKey(key, String.valueOf(userId));
+        result.put("myRank", myRank == null ? "未上榜" : myRank + 1);
+        if (myRank == null || userRankScore == null) {
+            result.put("myMoney", BigDecimal.ZERO);
+        } else {
+            result.put("myMoney", gameCacheService.getRankMoney(userId,userRankScore, myRank + 1,topList));
+        }
+        result.put("activeInfo", activity);
         return result;
     }
+
     @ServiceMethod(code = "003", description = "获取领奖记录")
-    public Object getRawrdsRecord(final AppSocket appSocket, Command appCommand, JSONObject params) {
+    public Object getRewardRecord(final AppSocket appSocket, Command appCommand, JSONObject params) {
         checkNull(params);
         long userId = appSocket.getWsidBean().getUserId();
-        checkNull(params.get("page"),params.get("num"));
+        checkNull(params.get("page"), params.get("num"));
         JSONObject result = new JSONObject();
         User user = userService.findById(userId);
-        if(null == user.getAlipayId()){
-            result.put("bingState",0);
+        if (StringUtil.isEmpty(user.getAlipayId())) {
+            result.put("bingState", 0);
             return result;
         }
-        List<CashRecord> cashRecord= cashRecordService.findCashRecordByUserId(userId, params.getIntValue("page"), params.getIntValue("num"));
-        result.put("cashRecord",cashRecord);
-        result.put("bingState",1);
+        List<CashRecord> cashRecords = cashRecordService.findCashRecordByUserId(userId, params.getIntValue("page"), params.getIntValue("num"));
+        List<JSONObject> list = new ArrayList<>();
+        for (CashRecord record : cashRecords) {
+            JSONObject obj = new JSONObject();
+            obj.put("amount", record.getAmount());
+            //0 未到账  2已到账  3 失败
+            obj.put("status", record.getStatus());
+            obj.put("createTime", record.getCreateTime());
+            list.add(obj);
+        }
+        result.put("cashRecord", list);
+        result.put("bingState", 1);
         return result;
     }
+
     @ServiceMethod(code = "004", description = "上期榜单")
     public Object getLastTopList(final AppSocket appSocket, Command appCommand, JSONObject params) {
         checkNull(params);
         long userId = appSocket.getWsidBean().getUserId();
+        Activity activity = activityService.findActivityByTime();
+        if (activity == null) {
+            throwExp("未查询到上期榜单信息");
+        }
+        Activity byId = activityService.findById(activity.getId() - 1);
+        if (byId==null){
+            throwExp("未查询到上期榜单信息");
+        }
         JSONObject result = new JSONObject();
-        Calendar calendar = Calendar.getInstance();
-        calendar.setTime(new Date());
-        calendar.add(Calendar.DATE, -1); // 减去一天
-        String yesterday =  DateUtil.format2(calendar.getTime());
-        String key = RedisKeyConstant.APP_TOP_lIST+"lastActivity";
-        String rankKey =RedisKeyConstant.POINT_RANK_LIST+ yesterday;
-        result.put("rankList",gameCacheService.getLastTopList(key,rankKey));
-        Double userRankScore = gameCacheService.getLastUserTopScore(String.valueOf(userId),key);
-        result.put("remainingTime", DateUtil.thisWeekRemainingTime());
-        result.put("myScore", userRankScore ==null?0.0:userRankScore);
-        Long thisWeekUserRank = gameCacheService.getTopRank(String.valueOf(userId));
-        result.put("myRank",thisWeekUserRank==null?-1:thisWeekUserRank+1);
+        String key = RedisKeyConstant.APP_TOP_lIST + (activity.getId() - 1);
+        List<JSONObject> lastTopList = gameCacheService.getLastTopList();
+        result.put("rankList", lastTopList);
+        Double userRankScore = gameCacheService.getLastUserTopScore(String.valueOf(userId), key);
+        result.put("myScore", userRankScore == null ? 0.0 : userRankScore);
+        Long lastRank = gameCacheService.getTopRankByKey(key, String.valueOf(userId));
+        result.put("myRank", lastRank == null ? "未上榜" : lastRank + 1);
+        if (lastRank == null || userRankScore == null) {
+            result.put("myMoney", BigDecimal.ZERO);
+        } else {
+            result.put("myMoney", gameCacheService.getRankMoney(userId,userRankScore, lastRank + 1,lastTopList));
+        }
+        result.put("activeInfo",byId);
         return result;
     }
+
     @ServiceMethod(code = "005", description = "绑定支付宝账号")
     public Object bingZfb(final AppSocket appSocket, Command appCommand, JSONObject params) {
         long userId = appSocket.getWsidBean().getUserId();
-        params.put("userId",userId);
+        params.put("userId", userId);
         String alipayId = params.getString("alipayId");
         checkNull(params);
         checkNull(params.get("alipayId"));
-        userService.addAliPayUserId(userId,alipayId);
-        return async();
+        userService.addAliPayUserId(userId, alipayId);
+        return new JSONObject();
     }
-
-
 
 
 }

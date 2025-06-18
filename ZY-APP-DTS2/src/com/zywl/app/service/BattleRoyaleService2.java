@@ -309,7 +309,7 @@ public class BattleRoyaleService2 extends BaseService {
         checkNull(data);
         checkNull(data.get("userId"), data.get("userNo"), data.get("userName"));
         if (ROOM.getEndTime() > System.currentTimeMillis() && (ROOM.getEndTime() - System.currentTimeMillis()) < 1000) {
-            throwExp("倒计时即将结束！禁止更换！");
+            throwExp("本局即将结束！");
         }
         System.out.println(ROOM.getRoomList());
         String userId = data.getString("userId");
@@ -319,7 +319,7 @@ public class BattleRoyaleService2 extends BaseService {
         }
         synchronized (LockUtil.getlock(userId + "bet")) {
             if (ROOM.getRoomList().get(newRoomId).containsKey(userId)) {
-                throwExp("已经在该秘境啦~");
+                throwExp("已经在该房间了");
             }
             ROOM.getUserCheckNum().put(userId, newRoomId);
             JSONObject result = new JSONObject();
@@ -339,7 +339,7 @@ public class BattleRoyaleService2 extends BaseService {
                 }
             }
             if (roomId == null) {
-                throwExp("更换秘境频繁");
+                throwExp("更换频繁");
             }
             updateRoomUser.add(userId);
             BigDecimal amount = ROOM.getUserBetInfo().get(userId).get(roomId);
@@ -349,7 +349,7 @@ public class BattleRoyaleService2 extends BaseService {
             ROOM.getUserBetInfo().remove(userId);
             ROOM.getUserBetInfo().put(userId, newRoomBetInfo);
             if (!ROOM.getRoomList().get(roomId).containsKey(userId)) {
-                throwExp("更换秘境频繁");
+                throwExp("更换频繁");
             }
             ROOM.getRoomList().get(newRoomId).put(userId, ROOM.getRoomList().get(roomId).get(userId));
             ROOM.getRoomList().get(roomId).remove(userId);
@@ -468,6 +468,7 @@ public class BattleRoyaleService2 extends BaseService {
         if (ROOM.getEndTime() != 0L && ROOM.getEndTime() - System.currentTimeMillis() < 2000) {
             throwExp("本局即将结束，请等待下一局游戏开始");
         }
+
         ROOM.getUserCheckNum().put(userId, userBet);
         if (!BOT_USER.containsKey(userId)){
             UserCapital userCapital = userCapitalService.findUserCapitalByUserIdAndCapitalType(Long.parseLong(userId),

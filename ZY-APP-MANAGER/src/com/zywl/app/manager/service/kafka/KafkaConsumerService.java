@@ -126,6 +126,9 @@ public class KafkaConsumerService extends BaseService {
         if (KafkaEventContext.MAIL.equals(eventType)) {
             //游戏内容发放奖励邮件
             gameSendMail(data);
+        } if (KafkaEventContext.SEND_MAIL.equals(eventType)) {
+            //玩家发送邮件
+            userSendMail(data);
         } else if (KafkaEventContext.SYS_MAIL.equals(eventType)) {
             //系统邮件
             sysSendMail(data);
@@ -427,6 +430,10 @@ public class KafkaConsumerService extends BaseService {
             Long userId = mail.getLong("userId");
             pushRedPoint(userId, KafkaEventContext.MAIL);
         }
+    }
+    public void userSendMail(JSONObject data) {
+        Long toUserId = data.getLong("toUserId");
+        pushRedPoint(toUserId, KafkaEventContext.MAIL);
     }
 
     public void sysSendMail(JSONObject data) {

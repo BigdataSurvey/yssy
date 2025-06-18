@@ -18,13 +18,13 @@ public class DicShop extends BaseBean {
 
     private int number;
 
-    private int price;
+    private BigDecimal price;
 
-    public int getPrice() {
+    public BigDecimal getPrice() {
         return price;
     }
 
-    public void setPrice(int price) {
+    public void setPrice(BigDecimal price) {
         this.price = price;
     }
 

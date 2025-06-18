@@ -3,6 +3,7 @@ package com.zywl.app.defaultx.cache;
 
 import com.alibaba.fastjson2.JSONArray;
 import com.alibaba.fastjson2.JSONObject;
+import com.zywl.app.base.bean.Activity;
 import com.zywl.app.base.bean.User;
 import com.zywl.app.base.bean.vo.KillNsRecordRandVo;
 import com.zywl.app.base.constant.RedisKeyConstant;
@@ -10,6 +11,7 @@ import com.zywl.app.base.util.DateUtil;
 import com.zywl.app.base.util.OrderUtil;
 import com.zywl.app.defaultx.cache.impl.RedisService;
 import com.zywl.app.defaultx.enmus.GameTypeEnum;
+import com.zywl.app.defaultx.service.ActivityService;
 import com.zywl.app.defaultx.service.CashRecordService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.ZSetOperations;
@@ -29,11 +31,15 @@ public class GameCacheService extends RedisService {
     @Autowired
     private CashRecordService cashRecordService;
 
+    @Autowired
+    private ActivityService activityService;
+
+    public static Activity activity;
 
     public static final List<String> LAST_WEEK_USER_IDS = new ArrayList<>();
 
     @PostConstruct
-    public void _construct(){
+    public void _construct() {
         updateLastWeekList();
         new Timer("刷新大逃杀排行榜上周前10数据").schedule(new TimerTask() {
             public void run() {
@@ -47,73 +53,72 @@ public class GameCacheService extends RedisService {
         }, DateUtil.getTomorrowBegin() - System.currentTimeMillis(), 1000 * 60 * 60 * 24);
     }
 
-    public void updateLastWeekList(){
+    public void updateLastWeekList() {
         LAST_WEEK_USER_IDS.clear();
         Map<String, Double> lastWeekTopList = getLastWeekTopList(GameTypeEnum.battleRoyale.getValue(), 10);
         ArrayList<Map.Entry<String, Double>> list = new ArrayList(lastWeekTopList.entrySet());
-        Collections.sort(list, (a, b)-> (int) (b.getValue() - a.getValue()));
+        Collections.sort(list, (a, b) -> (int) (b.getValue() - a.getValue()));
         for (Map.Entry<String, Double> stringDoubleEntry : list) {
             LAST_WEEK_USER_IDS.add(stringDoubleEntry.getKey());
         }
     }
 
-    public void addGameRankCache(int gameId, String userId, int number){
-        if (LAST_WEEK_USER_IDS.contains(userId)){
+    public void addGameRankCache(int gameId, String userId, int number) {
+        if (LAST_WEEK_USER_IDS.contains(userId)) {
             return;
         }
         String key = getRankKey(gameId);
-        addZset(key,userId, (double) number);
+        addZset(key, userId, (double) number);
     }
 
 
-
-
-    public Double getUserRankScore(int gameId,String userId){
+    public Double getUserRankScore(int gameId, String userId) {
         String key = getRankKey(gameId);
-        return getZsetScore(key,userId);
+        return getZsetScore(key, userId);
     }
 
 
-    public Long getUserKillRank(String userId){
-        return getZsetRank(userId,RedisKeyConstant.KILL_RANK+DateUtil.format2(new Date()));
+    public Long getUserKillRank(String userId) {
+        return getZsetRank(userId, RedisKeyConstant.KILL_RANK + DateUtil.format2(new Date()));
     }
-    public Double getUserLastWeekRankScore(int gameId,String userId){
+
+    public Double getUserLastWeekRankScore(int gameId, String userId) {
         String key = getLastWeekRankKey(gameId);
-        return getZsetScore(key,userId);
+        return getZsetScore(key, userId);
     }
 
-    public String getRankKey(int gameId){
+    public String getRankKey(int gameId) {
         String key = null;
-        if (gameId== GameTypeEnum.battleRoyale.getValue()||gameId==GameTypeEnum.dts2.getValue()){
-            key = RedisKeyConstant.GAME_RANK_DTS+ DateUtil.getFirstDayOfWeek(new Date());
-        } else if (gameId==GameTypeEnum.food.getValue()) {
-            key=RedisKeyConstant.GAME_RANK_FOOD+DateUtil.getFirstDayOfWeek(new Date());
+        if (gameId == GameTypeEnum.battleRoyale.getValue() || gameId == GameTypeEnum.dts2.getValue()) {
+            key = RedisKeyConstant.GAME_RANK_DTS + DateUtil.getFirstDayOfWeek(new Date());
+        } else if (gameId == GameTypeEnum.food.getValue()) {
+            key = RedisKeyConstant.GAME_RANK_FOOD + DateUtil.getFirstDayOfWeek(new Date());
         } else if (gameId == GameTypeEnum.ns.getValue()) {
-            key=RedisKeyConstant.GAME_RANK_NS+DateUtil.getFirstDayOfWeek(new Date());
-        } else if (gameId==GameTypeEnum.nh.getValue()) {
-            key=RedisKeyConstant.GAME_RANK_NH+DateUtil.getFirstDayOfWeek(new Date());
+            key = RedisKeyConstant.GAME_RANK_NS + DateUtil.getFirstDayOfWeek(new Date());
+        } else if (gameId == GameTypeEnum.nh.getValue()) {
+            key = RedisKeyConstant.GAME_RANK_NH + DateUtil.getFirstDayOfWeek(new Date());
         }
         return key;
     }
 
-    public String getLastWeekRankKey(int gameId){
+    public String getLastWeekRankKey(int gameId) {
         String key = null;
-        if (gameId== GameTypeEnum.battleRoyale.getValue()||gameId==GameTypeEnum.dts2.getValue()){
-            key = RedisKeyConstant.GAME_RANK_DTS+ DateUtil.getFirstDayOfLastWeek();
-        } else if (gameId==GameTypeEnum.food.getValue()) {
-            key=RedisKeyConstant.GAME_RANK_FOOD+DateUtil.getFirstDayOfLastWeek();
+        if (gameId == GameTypeEnum.battleRoyale.getValue() || gameId == GameTypeEnum.dts2.getValue()) {
+            key = RedisKeyConstant.GAME_RANK_DTS + DateUtil.getFirstDayOfLastWeek();
+        } else if (gameId == GameTypeEnum.food.getValue()) {
+            key = RedisKeyConstant.GAME_RANK_FOOD + DateUtil.getFirstDayOfLastWeek();
         } else if (gameId == GameTypeEnum.ns.getValue()) {
-            key=RedisKeyConstant.GAME_RANK_NS+DateUtil.getFirstDayOfLastWeek();
-        } else if (gameId==GameTypeEnum.nh.getValue()) {
-            key=RedisKeyConstant.GAME_RANK_NH+DateUtil.getFirstDayOfLastWeek();
+            key = RedisKeyConstant.GAME_RANK_NS + DateUtil.getFirstDayOfLastWeek();
+        } else if (gameId == GameTypeEnum.nh.getValue()) {
+            key = RedisKeyConstant.GAME_RANK_NH + DateUtil.getFirstDayOfLastWeek();
         }
         return key;
     }
 
-    public Map<String,Double> getLastWeekTopList(int gameId,int count){
+    public Map<String, Double> getLastWeekTopList(int gameId, int count) {
         String key = getLastWeekRankKey(gameId);
         Set<ZSetOperations.TypedTuple<String>> zset = getZset(key, count);
-        Map<String,Double> map = new HashMap<>();
+        Map<String, Double> map = new HashMap<>();
         for (ZSetOperations.TypedTuple<String> s : zset) {
             Double score = s.getScore();
             map.put(s.getValue(), score);
@@ -122,10 +127,10 @@ public class GameCacheService extends RedisService {
     }
 
 
-    public Map<String,Double> getThisWeekTopList(int gameId,int count){
+    public Map<String, Double> getThisWeekTopList(int gameId, int count) {
         String key = getRankKey(gameId);
         Set<ZSetOperations.TypedTuple<String>> zset = getZset(key, count);
-        Map<String,Double> map = new HashMap<>();
+        Map<String, Double> map = new HashMap<>();
         for (ZSetOperations.TypedTuple<String> s : zset) {
             Double score = s.getScore();
             map.put(s.getValue(), score);
@@ -133,126 +138,130 @@ public class GameCacheService extends RedisService {
         return map;
     }
 
-    public Map<String,Double> getKillThisDayTopList(int count){
-        String key = RedisKeyConstant.KILL_RANK+DateUtil.format2(new Date()) ;
+    public Map<String, Double> getKillThisDayTopList(int count) {
+        String key = RedisKeyConstant.KILL_RANK + DateUtil.format2(new Date());
         Set<ZSetOperations.TypedTuple<String>> zset = getZset(key, count);
-        Map<String,Double> map = new HashMap<>();
+        Map<String, Double> map = new HashMap<>();
         for (ZSetOperations.TypedTuple<String> s : zset) {
             Double score = s.getScore();
-            map.put(s.getValue(), score);;
+            map.put(s.getValue(), score);
+            ;
         }
         return map;
     }
 
-    public List<JSONObject> getLastWeekList(){
-        String key = RedisKeyConstant.GAME_LAST_WEEK_TOP_LIST+DateUtil.getFirstDayOfWeek(new Date());
-        List<JSONObject> array = getList(key,JSONObject.class);
-        if (array==null || array.size()==0){
+    public List<JSONObject> getLastWeekList() {
+        String key = RedisKeyConstant.GAME_LAST_WEEK_TOP_LIST + DateUtil.getFirstDayOfWeek(new Date());
+        List<JSONObject> array = getList(key, JSONObject.class);
+        if (array == null || array.size() == 0) {
             Map<String, Double> lastWeekTopList = getLastWeekTopList(GameTypeEnum.dts2.getValue(), 10);
             Set<String> ids = lastWeekTopList.keySet();
-            array =new ArrayList<>();
+            array = new ArrayList<>();
             for (String id : ids) {
                 User userInfoById = userCacheService.getUserInfoById(id);
                 JSONObject info = new JSONObject();
-                info.put("userHeadImg",userInfoById.getHeadImageUrl());
-                info.put("userId",id);
-                info.put("userName",userInfoById.getName());
-                info.put("userNo",userInfoById.getUserNo());
-                info.put("score",lastWeekTopList.get(id));
+                info.put("userHeadImg", userInfoById.getHeadImageUrl());
+                info.put("userId", id);
+                info.put("userName", userInfoById.getName());
+                info.put("userNo", userInfoById.getUserNo());
+                info.put("score", lastWeekTopList.get(id));
                 array.add(info);
             }
-            set(key,array,86400*10);
+            set(key, array, 86400 * 10);
         }
-        return  array;
+        return array;
     }
 
-
-    public List<JSONObject> getTopList(String pointKey,String rankKey){
-
-        List<JSONObject> list = getList(rankKey,JSONObject.class);
-        if (list==null || list.size()==0){
-            Map<String, Double> thisTopList = getThisTopList(pointKey, 10);
+    public List<JSONObject> getTopList(String pointKey, String rankKey) {
+        List<JSONObject> list = getList(rankKey, JSONObject.class);
+        if (list == null || list.size() == 0) {
+            Map<String, Double> thisTopList = getActiveThisTopList(pointKey, 3);
             Set<String> ids = thisTopList.keySet();
-            String orderNo = OrderUtil.getOrder5Number();
-            list =new ArrayList<>();
+            list = new ArrayList<>();
+            double allScore = 0.0;
             for (String id : ids) {
                 Double score = thisTopList.get(id);
-                if(score>3){
-                    Long rank = getTopRank(id);
-                    User userInfoById = userCacheService.getUserInfoById(id);
-                    JSONObject info = new JSONObject();
-                    info.put("userHeadImg",userInfoById.getHeadImageUrl());
-                    info.put("userId",id);
-                    info.put("userName",userInfoById.getName());
-                    info.put("userNo",userInfoById.getUserNo());
-
-                    BigDecimal rawrdsAmont;
-
-                    if(1 == rank){
-                        rawrdsAmont =  BigDecimal.valueOf(score).multiply(BigDecimal.valueOf(50)).add(BigDecimal.valueOf(10));
-                    }else if(2 == rank){
-                        rawrdsAmont =  BigDecimal.valueOf(score).multiply(BigDecimal.valueOf(50)).add(BigDecimal.valueOf(5));
-                    }else{
-                        rawrdsAmont =  BigDecimal.valueOf(score).multiply(BigDecimal.valueOf(50));
-                    }
-
-                    info.put("score",score);
-                    info.put("rawrdsAmont",rawrdsAmont);
-                    cashRecordService.addCashOrder(userInfoById.getOpenId(), userInfoById.getId(), userInfoById.getUserNo(), userInfoById.getName(), userInfoById.getRealName(), orderNo,rawrdsAmont,2,userInfoById.getPhone());
-                    list.add(info);
-                }
-                set(rankKey,list,60);
-            }
-
-        }
-        return list;
-    }
-
-    public List<JSONObject> getLastTopList(String pointKey,String rankKey){
-        List<JSONObject> list = getList(rankKey,JSONObject.class);
-        if (list==null || list.size()==0){
-            Map<String, Double> thisTopList = getThisTopList(pointKey, 10);
-            Set<String> ids = thisTopList.keySet();
-            String orderNo = OrderUtil.getOrder5Number();
-            list =new ArrayList<>();
-            for (String id : ids) {
-                Long rank = getLastTopRank(pointKey,id);
+                long rank = getTopRankByKey(pointKey, id) + 1;
                 User userInfoById = userCacheService.getUserInfoById(id);
                 JSONObject info = new JSONObject();
-                info.put("userHeadImg",userInfoById.getHeadImageUrl());
-                info.put("userId",id);
-                info.put("userName",userInfoById.getName());
-                info.put("userNo",userInfoById.getUserNo());
-                Double score = thisTopList.get(id);
-                BigDecimal rawrdsAmont;
-                if(score<3){
-                    info.remove(id);
-                }
-                if(rank==1){
-                    rawrdsAmont =  BigDecimal.valueOf(score).multiply(BigDecimal.valueOf(50)).add(BigDecimal.valueOf(10));
-                }else if(rank==2){
-                    rawrdsAmont =  BigDecimal.valueOf(score).multiply(BigDecimal.valueOf(50)).add(BigDecimal.valueOf(5));
-                }else{
-                    rawrdsAmont =  BigDecimal.valueOf(score).multiply(BigDecimal.valueOf(50));
-                }
-
-                info.put("score",score);
-                info.put("rawrdsAmont",rawrdsAmont);
-                cashRecordService.addCashOrder(userInfoById.getOpenId(), userInfoById.getId(), userInfoById.getUserNo(), userInfoById.getName(), userInfoById.getRealName(), orderNo,rawrdsAmont,2,userInfoById.getPhone());
+                info.put("userHeadImg", userInfoById.getHeadImageUrl());
+                info.put("userId", id);
+                info.put("userName", userInfoById.getName());
+                info.put("userNo", userInfoById.getUserNo());
+                info.put("score", score);
+                info.put("rank",rank);
                 list.add(info);
+                allScore += score;
             }
-            set(rankKey,list,86400*10);
+            //通过判断奖励规则 来计算金额
+            if (getActivity().getMoneyRule()==1){
+                //1积分多少钱
+                for (JSONObject jsonObject : list) {
+                    Double score = jsonObject.getDouble("score");
+                    long rank = jsonObject.getLong("rank");
+                    BigDecimal amount = BigDecimal.valueOf(score).multiply(getActivity().getOnePointMoney());
+                    BigDecimal rewardAmount  = getMoney(rank, amount);
+                    jsonObject.put("rewardAmount", rewardAmount);
+                }
+            } else if (getActivity().getMoneyRule()==2) {
+                //总共多少钱 大家平分
+                for (JSONObject jsonObject : list) {
+                    BigDecimal allMoney = getActivity().getAllMoney();
+                    Double score = jsonObject.getDouble("score");
+                    BigDecimal myMoney =  allMoney.multiply(BigDecimal.valueOf(score/allScore));
+                    jsonObject.put("rewardAmount", myMoney);
+                }
+            }
+            set(rankKey, list, 60);
         }
         return list;
     }
 
-    private Long getLastTopRank(String key,String id) {
-        return getZsetRank(id,key);
+    public BigDecimal getRankMoney(Long userId,Double score, Long rank,List<JSONObject> list) {
+        if (getActivity().getMoneyRule()==1){
+            BigDecimal amount = BigDecimal.valueOf(score).multiply(getActivity().getOnePointMoney());
+            return getMoney(rank, amount);
+        }else {
+            Double allScore = 0.0;
+            Double myScore = 0.0;
+            for (JSONObject jsonObject : list) {
+                allScore+=jsonObject.getDouble("score");
+                if (jsonObject.getString("userId").equals(userId.toString())){
+                    myScore = jsonObject.getDouble("score");
+                }
+            }
+            return getActivity().getAllMoney().multiply(BigDecimal.valueOf(myScore/allScore));
+        }
+
+    }
+
+    public List<JSONObject> getLastTopList( ) {
+        String rankKey =  RedisKeyConstant.POINT_RANK_LIST_LAST;;
+        return (List<JSONObject>) getList(rankKey, JSONObject.class);
+    }
+
+    public BigDecimal getMoney(long rank, BigDecimal amount) {
+        if (1 == rank) {
+            amount = amount.add(BigDecimal.valueOf(1000));
+        } else if (2 == rank) {
+            amount = amount.add(BigDecimal.valueOf(500));
+        } else if (3 == rank) {
+            amount = amount.add(BigDecimal.valueOf(300));
+        } else if (4 == rank) {
+            amount = amount.add(BigDecimal.valueOf(200));
+        } else if (6 == rank) {
+            amount = amount.add(BigDecimal.valueOf(100));
+        }
+        return amount;
+    }
+
+    private Long getLastTopRank(String key, String id) {
+        return getZsetRank(id, key);
     }
 
     private Map<String, Double> getThisTopList(String key, int count) {
         Set<ZSetOperations.TypedTuple<String>> zset = getZset(key, count);
-        Map<String,Double> map = new HashMap<>();
+        Map<String, Double> map = new HashMap<>();
         for (ZSetOperations.TypedTuple<String> s : zset) {
             Double score = s.getScore();
             map.put(s.getValue(), score);
@@ -260,90 +269,117 @@ public class GameCacheService extends RedisService {
         return map;
     }
 
-    public List<JSONObject> getThisWeekList(){
-        String key  = RedisKeyConstant.GAME_RANK_LIST;
-        List<JSONObject> list = getList(key,JSONObject.class);
-        if (list==null || list.size()==0){
+    private Map<String, Double> getActiveThisTopList(String key, double minScore) {
+        Set<ZSetOperations.TypedTuple<String>> zset = getZset(key, minScore);
+        Map<String, Double> map = new HashMap<>();
+        for (ZSetOperations.TypedTuple<String> s : zset) {
+            Double score = s.getScore();
+            map.put(s.getValue(), score);
+        }
+        return map;
+    }
+
+    public List<JSONObject> getThisWeekList() {
+        String key = RedisKeyConstant.GAME_RANK_LIST;
+        List<JSONObject> list = getList(key, JSONObject.class);
+        if (list == null || list.size() == 0) {
             Map<String, Double> lastWeekTopList = getThisWeekTopList(GameTypeEnum.dts2.getValue(), 10);
             Set<String> ids = lastWeekTopList.keySet();
-            list =new ArrayList<>();
+            list = new ArrayList<>();
             for (String id : ids) {
                 User userInfoById = userCacheService.getUserInfoById(id);
                 JSONObject info = new JSONObject();
-                info.put("userHeadImg",userInfoById.getHeadImageUrl());
-                info.put("userId",id);
-                info.put("userName",userInfoById.getName());
-                info.put("userNo",userInfoById.getUserNo());
-                info.put("score",lastWeekTopList.get(id));
+                info.put("userHeadImg", userInfoById.getHeadImageUrl());
+                info.put("userId", id);
+                info.put("userName", userInfoById.getName());
+                info.put("userNo", userInfoById.getUserNo());
+                info.put("score", lastWeekTopList.get(id));
                 list.add(info);
             }
-            set(key,list,60);
+            set(key, list, 60);
         }
         return list;
     }
 
-    public List<JSONObject> getKillThisDayList(){
-        String key  = RedisKeyConstant.KILL_RANK_LIST;
-        List<JSONObject> list = getList(key,JSONObject.class);
-        if (list==null || list.size()==0){
-            Map<String, Double> lastWeekTopList = getKillThisDayTopList( 50);
+    public List<JSONObject> getKillThisDayList() {
+        String key = RedisKeyConstant.KILL_RANK_LIST;
+        List<JSONObject> list = getList(key, JSONObject.class);
+        if (list == null || list.size() == 0) {
+            Map<String, Double> lastWeekTopList = getKillThisDayTopList(50);
             Set<String> ids = lastWeekTopList.keySet();
-            list =new ArrayList<>();
+            list = new ArrayList<>();
             for (String id : ids) {
                 User userInfoById = userCacheService.getUserInfoById(id);
                 JSONObject info = new JSONObject();
-                info.put("userHeadImg",userInfoById.getHeadImageUrl());
-                info.put("userId",id);
-                info.put("userName",userInfoById.getName());
-                info.put("userNo",userInfoById.getUserNo());
-                info.put("score",lastWeekTopList.get(id));
+                info.put("userHeadImg", userInfoById.getHeadImageUrl());
+                info.put("userId", id);
+                info.put("userName", userInfoById.getName());
+                info.put("userNo", userInfoById.getUserNo());
+                info.put("score", lastWeekTopList.get(id));
                 list.add(info);
             }
-            set(key,list,60*10);
+            set(key, list, 60 * 10);
         }
         return list;
     }
 
-    public Long getThisWeekUserRank(String userId){
-        return getZsetRank(userId,RedisKeyConstant.GAME_RANK_DTS+ DateUtil.getFirstDayOfWeek(new Date()));
-    }
-    public Long getTopRank(String userId){
-        return getZsetRank(userId,RedisKeyConstant.APP_TOP_lIST+  DateUtil.format2(new Date()));
+    public Long getThisWeekUserRank(String userId) {
+        return getZsetRank(userId, RedisKeyConstant.GAME_RANK_DTS + DateUtil.getFirstDayOfWeek(new Date()));
     }
 
-    public Long getLastWeekUserRank(String userId){
-        return getZsetRank(userId,RedisKeyConstant.POINT_RANK_LIST+DateUtil.getFirstDayOfLastWeek());
+    public Long getTopRank(String userId) {
+        return getZsetRank(userId, RedisKeyConstant.APP_TOP_lIST + DateUtil.format2(new Date()));
+    }
+
+    public Long getTopRankByKey(String key, String userId) {
+        return getZsetRank(userId, key);
+    }
+
+    public Long getLastWeekUserRank(String userId) {
+        return getZsetRank(userId, RedisKeyConstant.POINT_RANK_LIST + DateUtil.getFirstDayOfLastWeek());
     }
 
     public Long getUserTopList(String key, Long userId) {
-        return getZsetRank(RedisKeyConstant.GAME_RANK_DTS+ DateUtil.getFirstDayOfWeek(new Date()),String.valueOf(userId));
+        return getZsetRank(RedisKeyConstant.GAME_RANK_DTS + DateUtil.getFirstDayOfWeek(new Date()), String.valueOf(userId));
     }
 
-    public Double getUserTopScore( String userId) {
-        String key = RedisKeyConstant.APP_TOP_lIST+ DateUtil.format2(new Date());
-      return getZsetScore(key,userId);
-    }
-    public Double getLastUserTopScore( String userId,String key ) {
-      return getZsetScore(key,userId);
+    public Double getUserTopScore(String userId) {
+        String key = RedisKeyConstant.APP_TOP_lIST + DateUtil.format2(new Date());
+        return getZsetScore(key, userId);
     }
 
-    public void addPoint(String key, User user) {
+
+    public Double getLastUserTopScore(String userId, String key) {
+        return getZsetScore(key, userId);
+    }
+
+    public Activity getActivity() {
+        if (activity == null || activity.getEndTime().getTime() < System.currentTimeMillis()) {
+            activity = activityService.findActivityByTime();
+        }
+        return activity;
+    }
+
+    public void addPoint(Long userId) {
+        User user = userCacheService.getUserInfoById(userId);
+        getActivity();
+        String key = RedisKeyConstant.APP_TOP_lIST + activity.getId();
         //存之前要先判断父级id的积分是否大于10 大于10 加1.05分 如果大于20.5的话加1.1分
         //存放zset格式为了得出排名
-        if(user.getParentId()!=null){
+        if (user.getParentId() != null) {
             Double oldPoint = getZsetScore(key, String.valueOf(user.getParentId()));
             Double point = 0.0;
-            if (oldPoint==null){
-                oldPoint=0.0;
+            if (oldPoint == null) {
+                oldPoint = 0.0;
             }
-            if( oldPoint<10){
-                point = oldPoint+1;
-            }else if(oldPoint>= 10 && oldPoint<30.05){
-                point = oldPoint+1.05;
-            }else if( oldPoint>30 ){
-                point = oldPoint+1.1;
+            if (oldPoint < 10) {
+                point = oldPoint + 1;
+            } else if (oldPoint >= 10 && oldPoint < 30.05) {
+                point = oldPoint + 1.05;
+            } else if (oldPoint > 30) {
+                point = oldPoint + 1.1;
             }
-            addForZset(key,String.valueOf(user.getParentId()), point);
+            addForZset(key, String.valueOf(user.getParentId()), point);
         }
 
     }

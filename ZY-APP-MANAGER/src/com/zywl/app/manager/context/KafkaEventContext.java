@@ -7,6 +7,8 @@ public class KafkaEventContext {
 
     public static final String MAIL = "501";
 
+    public static final String SEND_MAIL = "SEND_MAIL";
+
     public static final String SYS_MAIL = "SYS_MAIL";
 
     public static final String READ_MAIL = "READ_MAIL";

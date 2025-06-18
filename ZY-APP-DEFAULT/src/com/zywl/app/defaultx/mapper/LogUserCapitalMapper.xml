@@ -116,7 +116,7 @@
 	</select>
 
 	<select id="findByDz" resultType="LogUserCapital">
-		select * from `kapai-log`.${tableName} where  user_id=#{userId}
+		select * from `tsg-log`.${tableName} where  user_id=#{userId}
 	</select>
 
 	<select id="findUserCapitalByUserId" resultType="LogUserCapital">
@@ -170,14 +170,14 @@
 	</select>
 
 	<select id="dbCountByConditions" resultType="Long">
-		select count(1) from `kapai-log`.${tableName}
+		select count(1) from `tsg-log`.${tableName}
 		<where>
 			<include refid="conditions"></include>
 		</where>
 	</select>
 
 	<select id="dbFindByConditions" resultType="LogUserCapital">
-		select * from `kapai-log`.${tableName}
+		select * from `tsg-log`.${tableName}
 		<where>
 			<include refid="conditions"></include>
 		</where>
@@ -190,7 +190,7 @@
 
 
 	<select id="findSellLqg" resultType="LogUserCapital">
-		select * from `kapai-log`.${tableName} where user_id=#{userId} and  log_type=41
+		select * from `tsg-log`.${tableName} where user_id=#{userId} and  log_type=41
 	</select>
 
 

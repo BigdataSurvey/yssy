@@ -754,8 +754,7 @@ public class ManagerGameBaseService extends BaseService {
             throwExp("异常请求");
         }
         DicShop dicShop = PlayGameService.DIC_SHOP_MAP.get(type).get(id);
-        int price = dicShop.getPrice() * number;
-        BigDecimal amount = new BigDecimal(String.valueOf(price));
+        BigDecimal amount = dicShop.getPrice().multiply(BigDecimal.valueOf(number));
         if (dicShop.getUseItemId() == 1 || dicShop.getUseItemId() == 2 || dicShop.getUseItemId() == 3) {
             UserCapital userCapital = userCapitalCacheService.getUserCapitalCacheByType(userId, dicShop.getUseItemId().intValue());
             if (userCapital.getBalance().compareTo(amount) < 0) {
@@ -767,10 +766,10 @@ public class ManagerGameBaseService extends BaseService {
             }
         } else {
             int userItemNumber = gameService.getUserItemNumber(userId, dicShop.getUseItemId().toString());
-            if (userItemNumber < price) {
+            if (userItemNumber < number) {
                 throwExp(PlayGameService.itemMap.get(dicShop.getUseItemId().toString()).getName() + "不足");
             } else {
-                gameService.updateUserBackpack(userId, dicShop.getUseItemId().toString(), -price, LogUserBackpackTypeEnum.use);
+                gameService.updateUserBackpack(userId, dicShop.getUseItemId().toString(), -number, LogUserBackpackTypeEnum.use);
             }
         }
         JSONObject result = new JSONObject();
@@ -814,10 +813,10 @@ public class ManagerGameBaseService extends BaseService {
         JSONArray array = new JSONArray();
         result.put("type",1);
         result.put("id",2);
-        result.put("number",100);
+        result.put("number",BigDecimal.valueOf(100L*number));
         itemResult.put("type",1);
         itemResult.put("id",getItemId);
-        itemResult.put("number",2);
+        itemResult.put("number",number);
         array.add(result);
         array.add(itemResult);
         return array;

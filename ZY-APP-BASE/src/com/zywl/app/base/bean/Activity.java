@@ -2,6 +2,7 @@ package com.zywl.app.base.bean;
 
 import com.zywl.app.base.BaseBean;
 
+import java.math.BigDecimal;
 import java.util.Date;
 
 public class Activity extends BaseBean {
@@ -15,10 +16,16 @@ public class Activity extends BaseBean {
      * 活动规则
      */
     private String activityInfo;
-    /**
-     * 活动周期
-     */
-    private long cycle;
+
+    private String rule;
+
+    private int moneyRule;
+
+    private BigDecimal allMoney;
+
+    private int addPointEvent;
+
+    private BigDecimal onePointMoney;
     /**
      * 活动开始时间
      */
@@ -62,13 +69,6 @@ public class Activity extends BaseBean {
         this.activityInfo = activityInfo;
     }
 
-    public long getCycle() {
-        return cycle;
-    }
-
-    public void setCycle(long cycle) {
-        this.cycle = cycle;
-    }
 
     public Date getBeginTime() {
         return beginTime;
@@ -89,12 +89,51 @@ public class Activity extends BaseBean {
     public Activity() {
     }
 
-    public Activity(long id, String activityName, String activityInfo, long cycle, Date beginTime, Date endTime) {
+    public Activity(long id, String activityName, String activityInfo,  Date beginTime, Date endTime) {
         this.id = id;
         this.activityName = activityName;
         this.activityInfo = activityInfo;
-        this.cycle = cycle;
         this.beginTime = beginTime;
         this.endTime = endTime;
+    }
+
+    public String getRule() {
+        return rule;
+    }
+
+    public void setRule(String rule) {
+        this.rule = rule;
+    }
+
+    public int getMoneyRule() {
+        return moneyRule;
+    }
+
+    public void setMoneyRule(int moneyRule) {
+        this.moneyRule = moneyRule;
+    }
+
+    public BigDecimal getAllMoney() {
+        return allMoney;
+    }
+
+    public void setAllMoney(BigDecimal allMoney) {
+        this.allMoney = allMoney;
+    }
+
+    public int getAddPointEvent() {
+        return addPointEvent;
+    }
+
+    public void setAddPointEvent(int addPointEvent) {
+        this.addPointEvent = addPointEvent;
+    }
+
+    public BigDecimal getOnePointMoney() {
+        return onePointMoney;
+    }
+
+    public void setOnePointMoney(BigDecimal onePointMoney) {
+        this.onePointMoney = onePointMoney;
     }
 }

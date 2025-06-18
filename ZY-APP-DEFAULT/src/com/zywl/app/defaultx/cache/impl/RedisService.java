@@ -890,6 +890,12 @@ public class RedisService extends BaseService {
         return set;
     }
 
+    public  Set<ZSetOperations.TypedTuple<String>> getZset(String key, double minScore){
+        // Set<String> userIds = redisTemplate.opsForZSet().reverseRangeByScore(key, 0.0, Double.MAX_VALUE, 0, limit);
+        Set set = redisTemplate.opsForZSet().reverseRangeByScoreWithScores(key, minScore, Double.MAX_VALUE, 0, 9999);
+        return set;
+    }
+
     public void removeZsetKey(String key,String... var){
         redisTemplate.opsForZSet().remove(key,var);
     }

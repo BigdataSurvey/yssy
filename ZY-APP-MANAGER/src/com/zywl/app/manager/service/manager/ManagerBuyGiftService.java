@@ -1,32 +1,23 @@
 package com.zywl.app.manager.service.manager;
 
-import cn.hutool.core.date.DateTime;
 import com.alibaba.fastjson2.JSONObject;
-import com.ijpay.core.utils.DateTimeZoneUtil;
+import com.zywl.app.base.bean.Activity;
 import com.zywl.app.base.bean.Config;
-import com.zywl.app.base.bean.UserCapital;
+import com.zywl.app.base.bean.User;
 import com.zywl.app.base.service.BaseService;
-import com.zywl.app.base.util.HTTPUtil;
-import com.zywl.app.base.util.MD5Util;
 import com.zywl.app.base.util.OrderUtil;
 import com.zywl.app.defaultx.annotation.ServiceClass;
 import com.zywl.app.defaultx.annotation.ServiceMethod;
-import com.zywl.app.defaultx.cache.UserCapitalCacheService;
+import com.zywl.app.defaultx.cache.GameCacheService;
+import com.zywl.app.defaultx.enmus.ActivityAddPointEventEnum;
 import com.zywl.app.defaultx.enmus.UserCapitalTypeEnum;
-import com.zywl.app.defaultx.service.TsgPayOrderService;
-import com.zywl.app.defaultx.service.UserCapitalService;
-import com.zywl.app.defaultx.service.UserGiftRecordService;
-import com.zywl.app.defaultx.service.UserGiftService;
+import com.zywl.app.defaultx.service.*;
 import com.zywl.app.manager.context.MessageCodeContext;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.TreeMap;
 
 @Service
 @ServiceClass(code = MessageCodeContext.USER_GIFT_SERVER)
@@ -49,11 +40,13 @@ public class ManagerBuyGiftService extends BaseService {
     @Autowired
     private ManagerUserVipService managerUserVipService;
 
-    public static final String VERSION = "v1.0";
-    public static final String TYPE = "10005";
-    public static final String USER_ID = "88162050";
+    @Autowired
+    private ActivityService activityService;
 
-    public static final String SECRET = "e7a15a9d4e6946bb97edf329035297d1";
+    @Autowired
+    private GameCacheService gameCacheService;
+
+
 
     public BigDecimal getGiftPriceById(int giftType) {
         if (giftType == 1) {
@@ -89,7 +82,12 @@ public class ManagerBuyGiftService extends BaseService {
         userGiftService.addUserGiftNumber(userId, giftType);
         //推送用户余额变化
         managerGameBaseService.pushCapitalUpdate(userId, UserCapitalTypeEnum.currency_2.getValue());
-
+        Activity activity = gameCacheService.getActivity();
+        if (activity.getAddPointEvent()== ActivityAddPointEventEnum.GAME_MONEY_BUY_GIFT.getValue()){
+            //已经激活大礼包的用户 给他上级加积分并存入redis
+            //用户父id的积分
+            gameCacheService.addPoint(userId);
+        }
         return new JSONObject();
     }
 

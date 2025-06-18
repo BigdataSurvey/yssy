@@ -39,15 +39,11 @@ public class ManagerMailService extends BaseService {
     @Autowired
     private UserMailService userMailService;
 
-    @Autowired
-    private UserCapitalService userCapitalService;
 
 
     @Autowired
     private UserCacheService userCacheService;
 
-    @Autowired
-    private UserCapitalCacheService userCapitalCacheService;
 
     @Autowired
     private AppConfigCacheService appConfigCacheService;
@@ -55,24 +51,7 @@ public class ManagerMailService extends BaseService {
     @Autowired
     private PlayGameService gameService;
 
-    @Autowired
-    private ManagerConfigService managerConfigService;
 
-    @Autowired
-    private ManagerGameBaseService managerGameBaseService;
-
-    @Autowired
-    private ManagerSocketService managerSocketService;
-
-    @Autowired
-    private ConfigService configService;
-
-
-    @Autowired
-    private GuildMemberService guildMemberService;
-
-    @Autowired
-    private GuildDailyStaticsService guildDailyStaticsService;
     @Autowired
     private UserVipService userVipService;
 
@@ -172,6 +151,7 @@ public class ManagerMailService extends BaseService {
 
     @Transactional
     @ServiceMethod(code = "200", description = "玩家发送邮件（转赠功能）")
+    @KafkaProducer(topic = KafkaTopicContext.RED_POINT,event = KafkaEventContext.SEND_MAIL,sendParams = true)
     public JSONObject sendMail(ManagerSocketServer adminSocketServer, JSONObject data) {
         checkNull(data);
         checkNull(data.get("toUserId"), data.get("userId"));

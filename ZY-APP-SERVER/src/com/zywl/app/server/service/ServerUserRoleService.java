@@ -19,6 +19,7 @@ import com.zywl.app.defaultx.annotation.ServiceMethod;
 import com.zywl.app.defaultx.cache.GameCacheService;
 import com.zywl.app.defaultx.cache.UserCacheService;
 import com.zywl.app.defaultx.cache.impl.RedisService;
+import com.zywl.app.defaultx.enmus.ActivityAddPointEventEnum;
 import com.zywl.app.defaultx.service.*;
 import com.zywl.app.server.context.MessageCodeContext;
 import com.zywl.app.server.huifu.HfScanPay;
@@ -242,7 +243,7 @@ public class ServerUserRoleService extends BaseService {
         String userNo = params.getString("userNo");
         Long myId = appSocket.getWsidBean().getUserId();
         int type = params.getIntValue("type");
-        String key = RedisKeyConstant.APP_TOP_lIST + DateUtil.format2(new Date());
+
         String lastKey = RedisKeyConstant.APP_TOP_lIST +"lastActivity";
         if (type != 1 && type != 2) {
             throwExp("非法请求");
@@ -262,11 +263,12 @@ public class ServerUserRoleService extends BaseService {
             useBigGift(user.getId());
             JSONObject info = new JSONObject();
             info.put("userId", user.getId());
-            //已经激活大礼包的用户 给他上级加积分并存入redis
-            //用户父id的积分
-            gameCacheService.addPoint(key, user);
-            //存放本期订单等待活动结束作为上期榜单列表。
-            gameCacheService.addPoint(lastKey, user);
+            Activity activity = gameCacheService.getActivity();
+            if (activity.getAddPointEvent()== ActivityAddPointEventEnum.RMB_BUY_GIFT.getValue()){
+                //已经激活大礼包的用户 给他上级加积分并存入redis
+                //用户父id的积分
+                gameCacheService.addPoint(user.getId());
+            }
         }
         if (user.getVip2() == 0) {
             user.setVip2(1);

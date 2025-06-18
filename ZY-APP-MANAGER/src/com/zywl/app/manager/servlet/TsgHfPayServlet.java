@@ -46,7 +46,7 @@ public class TsgHfPayServlet extends BaseServlet {
             String respData =request.getParameter("resp_data");
             JSONObject data = JSON.parseObject(respData);
             String orderNo = data.getString("req_seq_id");
-            updatePayOrder(3, "requestNo");
+            updatePayOrder(3, orderNo);
         }
         return "ok";
     }
