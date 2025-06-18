@@ -236,7 +236,7 @@ public class GameCacheService extends RedisService {
     }
 
     public List<JSONObject> getLastTopList( ) {
-        String rankKey =  RedisKeyConstant.POINT_RANK_LIST_LAST;;
+        String rankKey =  RedisKeyConstant.POINT_RANK_LIST_LAST;
         return (List<JSONObject>) getList(rankKey, JSONObject.class);
     }
 
