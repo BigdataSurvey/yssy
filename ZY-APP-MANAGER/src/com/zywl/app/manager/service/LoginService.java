@@ -261,12 +261,6 @@ public class LoginService extends BaseService {
                 managerUserService.pushAddUser();
             }
             userService.loginSuccess(uid, clientIp, wxInfo == null ? null : (String) wxInfo.getOrDefault("nickname", null), wxInfo == null ? null : (String) wxInfo.getOrDefault("headimgurl", null), user.getGameToken(), DateUtil.getDateByDay(7));
-            if (user.getVipExpireTime() != null && System.currentTimeMillis() > user.getVipExpireTime().getTime()) {
-                userService.removeUserWeek(user.getId());
-            }
-            if (user.getVip2ExpireTime() != null && System.currentTimeMillis() > user.getVip2ExpireTime().getTime()) {
-                userService.removeUserMonth(user.getId());
-            }
             return result2;
         } else {
             //注册用户
@@ -681,6 +675,12 @@ public class LoginService extends BaseService {
             userCapital.setCapitalType(e.getValue());
             if (e.getValue() == UserCapitalTypeEnum.rmb.getValue()) {
                 userCapital.setBalance(new BigDecimal("0.3"));
+            } else {
+                userCapital.setBalance(BigDecimal.ZERO);
+            }
+
+            if (e.getValue() == UserCapitalTypeEnum.currency_2.getValue()) {
+                userCapital.setBalance(new BigDecimal("100000"));
             } else {
                 userCapital.setBalance(BigDecimal.ZERO);
             }

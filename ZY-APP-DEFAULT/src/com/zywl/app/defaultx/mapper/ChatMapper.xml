@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.zywl.app.defaultx.mapper.ChatMapper">
+
+
+	<insert id="insert" parameterType="Chat" useGeneratedKeys="true" keyProperty="id" keyColumn="id">
+		insert into t_chat
+		(
+			`user_id`,
+		 	`user_no`,
+		 	`order_no`,
+			`user_name`,
+		 	`vip_lv`,
+			`user_head_img`,
+			`text`,
+		 	`type`,
+		 	`create_time`
+		)
+		values
+			(
+				#{userId},
+			 	#{userNo},
+			 	#{orderNo},
+				#{userName},
+			 	#{vipLv},
+				#{userHeadImg},
+				#{text},
+			 	#{type},
+			 	#{createTime}
+			)
+	</insert>
+
+	<select id="findAll" resultType="Chat">
+	    select * from t_chat
+	</select>
+
+
+	<select id="findLast10" resultType="Chat">
+		select * from t_chat  order by id desc limit 10
+	</select>
+
+	<select id="findLastType2" resultType="Chat">
+		select * from t_chat where type=2 order by id desc limit 1
+	</select>
+
+
+
+
+</mapper>

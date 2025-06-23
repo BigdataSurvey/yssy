@@ -371,10 +371,10 @@ public class UserCapitalService extends DaoService {
     }
     @Transactional
     public int subUserOccupyBalanceByLotteryBet(Long userId, BigDecimal amount) {
-        int a = subUserBalance2(amount, userId, UserCapitalTypeEnum.currency_2.getValue());
+        int a = subUserBalance2(amount, userId, UserCapitalTypeEnum.yyb.getValue());
         // 清理缓存
         if (a < 1) {
-            throwExp(UserCapitalTypeEnum.currency_2.getName()+"不足");
+            throwExp(UserCapitalTypeEnum.yyb.getName()+"不足");
         }
         return a;
     }
@@ -514,17 +514,17 @@ public class UserCapitalService extends DaoService {
     }
     @Transactional
     public int addUserBalanceByDtsRank(Long userId, BigDecimal amount) {
-        int a = addUserBalance2(amount, userId, UserCapitalTypeEnum.currency_2.getValue());
+        int a = addUserBalance2(amount, userId, UserCapitalTypeEnum.yyb.getValue());
         return a;
     }
 
 
     @Transactional
     public int subUserOccupyBalanceByDtsBet(Long userId, BigDecimal amount) {
-        int a = subUserBalance2(amount, userId, UserCapitalTypeEnum.currency_2.getValue());
+        int a = subUserBalance2(amount, userId, UserCapitalTypeEnum.yyb.getValue());
         // 清理缓存
         if (a < 1) {
-            throwExp(UserCapitalTypeEnum.currency_2.getName()+"不足");
+            throwExp(UserCapitalTypeEnum.yyb.getName()+"不足");
         }
         return a;
     }
@@ -608,6 +608,20 @@ public class UserCapitalService extends DaoService {
             int b = subUserBalance(amount, userId, UserCapitalTypeEnum.currency_2.getValue(), userCapital.getBalance(), userCapital.getOccupyBalance(), orderNo, sourceDataId, LogCapitalTypeEnum.game_cards_win, TableNameConstant.GAME_CARDS);
             if (b < 1) {
                 throwExp("参与失败");
+            }
+        }
+    }
+
+    @Transactional
+    public void subUserBalanceByChat(Long userId, BigDecimal amount, String orderNo, Long sourceDataId) {
+        UserCapital userCapital = userCapitalCacheService.getUserCapitalCacheByType(userId, UserCapitalTypeEnum.currency_2.getValue());
+        int a = subUserBalance(amount, userId, UserCapitalTypeEnum.currency_2.getValue(), userCapital.getBalance(), userCapital.getOccupyBalance(), orderNo, sourceDataId, LogCapitalTypeEnum.to_lottery, TableNameConstant.CHAT);
+        if (a < 1) {
+            userCapitalCacheService.deltedUserCapitalCache(userId, UserCapitalTypeEnum.currency_2.getValue());
+            userCapital = userCapitalCacheService.getUserCapitalCacheByType(userId, UserCapitalTypeEnum.currency_2.getValue());
+            int b = subUserBalance(amount, userId, UserCapitalTypeEnum.currency_2.getValue(), userCapital.getBalance(), userCapital.getOccupyBalance(), orderNo, sourceDataId, LogCapitalTypeEnum.to_lottery, TableNameConstant.CHAT);
+            if (b < 1) {
+                throwExp("发送失败");
             }
         }
     }

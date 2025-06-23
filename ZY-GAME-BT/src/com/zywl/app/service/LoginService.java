@@ -496,12 +496,6 @@ public class LoginService extends BaseService {
                 Push.push(PushCode.userLogin,null,data);
             }
             userService.loginSuccess(uid, clientIp, wxInfo==null?null:(String) wxInfo.getOrDefault("nickname", null), wxInfo==null?null:(String) wxInfo.getOrDefault("headimgurl", null),user.getGameToken(),DateUtil.getDateByDay(7));
-            if (user.getVipExpireTime()!=null && System.currentTimeMillis()>user.getVipExpireTime().getTime()){
-                userService.removeUserWeek(user.getId());
-            }
-            if (user.getVip2ExpireTime()!=null && System.currentTimeMillis()>user.getVip2ExpireTime().getTime()){
-                userService.removeUserMonth(user.getId());
-            }
             return result2;
         } else {
             //注册用户

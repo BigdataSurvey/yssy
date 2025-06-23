@@ -11,6 +11,7 @@ import com.live.app.ws.util.CommandBuilder;
 import com.live.app.ws.util.Executer;
 import com.live.app.ws.util.Push;
 import com.zywl.app.base.bean.*;
+import com.zywl.app.base.bean.vo.UserVo;
 import com.zywl.app.base.constant.RedisKeyConstant;
 import com.zywl.app.base.service.BaseService;
 import com.zywl.app.base.util.*;
@@ -32,6 +33,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import javax.annotation.PostConstruct;
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -46,6 +48,8 @@ public class ServerUserRoleService extends BaseService {
     @Autowired
     private UserCacheService userCacheService;
 
+    @Autowired
+    private UserVipService userVipService;
     @Autowired
     private UserService userService;
 
@@ -89,7 +93,7 @@ public class ServerUserRoleService extends BaseService {
         allRole.forEach(e -> DIC_ROLE.put(e.getId().toString(), e));
     }
 
-    public String getPayAddress(Long userId, Long productId, BigDecimal price, String ip) throws Exception {
+    public String getPayAddress(Long userId, Long productId, BigDecimal price, String ip, BigDecimal allPrice, int number) throws Exception {
         String merchantId = serverConfigService.getString(Config.PAY_MERCHANT_ID);
         String merReqNo = OrderUtil.getOrder5Number();
         String notifyUrl = serverConfigService.getString(Config.PAY_NOTIFY_URL);
@@ -97,14 +101,14 @@ public class ServerUserRoleService extends BaseService {
         String timeExpire = DateTimeZoneUtil.dateToTimeZone(System.currentTimeMillis() + 1000 * 60 * 3);
         DateTime dateTime = cn.hutool.core.date.DateUtil.parse(timeExpire);
         Date expireDate = new Date(dateTime.getTime());
-        tsgPayOrderService.addOrder(userId, merReqNo, productId, price, expireDate, 1);
+        tsgPayOrderService.addOrder(userId, merReqNo, productId, price, expireDate, 1, allPrice, number);
         Map<String, Object> data = new HashMap<>();
         data.put("version", VERSION);
         data.put("type", TYPE);
         data.put("userId", USER_ID);
         //data.put("buyerId", String.valueOf(userId));
         data.put("requestNo", merReqNo);
-        data.put("amount", String.valueOf(price.multiply(new BigDecimal(100)).setScale(0)));
+        data.put("amount", String.valueOf(allPrice.multiply(new BigDecimal(100)).setScale(0, RoundingMode.HALF_UP)));
         data.put("callBackURL", notifyUrl);
         data.put("redirectUrl", returnUrl);
         data.put("ip", ip);
@@ -135,16 +139,16 @@ public class ServerUserRoleService extends BaseService {
         return null;
     }
 
-    public String getHfPayAddress(Long userId, Long productId, BigDecimal price) throws Exception {
+    public String getHfPayAddress(Long userId, Long productId, BigDecimal price, BigDecimal allPrice, int number) throws Exception {
         String orderNo = OrderUtil.getOrder5Number();
         String timeExpire = DateTimeZoneUtil.dateToTimeZone(System.currentTimeMillis() + 1000 * 60 * 10);
         DateTime dateTime = cn.hutool.core.date.DateUtil.parse(timeExpire);
         Date expireDate = new Date(dateTime.getTime());
         //通道Id  1 野鸡  2汇付
-        tsgPayOrderService.addOrder(userId, orderNo, productId, price, expireDate, 2);
+        tsgPayOrderService.addOrder(userId, orderNo, productId, price, expireDate, 2, allPrice, number);
         String payUrl = null;
         try {
-            payUrl = HfScanPay.scanPay(price, serverConfigService.getString(Config.PAY_NOTIFY_HF_URL),orderNo);
+            payUrl = HfScanPay.scanPay(allPrice, serverConfigService.getString(Config.PAY_NOTIFY_HF_URL), orderNo);
         } catch (Exception e) {
             e.printStackTrace();
             throwExp("当前没有可用的支付地址，请联系客服或稍后再试");
@@ -156,7 +160,7 @@ public class ServerUserRoleService extends BaseService {
     @ServiceMethod(code = "100", description = "购买礼包")
     public Object buyByRmb(final AppSocket appSocket, Command appCommand, JSONObject params) throws Exception {
         checkNull(params);
-        checkNull(params.get("giftType"));
+        checkNull(params.get("giftType"), params.get("number"));
         Long giftType = params.getLong("giftType");
         Long userId = appSocket.getWsidBean().getUserId();
         if (userCacheService.canPay(userId.toString())) {
@@ -168,20 +172,28 @@ public class ServerUserRoleService extends BaseService {
         }
         BigDecimal price;
         if (giftType == 1L) {
-            price = serverConfigService.getBigDecimal(Config.GIFT_PRICE_1).setScale(2);
+            price = serverConfigService.getBigDecimal(Config.GIFT_PRICE_1).setScale(2, RoundingMode.HALF_UP);
         } else {
-            price = serverConfigService.getBigDecimal(Config.GIFT_PRICE_2).setScale(2);
+            price = serverConfigService.getBigDecimal(Config.GIFT_PRICE_2).setScale(2, RoundingMode.HALF_UP);
         }
+        UserVip userVipByUserId = userVipService.findUserVipByUserId(userId);
+        if (userVipByUserId.getVipLevel() == 5L) {
+            price = price.multiply(new BigDecimal("0.95")).setScale(0, RoundingMode.HALF_UP);
+        }
+        if (userVipByUserId.getVipLevel() > 5L) {
+            price = price.multiply(new BigDecimal("0.9")).setScale(0, RoundingMode.HALF_UP);
+        }
+        int number = params.getIntValue("number");
+        BigDecimal allPrice = price.multiply(BigDecimal.valueOf(number));
         pushOrder(giftType);
-
         JSONObject result = new JSONObject();
         int channel = serverConfigService.getInteger(Config.PAY_CHANNEL);
         result.put("channel", channel);
         String url = ";";
         if (channel == 1) {
-            url = getPayAddress(userId, giftType, price, appSocket.getIp());
+            url = getPayAddress(userId, giftType, price, appSocket.getIp(), allPrice, number);
         } else if (channel == 2) {
-            url = getHfPayAddress(userId, giftType, price);
+            url = getHfPayAddress(userId, giftType, price, allPrice, number);
         }
         result.put("payUrl", url);
         pushOrder(giftType);
@@ -239,18 +251,12 @@ public class ServerUserRoleService extends BaseService {
     @ServiceMethod(code = "002", description = "激活角色礼包")
     public JSONObject useGift(final AppSocket appSocket, Command appCommand, JSONObject params) {
         checkNull(params);
-        checkNull(params.get("userNo"), params.get("type"));
-        String userNo = params.getString("userNo");
+        checkNull(params.get("type"));
         Long myId = appSocket.getWsidBean().getUserId();
+        User user = userCacheService.getUserInfoById(myId);
         int type = params.getIntValue("type");
-
-        String lastKey = RedisKeyConstant.APP_TOP_lIST +"lastActivity";
         if (type != 1 && type != 2) {
             throwExp("非法请求");
-        }
-        User user = userCacheService.getUserInfoByUserNo(userNo);
-        if (user == null) {
-            throwExp("玩家不存在");
         }
         UserGift userGift = userGiftService.findUserGift(myId, type);
         if (userGift == null || userGift.getGiftNum() < 1) {
@@ -258,22 +264,33 @@ public class ServerUserRoleService extends BaseService {
         }
         userGiftService.useGift(myId, type);
         if (type == 1) {
-            useSmallGift(user.getId());
+            useSmallGift(myId);
         } else {
-            useBigGift(user.getId());
+            useBigGift(myId);
+            if (user.getVip2() == 0) {
+                user.setVip2(1);
+                userService.updateUserVip2(myId);
+                JSONObject pushDate = new JSONObject();
+                pushDate.put("userId", user.getId());
+                user = userCacheService.getUserInfoById(myId);
+                UserVo vo = new UserVo();
+                BeanUtils.copy(user, vo);
+                pushDate.put("userInfo", vo);
+                Push.push(PushCode.updateUserInfo, myId.toString(), pushDate);
+            }
             JSONObject info = new JSONObject();
-            info.put("userId", user.getId());
+            info.put("userId", myId);
             Activity activity = gameCacheService.getActivity();
-            if (activity.getAddPointEvent()== ActivityAddPointEventEnum.RMB_BUY_GIFT.getValue()){
-                //已经激活大礼包的用户 给他上级加积分并存入redis
-                //用户父id的积分
-                gameCacheService.addPoint(user.getId());
+            if (activity != null) {
+                if (activity.getAddPointEvent() == ActivityAddPointEventEnum.RMB_BUY_GIFT.getValue()) {
+                    //已经激活大礼包的用户 给他上级加积分并存入redis
+                    //用户父id的积分
+                    gameCacheService.addPoint(myId);
+                }
             }
         }
-        if (user.getVip2() == 0) {
-            user.setVip2(1);
-            userService.updateUserVip2(user.getId());
-        }
+
+
         activeGiftRecordService.addRecord(myId, user.getId(), type);
 
         return params;
@@ -346,11 +363,15 @@ public class ServerUserRoleService extends BaseService {
                 long useHp = hour * oneHourCostHp;
                 userRole.setHp((int) (userRole.getHp() - useHp));
                 JSONArray reward = new JSONArray();
-                reward.addAll(dicRole.getReward());
-                for (Object o : reward) {
+                JSONArray dicReward = dicRole.getReward();
+                for (Object o : dicReward) {
                     JSONObject info = (JSONObject) o;
+                    JSONObject jsonObject = new JSONObject();
+                    jsonObject.put("type", info.getIntValue("type"));
+                    jsonObject.put("id", info.getIntValue("id"));
                     Integer oneHourNumber = info.getInteger("number");
-                    info.put("number", oneHourNumber * hour);
+                    jsonObject.put("number", oneHourNumber * hour);
+                    reward.add(jsonObject);
                 }
                 JSONArray nowReward = JSONUtil.mergeJSONArray(userRole.getUnReceive(), reward);
                 userRole.setUnReceive(nowReward);
@@ -362,6 +383,21 @@ public class ServerUserRoleService extends BaseService {
         return roles;
     }
 
+    public static void main(String[] args) {
+        JSONArray array = new JSONArray();
+        JSONObject object = new JSONObject();
+        object.put("type", 1);
+        object.put("id", 1);
+        object.put("number", 2);
+        array.add(object);
+        JSONArray array1 = JSONArray.copyOf(array);
+        for (Object o : array1) {
+            JSONObject a = (JSONObject) o;
+            a.put("number", 10);
+        }
+        System.out.println(array1);
+        System.out.println(array);
+    }
 
     @ServiceMethod(code = "005", description = "设置角色为工作状态")
     public JSONObject working(final AppSocket appSocket, Command appCommand, JSONObject params) {
@@ -435,22 +471,59 @@ public class ServerUserRoleService extends BaseService {
     @ServiceMethod(code = "009", description = "查看购买礼包信息")
     public Object buyGiftInfo(final AppSocket appSocket, Command appCommand, JSONObject params) {
         checkNull(params);
+        Long userId = appSocket.getWsidBean().getUserId();
         JSONObject result = new JSONObject();
+        UserVip userVipByUserId = userVipService.findUserVipByUserId(userId);
+        BigDecimal rmb1 = serverConfigService.getBigDecimal(Config.GIFT_PRICE_1);
+        BigDecimal rmb2 = serverConfigService.getBigDecimal(Config.GIFT_PRICE_2);
+        if (userVipByUserId.getVipLevel() == 5L) {
+            rmb1 = rmb1.multiply(new BigDecimal("0.95")).setScale(0, RoundingMode.HALF_UP);
+            rmb2 = rmb2.multiply(new BigDecimal("0.95")).setScale(0, RoundingMode.HALF_UP);
+        }
+        if (userVipByUserId.getVipLevel() > 5L) {
+            rmb1 = rmb1.multiply(new BigDecimal("0.9")).setScale(0, RoundingMode.HALF_UP);
+            rmb2 = rmb2.multiply(new BigDecimal("0.9")).setScale(0, RoundingMode.HALF_UP);
+        }
         result.put("rmbStatus", serverConfigService.getInteger(Config.GIFT_RMB_STATUS));
-        result.put("rmbPrice1", serverConfigService.getBigDecimal(Config.GIFT_PRICE_1));
-        result.put("rmbPrice2", serverConfigService.getBigDecimal(Config.GIFT_PRICE_2));
+        result.put("rmbPrice1", rmb1);
+        result.put("rmbPrice2", rmb2);
+
+
         result.put("gameMoneyStatus", serverConfigService.getInteger(Config.GIFT_GAME_STATUS));
         result.put("gamePrice1", serverConfigService.getBigDecimal(Config.GIFT_PRICE_1_GAME));
         result.put("gamePrice2", serverConfigService.getBigDecimal(Config.GIFT_PRICE_2_GAME));
         return result;
     }
 
-    public static void main(String[] args) {
-        String s = "amount=9900&buyerId=928371&callBackURL=http://8.130.102.236:8080/ZY-APP-MANAGER/tsgPayNotify&ip=172.16.3.127&redirectUrl=&requestNo=2025060609413822536&type=aliPayH5&userId=88162050&version=v1.0key=e7a15a9d4e6946bb97edf329035297d1";
-        String s2 = "amount=9900&buyerId=928371&callBackURL=http://8.130.102.236:8080/ZY-APP-MANAGER/tsgPayNotify&ip=172.16.3.127&redirectUrl=&requestNo=2025060609413822536&type=aliPayH5&userId=88162050&version=v1.0&key=e7a15a9d4e6946bb97edf329035297d1";
-        String s1 = MD5Util.md5(s).toLowerCase();
-        String s3 = MD5Util.md5(s2).toLowerCase();
-        System.out.println(s1);
-        System.out.println(s3);
+    @Transactional
+    @ServiceMethod(code = "010", description = "赠送礼包")
+    public Object sendGift(final AppSocket appSocket, Command appCommand, JSONObject params) {
+        checkNull(params);
+        int number = params.getIntValue("number");
+        String userNo = params.getString("userNo");
+        User toUser = userCacheService.getUserInfoByUserNo(userNo);
+        if (toUser == null) {
+            throwExp("用户不存在");
+        }
+        Long myId = appSocket.getWsidBean().getUserId();
+        int type = params.getIntValue("type");
+        if (type != 1 && type != 2) {
+            throwExp("非法请求");
+        }
+        User user = userCacheService.getUserInfoByUserNo(userNo);
+        if (user == null) {
+            throwExp("玩家不存在");
+        }
+        UserGift userGift = userGiftService.findUserGift(myId, type);
+        if (userGift == null || userGift.getGiftNum() < number) {
+            throwExp("礼包数量不足");
+        }
+        userGiftService.sendGift(myId, number, type);
+        userGiftService.addGiftNumber(toUser.getId(), number, type);
+        JSONObject result = new JSONObject();
+        result.put("nowNumber", userGift.getGiftNum() - number);
+        return result;
     }
+
+
 }

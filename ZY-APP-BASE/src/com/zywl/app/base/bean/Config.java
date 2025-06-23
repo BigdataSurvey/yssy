@@ -134,6 +134,8 @@ public class Config extends BaseBean {
 	// 物品表版本
 	public static final String ITEM_VERSION = "VERSION_ITEM";
 
+	public static final String SHOP_VERSION = "VERSION_SHOP";
+
 
 	public static final String MINE_VERSION = "VERSION_MINE";
 

@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.zywl.app.defaultx.mapper.UserDtsAmountMapper">
+
+    <insert id="insertOrUpdate" parameterType="UserDtsAmount">
+        INSERT INTO t_user_dts_amount(`user_id`, `amount`,`create_time`)
+        VALUES (#{userId}, #{amount},NOW()) ON DUPLICATE KEY
+        UPDATE amount = amount+#{amount};
+    </insert>
+
+
+
+    <select id="findByUserId" resultType="UserDtsAmount">
+        select *
+        from t_user_dts_amount
+        where user_id = #{userId}
+    </select>
+
+
+</mapper>

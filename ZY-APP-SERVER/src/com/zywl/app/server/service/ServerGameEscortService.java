@@ -69,7 +69,7 @@ public class ServerGameEscortService extends BaseService {
                 throwExp("游戏暂未开放，开放时间请留意公告");
             }
             if (userCacheService.canReceiveMail(String.valueOf(userId))) {
-                throwExp("请求频繁");
+                throwExp("点击过快");
             }
             userCacheService.userReceiveMailTime(String.valueOf(userId));
             int type = params.getIntValue("type");
@@ -92,7 +92,7 @@ public class ServerGameEscortService extends BaseService {
         synchronized (LockUtil.getlock(userId)) {
             params.put("userId", userId);
             if (userCacheService.canReceiveMail(String.valueOf(userId))) {
-                throwExp("请求频繁");
+                throwExp("点击过快");
             }
             userCacheService.userReceiveMailTime(String.valueOf(userId));
             if (type != GameEscortEventTypeEnum.EVENT1.getCount() &&

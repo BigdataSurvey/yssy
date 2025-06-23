@@ -67,7 +67,7 @@ public class ManagerMineService extends BaseService {
     private UserOpenMineRecordService userOpenMineRecordService;
 
     @Transactional
-    @ServiceMethod(code = "001", description = "开通矿场")
+    @ServiceMethod(code = "001", description = "开通书境")
     @KafkaProducer(topic = KafkaTopicContext.RED_POINT,event = KafkaEventContext.OPEN_MINE,sendParams = true)
     public Object openMine(ManagerSocketServer adminSocketServer, JSONObject params) {
         checkNull(params);
@@ -116,9 +116,6 @@ public class ManagerMineService extends BaseService {
             int useNumber = 10;
             vo.setUseNumber(useNumber);
             BigDecimal anima = dicMine.getCostMoney();
-            if (user.getVip2ExpireTime().getTime() < System.currentTimeMillis()) {
-                anima = anima.divide(new BigDecimal("2"));
-            }
             managerUserService.addAnimaToInviter(userId,anima,new BigDecimal("0.1"));
             return vo;
         }
@@ -131,7 +128,6 @@ public class ManagerMineService extends BaseService {
         checkNull(params.get("index"), params.get("userId"));
         int index = params.getIntValue("index");
         DicMine dicMine = PlayGameService.DIC_MINE.get(String.valueOf(index));
-        String itemId = dicMine.getMiningItem();
         Long userId = params.getLong("userId");
         synchronized (LockUtil.getlock(userId)) {
             User user = userCacheService.getUserInfoById(userId);
@@ -147,7 +143,7 @@ public class ManagerMineService extends BaseService {
             }
             String useItemId = PlayGameService.DIC_MINE.get(userMine.getMineId().toString()).getMiningItem();
             int number = PlayGameService.DIC_MINE.get(userMine.getMineId().toString()).getMiningItemCount();
-            gameService.checkUserItemNumber(userId,useItemId,10);
+            gameService.checkUserItemNumber(userId,useItemId,number);
             gameService.updateUserBackpack(userId,useItemId,-number,LogUserBackpackTypeEnum.use);
             userMine.setIsMining(1);
             userMine.setLastMineTime(new Date());
@@ -159,12 +155,14 @@ public class ManagerMineService extends BaseService {
             BeanUtils.copy(userMine, userMineVo);
             userMineVo.setMinEndTime(userMine.getMinEndTime().getTime());
             userMineVo.setLastMineTime(userMine.getLastMineTime().getTime());
+            BigDecimal anima = new BigDecimal("0.1").multiply(BigDecimal.valueOf(number));
+            managerUserService.addAnimaToInviter(userId,anima,BigDecimal.ONE);
             return userMineVo;
         }
     }
 
     @Transactional
-    @ServiceMethod(code = "003", description = "采集矿场")
+    @ServiceMethod(code = "003", description = "采集书境")
     public Object gather(ManagerSocketServer adminSocketServer, JSONObject params) {
         checkNull(params);
         checkNull(params.get("index"), params.get("userId"));

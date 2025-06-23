@@ -54,11 +54,13 @@ public class LhdService extends BaseService {
     @Autowired
     private LhdRequestMangerService requestMangerService;
 
-    @Autowired
-    private ConfigService configService;
 
     @Autowired
     private LhdBetRecordService lhdBetRecordService;
+
+
+    @Autowired
+    private UserDtsAmountService userDtsAmountService;
 
     @Autowired
     private GameLotteryResultService gameLotteryResultService;
@@ -154,6 +156,18 @@ public class LhdService extends BaseService {
         myOrder.put("orderNo", orderNo);
         myOrder.put("dataId", String.valueOf(dataId));
         myOrder.put("betAmount", number.toString());
+        myOrder.put("userId", userId);
+        List<Map<String, String>> maps = userCapitals.get(key);
+        maps.add(myOrder);
+        return myOrder;
+    }
+
+    public Map<String, String> updateCapital(String userId, BigDecimal amount, String orderNo, Long dataId) {
+        userCapitalService.subUserOccupyBalanceByLotteryBet(Long.parseLong(userId), amount);
+        Map<String, String> myOrder = new HashMap<>();
+        myOrder.put("orderNo", orderNo);
+        myOrder.put("dataId", String.valueOf(dataId));
+        myOrder.put("betAmount", amount.toString());
         myOrder.put("userId", userId);
         List<Map<String, String>> maps = userCapitals.get(key);
         maps.add(myOrder);
@@ -361,7 +375,7 @@ public class LhdService extends BaseService {
                 userOrders.put(userId, record);
             }
             //处理资产信息
-            updateItem(userId, amount, orderNo, dataId);
+            updateCapital(userId, amount, orderNo, dataId);
             //本局总金额
             ALL_PRIZE = ALL_PRIZE.add(amount);
             //处理内存信息
@@ -370,6 +384,10 @@ public class LhdService extends BaseService {
                 //已经参与过了
                 ROOM_LIST.get(betInfo).get(userId).put("betAmount", ROOM_LIST.get(betInfo).get(userId).getBigDecimal("betAmount").add(amount));
                 myAllAmount = ROOM_LIST.get(betInfo).get(userId).getBigDecimal("betAmount");
+                LhdBetRecord lhdBetRecord = userOrders.get(userId);
+                lhdBetRecord.setBetAmount(lhdBetRecord.getBetAmount().add(amount));
+                lhdBetRecord.setBetInfo(betInfo);
+                lhdBetRecordService.updateRecord(lhdBetRecord);
             } else {
                 BET_USERS.add(userId);
                 JSONObject jsonObject = new JSONObject();
@@ -378,10 +396,6 @@ public class LhdService extends BaseService {
                 jsonObject.put("betAmount", amount);
                 ROOM_LIST.get(betInfo).put(userId, jsonObject);
             }
-            LhdBetRecord lhdBetRecord = userOrders.get(userId);
-            lhdBetRecord.setBetAmount(lhdBetRecord.getBetAmount().add(amount));
-            lhdBetRecord.setBetInfo(betInfo);
-            lhdBetRecordService.updateRecord(lhdBetRecord);
             pushArray.get(key2).add(pushResult(1, userId, betInfo, myAllAmount));
 
             synchronized (lock) {
@@ -576,6 +590,7 @@ public class LhdService extends BaseService {
             settleInfo.put(uid, map);
         }
         for (String uid : loseMap.keySet()) {
+            userDtsAmountService.addDtsAmount(Long.valueOf(uid),ROOM_LIST.get(loseRoom).get(uid).getBigDecimal("betAmount").multiply(new BigDecimal("0.05")));
             JSONObject record = new JSONObject();
             record.put("winAmount", 0);
             record.put("lotteryResult", result);

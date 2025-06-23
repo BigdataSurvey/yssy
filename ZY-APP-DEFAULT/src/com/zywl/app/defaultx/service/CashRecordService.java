@@ -54,17 +54,12 @@ public class CashRecordService extends DaoService{
 		cashOrder.setOpenId(openId);
 		cashOrder.setOrderNo(orderNo);
 		cashOrder.setAmount(amount);
-		cashOrder.setRemark("颤抖吧三国提现");
+		cashOrder.setRemark("游戏奖励");
 		cashOrder.setReceivedAmount(BigDecimal.ZERO);
 		cashOrder.setType(type);
 		cashOrder.setTel(tel);
-		if (amount.compareTo(new BigDecimal("0.3"))==0) {
-			cashOrder.setStatus(CashStatusTypeEnum.NO_SUBMIT.getValue());
-			cashOrder.setFee(BigDecimal.ZERO);
-		}else {
-			cashOrder.setStatus(CashStatusTypeEnum.UNAUDITED.getValue());
-			cashOrder.setFee(fee);
-		}
+		cashOrder.setStatus(CashStatusTypeEnum.NO_SUBMIT.getValue());
+		cashOrder.setFee(BigDecimal.ZERO);
 		cashOrder.setReceivedAmount(amount.subtract(cashOrder.getFee()));
 		cashOrder.setCreateTime(new Date());
 		cashOrder.setUpdateTime(new Date());

@@ -275,7 +275,7 @@ public class BattleRoyaleService extends BaseService {
             ROOM.getUserCheckNum().put(userId, newRoomId);
             JSONObject result = new JSONObject();
             if (!ROOM.getUserBetInfo().containsKey(userId)) {
-                throwExp("请求频繁");
+                throwExp("点击过快");
             }
             Set<String> roomids = ROOM.getUserBetInfo().get(userId).keySet();
             String roomId = null;
@@ -611,7 +611,6 @@ public class BattleRoyaleService extends BaseService {
     }
     @Transactional
     public void settle(String result, Command lotteryCommand) {
-
         System.out.println("开奖结果：" + result);
         int winNumber = 0;
         int loseNumber = 0;

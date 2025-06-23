@@ -158,21 +158,16 @@ public class ServerUserService extends BaseService {
             throwExp("不能设置自己为邀请人");
         }
         if (user.getParentId()!=null && user.getParentId().toString().equals(my.getId().toString())) {
-            throwExp("不能绑定直接好友为邀请人");
+            throwExp("不能绑定自己下级为邀请人");
         }
         if (user.getGrandfaId()!=null && user.getGrandfaId().toString().equals(my.getId().toString())) {
-            throwExp("不能绑定间接好友为邀请人");
+            throwExp("不能绑定自己下级为邀请人");
         }
         if (user.getChannelNo()!=null && my.getIsChannel()==1 && user.getChannelNo().equals(my.getChannelNo())){
-            throwExp("不能绑定渠道好友为邀请人");
+            throwExp("不能绑定团队好友为邀请人");
         }
         if (my.getParentId() != null) {
-            throwExp("已有邀请人，不能重新绑定");
-        }
-        long count1 = userCacheService.getMySonCount(appSocket.getWsidBean().getUserId(), 1);
-        long count3 = userCacheService.getMySonCount(appSocket.getWsidBean().getUserId(), 3);
-        if (user.getRegistTime().getTime()>my.getRegistTime().getTime()){
-            throwExp("只能绑定比自己先注册的玩家为邀请人");
+            throwExp("已有邀请人");
         }
         if (user.getChannelNo() != null) {
             params.put("channelNo", user.getChannelNo());
@@ -183,7 +178,6 @@ public class ServerUserService extends BaseService {
                 new RequestManagerListener(appCommand));
         return async();
     }
-
     @ServiceMethod(code = "007", description = "获取上级信息")
     public Object getParentInfo(final AppSocket appSocket, Command appCommand, JSONObject params) {
         checkNull(params);

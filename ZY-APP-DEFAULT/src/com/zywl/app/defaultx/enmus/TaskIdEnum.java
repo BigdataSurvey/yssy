@@ -5,13 +5,13 @@ package com.zywl.app.defaultx.enmus;
  * **/
 public enum TaskIdEnum {
 
-    LOGIN("每日登录","1"),
-    SHOP_BUY_NUMBER("商城购买1次道具","2"),
+    LOGIN("每日登录","0"),
+    SHOP_BUY_NUMBER("商城购买1次道具","1"),
 
-    ADD_POWER("补充一次体力","3"),
-    DTS("参与一次倩女幽魂","4"),
-    LHD("参与一次2选1","5"),
-    SYN("合成一次","6")
+    ADD_POWER("补充一次体力","2"),
+    DTS("参与一次倩女幽魂","3"),
+    LHD("参与一次2选1","4"),
+    SYN("合成一次","5")
 
     ;
 

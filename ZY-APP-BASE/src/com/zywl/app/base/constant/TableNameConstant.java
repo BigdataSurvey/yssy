@@ -108,4 +108,6 @@ public class TableNameConstant {
 
 	public final static String GAME_CARDS = "t_game_cards";
 
+	public final static String CHAT = "t_chat";
+
 }

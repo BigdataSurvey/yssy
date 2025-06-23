@@ -38,6 +38,7 @@ import javax.annotation.PostConstruct;
 import java.io.File;
 import java.io.IOException;
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -781,77 +782,29 @@ public class ManagerUserService extends BaseService {
     }
 
 
-    @Transactional
-    @ServiceMethod(code = "015", description = "周卡")
-    public JSONObject week(ManagerSocketServer adminSocketServer, JSONObject data) {
-        checkNull(data);
-        checkNull(data.get("userId"));
-        Long userId = data.getLong("userId");
-        checkVipPrice(userId, 1);
-        updateUserVipLv(userId, 1L);
-        return new JSONObject();
-    }
 
-    public void checkVipPrice(Long userId, int vipType) {
-        String key;
-        if (vipType == 1) {
-            key = Config.VIP_WEEK_PRICE;
-        } else {
-            key = Config.VIP_MONTH_PRICE;
-        }
-        BigDecimal amount = managerConfigService.getBigDecimal(key);
-        UserCapital userCapital = userCapitalCacheService.getUserCapitalCacheByType(userId, UserCapitalTypeEnum.currency_2.getValue());
-        if (userCapital.getBalance().compareTo(amount) < 0) {
-            throwExp(UserCapitalTypeEnum.currency_2.getName() + "不足");
-        }
-        String orderNo = OrderUtil.getOrder5Number();
-        Long dataId = buyVipRecordService.addRecord(userId, orderNo, vipType, amount);
-        addAnimaToInviter(userId, amount, new BigDecimal("0.1"));
-        userCapitalService.subUserBalanceByVip(userId, amount, dataId);
-        managerGameBaseService.pushCapitalUpdate(userId, UserCapitalTypeEnum.currency_2.getValue());
-    }
 
     public void addAnimaToInviter(Long userId, BigDecimal amount, BigDecimal rate) {
         if (amount.compareTo(BigDecimal.ZERO) <= 0) {
             return;
         }
         User user = userCacheService.getUserInfoById(userId);
-        if (user.getIsCash() == 0) {
-            return;
-        }
         if (user.getParentId() != null) {
             BigDecimal parentAnima = amount.multiply(rate);
             User parent = userCacheService.getUserInfoById(user.getParentId());
             if (parent != null) {
-                if (parent.getIsChannel() == 1) {
-                    parentAnima = parentAnima.multiply(new BigDecimal("1.5"));
-                }
                 gameService.addParentGetAnima(user.getId(), user.getParentId().toString(), parentAnima);
             }
             if (user.getGrandfaId() != null) {
                 User grandfa = userCacheService.getUserInfoById(user.getGrandfaId());
                 if (grandfa != null) {
-                    BigDecimal grandfaAmount = amount.multiply(new BigDecimal("0.05"));
-                    if (grandfa.getIsChannel() == 1) {
-                        grandfaAmount = grandfaAmount.multiply(new BigDecimal("1.5"));
-                    }
+                    BigDecimal grandfaAmount = amount.multiply(rate.divide(new BigDecimal("2")).setScale(2, RoundingMode.HALF_UP));
                     gameService.addGrandfaGetAnima(user.getId(), user.getGrandfaId().toString(), grandfaAmount);
                 }
             }
         }
     }
 
-    @Transactional
-    @ServiceMethod(code = "016", description = "月卡")
-    public JSONObject month(ManagerSocketServer adminSocketServer, JSONObject data) {
-        checkNull(data);
-        checkNull(data.get("userId"));
-        Long userId = data.getLong("userId");
-        checkVipPrice(userId, 2);
-        updateUserVipLv(userId, 2L);
-        JSONObject result = new JSONObject();
-        return result;
-    }
 
 
     @ServiceMethod(code = "020", description = "获取好友列表")
@@ -925,26 +878,23 @@ public class ManagerUserService extends BaseService {
         }
         long userId = sonUser.getId();
         UserStatistic userStatistic = gameService.getUserStatistic(String.valueOf(userId));
-        BigDecimal all;
-        double today;
+        UserStatistic sonStatistic = gameService.getUserStatistic(sonUser.getId().toString());
+        double todayIncome;
+        BigDecimal allIncome;
         if (sonUser.getParentId().toString().equals(String.valueOf(myId))) {
-            all = userStatistic.getCreateIncome();
-            today = userCacheService.getTodayCreateParentIncome(userId);
-            result.put("todaySw", userCacheService.getUserTodayCreateSw(userId));
-            result.put("allSw", userStatistic.getCreateSw());
+            todayIncome = userCacheService.getTodayMyCreateAnima(sonUser.getId());
+            allIncome = sonStatistic.getCreateAnima();
         } else {
-            today = userCacheService.getGrandfaTodayIncome(userId);
-            all = userStatistic.getCreateGrandfaIncome();
-            result.put("todaySw", BigDecimal.ZERO);
-            result.put("allSw", BigDecimal.ZERO);
+            todayIncome = userCacheService.getTodayMyCreateGrandfaAnima(sonUser.getId());
+            allIncome = sonStatistic.getCreateGrandfaAnima();
         }
         result.put("name", sonUser.getName());
         result.put("userNo", sonUser.getUserNo());
         result.put("headImageUrl", sonUser.getHeadImageUrl());
         result.put("wx", sonUser.getWechatId() == null ? "暂未填写" : sonUser.getWechatId());
         result.put("qq", sonUser.getQq() == null ? "暂未填写" : sonUser.getQq());
-        result.put("todayIncome", Math.round(today * 100.0) / 100.0);
-        result.put("allIncome", all);
+        result.put("todayIncome", todayIncome);
+        result.put("allIncome", allIncome);
         result.put("registTime", sonUser.getRegistTime());
         result.put("loginTime", sonUser.getLastLoginTime());
         BigDecimal hisAllFriend = userStatisticService.findHisAllFriend(sonUser.getId());

@@ -20,11 +20,19 @@
 	</insert>
 
 	<update id="addUserGiftNumber" parameterType="UserGift">
-		update t_user_gift set gift_num = gift_num+1 where user_id = #{userId}  and gift_type = #{giftType}
+		update t_user_gift set gift_num = gift_num+#{number} where user_id = #{userId}  and gift_type = #{giftType}
 	</update>
 
 	<update id="useGift" parameterType="UserGift">
 		update t_user_gift set gift_num = gift_num-1 where user_id = #{userId} and gift_num-1 &gt;= 0 and gift_type = #{giftType}
+	</update>
+
+	<update id="sendGift" parameterType="UserGift">
+		update t_user_gift set gift_num = gift_num-#{number} where user_id = #{userId} and gift_num-#{number} &gt;= 0 and gift_type = #{giftType}
+	</update>
+
+	<update id="addGiftNumber" parameterType="UserGift">
+		update t_user_gift set gift_num = gift_num+#{number} where user_id = #{userId}  and gift_type = #{giftType}
 	</update>
 
 	<delete id="delete">

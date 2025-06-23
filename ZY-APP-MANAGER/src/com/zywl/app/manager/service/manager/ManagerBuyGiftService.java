@@ -79,14 +79,16 @@ public class ManagerBuyGiftService extends BaseService {
         userCapitalService.subBalanceByGift(price, userId, orderNo, recordId);
         managerUserVipService.addExper(userId, price);
         //3.礼包数+1
-        userGiftService.addUserGiftNumber(userId, giftType);
+        userGiftService.addUserGiftNumber(userId, giftType,1);
         //推送用户余额变化
         managerGameBaseService.pushCapitalUpdate(userId, UserCapitalTypeEnum.currency_2.getValue());
         Activity activity = gameCacheService.getActivity();
-        if (activity.getAddPointEvent()== ActivityAddPointEventEnum.GAME_MONEY_BUY_GIFT.getValue()){
-            //已经激活大礼包的用户 给他上级加积分并存入redis
-            //用户父id的积分
-            gameCacheService.addPoint(userId);
+        if (activity!=null){
+            if (activity.getAddPointEvent()== ActivityAddPointEventEnum.GAME_MONEY_BUY_GIFT.getValue()){
+                //已经激活大礼包的用户 给他上级加积分并存入redis
+                //用户父id的积分
+                gameCacheService.addPoint(userId);
+            }
         }
         return new JSONObject();
     }

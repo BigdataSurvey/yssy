@@ -44,17 +44,13 @@ public class UserAchievementService extends DaoService {
         if (one == null) {
             List<Achievement> achievements = achievementService.findAll();
             JSONArray vos = new JSONArray();
-            int group=0;
             for (Achievement achievement : achievements) {
-                if (group!=achievement.getGroup()){
                     AchievementVo vo = new AchievementVo();
                     BeanUtils.copy(achievement, vo);
                     if (vo.getGroup()==1){
                         vo.setStatus(2);
                     }
                     vos.add(vo);
-                    group=achievement.getGroup();
-                }
             }
             addUserAchievement(userId, vos);
             return findOne(params);

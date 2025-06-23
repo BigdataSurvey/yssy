@@ -35,6 +35,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import javax.annotation.PostConstruct;
 import java.math.BigDecimal;
 import java.util.*;
 import java.util.function.Function;
@@ -104,7 +105,6 @@ public class ManagerGameBaseService extends BaseService {
     private UserService userService;
 
 
-
     @Autowired
     private ManagerUserService managerUserService;
 
@@ -118,6 +118,57 @@ public class ManagerGameBaseService extends BaseService {
     private BackpackService backpackService;
     @Autowired
     private UserDonateItemRecordService userDonateItemRecordService;
+
+    public static final LinkedList<JSONObject> CHAT_LIST = new LinkedList<>();
+
+    public static final JSONObject SERVER_CHAT = new JSONObject();
+
+    @PostConstruct
+    public void _ManagerGameBaseService() {
+        Chat lastType2 = chatService.findLastType2();
+        if (lastType2 != null) {
+            SERVER_CHAT.put("name", lastType2.getUserName());
+            SERVER_CHAT.put("headImg", lastType2.getUserHeadImg());
+            SERVER_CHAT.put("userNo", lastType2.getUserNo());
+            SERVER_CHAT.put("text", lastType2.getText());
+            SERVER_CHAT.put("type", lastType2.getType());
+            SERVER_CHAT.put("lv", lastType2.getVipLv());
+        }
+
+        List<Chat> last10 = chatService.findLast10();
+        for (Chat chat : last10) {
+            JSONObject info = new JSONObject();
+            info.put("name", chat.getUserName());
+            info.put("headImg", chat.getUserHeadImg());
+            info.put("userNo", chat.getUserNo());
+            info.put("text", chat.getText());
+            info.put("type", chat.getType());
+            info.put("lv", chat.getVipLv());
+            CHAT_LIST.add(info);
+        }
+    }
+
+    private static final int MAX_SIZE = 100;
+
+    public void addChat(JSONObject json) {
+        if (CHAT_LIST.size() >= MAX_SIZE) {
+            CHAT_LIST.removeFirst(); // 移除最早的数据
+        }
+        CHAT_LIST.addLast(json); // 添加新数据到末尾
+    }
+
+    public LinkedList<JSONObject> getRecent(int count) {
+        if (count <= 0 || count > CHAT_LIST.size()) {
+            count = CHAT_LIST.size();
+        }
+        return new LinkedList<>(CHAT_LIST.subList(
+                Math.max(0, CHAT_LIST.size() - count),
+                CHAT_LIST.size()
+        ));
+    }
+
+    @Autowired
+    private ChatService chatService;
 
 
     private int LJY_NUMBER = 0;
@@ -213,8 +264,10 @@ public class ManagerGameBaseService extends BaseService {
                 userCacheService.canLogin(lastLoginIp, userId);
                 userCacheService.addIpUser(lastLoginIp, userId);
             }
+            UserVip userVipByUserId = userVipService.findUserVipByUserId(userId);
             gameService.getUserAchievement(String.valueOf(userId));
             result.put("userInfo", vo);
+            result.put("vipLv", userVipByUserId == null ? 0 : userVipByUserId.getVipLevel());
             result.put("parentId", user.getParentId() == null ? "" : user.getParentId());
             result.put("userCapitals", userCapitals);
             result.put("alipayAuth", user.getAlipayId() == null ? 0 : 1);
@@ -226,7 +279,9 @@ public class ManagerGameBaseService extends BaseService {
             result.put("version", authService.getVersion().getVersionName());
             result.put("sy1", managerConfigService.getInteger(Config.PLAYGAME_1_STATUS));
             result.put("sy2", managerConfigService.getInteger(Config.PLAYGAME_2_STATUS));
-            result.put("backpackInfo", getBackpack(userId).get("backPackInfo"));
+            result.put("backpackInfo", gameService.getReturnPack(userId));
+            result.put("chatInfo", getRecent(10));
+            result.put("serverChat", SERVER_CHAT);
             return result;
         }
     }
@@ -341,13 +396,21 @@ public class ManagerGameBaseService extends BaseService {
         String userId = params.getString("userId");
         String itemId = params.getString("itemId");
         int number = params.getIntValue("num");
-        gameService.checkUserItemNumber(userId,itemId,number);
+        //检查道具数量
+        gameService.checkUserItemNumber(userId, itemId, number);
+        //道具的出售价格
         BigDecimal onePrice = PlayGameService.itemMap.get(itemId).getPrice();
+        //订单号
         String orderNo = OrderUtil.getOrder5Number();
+        //总价格  单价x数量
         BigDecimal totalAmount = onePrice.multiply(new BigDecimal(String.valueOf(number)));
+        //添加出售记录 拿到recordId
         Long dataId = sellSysRecordService.addRecord(Long.parseLong(userId), Long.parseLong(itemId), number, totalAmount, orderNo);
+        //更改背包信息 不用推送背包是因为这个updateUserBackpack 里面 推送了
         gameService.updateUserBackpack(userId, itemId, -number, LogUserBackpackTypeEnum.sell_sys);
+        // 更改资产信息 卖了东西要加钱
         userCapitalService.addUserBalanceBySellToSys(totalAmount, Long.parseLong(userId), orderNo, dataId, UserCapitalTypeEnum.currency_2.getValue());
+        //推送资产变动
         pushCapitalUpdate(Long.valueOf(userId), UserCapitalTypeEnum.currency_2.getValue());
         return params;
     }
@@ -450,16 +513,36 @@ public class ManagerGameBaseService extends BaseService {
             if (dailyTask == null) {
                 throwExp("非法请求");
             }
+            int isLook = params.getIntValue("isLook");
+
             //获取玩家每日任务的信息
             UserDailyTaskVo userTaskById = cardGameCacheService.getUserTaskById(userId, taskId);
+            if (userTaskById==null){
+                throwExp("请刷新后尝试领取");
+            }
             if (userTaskById.getStatus() == 2) {
                 throwExp("已领取过该奖励");
             }
             JSONArray rewards = dailyTask.getReward();
-            //添加奖励
-            gameService.addReward(userId, rewards, LogCapitalTypeEnum.daily_task);
             JSONObject result = new JSONObject();
-            result.put("rewardInfo", rewards);
+
+            if (isLook == 1) {
+                JSONArray adReward = new JSONArray();
+                for (Object reward : rewards) {
+                    JSONObject info = (JSONObject) reward;
+                    JSONObject newInfo = new JSONObject();
+                    newInfo.put("type", info.getIntValue("type"));
+                    newInfo.put("id", info.getIntValue("id"));
+                    newInfo.put("number", info.getBigDecimal("number") .multiply(new BigDecimal("2")) );
+                    adReward.add(newInfo);
+                }
+                gameService.addReward(userId, adReward, LogCapitalTypeEnum.daily_task);
+                result.put("rewardInfo", adReward);
+            } else {
+                result.put("rewardInfo", rewards);
+                gameService.addReward(userId, rewards, LogCapitalTypeEnum.daily_task);
+            }
+
             result.put("taskId", taskId);
             updateUserTask(userId, taskId);
             return result;
@@ -547,7 +630,6 @@ public class ManagerGameBaseService extends BaseService {
         pushData.put("capitalType", UserCapitalTypeEnum.currency_2.getValue());
         pushData.put("balance", userCapital.getBalance());
         Push.push(PushCode.updateUserCapital, managerSocketService.getServerIdByUserId(userId), pushData);
-
         JSONObject pushDate = new JSONObject();
         pushDate.put("userId", userId);
         user = userCacheService.getUserInfoById(userId);
@@ -599,6 +681,7 @@ public class ManagerGameBaseService extends BaseService {
             return new JSONObject();
         }
     }
+
     @Transactional
     @ServiceMethod(code = "048", description = "使用道具")
     public JSONObject selectItem(ManagerSocketServer adminSocketServer, JSONObject params) {
@@ -606,35 +689,36 @@ public class ManagerGameBaseService extends BaseService {
         int random = 9;
         Long userId = params.getLong("userId");
         UserVip userVip = userVipService.findUserVipByUserId(userId);
-        int itemId = 37;
+        String itemId = params.getString("itemId");
         //大小靓号选择的道具
         //v4小靓号 v5大靓号
-        if(itemId == 37 || itemId == 38){
-            result.put("type","1");
+        if (itemId.equals("37") || itemId.equals("38")) {
+            result.put("type", "1");
             long vipLevel = userVip.getVipLevel();
             List<GoodNo> allGoodNoList = goodNoService.findAllGoodNo();
             List<GoodNo> smallGoodNoList = allGoodNoList.stream().filter(e -> 0 == e.getType()).collect(Collectors.toList());
             List<GoodNo> bigGoodNoList = allGoodNoList.stream().filter(e -> 1 == e.getType()).collect(Collectors.toList());
             List<GoodNo> randomSamllList = getRandomElements(smallGoodNoList, random);
             List<GoodNo> randomBigList = getRandomElements(bigGoodNoList, random);
-            List<JSONObject> list = gameCacheService.getList("randomGoodNoList",JSONObject.class);
-            if(list==null || list.size()==0) {
-                if(vipLevel==4){
+            List<JSONObject> list = gameCacheService.getList("randomGoodNoList", JSONObject.class);
+            if (list == null || list.size() == 0) {
+                if (vipLevel == 4) {
                     //随机返回9个靓号的list
-                    result.put("randomGoodNoList",randomSamllList);
+                    result.put("randomGoodNoList", randomSamllList);
                     gameCacheService.set("randomGoodNoList", randomSamllList);
 
-                }else if(vipLevel >4 ){
-                    result.put("randomGoodNoList",randomBigList);
+                } else if (vipLevel > 4) {
+                    result.put("randomGoodNoList", randomBigList);
                     gameCacheService.set("randomGoodNoList", randomBigList);
                 }
-            }else {
-                result.put("randomGoodNoList",list);
+            } else {
+                result.put("randomGoodNoList", list);
             }
         }
 
         return result;
     }
+
     @Transactional
     @ServiceMethod(code = "049", description = "选择靓号")
     public JSONObject useItem(ManagerSocketServer adminSocketServer, JSONObject params) {
@@ -646,21 +730,19 @@ public class ManagerGameBaseService extends BaseService {
         UserVip uservip = userVipService.findUserVipByUserId(userId);
         //修改user表中userno 并删掉redis中缓存数据
         GoodNo goodNo = goodNoService.findById(goodNoId);
-        List<GoodNo> list = gameCacheService.getList("randomGoodNoList",GoodNo.class);
-        if(list!=null && list.size()>0){
+        List<GoodNo> list = gameCacheService.getList("randomGoodNoList", GoodNo.class);
+        if (list != null && list.size() > 0) {
             List<String> goodNoList = list.stream().map(GoodNo::getGoodNo).collect(Collectors.toList());
-            if(!goodNoList.contains(goodNo.getGoodNo())){
-              throwExp("当前靓号不属于选择范围内");
+            if (!goodNoList.contains(goodNo.getGoodNo())) {
+                throwExp("当前靓号不属于选择范围内");
             }
         }
-        userService.updateUserGoodNo(goodNo.getGoodNo(), userId);
+        userService.updateUserNo(goodNo.getGoodNo(), userId);
         //指定itemid为37、38 减掉背包大小靓号道具
-        gameService.updateUserBackpack(userId, itemId,-number, LogUserBackpackTypeEnum.use);
+        gameService.updateUserBackpack(userId, itemId, -number, LogUserBackpackTypeEnum.use);
         gameCacheService.deleteByKey("randomGoodNoList");
         return result;
     }
-
-
 
 
     public static <T> List<com.zywl.app.base.bean.GoodNo> getRandomElements(List<GoodNo> allGoodNoList, int count) {
@@ -669,74 +751,6 @@ public class ManagerGameBaseService extends BaseService {
         Collections.shuffle(tempList); // 打乱列表顺序
         // 取前count个元素作为结果，如果count大于列表大小，则返回整个列表
         return new ArrayList<>(tempList.subList(0, Math.min(count, tempList.size())));
-    }
-
-
-    public JSONObject useItem(String itemId, String userId, int number) {
-        JSONObject result = new JSONObject();
-        JSONArray reward = new JSONArray();
-        result.put("isShow", 0);
-        if (PlayGameService.itemMap.get(itemId).getSynResultId() != null && PlayGameService.itemMap.get(itemId).getSynResultId().toString().equals(ItemIdEnum.MONEY_1.getValue())) {
-            JSONObject data = new JSONObject();
-            BigDecimal all = BigDecimal.ZERO;
-            //铜钱礼包
-            for (int i = 0; i < number; i++) {
-                BigDecimal coin = BigDecimal.valueOf(500);
-                if (itemId.equals(ItemIdEnum.CY1_PACK_1.getValue())) {
-                    coin = BigDecimal.valueOf(1000L);
-                } else if (itemId.equals(ItemIdEnum.CY1_PACK_2.getValue())) {
-                    coin = BigDecimal.valueOf(5000L);
-                } else if (itemId.equals(ItemIdEnum.CY1_PACK_3.getValue())) {
-                    coin = BigDecimal.valueOf(50000L);
-                }
-                all = all.add(coin);
-            }
-
-            JSONObject addReward = new JSONObject();
-            addReward.put("type", 1);
-            addReward.put("id", ItemIdEnum.MONEY_1.getValue());
-            addReward.put("number", all);
-            reward.add(addReward);
-            gameService.addReward(Long.valueOf(userId), reward, LogCapitalTypeEnum.from_item);
-            result.put("isShow", 1);
-        } else if (PlayGameService.itemMap.get(itemId).getSynResultId() != null && PlayGameService.itemMap.get(itemId).getSynResultId().toString().equals(ItemIdEnum.CARD_EXP.getValue())) {
-            JSONObject data = new JSONObject();
-            Long all = 0l;
-            for (int i = 0; i < number; i++) {
-                Long exp = 1L;
-                if (itemId.equals(ItemIdEnum.CARD_EXP_1.getValue())) {
-                    exp = 1000L;
-                } else if (itemId.equals(ItemIdEnum.CARD_EXP_2.getValue())) {
-                    exp = 5000L;
-                } else if (itemId.equals(ItemIdEnum.CARD_EXP_3.getValue())) {
-                    exp = 50000L;
-                }
-                all += exp;
-            }
-            JSONObject addReward = new JSONObject();
-            addReward.put("type", 1);
-            addReward.put("id", ItemIdEnum.CARD_EXP.getValue());
-            addReward.put("number", all);
-            reward.add(addReward);
-            result.put("isShow", 1);
-        }
-        result.put("reward", reward);
-        gameService.updateUserBackpack(userId, itemId, -number, LogUserBackpackTypeEnum.use);
-        return result;
-    }
-
-
-    public void pushAddNewPlayerCard(Long userId, List<PlayerCard> cards) {
-        List<PlayerCardCodexVo> vos = new ArrayList<>();
-        for (PlayerCard card : cards) {
-            PlayerCardCodexVo vo = new PlayerCardCodexVo();
-            BeanUtils.copy(card, vo);
-            vos.add(vo);
-        }
-        JSONObject pushDate = new JSONObject();
-        pushDate.put("userId", userId);
-        pushDate.put("cards", vos);
-        Push.push(PushCode.updateRoleCard, managerSocketService.getServerIdByUserId(userId), pushDate);
     }
 
 
@@ -761,7 +775,8 @@ public class ManagerGameBaseService extends BaseService {
                 throwExp("余额不足");
             } else {
                 String orderNo = OrderUtil.getOrder5Number();
-                userCapitalService.subUserBalanceByShopping(userId, amount, orderNo, null, dicShop.getUseItemId().intValue(), LogCapitalTypeEnum.shopping);
+                Long dataId = shoppingRecordService.addRecord(userId, dicShop.getItemId(), number, orderNo, amount, Math.toIntExact(dicShop.getUseItemId()));
+                userCapitalService.subUserBalanceByShopping(userId, amount, orderNo, dataId, dicShop.getUseItemId().intValue(), LogCapitalTypeEnum.shopping);
                 pushCapitalUpdate(userId, dicShop.getUseItemId().intValue());
             }
         } else {
@@ -778,12 +793,13 @@ public class ManagerGameBaseService extends BaseService {
         result.put("id", dicShop.getItemId());
         result.put("number", number);
         array.add(result);
-        gameService.addReward(userId,array,LogCapitalTypeEnum.shopping);
+        gameService.addReward(userId, array, LogCapitalTypeEnum.shopping);
         return array;
     }
 
     /**
      * 捐赠道具
+     *
      * @param adminSocketServer
      * @param params
      * @return
@@ -796,38 +812,37 @@ public class ManagerGameBaseService extends BaseService {
         long userId = params.getLong("userId");
         String itemId = "5";
         int number = params.getIntValue("num");
-        gameService.checkUserItemNumber(userId,itemId,number);
+        gameService.checkUserItemNumber(userId, itemId, number);
         //每次捐赠可以获得一个道具 和一些数额（待定）的金币
         UserCapital userCapitalCache = userCapitalCacheService.getUserCapitalCacheByType(userId, UserCapitalTypeEnum.currency_2.getValue());
         //生成捐赠道具订单
         String orderNo = OrderUtil.getOrder5Number();
-        Long recordId = userDonateItemRecordService.addDonateItemRecord(userId, orderNo, UserCapitalTypeEnum.currency_2.getValue(), number, BigDecimal.valueOf(100L *number));
+        Long recordId = userDonateItemRecordService.addDonateItemRecord(userId, orderNo, UserCapitalTypeEnum.currency_2.getValue(), number, BigDecimal.valueOf(20L * number));
         String getItemId = managerConfigService.getString(Config.JZ_ITEM);
         //修改该用户的道具
-        gameService.updateUserBackpack(userId, itemId,-number, LogUserBackpackTypeEnum.use);
-        gameService.updateUserBackpack(userId, getItemId,+number, LogUserBackpackTypeEnum.use);
-        userCapitalService.addUserBalanceByDonate(userId,BigDecimal.valueOf(100L*number),UserCapitalTypeEnum.currency_2.getValue(),recordId,userCapitalCache);
-        pushCapitalUpdate(userId,UserCapitalTypeEnum.currency_2.getValue());
+        gameService.updateUserBackpack(userId, itemId, -number, LogUserBackpackTypeEnum.use);
+        gameService.updateUserBackpack(userId, getItemId, +number, LogUserBackpackTypeEnum.use);
+        userCapitalService.addUserBalanceByDonate(userId, BigDecimal.valueOf(20L * number), UserCapitalTypeEnum.currency_2.getValue(), recordId, userCapitalCache);
+        pushCapitalUpdate(userId, UserCapitalTypeEnum.currency_2.getValue());
         JSONObject result = new JSONObject();
         JSONObject itemResult = new JSONObject();
         JSONArray array = new JSONArray();
-        result.put("type",1);
-        result.put("id",2);
-        result.put("number",BigDecimal.valueOf(100L*number));
-        itemResult.put("type",1);
-        itemResult.put("id",getItemId);
-        itemResult.put("number",number);
+        result.put("type", 1);
+        result.put("id", 2);
+        result.put("number", BigDecimal.valueOf(20L * number));
+        itemResult.put("type", 1);
+        itemResult.put("id", getItemId);
+        itemResult.put("number", number);
         array.add(result);
         array.add(itemResult);
         return array;
     }
 
 
-
     private void deleteItem(JSONObject params) {
         Map<String, Object> mapParams = new HashMap<>();
-        mapParams.put("userId",params.getLong("userId"));
-        mapParams.put("itemId",30);
+        mapParams.put("userId", params.getLong("userId"));
+        mapParams.put("itemId", 30);
         backpackService.delete(mapParams);
     }
 
@@ -848,14 +863,6 @@ public class ManagerGameBaseService extends BaseService {
             //修改资产
             userCapitalService.subUserBalanceByShopping(userId, price, orderNo, dataId, capitalType, LogCapitalTypeEnum.shopping);
             pushCapitalUpdate(userId, capitalType);
-        } else if (shopType == ShopTypeEnum.PET.getValue()) {
-            //龙驹玉商城
-            gameService.checkUserItemNumber(userId, ItemIdEnum.BUY_PET.getValue(), userShopVo.getPrice());
-            String orderNo = OrderUtil.getOrder5Number();
-            //增加记录
-            Long dataId = shoppingRecordService.addRecord(userId, userShopVo.getItemEquId(), number, orderNo, BigDecimal.valueOf(userShopVo.getPrice()), shopType);
-            gameService.updateUserBackpack(userId, ItemIdEnum.BUY_PET.getValue(), -userShopVo.getPrice(), LogUserBackpackTypeEnum.buy);
-            addLjyNumber(userShopVo.getPrice());
         }
         Long itemEquId = userShopVo.getItemEquId();
         if (userShopVo.getType() == 1) {
@@ -915,8 +922,8 @@ public class ManagerGameBaseService extends BaseService {
     public Object shopInfo(ManagerSocketServer adminSocketServer, JSONObject params) {
         Long userId = params.getLong("userId");
         int shopType = params.getIntValue("type");
-        List< DicShop> shopInfo = PlayGameService.DIC_SHOP_LIST.get(String.valueOf(shopType));
-        if (shopInfo==null){
+        List<DicShop> shopInfo = PlayGameService.DIC_SHOP_LIST.get(String.valueOf(shopType));
+        if (shopInfo == null) {
             return new ArrayList<>();
         }
         return shopInfo;
@@ -935,9 +942,9 @@ public class ManagerGameBaseService extends BaseService {
                 Long dataId = convertIncomeRecordService.addRecord(Long.parseLong(userId), orderNo, getAnima, userStatistic.getGetAnima(), BigDecimal.ZERO);
                 PlayGameService.userStatisticMap.get(userId).setGetAnima(BigDecimal.ZERO);
                 PlayGameService.userStatisticMap.get(userId).setGetAnima2(PlayGameService.userStatisticMap.get(userId).getGetAnima2().add(getAnima));
-                userCapitalService.addUserBalanceByReceiveFriend( getAnima,Long.parseLong(userId), orderNo, dataId);
+                userCapitalService.addUserBalanceByReceiveFriend(getAnima, Long.parseLong(userId), orderNo, dataId);
                 pushCapitalUpdate(Long.valueOf(userId), UserCapitalTypeEnum.currency_2.getValue());
-            }else {
+            } else {
                 throwExp("累积达到20通宝后可领取");
             }
             userStatisticService.updateStatic(PlayGameService.userStatisticMap.get(userId));
@@ -976,13 +983,13 @@ public class ManagerGameBaseService extends BaseService {
         }
         result.put("inviterInfo", parentInfo);
         result.put("isChannel", 0);
-        if (user!=null && user.getIsChannel() == 1) {
+        if (user != null && user.getIsChannel() == 1) {
             result.put("isChannel", 1);
         }
         UserStatistic byUserId = userStatisticService.findByUserId(userId);
         int number = byUserId.getOneJuniorNum() + byUserId.getTwoJuniorNum();
         result.put("number", number);
-        result.put("canReceive",userStatistic.getGetAnima());
+        result.put("canReceive", userStatistic.getGetAnima());
         return result;
     }
 
@@ -1014,7 +1021,7 @@ public class ManagerGameBaseService extends BaseService {
         Random random = new Random();
         for (int i = 0; i < number; i++) {
             int k = random.nextInt(100) + 1;
-            if (k < PlayGameService.itemMap.get(resultId).getSynRate()) {
+            if (k <= PlayGameService.itemMap.get(resultId).getSynRate()) {
                 finalNumber++;
             }
         }
@@ -1042,7 +1049,37 @@ public class ManagerGameBaseService extends BaseService {
     }
 
 
+    @Transactional
+    @ServiceMethod(code = "056", description = "世界聊天")
+    public Object chat(ManagerSocketServer adminSocketServer, JSONObject params) {
+        checkNull(params);
+        checkNull(params.get("userId"), params.get("text"), params.get("type"));
+        Long userId = params.getLong("userId");
+        String text = params.getString("text");
+        int type = params.getIntValue("type");
+        String itemId;
+        if (type == 1) {
+            itemId = ItemIdEnum.XLB.getValue();
+        } else {
+            itemId = ItemIdEnum.DLB.getValue();
+        }
+        gameService.checkUserItemNumber(userId, itemId, 1);
 
+        String orderNo = OrderUtil.getOrder5Number();
+        User user = userCacheService.getUserInfoById(userId);
+        Long dataId = chatService.addChat(userId, user.getName(), user.getHeadImageUrl(), text, type, orderNo, user.getUserNo(), user.getVip1());
+        gameService.updateUserBackpack(userId, itemId, -1, LogUserBackpackTypeEnum.use);
+        JSONObject obj = new JSONObject();
+        obj.put("name", user.getName());
+        obj.put("headImg", user.getHeadImageUrl());
+        obj.put("userNo", user.getUserNo());
+        obj.put("text", text);
+        obj.put("type", type);
+        obj.put("lv", user.getVip1());
+        addChat(obj);
+        Push.push(PushCode.chat, null, obj);
+        return new JSONObject();
+    }
 
 
 }

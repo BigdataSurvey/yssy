@@ -22,7 +22,7 @@ public class TsgPayOrderService extends DaoService {
     }
 
     @Transactional
-    public TsgPayOrder addOrder(Long userId, String orderNo, Long productId, BigDecimal price, Date expireTime,int channel) {
+    public TsgPayOrder addOrder(Long userId, String orderNo, Long productId, BigDecimal price, Date expireTime,int channel,BigDecimal allPrice,int number) {
         TsgPayOrder order = new TsgPayOrder();
         order.setOrderNo(orderNo);
         order.setStatus(0);
@@ -30,6 +30,8 @@ public class TsgPayOrderService extends DaoService {
         order.setUserId(userId);
         order.setProductId(productId);
         order.setPrice(price);
+        order.setNumber(number);
+        order.setAllPrice(allPrice);
         order.setCreateTime(new Date());
         order.setExpireTime(expireTime);
         save(order);

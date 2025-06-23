@@ -7,11 +7,14 @@ import com.zywl.app.base.bean.DicRole;
 import com.zywl.app.base.bean.User;
 import com.zywl.app.base.bean.UserRole;
 import com.zywl.app.base.service.BaseService;
+import com.zywl.app.defaultx.annotation.KafkaProducer;
 import com.zywl.app.defaultx.annotation.ServiceClass;
 import com.zywl.app.defaultx.annotation.ServiceMethod;
 import com.zywl.app.defaultx.cache.UserCacheService;
 import com.zywl.app.defaultx.enmus.LogUserBackpackTypeEnum;
 import com.zywl.app.defaultx.service.UserRoleService;
+import com.zywl.app.manager.context.KafkaEventContext;
+import com.zywl.app.manager.context.KafkaTopicContext;
 import com.zywl.app.manager.context.MessageCodeContext;
 import com.zywl.app.manager.service.PlayGameService;
 import com.zywl.app.manager.socket.AdminSocketServer;
@@ -46,6 +49,7 @@ public class ManagerUserRoleService extends BaseService {
 
     @Transactional
     @ServiceMethod(code = "001", description = "恢复角色体力")
+    @KafkaProducer(topic = KafkaTopicContext.RED_POINT, event = KafkaEventContext.ADD_HP, sendParams = true)
     public  JSONObject addHp(ManagerSocketServer adminSocketServer,  JSONObject data) {
         checkNull(data);
         checkNull(data.get("userId"),data.get("userRoleId"),data.get("number"));
@@ -59,6 +63,9 @@ public class ManagerUserRoleService extends BaseService {
         UserRole userRole = userRoleService.findByUserIdAndRoleId(userId,userRoleId);
         if (userRole==null){
             throwExp("未查询到角色信息");
+        }
+        if (userRole.getStatus()==0){
+            throwExp("角色尚未开始工作，无需补充体力");
         }
         if (userRole.getEndTime().getTime()<System.currentTimeMillis()){
             throwExp("角色已到期，请重新激活礼包");

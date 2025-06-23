@@ -95,6 +95,9 @@ public class BattleRoyaleService2 extends BaseService {
     private BackpackService backpackService;
 
     @Autowired
+    private UserDtsAmountService userDtsAmountService;
+
+    @Autowired
     private BattleRoyaleService2 battleRoyaleService2;
 
 
@@ -176,7 +179,7 @@ public class BattleRoyaleService2 extends BaseService {
                 }
 
             }
-        }, 0, 500);
+        }, 0, 2000);
     }
 
     public void requestManagerUpdateCapital() {
@@ -313,6 +316,7 @@ public class BattleRoyaleService2 extends BaseService {
         }
         System.out.println(ROOM.getRoomList());
         String userId = data.getString("userId");
+        String userName = data.getString("userName");
         String newRoomId = data.getString("bet");
         if (Integer.parseInt(newRoomId) > ROOM.getOption() - 1 || Integer.parseInt(newRoomId) < 0) {
             throwExp("非法操作");
@@ -324,7 +328,7 @@ public class BattleRoyaleService2 extends BaseService {
             ROOM.getUserCheckNum().put(userId, newRoomId);
             JSONObject result = new JSONObject();
             if (!ROOM.getUserBetInfo().containsKey(userId)) {
-                throwExp("请求频繁");
+                throwExp("点击过快");
             }
             Set<String> roomids = ROOM.getUserBetInfo().get(userId).keySet();
             String roomId = null;
@@ -361,6 +365,11 @@ public class BattleRoyaleService2 extends BaseService {
                     (new BigDecimal(ROOM.getBetOptionsInfo().get(newRoomId).get("betAmount")).add(amount)).toString());
             pushArray.get(key2).add(ROOM.pushResult(1, userId, newRoomId, amount));
             updateRoomUser.remove(userId);
+            result.put("betAmount",amount);
+            result.put("gameId",1);
+            result.put("name",userName);
+            result.put("roomId",newRoomId);
+            result.put("type",1);
             return result;
         }
 
@@ -699,22 +708,24 @@ public class BattleRoyaleService2 extends BaseService {
         BigDecimal subAmount = BigDecimal.ZERO; // 获胜玩家总投注
         for (String userId : ROOM.getUserBetInfo().keySet()) {
             Map<String, BigDecimal> oneUserbetInfo = ROOM.getUserBetInfo().get(userId);
-
             for (String s : oneUserbetInfo.keySet()) {
-                if (result.contains(s) && GameCacheService.LAST_WEEK_USER_IDS.contains(userId)) {
-                    // 玩家下的注是输的房间 判断是否是免伤玩家  是的话增加免伤金额
+                if (result.contains(s) ) {
                     BigDecimal loseAmount = oneUserbetInfo.get(s);
-                    int index = GameCacheService.LAST_WEEK_USER_IDS.indexOf(userId);
-                    BigDecimal rate = BigDecimal.ZERO;
-                    if (index == 0) {
-                        rate = new BigDecimal("0.15");
-                    } else if (index >= 1 && index <= 5) {
-                        rate = new BigDecimal("0.1");
-                    } else {
-                        rate = new BigDecimal("0.05");
+                    userDtsAmountService.addDtsAmount(Long.valueOf(userId),loseAmount.multiply(new BigDecimal("0.05")));
+                    if (GameCacheService.LAST_WEEK_USER_IDS.contains(userId)){
+                        // 玩家下的注是输的房间 判断是否是免伤玩家  是的话增加免伤金额
+                        int index = GameCacheService.LAST_WEEK_USER_IDS.indexOf(userId);
+                        BigDecimal rate = BigDecimal.ZERO;
+                        if (index == 0) {
+                            rate = new BigDecimal("0.15");
+                        } else if (index >= 1 && index <= 5) {
+                            rate = new BigDecimal("0.1");
+                        } else {
+                            rate = new BigDecimal("0.05");
+                        }
+                        BigDecimal rebate = loseAmount.multiply(rate);
+                        subAmount = subAmount.add(rebate);
                     }
-                    BigDecimal rebate = loseAmount.multiply(rate);
-                    subAmount = subAmount.add(rebate);
                 }
             }
         }

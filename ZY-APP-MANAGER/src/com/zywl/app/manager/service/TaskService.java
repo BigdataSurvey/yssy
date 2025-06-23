@@ -2,14 +2,14 @@ package com.zywl.app.manager.service;
 
 import com.alibaba.fastjson2.JSONArray;
 import com.alibaba.fastjson2.JSONObject;
-import com.zywl.app.base.bean.GuildMember;
-import com.zywl.app.base.bean.UserDzPeriods;
-import com.zywl.app.base.bean.UserDzRecord;
-import com.zywl.app.base.bean.UserStatistic;
+import com.zywl.app.base.bean.*;
 import com.zywl.app.base.service.BaseService;
 import com.zywl.app.base.util.DateUtil;
 import com.zywl.app.base.util.LockUtil;
+import com.zywl.app.base.util.OrderUtil;
 import com.zywl.app.defaultx.cache.DzCacheService;
+import com.zywl.app.defaultx.cache.GameCacheService;
+import com.zywl.app.defaultx.cache.UserCacheService;
 import com.zywl.app.defaultx.cache.card.CardGameCacheService;
 import com.zywl.app.defaultx.service.*;
 import com.zywl.app.manager.service.manager.ManagerConfigService;
@@ -38,6 +38,18 @@ public class TaskService extends BaseService {
 
     @Autowired
     private CardGameCacheService cardGameCacheService;
+
+    @Autowired
+    private GameCacheService gameCacheService;
+
+    @Autowired
+    private UserCacheService userCacheService;
+
+    @Autowired
+    private CashRecordService cashRecordService;
+
+    @Autowired
+    private ActivityService activityService;
 
 
     @Autowired
@@ -114,6 +126,7 @@ public class TaskService extends BaseService {
             }
         }, 1000, 5000);*/
 
+/*
         new Timer("清空30天未登录数据，LOG记录,计算留存").schedule(new TimerTask() {
             public void run() {
                 try {
@@ -151,9 +164,10 @@ public class TaskService extends BaseService {
 
             }
         }, DateUtil.getTaskNeed(), 1000 * 60 * 60 * 24);
+*/
 
 
-        new Timer("定时增加每日报表数据").schedule(new TimerTask() {
+    /*    new Timer("定时增加每日报表数据").schedule(new TimerTask() {
             public void run() {
                 try {
                     logger.info("增加每日报表数据开始");
@@ -179,7 +193,7 @@ public class TaskService extends BaseService {
                 }
 
             }
-        }, DateUtil.getAddStaticsDate(), 1000 * 60 * 60 * 24);
+        }, DateUtil.getAddStaticsDate(), 1000 * 60 * 60 * 24);*/
 
 
         new Timer("排行榜数据更新,后台数据更新").schedule(new TimerTask() {
@@ -246,18 +260,37 @@ public class TaskService extends BaseService {
             }
         }, DateUtil.getDzTaskDate() - System.currentTimeMillis(), 1000 * 60 * 60 * 24);
 
-        //线上环境，先注释
-//        new Timer("定时统计仙脉昨日产出进行分配").schedule(new TimerTask() {
-//            public void run() {
-//                long yesterdayTime = DateUtil.getYesterdayLongTime();
-//                ImmortalGateXmTask task = immortalGateXmTaskService.selectYesterdayTask(yesterdayTime);
-//                if(null == task){
-//                    //昨日的还没跑，需要跑一下
-//                    long id = immortalGateXmTaskService.insert(yesterdayTime, BigDecimal.ZERO);
-//                    managerJSXMService.task(yesterdayTime,id);
-//                }
-//            }
-//        },DateUtil.getTaskJSXMTime() - System.currentTimeMillis(),1000 * 60 * 60);
+
+        new Timer("定时判断是否需要操作限时活动").schedule(new TimerTask() {
+            public void run() {
+                try {
+                    logger.info("判断限时活动是否需要插入提现订单开始");
+                    long time = System.currentTimeMillis();
+                    Activity activityByTime = activityService.findActivityByTime();
+                    Activity lastActive = activityService.findById(activityByTime.getId() - 1);
+                    long activeTime = activityByTime.getBeginTime().getTime();
+                    logger.info("本期活动开启时间"+activeTime);
+                    if ((System.currentTimeMillis() - activeTime)/1000 <10 ){
+                        //本期活动刚开启还不到10秒  证明上一期刚结束
+                        List<JSONObject> lastActiveTopList = gameCacheService.getLastActiveTopList(lastActive);
+                        for (JSONObject info : lastActiveTopList) {
+                            Long userId = info.getLong("userId");
+                            User user = userCacheService.getUserInfoById(userId);
+                            BigDecimal rewardAmount = info.getBigDecimal("rewardAmount");
+                            String orderNo = OrderUtil.getOrder5Number();
+                            cashRecordService.addCashOrder(user.getOpenId(), userId, user.getUserNo(), user.getName(), user.getRealName(), orderNo,
+                                    rewardAmount, 2, user.getPhone());
+                        }
+                    }
+
+
+                    logger.info("判断限时活动用时【" + (System.currentTimeMillis() - time) + "】ms");
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+
+            }
+        }, DateUtil.getActivityNeed(), 1000 * 60 * 60 * 24);
 
     }
 

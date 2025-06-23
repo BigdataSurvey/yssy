@@ -10,11 +10,14 @@ import com.live.app.ws.util.DefaultPushHandler;
 import com.live.app.ws.util.Push;
 import com.zywl.app.base.bean.*;
 import com.zywl.app.base.bean.card.*;
+import com.zywl.app.base.bean.vo.AchievementVo;
 import com.zywl.app.base.constant.RedisKeyConstant;
 import com.zywl.app.base.service.BaseService;
+import com.zywl.app.base.util.BeanUtils;
 import com.zywl.app.base.util.LockUtil;
 import com.zywl.app.defaultx.annotation.KafkaProducer;
 import com.zywl.app.defaultx.cache.AppConfigCacheService;
+import com.zywl.app.defaultx.cache.GameCacheService;
 import com.zywl.app.defaultx.cache.UserCacheService;
 import com.zywl.app.defaultx.cache.UserCapitalCacheService;
 import com.zywl.app.defaultx.cache.card.CardGameCacheService;
@@ -81,7 +84,7 @@ public class PlayGameService extends BaseService {
 
     public static Map<String, Product> productMap = new ConcurrentHashMap<>();
 
-    public static Map<String, Map<String, Achievement>> achievementMap = new ConcurrentHashMap<>();
+    public static Map<String, Achievement> achievementMap = new ConcurrentHashMap<>();
 
     public static Map<String, Map<String, DicShop>> DIC_SHOP_MAP = new ConcurrentHashMap<>();
     public static Map<String, List<DicShop>> DIC_SHOP_LIST = new ConcurrentHashMap<>();
@@ -94,6 +97,9 @@ public class PlayGameService extends BaseService {
 
     @Autowired
     private UserCapitalService userCapitalService;
+
+    @Autowired
+    private GameCacheService gameCacheService;
 
 
     @Autowired
@@ -287,16 +293,8 @@ public class PlayGameService extends BaseService {
     }
 
     public void initAchievement() {
-        achievementMap.clear();
         List<Achievement> achievements = achievementService.findAll();
-        for (Achievement achievement : achievements) {
-            Map<String, Achievement> orDefault = achievementMap.getOrDefault(String.valueOf(achievement.getGroup()), new HashMap<>());
-            orDefault.put(String.valueOf(achievement.getGroupId()), achievement);
-            if (!achievementMap.containsKey(String.valueOf(achievement.getGroup()))) {
-                achievementMap.put(String.valueOf(achievement.getGroup()), orDefault);
-            }
-
-        }
+        achievements.forEach(e -> achievementMap.put(e.getId().toString(), e));
     }
 
     public void initIncome() {
@@ -579,6 +577,7 @@ public class PlayGameService extends BaseService {
         userStatisticMap.get(userId.toString()).setCreateAnima(userStatisticMap.get(userId.toString()).getCreateAnima().add(amount));
         userCacheService.addParentAnima(userId, parentId, amount);
     }
+
     public void addGrandfaGetAnima(Long userId, String grandfaId, BigDecimal amount) {
         getUserStatistic(grandfaId);
         userStatisticMap.get(grandfaId).setGetAnima(userStatisticMap.get(grandfaId).getGetAnima().add(amount));
@@ -629,13 +628,7 @@ public class PlayGameService extends BaseService {
     }
 
     public UserAchievement getUserAchievement(String userId) {
-        UserAchievement userAchievement;
-        if (userAchievementMap.containsKey(userId)) {
-            userAchievement = userAchievementMap.get(userId);
-        } else {
-            userAchievement = userAchievementService.findUserAchievement(Long.parseLong(userId));
-            userAchievementMap.put(userId, userAchievement);
-        }
+        UserAchievement userAchievement= userAchievementService.findUserAchievement(Long.parseLong(userId));
         return userAchievement;
     }
 
@@ -679,20 +672,23 @@ public class PlayGameService extends BaseService {
         }
     }
 
-    @KafkaProducer(topic = KafkaTopicContext.RED_POINT, event = KafkaEventContext.DTS, sendParams = true)
-    public void updateYyItemCacheByDts(String a, JSONObject orderInfo) {
-        //只是为了触发kafka
-        String id = orderInfo.getString("userId");
-        int number = orderInfo.getIntValue("betAmount");
-        updateUserBackpackCache(Long.parseLong(id), "3", -number);
+    public void addRankCache(String id, int number,int gameType) {
+        gameCacheService.addGameRankCache(gameType, id, number);
     }
 
-    @KafkaProducer(topic = KafkaTopicContext.RED_POINT, event = KafkaEventContext.LHD, sendParams = true)
-    public void updateYyItemCacheByLhd(String a, JSONObject orderInfo) {
-        //只是为了触发kafka
+    @KafkaProducer(topic = KafkaTopicContext.RED_POINT, event = KafkaEventContext.DTS, sendParams = true)
+    public void updateDtsData(String a,JSONObject orderInfo){
         String id = orderInfo.getString("userId");
-        int number = orderInfo.getIntValue("betAmount");
-        updateUserBackpackCache(Long.parseLong(id), "3", -number);
+        String orderNo = orderInfo.getString("orderNo");
+        Long dataId = orderInfo.getLong("dataId");
+        BigDecimal amount = orderInfo.getBigDecimal("betAmount");
+        UserCapital userCapital = userCapitalCacheService.getUserCapitalCacheByType(Long.parseLong(id), UserCapitalTypeEnum.currency_2.getValue());
+        userCacheService.addTodayUserPlayCount(Long.valueOf(id));
+        userCapitalCacheService.sub(Long.parseLong(id), UserCapitalTypeEnum.yyb.getValue(), amount, BigDecimal.ZERO);
+        userCapital = userCapitalCacheService.getUserCapitalCacheByType(Long.parseLong(id), UserCapitalTypeEnum.yyb.getValue());
+        userCapitalService.pushLog(1, Long.parseLong(id), UserCapitalTypeEnum.yyb.getValue(), userCapital.getBalance(), userCapital.getOccupyBalance(), amount.negate(), LogCapitalTypeEnum.game_bet_dts2, orderNo, dataId, null);
+        managerGameBaseService.pushCapitalUpdate(Long.valueOf(id),UserCapitalTypeEnum.yyb.getValue());
+        addRankCache(id, Integer.parseInt(amount.setScale(0).toString()),GameTypeEnum.battleRoyale.getValue());
     }
 
 

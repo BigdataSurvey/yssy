@@ -14,13 +14,11 @@ import com.zywl.app.base.util.OrderUtil;
 import com.zywl.app.defaultx.annotation.KafkaProducer;
 import com.zywl.app.defaultx.annotation.ServiceClass;
 import com.zywl.app.defaultx.annotation.ServiceMethod;
+import com.zywl.app.defaultx.cache.UserCacheService;
 import com.zywl.app.defaultx.cache.UserCapitalCacheService;
 import com.zywl.app.defaultx.enmus.LogCapitalTypeEnum;
 import com.zywl.app.defaultx.enmus.UserCapitalTypeEnum;
-import com.zywl.app.defaultx.service.DicVipService;
-import com.zywl.app.defaultx.service.UserCapitalService;
-import com.zywl.app.defaultx.service.UserVipService;
-import com.zywl.app.defaultx.service.VipReceiveRecordService;
+import com.zywl.app.defaultx.service.*;
 import com.zywl.app.manager.context.MessageCodeContext;
 import com.zywl.app.manager.service.PlayGameService;
 import com.zywl.app.manager.socket.ManagerSocketServer;
@@ -56,6 +54,12 @@ public class ManagerUserVipService extends BaseService {
     private DicVipService dicVipService;
     @Autowired
     private PlayGameService playGameService;
+
+    @Autowired
+    private UserService userService;
+
+    @Autowired
+    private UserCacheService userCacheService;
     private final static Map<String, DicVip> DIC_VIP_MAP = new ConcurrentHashMap<>();
     private final static String RECEIVED = "1";
     private final static String UNRECEIVE = "0";
@@ -88,6 +92,7 @@ public class ManagerUserVipService extends BaseService {
                 if (uservip.getRechargeAmount().compareTo(new BigDecimal(value.getBeginExp())) > 0
                         && uservip.getRechargeAmount().compareTo(new BigDecimal(value.getEndExp())) < 0) {
                     uservip.setVipLevel(value.getLv());
+                    userService.updateUserVip1(userId,value.getLv());
                     break;
                 }
             }

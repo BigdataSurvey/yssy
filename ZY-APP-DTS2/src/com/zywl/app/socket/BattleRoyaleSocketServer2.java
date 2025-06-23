@@ -156,7 +156,7 @@ public class BattleRoyaleSocketServer2 extends BaseServerSocket {
 						//判断是否是观众席，观众席的话 移除，通知房间所有人
 						if (BattleRoyaleService2.ROOM.getLookList().containsKey(userId)) {
 							BattleRoyaleService2.ROOM.getLookList().remove(userId);
-							Push.push(PushCode.updateDts2Info, null, BattleRoyaleService2.ROOM.pushResult(2, userId, null, null));
+							//Push.push(PushCode.updateDts2Info, null, BattleRoyaleService2.ROOM.pushResult(2, userId, null, null));
 							BattleRoyaleService2.ROOM.getPlayers().remove(userId);
 						}
 						if (!BattleRoyaleService2.ROOM.getUserBetInfo().containsKey(userId)) {

@@ -13,6 +13,8 @@ public class KafkaEventContext {
 
     public static final String READ_MAIL = "READ_MAIL";
 
+    public static final String ADD_HP = "ADD_HP";
+
     public static final String ADD_REWARD="ADD_REWARD";
 
     public static final String LOGIN = "LOGIN";

@@ -2,27 +2,20 @@ package com.zywl.app.manager.service.manager;
 
 import com.alibaba.fastjson2.JSONArray;
 import com.alibaba.fastjson2.JSONObject;
-import com.live.app.ws.enums.PushCode;
-import com.live.app.ws.util.Push;
-import com.zywl.app.base.bean.*;
+import com.zywl.app.base.bean.CompleteAchievementRecord;
+import com.zywl.app.base.bean.UserAchievement;
+import com.zywl.app.base.bean.UserStatistic;
 import com.zywl.app.base.service.BaseService;
-import com.zywl.app.base.util.JSONUtil;
 import com.zywl.app.base.util.LockUtil;
 import com.zywl.app.base.util.OrderUtil;
-import com.zywl.app.defaultx.annotation.KafkaProducer;
 import com.zywl.app.defaultx.annotation.ServiceClass;
 import com.zywl.app.defaultx.annotation.ServiceMethod;
+import com.zywl.app.defaultx.cache.AchievementCacheService;
 import com.zywl.app.defaultx.cache.ItemCacheService;
+import com.zywl.app.defaultx.cache.UserBackpackCacheService;
 import com.zywl.app.defaultx.cache.UserCapitalCacheService;
-import com.zywl.app.defaultx.enmus.AchievementGroupEnum;
 import com.zywl.app.defaultx.enmus.LogCapitalTypeEnum;
-import com.zywl.app.defaultx.enmus.LogUserBackpackTypeEnum;
-import com.zywl.app.defaultx.enmus.UserCapitalTypeEnum;
-import com.zywl.app.defaultx.service.CompleteAchievementRecordService;
-import com.zywl.app.defaultx.service.UserAchievementService;
-import com.zywl.app.defaultx.service.UserCapitalService;
-import com.zywl.app.manager.context.KafkaEventContext;
-import com.zywl.app.manager.context.KafkaTopicContext;
+import com.zywl.app.defaultx.service.*;
 import com.zywl.app.manager.context.MessageCodeContext;
 import com.zywl.app.manager.service.PlayGameService;
 import com.zywl.app.manager.socket.ManagerSocketServer;
@@ -30,10 +23,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.math.BigDecimal;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 
 @Service
@@ -42,42 +33,28 @@ public class ManagerAchievementService extends BaseService {
 
 
     @Autowired
-    private UserCapitalService userCapitalService;
+    private UserAchievementService userAchievementService;
 
     @Autowired
     private PlayGameService gameService;
 
     @Autowired
-    private UserAchievementService userAchievementService;
+    private UserStatisticService userStatisticService;
 
-    @Autowired
-    private ItemCacheService itemCacheService;
-
-    @Autowired
-    private UserCapitalCacheService userCapitalCacheService;
-
-    @Autowired
-    private ManagerSocketService managerSocketService;
-
-
-    public static Object lock = new Object();
-    @Autowired
-    private CompleteAchievementRecordService completeAchievementRecordService;
 
 
     @Transactional
     @ServiceMethod(code = "001", description = "领取成就奖励")
-    @KafkaProducer(topic = KafkaTopicContext.RED_POINT,event = KafkaEventContext.RECEIVE_ACHIEVEMENT,sendParams = true)
     public JSONObject receiveReward(ManagerSocketServer adminSocketServer, JSONObject data) {
         checkNull(data);
         checkNull(data.get("userId"), data.get("achievementId"));
         String id = data.getString("achievementId");
         Long userId = data.getLong("userId");
-        JSONArray reward = null;
         synchronized (LockUtil.getlock(userId.toString())) {
             UserAchievement userAchievement = gameService.getUserAchievement(userId.toString());
             JSONArray array = userAchievement.getAchievementList();
             boolean b = false;
+            JSONArray reward = null;
             JSONArray newArray = new JSONArray();
             for (Object o : array) {
                 JSONObject achievementVo = JSONObject.from(o);
@@ -90,32 +67,8 @@ public class ManagerAchievementService extends BaseService {
                         throwExp("已领取过该成就");
                     }
                     reward = achievementVo.getJSONArray("reward");
-                    gameService.addReward(userId, reward, LogCapitalTypeEnum.receive_achievement);
-                    int group = achievementVo.getIntValue("group");
-                    int groupId = achievementVo.getIntValue("groupId");
-                    Map<String, Achievement> stringAchievementMap = PlayGameService.achievementMap.get(String.valueOf(group));
-                    if (stringAchievementMap.containsKey(String.valueOf(groupId + 1))) {
-                        Achievement achievement = stringAchievementMap.get(String.valueOf(groupId + 1));
-                        JSONObject newVo = new JSONObject();
-                        newVo.put("id", achievement.getId());
-                        newVo.put("condition", achievement.getCondition());
-                        newVo.put("context", achievement.getContext());
-                        newVo.put("reward", achievement.getReward());
-                        newVo.put("group", group);
-                        newVo.put("groupId", groupId + 1);
-                        newVo.put("schedule", achievementVo.getIntValue("schedule"));
-                        if (achievementVo.getIntValue("schedule") >= Integer.parseInt(achievement.getCondition()) &&group!= AchievementGroupEnum.PVP_RANK.getValue()) {
-                            newVo.put("status", 2);
-                        } else {
-                            if (group== AchievementGroupEnum.PVP_RANK.getValue() &&   (achievementVo.getIntValue("schedule") <= Integer.parseInt(achievement.getCondition()))){
-                                newVo.put("status", 2);
-                            }else {
-                                newVo.put("status", 0);
-                            }
-
-                        }
-                        newArray.add(newVo);
-                    }
+                    achievementVo.put("status", 1);
+                    newArray.add(achievementVo);
                 } else {
                     newArray.add(achievementVo);
                 }
@@ -123,14 +76,17 @@ public class ManagerAchievementService extends BaseService {
             if (!b) {
                 throwExp("未查询到该成就");
             }
+            userAchievementService.updateList(userId,array);
             //领取完成 更新成就信息
-            userAchievementService.updateList(userId,newArray);
-            PlayGameService.userAchievementMap.get(userId.toString()).setAchievementList(newArray);
+            gameService.addReward(userId, reward, LogCapitalTypeEnum.receive_achievement);
+
             JSONObject result = new JSONObject();
             result.put("userId", data.get("userId"));
             result.put("rewardInfo", reward);
             return result;
         }
+
+
     }
 
     @Transactional
@@ -139,16 +95,43 @@ public class ManagerAchievementService extends BaseService {
         checkNull(data);
         checkNull(data.get("userId"));
         String userId = data.getString("userId");
-        synchronized (LockUtil.getlock(userId)){
-            UserAchievement userAchievement = gameService.getUserAchievement(userId);
-            JSONObject result = new JSONObject();
-            result.put("userId", userId);
-            JSONArray achievementList = userAchievement.getAchievementList();
-            achievementList = JSONUtil.sortArray(achievementList,"status");
-            result.put("achievementList", achievementList);
-            return result;
+        UserAchievement userAchievement = gameService.getUserAchievement(userId);
+        JSONArray achievementList = userAchievement.getAchievementList();
+        UserStatistic userStatistic = userStatisticService.findByUserId(Long.valueOf(userId));
+        boolean b = false;
+        for (Object o : achievementList) {
+            JSONObject info = (JSONObject) o;
+            if (info.getInteger("group") == 2) {
+               boolean c = checkAchievementByInviteUser(info, userStatistic);
+               if (!b && c){
+                    b= true;
+               }
+            }
         }
+        if (b){
+            userAchievementService.updateList(Long.valueOf(userId),achievementList);
+        }
+        JSONObject result = new JSONObject();
+        result.put("userId", userId);
+        result.put("achievementList", achievementList);
+        return result;
     }
 
+    public boolean checkAchievementByInviteUser(JSONObject info, UserStatistic userStatistic) {
+        int status = info.getInteger("status");
+        if (status==1){
+            return false;
+        }
+        info.put("schedule",userStatistic.getOneJuniorNum());
+        // 0 未完成  2 完成未领取
+        if (status==0 || status==2){
+            if (userStatistic.getOneJuniorNum()>=info.getInteger("condition")){
+                info.put("schedule",info.getIntValue("condition"));
+                info.put("status",2);
+                return true;
+            }
+        }
+        return false;
+    }
 
 }

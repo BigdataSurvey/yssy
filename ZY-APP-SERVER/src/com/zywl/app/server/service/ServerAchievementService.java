@@ -61,7 +61,7 @@ public class ServerAchievementService extends BaseService{
 		params.put("userId",userId);
 		//判断此成就是否是已达到条件
 		if (userCacheService.canReceiveMail(String.valueOf(userId))) {
-			throwExp("请求频繁");
+			throwExp("点击过快");
 		}
 		userCacheService.userReceiveMailTime(String.valueOf(userId));
 		User user = userCacheService.getUserInfoById(userId);

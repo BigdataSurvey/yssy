@@ -58,11 +58,15 @@ public class TsgHfPayServlet extends BaseServlet {
             logger.info("未查询到订单+"+requestNo);
             return;
         }
+        if (tsgPayOrder.getStatus()==3){
+            logger.info("订单已完成。");
+            return;
+        }
         tsgPayOrder.setStatus(status);
         if (status == 3) {
             Long userId = tsgPayOrder.getUserId();
             int productId = Math.toIntExact(tsgPayOrder.getProductId());
-            userGiftService.addUserGiftNumber(userId, productId);
+            userGiftService.addUserGiftNumber(userId, productId, tsgPayOrder.getNumber());
             managerUserVipService.addExper(userId, tsgPayOrder.getPrice());
         }
         tsgPayOrderService.updateOrder(tsgPayOrder);

@@ -74,7 +74,6 @@ public class UserCapitalCacheService extends RedisService {
                 //需要同步
                 data.clear();
                 data.put("userCapitals", userCapitals);
-                Push.push(PushCode.syncUserCapital, null, data);
             }
         }
         if (userCapital == null) {
@@ -113,7 +112,6 @@ public class UserCapitalCacheService extends RedisService {
             }
             data.clear();
             data.put("userCapitals", userCapitals);
-            Push.push(PushCode.syncUserCapital, null, data);
         }
     }
 
@@ -130,7 +128,6 @@ public class UserCapitalCacheService extends RedisService {
             userCapitals.get(key).setOccupyBalance(userCapitals.get(key).getOccupyBalance().add(occupyAmount));
             data.clear();
             data.put("userCapitals", userCapitals);
-            Push.push(PushCode.syncUserCapital, null, data);
         }
     }
 
@@ -148,7 +145,6 @@ public class UserCapitalCacheService extends RedisService {
             userCapitals.get(key).setOccupyBalance(userCapitals.get(key).getOccupyBalance().subtract(occupyAmonut));
             data.clear();
             data.put("userCapitals", userCapitals);
-            Push.push(PushCode.syncUserCapital, null, data);
         }
     }
     public void subGift(Long userId, int capitalType, long amount, long occupyAmonut,BigDecimal price) {
@@ -163,7 +159,6 @@ public class UserCapitalCacheService extends RedisService {
             userCapitals.get(key).setBalance(userCapitals.get(key).getBalance().subtract(price));
             data.clear();
             data.put("userCapitals", userCapitals);
-            Push.push(PushCode.syncUserCapital, null, data);
         }
     }
 
@@ -177,7 +172,6 @@ public class UserCapitalCacheService extends RedisService {
         }
         data.clear();
         data.put("userCapitals", userCapitals);
-        Push.push(PushCode.syncUserCapital, null, data);
     }
 
     //通过资产类型获取资产枚举
@@ -197,7 +191,6 @@ public class UserCapitalCacheService extends RedisService {
         }
         data.clear();
         data.put("userCapitals", userCapitals);
-        Push.push(PushCode.syncUserCapital, null, data);
     }
 
 }

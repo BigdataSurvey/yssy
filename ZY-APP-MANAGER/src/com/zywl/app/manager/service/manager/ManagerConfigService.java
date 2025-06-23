@@ -80,6 +80,7 @@ public class ManagerConfigService extends BaseService {
 	public void _construct(){
 		Push.addPushSuport(PushCode.updateConfig, new DefaultPushHandler());
 		Push.addPushSuport(PushCode.sendNotice, new DefaultPushHandler());
+		Push.addPushSuport(PushCode.chat, new DefaultPushHandler());
 		Push.addPushSuport(PushCode.updateTableVersion, new DefaultPushHandler());
 		Push.addPushSuport(PushCode.caidengmi, new DefaultPushHandler());
 		List<Config> findAll = configService.findAll();
@@ -201,7 +202,12 @@ public class ManagerConfigService extends BaseService {
 			UserCapitalCacheService.userCapitals.clear();
 		}else if (key.equals(Config.REFRESH_USER_COIN)) {
 			PlayGameService.playercoins.clear();
-		}else if (key.equals(Config.ITEM_VERSION)) {
+		}else if (key.equals(Config.SHOP_VERSION)) {
+			PlayGameService.DIC_SHOP_LIST.clear();
+			PlayGameService.DIC_SHOP_MAP.clear();
+			gameService.initShop();
+		}
+		else if (key.equals(Config.ITEM_VERSION)) {
 			gameService.initItem();
 			appConfigCacheService.removeKey(RedisKeyConstant.APP_CONFIG_VERSION_ITEM);
 			itemCacheService.removeAllItemCache();

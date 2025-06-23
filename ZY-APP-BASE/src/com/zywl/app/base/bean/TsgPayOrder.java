@@ -23,6 +23,10 @@ public class TsgPayOrder extends BaseBean {
 
     private BigDecimal price;
 
+    private BigDecimal allPrice;
+
+    private int number;
+
     private Integer status;
 
     private Date expireTime;
@@ -108,5 +112,21 @@ public class TsgPayOrder extends BaseBean {
 
     public void setChannel(int channel) {
         this.channel = channel;
+    }
+
+    public BigDecimal getAllPrice() {
+        return allPrice;
+    }
+
+    public void setAllPrice(BigDecimal allPrice) {
+        this.allPrice = allPrice;
+    }
+
+    public int getNumber() {
+        return number;
+    }
+
+    public void setNumber(int number) {
+        this.number = number;
     }
 }

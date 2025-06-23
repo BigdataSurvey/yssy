@@ -68,7 +68,8 @@ public enum PushCode {
 	 * 推送表版本更新
 	 */
 	updateTableVersion,
-	
+
+
 	/**
 	 * 推送红点至APP
 	 */

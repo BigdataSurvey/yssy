@@ -275,6 +275,22 @@ public class ManagerSocket extends BaseClientSocket {
             }
         }, this);
 
+        Push.registPush(new PushBean(PushCode.chat), new PushListener() {
+            public void onRegist(BaseSocket baseSocket, Object data) {
+            }
+
+            public void onReceive(BaseSocket baseSocket, Object data) {
+                JSONObject obj = (JSONObject) data;
+                Map<String, AppSocket> clients = SocketManager.getClients(TargetSocketType.app);
+                for (AppSocket appSocket : clients.values()) {
+                    WsidBean wsidBean = appSocket.getWsidBean();
+                    if (wsidBean != null && wsidBean.getUserId() != null) {
+                        Push.push(appSocket, CommandBuilder.builder().push(PushCode.chat, obj).build());
+                    }
+                }
+            }
+        }, this);
+
         Push.registPush(new PushBean(PushCode.sendNotice), new PushListener() {
             public void onRegist(BaseSocket baseSocket, Object data) {
             }

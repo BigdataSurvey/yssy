@@ -80,7 +80,7 @@ public class ManagerMailService extends BaseService {
         Long userId = data.getLongValue("userId");
         synchronized (LockUtil.getlock(userId.toString())) {
             if (userCacheService.canReceiveMail(userId.toString())) {
-                throwExp("请求频繁");
+                throwExp("点击过快");
             }
             userCacheService.userReceiveMailTime(userId.toString());
             Long mailId = data.getLongValue("mailId");

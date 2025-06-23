@@ -59,6 +59,8 @@ public class UpdateAppService extends BaseService {
 		}
 	}
 
+
+
 	//推送至客户端，让客户端知道有新的红包发出
 	public void pushRedPackageInfo(JSONObject obj) {
 		Map<String, AppSocket> clients = SocketManager.getClients(TargetSocketType.app);

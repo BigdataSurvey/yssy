@@ -589,6 +589,9 @@
 	<update id="updateUserVip2" parameterType="User">
 		update t_user set vip2 =  1  where id=#{userId}
 	</update>
+	<update id="updateUserVip1" parameterType="User">
+		update t_user set vip1 =  #{lv}  where id=#{userId}
+	</update>
 
 	<update id="openWeek" parameterType="User">
 		update t_user set vip1 = 1 ,vip_expire_time=#{expireTime}  where id=#{userId} and status=1

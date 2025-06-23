@@ -50,22 +50,26 @@ public class ServerActivityService extends BaseService {
             throwExp("未查询到活动信息");
         }
         String key = RedisKeyConstant.APP_TOP_lIST + activity.getId();
-        String rankKey = RedisKeyConstant.POINT_RANK_LIST;
         User user = userCacheService.getUserInfoById(userId);
         if (user == null) {
             throwExp("用户信息异常");
         }
         JSONObject result = new JSONObject();
-        List<JSONObject> topList = gameCacheService.getTopList(key, rankKey);
+        List<JSONObject> topList = gameCacheService.getActiveTopList();
         result.put("rankList", topList);
-        Double userRankScore = gameCacheService.getUserTopScore(String.valueOf(userId));
+        Double userRankScore = gameCacheService.getUserTopScore(String.valueOf(userId),activity.getId());
         result.put("myScore", userRankScore == null ? 0.0 : userRankScore);
         Long myRank = gameCacheService.getTopRankByKey(key, String.valueOf(userId));
         result.put("myRank", myRank == null ? "未上榜" : myRank + 1);
+
         if (myRank == null || userRankScore == null) {
             result.put("myMoney", BigDecimal.ZERO);
         } else {
             result.put("myMoney", gameCacheService.getRankMoney(userId,userRankScore, myRank + 1,topList));
+        }
+        if (result.getDoubleValue("myScore")<3){
+            result.put("myRank", "未上榜");
+            result.put("myMoney", BigDecimal.ZERO);
         }
         result.put("activeInfo", activity);
         return result;

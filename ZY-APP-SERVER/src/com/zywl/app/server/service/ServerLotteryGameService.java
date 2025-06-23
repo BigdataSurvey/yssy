@@ -13,6 +13,7 @@ import com.live.app.ws.util.DefaultPushHandler;
 import com.live.app.ws.util.Executer;
 import com.live.app.ws.util.Push;
 import com.zywl.app.base.bean.User;
+import com.zywl.app.base.bean.UserDtsAmount;
 import com.zywl.app.base.service.BaseService;
 import com.zywl.app.base.util.Async;
 import com.zywl.app.base.util.DateUtil;
@@ -21,15 +22,18 @@ import com.zywl.app.defaultx.annotation.ServiceMethod;
 import com.zywl.app.defaultx.cache.GameCacheService;
 import com.zywl.app.defaultx.cache.UserCacheService;
 import com.zywl.app.defaultx.enmus.GameTypeEnum;
+import com.zywl.app.defaultx.service.UserDtsAmountService;
 import com.zywl.app.server.context.MessageCodeContext;
 import com.zywl.app.server.socket.AppSocket;
 import com.zywl.app.server.util.RequestManagerListener;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import javax.annotation.PostConstruct;
 import java.math.BigDecimal;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -50,6 +54,9 @@ public class ServerLotteryGameService extends BaseService {
 
     @Autowired
     private GameCacheService gameCacheService;
+
+    @Autowired
+    private UserDtsAmountService userDtsAmountService;
 
 
     public static List<BigDecimal> betList = new ArrayList<>();
@@ -301,27 +308,82 @@ public class ServerLotteryGameService extends BaseService {
         }
         JSONObject result = new JSONObject();
         int type= params.getInteger("type");
-        if (type==1){
-            result.put("rankList",gameCacheService.getLastWeekList());
+        if (type==2){
+            result.put("rankList",gameCacheService.getLastWeekListDts());
             Double userLastWeekRankScore = gameCacheService.getUserLastWeekRankScore(GameTypeEnum.battleRoyale.getValue(), String.valueOf(userId));
             result.put("myScore",userLastWeekRankScore==null?0.0:userLastWeekRankScore);
-            Long rank = gameCacheService.getLastWeekUserRank(String.valueOf(userId));
+            Long rank = gameCacheService.getLastWeekUserRankDts(String.valueOf(userId));
             result.put("myRank",rank==null?-1:rank+1);
-        } else if (type==0) {
+        } else if (type==1) {
             result.put("remainingTime", DateUtil.thisWeekRemainingTime());
-            result.put("rankList",gameCacheService.getThisWeekList());
+            result.put("rankList",gameCacheService.getThisWeekListDts());
             Double userRankScore = gameCacheService.getUserRankScore(GameTypeEnum.battleRoyale.getValue(), String.valueOf(userId));
             result.put("myScore", userRankScore ==null?0.0:userRankScore);
-            Long thisWeekUserRank = gameCacheService.getThisWeekUserRank(String.valueOf(userId));
+            Long thisWeekUserRank = gameCacheService.getThisWeekUserRankDts(String.valueOf(userId));
             result.put("myRank",thisWeekUserRank==null?-1:thisWeekUserRank+1);
         }
-
-
         return result;
     }
 
 
 
+
+    @ServiceMethod(code = "016", description = "游园宝箱")
+    public JSONObject yybx(final AppSocket appSocket, Command appCommand, JSONObject params) {
+        checkNull(params);
+        Long userId = appSocket.getWsidBean().getUserId();
+        UserDtsAmount byUserId = userDtsAmountService.findByUserId(userId);
+        JSONObject result = new JSONObject();
+        if (byUserId==null){
+            result.put("amount",BigDecimal.ZERO);
+            result.put("day",180);
+            return result;
+        }
+
+        result.put("amount",byUserId.getAmount());
+        Date dateByDay = DateUtil.getDateByDay(byUserId.getCreateTime(), 180);
+        long day = DateUtil.calculateDayDifference( dateByDay,new Date());
+        result.put("day",day);
+        return result;
+    }
+
+    @Transactional
+    @ServiceMethod(code = "017", description = "游园宝箱")
+    public JSONObject openBox(final AppSocket appSocket, Command appCommand, JSONObject params) {
+        checkNull(params);
+        Long userId = appSocket.getWsidBean().getUserId();
+        throwExp("未到开启时间");
+        return null;
+    }
+
+    @ServiceMethod(code = "018", description = "2选1排行榜")
+    public JSONObject lhdRankList(final AppSocket appSocket, Command appCommand, JSONObject params) {
+        checkNull(params);
+        checkNull(params.get("type"));
+        long userId = appSocket.getWsidBean().getUserId();
+        params.put("userId", userId);
+        User user = userCacheService.getUserInfoById(userId);
+        if (user == null) {
+            throwExp("用户信息异常");
+        }
+        JSONObject result = new JSONObject();
+        int type= params.getInteger("type");
+        if (type==2){
+            result.put("rankList",gameCacheService.getLhdLastWeekList());
+            Double userLastWeekRankScore = gameCacheService.getUserLastWeekRankScore(GameTypeEnum.nh.getValue(), String.valueOf(userId));
+            result.put("myScore",userLastWeekRankScore==null?0.0:userLastWeekRankScore);
+            Long rank = gameCacheService.getLastWeekUserRankLhd(String.valueOf(userId));
+            result.put("myRank",rank==null?-1:rank+1);
+        } else if (type==1) {
+            result.put("remainingTime", DateUtil.thisWeekRemainingTime());
+            result.put("rankList",gameCacheService.getThisWeekListLhd());
+            Double userRankScore = gameCacheService.getUserRankScore(GameTypeEnum.nh.getValue(), String.valueOf(userId));
+            result.put("myScore", userRankScore ==null?0.0:userRankScore);
+            Long thisWeekUserRank = gameCacheService.getThisWeekUserRankLhd(String.valueOf(userId));
+            result.put("myRank",thisWeekUserRank==null?-1:thisWeekUserRank+1);
+        }
+        return result;
+    }
 
 
 

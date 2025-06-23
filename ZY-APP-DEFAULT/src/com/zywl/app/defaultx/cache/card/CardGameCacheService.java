@@ -315,7 +315,6 @@ public class CardGameCacheService extends RedisService {
                     info.put("roleId", userInfoById.getRoleId());
                     array.add(info);
                 }
-
             }
             set(key, array, 86400 * 10);
         }
@@ -335,31 +334,6 @@ public class CardGameCacheService extends RedisService {
         return map;
     }
 
-    public List<JSONObject> getThisWeekList() {
-        String key = RedisKeyConstant.GAME_RANK_LIST;
-        List<JSONObject> list = getList(key, JSONObject.class);
-        if (list == null || list.size() == 0) {
-            Map<String, Double> lastWeekTopList = getThisWeekTopList(50);
-            Set<String> ids = lastWeekTopList.keySet();
-            list = new ArrayList<>();
-            for (String id : ids) {
-                User userInfoById = userCacheService.getUserInfoById(id);
-                if (userInfoById != null) {
-                    JSONObject info = new JSONObject();
-                    info.put("userHeadImg", userInfoById.getHeadImageUrl());
-                    info.put("userId", id);
-                    info.put("userName", userInfoById.getName());
-                    info.put("userNo", userInfoById.getUserNo());
-                    info.put("popularity", lastWeekTopList.get(id));
-                    list.add(info);
-                }
-            }
-            set(key, list, 60);
-        }
-        list.sort(Comparator.comparingDouble(obj -> obj.getIntValue("popularity")));
-        Collections.reverse(list);
-        return list;
-    }
 
     public String getLastWeekRankKey() {
         String key = RedisKeyConstant.GAME_RANK_GREETING_CARD + DateUtil.getFirstDayOfLastWeek();

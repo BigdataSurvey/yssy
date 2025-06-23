@@ -11,6 +11,8 @@
                `product_id`,
 		        `remark`,
                `price`,
+		        `all_price`,
+		        `number`,
                `status`,
                `expire_time`,
 		        `create_time`
@@ -25,6 +27,8 @@
                #{productId},
 		        #{remark},
                #{price},
+               #{allPrice},
+               #{number},
                #{status},
                #{expireTime},
 		       #{createTime}

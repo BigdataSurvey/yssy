@@ -55,7 +55,12 @@ public class UserVipService extends DaoService {
 
     public List<VipTopVo> findTopByVip(){
         return findList("findTopByVip",null);
-    } public UserVip findUserVipByUserId(Long userId){
-        return (UserVip) findOne("findUserVipByUserId",userId);
+    }
+    public UserVip findUserVipByUserId(Long userId){
+        UserVip userVip = (UserVip) findOne("findUserVipByUserId", userId);
+        if (userVip==null){
+            return addUserVip(userId);
+        }
+        return userVip;
     }
 }

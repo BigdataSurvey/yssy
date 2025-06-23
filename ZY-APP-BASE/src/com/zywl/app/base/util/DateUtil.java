@@ -877,6 +877,18 @@ public class DateUtil {
         Date newDate = calendar.getTime();
         return newDate.getTime();
     }
+
+    public static long getTomorrowBeginActive() {
+        Calendar calendar = Calendar.getInstance();
+        // 加上指定天数
+        calendar.add(Calendar.DAY_OF_YEAR, 1);
+        calendar.set(Calendar.MINUTE, 0);
+        calendar.set(Calendar.HOUR_OF_DAY, 0);
+        calendar.set(Calendar.SECOND, 3);
+        calendar.set(Calendar.MILLISECOND, 0);
+        Date newDate = calendar.getTime();
+        return newDate.getTime();
+    }
     public static Date getTomorrowBeginDate() {
         Calendar calendar = Calendar.getInstance();
         // 加上指定天数
@@ -1012,9 +1024,14 @@ public class DateUtil {
         // 将小时、分钟、秒和毫秒都设置为0
         calendar.set(Calendar.HOUR_OF_DAY, 0);
         calendar.set(Calendar.MINUTE, 0);
-        calendar.set(Calendar.SECOND, 0);
+        calendar.set(Calendar.SECOND,3);
         calendar.set(Calendar.MILLISECOND, 0);
         return calendar.getTimeInMillis();
+    }
+
+    public static long getActivityNeed() {
+
+        return getTomorrowBeginActive() - System.currentTimeMillis();
     }
 
     public static long time5() {
@@ -1178,12 +1195,22 @@ public class DateUtil {
     }
 
 
+    //两个日期之间间隔多少分钟
     public static long calculateMinutesDifference(Date date1, Date date2) {
         // 将Date转换为LocalDateTime
         LocalDateTime localDateTime1 = date1.toInstant().atZone(ZoneId.systemDefault()).toLocalDateTime();
         LocalDateTime localDateTime2 = date2.toInstant().atZone(ZoneId.systemDefault()).toLocalDateTime();
         Duration duration = Duration.between(localDateTime2, localDateTime1);
         return duration.toMinutes(); // 获取分钟差
+    }
+
+    //两个日期之间间隔多少天
+    public static long calculateDayDifference(Date date1, Date date2) {
+        // 将Date转换为LocalDateTime
+        LocalDateTime localDateTime1 = date1.toInstant().atZone(ZoneId.systemDefault()).toLocalDateTime();
+        LocalDateTime localDateTime2 = date2.toInstant().atZone(ZoneId.systemDefault()).toLocalDateTime();
+        Duration duration = Duration.between(localDateTime2, localDateTime1);
+        return duration.toDays(); // 获取天数差
     }
 
     //获取两个小时直接间隔多少个小时

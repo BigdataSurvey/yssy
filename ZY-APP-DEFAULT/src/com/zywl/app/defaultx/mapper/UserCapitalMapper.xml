@@ -122,13 +122,7 @@
 	</update>
 
 	<update id="subUserBalance2" parameterType="UserCapital">
-		update t_user_capital
-		<set>
-			<if test="amount != null">
-				balance=balance- #{amount}
-			</if>
-		</set>
-		where user_id=#{userId} and capital_type=#{capitalType}  and balance-#{amount}>=0
+		update t_user_capital set balance=balance-#{amount} where user_id=#{userId} and capital_type=#{capitalType}  and balance-#{amount}&gt;=0
 	</update>
 
 	<delete id="delete">

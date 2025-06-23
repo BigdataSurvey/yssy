@@ -135,7 +135,10 @@ public class KafkaConsumerService extends BaseService {
         } else if (KafkaEventContext.READ_MAIL.equals(eventType)) {
             //读取邮件
             readMail(data);
-        } else if (KafkaEventContext.ADD_REWARD.equals(eventType)) {
+        } else if (KafkaEventContext.ADD_HP.equals(eventType)) {
+            //恢复一次体力
+            userAddHp(data);
+        }else if (KafkaEventContext.ADD_REWARD.equals(eventType)) {
             Long time = System.currentTimeMillis();
             //获取奖励时的红点判断
             // addRewardRedPoint(data);
@@ -169,9 +172,6 @@ public class KafkaConsumerService extends BaseService {
             userLHD(data);
         } else if (KafkaEventContext.RECEIVE_ACHIEVEMENT.equals(eventType)) {
             checkRemoveRedAchievement(data, KafkaEventContext.ACHIEVEMENT);
-        } else if (KafkaEventContext.USE_ITEM.equals(eventType)) {
-            //使用道具 判断是否是战马
-            checkUserPetAchievement(data);
         } else if (KafkaEventContext.OPEN_MINE.equals(eventType)) {
             checkOpenMineAchievement(data);
         }
@@ -212,6 +212,11 @@ public class KafkaConsumerService extends BaseService {
         checkDailyTaskIsOk(userId, TaskIdEnum.SYN.getValue());
     }
 
+    public void userAddHp(JSONObject data) {
+        Long userId = data.getLong("userId");
+        checkDailyTaskIsOk(userId, TaskIdEnum.ADD_POWER.getValue());
+    }
+
     public void userDts(JSONObject data) {
         Long userId = data.getLong("userId");
         checkDailyTaskIsOk(userId, TaskIdEnum.DTS.getValue());
@@ -248,35 +253,7 @@ public class KafkaConsumerService extends BaseService {
         checkAchievement(data, AchievementGroupEnum.OPEN_MINE.getValue());
     }
 
-    public void checkUserPetAchievement(JSONObject data) {
-        Long userId = data.getLong("userId");
-        String itemId = data.getString("itemId");
-        if (ItemIdEnum.PET_JUEYING.getValue().equals(itemId)) {
-            checkAchievement(data, AchievementGroupEnum.GET_PET_1.getValue());
-        }
-        if (ItemIdEnum.PET_CHITU.getValue().equals(itemId)) {
-            checkAchievement(data, AchievementGroupEnum.GET_PET_2.getValue());
-        }
-        if (ItemIdEnum.PET_DILU.getValue().equals(itemId)) {
-            checkAchievement(data, AchievementGroupEnum.GET_PET_3.getValue());
-        }
-        if (ItemIdEnum.PET_DAWAN.getValue().equals(itemId)) {
-            checkAchievement(data, AchievementGroupEnum.GET_PET_4.getValue());
-        }
-        if (ItemIdEnum.PET_ZHFD.getValue().equals(itemId)) {
-            checkAchievement(data, AchievementGroupEnum.GET_PET_5.getValue());
-        }
-        if (ItemIdEnum.PET_JINGFAN.getValue().equals(itemId)) {
-            checkAchievement(data, AchievementGroupEnum.GET_PET_6.getValue());
-        }
-        if (ItemIdEnum.PET_ZIXIN.getValue().equals(itemId)) {
-            checkAchievement(data, AchievementGroupEnum.GET_PET_7.getValue());
-        }
-        if (ItemIdEnum.PET_BAIHAO.getValue().equals(itemId)) {
-            checkAchievement(data, AchievementGroupEnum.GET_PET_8.getValue());
-        }
 
-    }
 
 
     //检查主线胜利成就
@@ -395,7 +372,7 @@ public class KafkaConsumerService extends BaseService {
         //登录时的每日任务判断和红点推送
         userLoginCheckRedPoint(data);
         Long userId = data.getLong("userId");
-        checkDailyTaskIsOk(userId, TaskIdEnum.LOGIN.getValue());
+        //checkDailyTaskIsOk(userId, TaskIdEnum.LOGIN.getValue());
 
     }
 

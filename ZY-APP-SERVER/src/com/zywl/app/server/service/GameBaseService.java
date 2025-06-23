@@ -634,7 +634,8 @@ public class GameBaseService extends BaseService {
     public Object QQQUN(AppSocket appSocket, Command command, JSONObject data) {
         Long userId = appSocket.getWsidBean().getUserId();
         String QQ = serverConfigService.getString(Config.QQ);
-        return QQ;
+        String[] split = QQ.split(",");
+        return split;
     }
 
 
@@ -690,6 +691,22 @@ public class GameBaseService extends BaseService {
     }
 
 
+    @ServiceMethod(code = "056", description = "世界聊天")
+    public Object chat(AppSocket appSocket, Command command, JSONObject data) {
+        Long userId = appSocket.getWsidBean().getUserId();
+        data.put("userId",userId);
+        int type= data.getIntValue("type");
+        if (type!=1 && type!=2){
+            throwExp("非法请求");
+        }
+        String text = data.getString("text");
+        if (tree.isMatch(text)){
+            throwExp("包含敏感字符");
+        }
+        Executer.request(TargetSocketType.manager, CommandBuilder.builder().request("100056", data).build(),
+                new RequestManagerListener(command));
+        return async();
+    }
 
 
 }
