@@ -741,6 +741,14 @@ public class ManagerGameBaseService extends BaseService {
         //指定itemid为37、38 减掉背包大小靓号道具
         gameService.updateUserBackpack(userId, itemId, -number, LogUserBackpackTypeEnum.use);
         gameCacheService.deleteByKey("randomGoodNoList");
+        //变更用户信息推送
+        JSONObject pushDate = new JSONObject();
+        pushDate.put("userId", userId);
+        User user = userCacheService.getUserInfoById(userId);
+        UserVo vo = new UserVo();
+        BeanUtils.copy(user, vo);
+        pushDate.put("userInfo", vo);
+        Push.push(PushCode.updateUserInfo, managerSocketService.getServerIdByUserId(userId), pushDate);
         return result;
     }
 
