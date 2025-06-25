@@ -36,7 +36,12 @@
 	<select id="findAll" resultType="LogUserBackpack">
 	    select * from t_user
 	</select>
-	
+
+	<select id="findItemLog" resultType="LogUserBackpack">
+		select * from ${tableName} where user_id=#{userId} and item_id=#{itemId}
+	</select>
+
+
 	<sql id="conditions">
 	<if test="userId != null">
    		 and user_id=#{userId}
@@ -46,10 +51,16 @@
 		 and item_id=#{itemId}
 		</if>
 		<if test="mark != null">
-		 and mark=#{mark}
+		 and mark like  CONCAT('%', #{mark}, '%')
 		</if>
 		<if test="type != null">
 			and type=#{type}
+		</if>
+		<if test="logType == 1">
+			and number&gt;0
+		</if>
+		<if test="logType == 2">
+			and number&lt;0
 		</if>
     	<if test="startDate != null">
     	 AND create_time <![CDATA[ >= ]]> #{startDate}

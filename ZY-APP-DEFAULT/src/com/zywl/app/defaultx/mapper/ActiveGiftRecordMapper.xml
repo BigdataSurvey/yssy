@@ -22,7 +22,7 @@
 	</insert>
 	
 	<select id="findByUserId" resultType="ActiveGiftRecord">
-		select * from r_active_gift_record where user_id=#{userId} and create_time>#{time}
+		select * from r_active_gift_record where user_id=#{userId} and create_time>#{time} and gift_type=#{type}
 	</select>
 	
 

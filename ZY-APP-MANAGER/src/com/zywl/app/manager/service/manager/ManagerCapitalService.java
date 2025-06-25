@@ -391,7 +391,6 @@ public class ManagerCapitalService extends BaseService {
 
     @Transactional
     @ServiceMethod(code = "811", description = "2选1投入修改内存")
-
     public JSONObject updateCacheByDts(ManagerLhdSocketServer lhdSocketServer, JSONObject data) throws InterruptedException {
         checkNull(data);
         checkNull(data.get("betArray"));
@@ -399,27 +398,13 @@ public class ManagerCapitalService extends BaseService {
         for (Object o : betArray) {
             try {
                 JSONObject orderInfo = (JSONObject) o;
-                updateLhdData(null,orderInfo);
+                gameService.updateLhdData(null,orderInfo);
             } catch (Exception e) {
                 logger.error(e);
                 e.printStackTrace();
             }
         }
         return new JSONObject();
-    }
-    @KafkaProducer(topic = KafkaTopicContext.RED_POINT, event = KafkaEventContext.LHD, sendParams = true)
-    public  void updateLhdData(String a,JSONObject orderInfo){
-        String id = orderInfo.getString("userId");
-        String orderNo = orderInfo.getString("orderNo");
-        Long dataId = orderInfo.getLong("dataId");
-        BigDecimal amount = orderInfo.getBigDecimal("betAmount");
-        UserCapital userCapital = userCapitalCacheService.getUserCapitalCacheByType(Long.parseLong(id), UserCapitalTypeEnum.currency_2.getValue());
-        userCacheService.addTodayUserPlayCount(Long.valueOf(id));
-        userCapitalCacheService.sub(Long.parseLong(id), UserCapitalTypeEnum.yyb.getValue(), amount, BigDecimal.ZERO);
-        userCapital = userCapitalCacheService.getUserCapitalCacheByType(Long.parseLong(id), UserCapitalTypeEnum.yyb.getValue());
-        userCapitalService.pushLog(1, Long.parseLong(id), UserCapitalTypeEnum.yyb.getValue(), userCapital.getBalance(), userCapital.getOccupyBalance(), amount.negate(), LogCapitalTypeEnum.game_bet_nh, orderNo, dataId, null);
-        managerGameBaseService.pushCapitalUpdate(Long.valueOf(id),UserCapitalTypeEnum.yyb.getValue());
-        addRankCache(id, Integer.parseInt(amount.setScale(0).toString()),GameTypeEnum.nh.getValue());
     }
 
 
@@ -560,18 +545,21 @@ public class ManagerCapitalService extends BaseService {
         Set<String> set = data.keySet();
         LogCapitalTypeEnum em = null;
         Long userId = null;
-        userCapitalService.betUpdateBalance(data);
+        if (data.size()==0){
+            return new JSONObject();
+        }
+        userCapitalService.betUpdateBalance2(data);
         for (String key : set) {
             JSONObject o = JSONObject.parse(data.getString(key));
             em = LogCapitalTypeEnum.getEm(o.getIntValue("em"));
             userId = Long.parseLong(key);
-            UserCapital userCapital = userCapitalCacheService.getUserCapitalCacheByType(userId, UserCapitalTypeEnum.currency_2.getValue());
+            UserCapital userCapital = userCapitalCacheService.getUserCapitalCacheByType(userId, UserCapitalTypeEnum.yyb.getValue());
             JSONObject pushData = new JSONObject();
-            pushData.put("userId", userId);
             if (em.getValue() == LogCapitalTypeEnum.game_bet_win_nh.getValue()) {
                 pushData.put("isDts", 1);
             }
-            pushData.put("capitalType", UserCapitalTypeEnum.currency_2.getValue());
+            pushData.put("userId", userId);
+            pushData.put("capitalType", UserCapitalTypeEnum.yyb.getValue());
             pushData.put("balance", userCapital.getBalance());
             Push.push(PushCode.updateUserCapital, managerSocketService.getServerIdByUserId(userId), pushData);
         }

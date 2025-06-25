@@ -152,7 +152,7 @@ public class BattleRoyaleSocketServer2 extends BaseServerSocket {
 					JSONObject pushData = (JSONObject) data;
 					String userId = pushData.getString("userId");
 					if (userId!=null && BattleRoyaleService2.ROOM.getPlayers().containsKey(userId)) {
-						logger.info("id：" + userId + "在神尊护体房间离线");
+						logger.info("id：" + userId + "在倩女幽魂房间离线");
 						//判断是否是观众席，观众席的话 移除，通知房间所有人
 						if (BattleRoyaleService2.ROOM.getLookList().containsKey(userId)) {
 							BattleRoyaleService2.ROOM.getLookList().remove(userId);

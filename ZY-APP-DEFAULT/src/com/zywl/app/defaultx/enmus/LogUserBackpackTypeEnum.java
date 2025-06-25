@@ -37,10 +37,14 @@ public enum LogUserBackpackTypeEnum {
 	ancient_get("遗迹获得",27),
 	checkpoint("主线过关奖励",28),
 	tower("试炼之塔",29),
-	game("统一",30),
+	game("游戏获得",30),
 	open_mine("开通矿产",1002),
 	treasure_map_get("藏宝图获得",1003),
-	yy("游园使用",1004);
+	yy("游园使用",1004),
+	addHp("补充体力", 1005),
+	jz("捐赠", 1005),
+	zsg("赠送给",1006),
+	zs("赠送",1007);
 	
 	private String name;
 

@@ -192,10 +192,6 @@ public class ManagerConfigService extends BaseService {
 			appConfigCacheService.removeKey(RedisKeyConstant.APP_TOP_NUMBER);
 		}else if (key.equals(Config.TRADING_FEE)) {
 			appConfigCacheService.removeTradingRate();
-		}else if (key.equals(Config.TRANSFER_FEE)) {
-			appConfigCacheService.removeTransferRate();
-		}else if (key.equals(Config.TRANSFER_SILL)) {
-			appConfigCacheService.removeTransferSill();
 		}else if (key.equals(Config.REFRESH_USER_ITEM)) {
 			PlayGameService.playerItems.clear();
 		}else if (key.equals(Config.REFRESH_USER_CAPITAL)) {

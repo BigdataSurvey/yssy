@@ -71,7 +71,7 @@ if(!window.CtrlFn_${menuId}){
             GAME_DZ_GAME_ON:"打卡开关",
             GAME_DTS2_STATUS:"倩女幽魂游戏状态",
             GAME_DTS2_NEED_BOT:"倩女幽魂人机",
-
+            GAME_LHD_NEED_BOT:"2杀1人机",
             PAY_NOTIFY_URL:"第三方支付回调地址",
             PAY_MERCHANT_ID:"第三方支付商户号",
             ADD_HP_WFSB:"每个文房四宝恢复体力值",
@@ -85,6 +85,9 @@ if(!window.CtrlFn_${menuId}){
             PAY_REDIRECT_URL:"支付后的回调地址",
             QNYH_RATE:"倩女幽魂概率",
             SIGN_REWARD:"签到奖励",
+            PAY_CHANNEL:"支付通道 1  2汇付",
+            PAY_NOTIFY_HF_URL:"汇付回调地址",
+            VERSION_SHOP:"商店表版本"
 
 
         };

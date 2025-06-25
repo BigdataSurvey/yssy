@@ -517,7 +517,7 @@ public class ManagerGameBaseService extends BaseService {
 
             //获取玩家每日任务的信息
             UserDailyTaskVo userTaskById = cardGameCacheService.getUserTaskById(userId, taskId);
-            if (userTaskById==null){
+            if (userTaskById == null) {
                 throwExp("请刷新后尝试领取");
             }
             if (userTaskById.getStatus() == 2) {
@@ -533,7 +533,7 @@ public class ManagerGameBaseService extends BaseService {
                     JSONObject newInfo = new JSONObject();
                     newInfo.put("type", info.getIntValue("type"));
                     newInfo.put("id", info.getIntValue("id"));
-                    newInfo.put("number", info.getBigDecimal("number") .multiply(new BigDecimal("2")) );
+                    newInfo.put("number", info.getBigDecimal("number").multiply(new BigDecimal("2")));
                     adReward.add(newInfo);
                 }
                 gameService.addReward(userId, adReward, LogCapitalTypeEnum.daily_task);
@@ -688,35 +688,32 @@ public class ManagerGameBaseService extends BaseService {
         JSONObject result = new JSONObject();
         int random = 9;
         Long userId = params.getLong("userId");
-        UserVip userVip = userVipService.findUserVipByUserId(userId);
-        String itemId = params.getString("itemId");
-        //大小靓号选择的道具
-        //v4小靓号 v5大靓号
-        if (itemId.equals("37") || itemId.equals("38")) {
-            result.put("type", "1");
-            long vipLevel = userVip.getVipLevel();
-            List<GoodNo> allGoodNoList = goodNoService.findAllGoodNo();
-            List<GoodNo> smallGoodNoList = allGoodNoList.stream().filter(e -> 0 == e.getType()).collect(Collectors.toList());
-            List<GoodNo> bigGoodNoList = allGoodNoList.stream().filter(e -> 1 == e.getType()).collect(Collectors.toList());
-            List<GoodNo> randomSamllList = getRandomElements(smallGoodNoList, random);
-            List<GoodNo> randomBigList = getRandomElements(bigGoodNoList, random);
-            List<JSONObject> list = gameCacheService.getList("randomGoodNoList", JSONObject.class);
-            if (list == null || list.size() == 0) {
-                if (vipLevel == 4) {
+        synchronized (LockUtil.getlock(userId)){
+            String itemId = params.getString("itemId");
+            //大小靓号选择的道具
+            //v4小靓号 v5大靓号
+            if (itemId.equals("37") || itemId.equals("38")) {
+                result.put("type", "1");
+                List<GoodNo> allGoodNoList = goodNoService.findCanBuyGoodNo();
+                List<GoodNo> smallGoodNoList = allGoodNoList.stream().filter(e -> 0 == e.getType()).collect(Collectors.toList());
+                List<GoodNo> bigGoodNoList = allGoodNoList.stream().filter(e -> 1 == e.getType()).collect(Collectors.toList());
+                List<GoodNo> randomSamllList = getRandomElements(smallGoodNoList, random);
+                List<GoodNo> randomBigList = getRandomElements(bigGoodNoList, random);
+                if (itemId.equals("37")) {
                     //随机返回9个靓号的list
                     result.put("randomGoodNoList", randomSamllList);
                     gameCacheService.set("randomGoodNoList", randomSamllList);
-
-                } else if (vipLevel > 4) {
+                } else {
                     result.put("randomGoodNoList", randomBigList);
                     gameCacheService.set("randomGoodNoList", randomBigList);
                 }
             } else {
-                result.put("randomGoodNoList", list);
+                result.put("randomGoodNoList", new ArrayList<>());
             }
+
+            return result;
         }
 
-        return result;
     }
 
     @Transactional
@@ -725,31 +722,37 @@ public class ManagerGameBaseService extends BaseService {
         JSONObject result = new JSONObject();
         Long goodNoId = params.getLong("data");
         Long userId = params.getLong("userId");
-        String itemId = params.getString("itemId");
-        int number = 1;
-        UserVip uservip = userVipService.findUserVipByUserId(userId);
-        //修改user表中userno 并删掉redis中缓存数据
-        GoodNo goodNo = goodNoService.findById(goodNoId);
-        List<GoodNo> list = gameCacheService.getList("randomGoodNoList", GoodNo.class);
-        if (list != null && list.size() > 0) {
-            List<String> goodNoList = list.stream().map(GoodNo::getGoodNo).collect(Collectors.toList());
-            if (!goodNoList.contains(goodNo.getGoodNo())) {
-                throwExp("当前靓号不属于选择范围内");
+        synchronized (LockUtil.getlock(userId)){
+            String itemId = params.getString("itemId");
+            User old = userCacheService.getUserInfoById(userId);
+            String oldNo = old.getUserNo();
+            int number = 1;
+            UserVip uservip = userVipService.findUserVipByUserId(userId);
+            //修改user表中userno 并删掉redis中缓存数据
+            GoodNo goodNo = goodNoService.findById(goodNoId);
+            List<GoodNo> list = gameCacheService.getList("randomGoodNoList", GoodNo.class);
+            if (list != null && list.size() > 0) {
+                List<String> goodNoList = list.stream().map(GoodNo::getGoodNo).collect(Collectors.toList());
+                if (!goodNoList.contains(goodNo.getGoodNo())) {
+                    throwExp("当前靓号不属于选择范围内");
+                }
             }
+            goodNoService.updateStatus(goodNoId,0);
+            userService.updateUserNo(goodNo.getGoodNo(), userId);
+            //指定itemid为37、38 减掉背包大小靓号道具
+            gameService.updateUserBackpack(userId, itemId, -number, LogUserBackpackTypeEnum.use);
+            gameCacheService.deleteByKey("randomGoodNoList");
+            //变更用户信息推送
+            JSONObject pushDate = new JSONObject();
+            pushDate.put("userId", userId);
+            User user = userCacheService.getUserInfoById(userId);
+            UserVo vo = new UserVo();
+            BeanUtils.copy(user, vo);
+            pushDate.put("userInfo", vo);
+            Push.push(PushCode.updateUserInfo, managerSocketService.getServerIdByUserId(userId), pushDate);
+            userCacheService.removeUserCodeToIdCache(oldNo);
+            return result;
         }
-        userService.updateUserNo(goodNo.getGoodNo(), userId);
-        //指定itemid为37、38 减掉背包大小靓号道具
-        gameService.updateUserBackpack(userId, itemId, -number, LogUserBackpackTypeEnum.use);
-        gameCacheService.deleteByKey("randomGoodNoList");
-        //变更用户信息推送
-        JSONObject pushDate = new JSONObject();
-        pushDate.put("userId", userId);
-        User user = userCacheService.getUserInfoById(userId);
-        UserVo vo = new UserVo();
-        BeanUtils.copy(user, vo);
-        pushDate.put("userInfo", vo);
-        Push.push(PushCode.updateUserInfo, managerSocketService.getServerIdByUserId(userId), pushDate);
-        return result;
     }
 
 
@@ -769,40 +772,42 @@ public class ManagerGameBaseService extends BaseService {
         checkNull(params);
         checkNull(params.get("userId"), params.get("id"), params.get("type"), params.get("number"));
         Long userId = params.getLong("userId");
-        String id = params.getString("id");
-        String type = params.getString("type");
-        int number = params.getIntValue("number");
-        if (!PlayGameService.DIC_SHOP_MAP.containsKey(type) || !PlayGameService.DIC_SHOP_MAP.get(type).containsKey(id)) {
-            throwExp("异常请求");
-        }
-        DicShop dicShop = PlayGameService.DIC_SHOP_MAP.get(type).get(id);
-        BigDecimal amount = dicShop.getPrice().multiply(BigDecimal.valueOf(number));
-        if (dicShop.getUseItemId() == 1 || dicShop.getUseItemId() == 2 || dicShop.getUseItemId() == 3) {
-            UserCapital userCapital = userCapitalCacheService.getUserCapitalCacheByType(userId, dicShop.getUseItemId().intValue());
-            if (userCapital.getBalance().compareTo(amount) < 0) {
-                throwExp("余额不足");
-            } else {
-                String orderNo = OrderUtil.getOrder5Number();
-                Long dataId = shoppingRecordService.addRecord(userId, dicShop.getItemId(), number, orderNo, amount, Math.toIntExact(dicShop.getUseItemId()));
-                userCapitalService.subUserBalanceByShopping(userId, amount, orderNo, dataId, dicShop.getUseItemId().intValue(), LogCapitalTypeEnum.shopping);
-                pushCapitalUpdate(userId, dicShop.getUseItemId().intValue());
+        synchronized (LockUtil.getlock(userId)){
+            String id = params.getString("id");
+            String type = params.getString("type");
+            int number = params.getIntValue("number");
+            if (!PlayGameService.DIC_SHOP_MAP.containsKey(type) || !PlayGameService.DIC_SHOP_MAP.get(type).containsKey(id)) {
+                throwExp("异常请求");
             }
-        } else {
-            int userItemNumber = gameService.getUserItemNumber(userId, dicShop.getUseItemId().toString());
-            if (userItemNumber < number) {
-                throwExp(PlayGameService.itemMap.get(dicShop.getUseItemId().toString()).getName() + "不足");
+            DicShop dicShop = PlayGameService.DIC_SHOP_MAP.get(type).get(id);
+            BigDecimal amount = dicShop.getPrice().multiply(BigDecimal.valueOf(number));
+            if (dicShop.getUseItemId() == 1 || dicShop.getUseItemId() == 2 || dicShop.getUseItemId() == 3) {
+                UserCapital userCapital = userCapitalCacheService.getUserCapitalCacheByType(userId, dicShop.getUseItemId().intValue());
+                if (userCapital.getBalance().compareTo(amount) < 0) {
+                    throwExp("余额不足");
+                } else {
+                    String orderNo = OrderUtil.getOrder5Number();
+                    Long dataId = shoppingRecordService.addRecord(userId, dicShop.getItemId(), number, orderNo, amount, Math.toIntExact(dicShop.getUseItemId()));
+                    userCapitalService.subUserBalanceByShopping(userId, amount, orderNo, dataId, dicShop.getUseItemId().intValue(), LogCapitalTypeEnum.shopping);
+                    pushCapitalUpdate(userId, dicShop.getUseItemId().intValue());
+                }
             } else {
-                gameService.updateUserBackpack(userId, dicShop.getUseItemId().toString(), -number, LogUserBackpackTypeEnum.use);
+                int userItemNumber = gameService.getUserItemNumber(userId, dicShop.getUseItemId().toString());
+                if (userItemNumber < number) {
+                    throwExp(PlayGameService.itemMap.get(dicShop.getUseItemId().toString()).getName() + "不足");
+                } else {
+                    gameService.updateUserBackpack(userId, dicShop.getUseItemId().toString(), -number, LogUserBackpackTypeEnum.use);
+                }
             }
+            JSONObject result = new JSONObject();
+            JSONArray array = new JSONArray();
+            result.put("type", 1);
+            result.put("id", dicShop.getItemId());
+            result.put("number", number);
+            array.add(result);
+            gameService.addReward(userId, array, LogCapitalTypeEnum.shopping);
+            return array;
         }
-        JSONObject result = new JSONObject();
-        JSONArray array = new JSONArray();
-        result.put("type", 1);
-        result.put("id", dicShop.getItemId());
-        result.put("number", number);
-        array.add(result);
-        gameService.addReward(userId, array, LogCapitalTypeEnum.shopping);
-        return array;
     }
 
     /**
@@ -828,7 +833,7 @@ public class ManagerGameBaseService extends BaseService {
         Long recordId = userDonateItemRecordService.addDonateItemRecord(userId, orderNo, UserCapitalTypeEnum.currency_2.getValue(), number, BigDecimal.valueOf(20L * number));
         String getItemId = managerConfigService.getString(Config.JZ_ITEM);
         //修改该用户的道具
-        gameService.updateUserBackpack(userId, itemId, -number, LogUserBackpackTypeEnum.use);
+        gameService.updateUserBackpack(userId, itemId, -number, LogUserBackpackTypeEnum.jz);
         gameService.updateUserBackpack(userId, getItemId, +number, LogUserBackpackTypeEnum.use);
         userCapitalService.addUserBalanceByDonate(userId, BigDecimal.valueOf(20L * number), UserCapitalTypeEnum.currency_2.getValue(), recordId, userCapitalCache);
         pushCapitalUpdate(userId, UserCapitalTypeEnum.currency_2.getValue());
@@ -1005,6 +1010,9 @@ public class ManagerGameBaseService extends BaseService {
     @ServiceMethod(code = "045", description = "修改昵称")
     public Object updateName(ManagerSocketServer adminSocketServer, JSONObject params) {
         String name = params.getString("name");
+        if (name.length()>16){
+            throwExp("长度超出限制");
+        }
         Long userId = params.getLong("userId");
         userService.updateUserName(name, userId);
         return name;
@@ -1018,31 +1026,33 @@ public class ManagerGameBaseService extends BaseService {
         String resultId = params.getString("itemId");
         int number = params.getIntValue("number");
         Long userId = params.getLong("userId");
-        if (number < 0 || number > 99) {
-            throwExp("数量区间不合理");
-        }
-        if (!PlayGameService.itemMap.containsKey(resultId) || PlayGameService.itemMap.get(resultId).getCanSyn() == 0) {
-            throwExp("道具ID有误");
-        }
-        JSONArray synUse = PlayGameService.itemMap.get(resultId).getSynUse();
-        int finalNumber = 0;
-        Random random = new Random();
-        for (int i = 0; i < number; i++) {
-            int k = random.nextInt(100) + 1;
-            if (k <= PlayGameService.itemMap.get(resultId).getSynRate()) {
-                finalNumber++;
+        synchronized (LockUtil.getlock(userId)){
+            if (number < 0 || number > 99) {
+                throwExp("数量区间不合理");
             }
+            if (!PlayGameService.itemMap.containsKey(resultId) || PlayGameService.itemMap.get(resultId).getCanSyn() == 0) {
+                throwExp("道具ID有误");
+            }
+            JSONArray synUse = PlayGameService.itemMap.get(resultId).getSynUse();
+            int finalNumber = 0;
+            Random random = new Random();
+            for (int i = 0; i < number; i++) {
+                int k = random.nextInt(100) + 1;
+                if (k <= PlayGameService.itemMap.get(resultId).getSynRate()) {
+                    finalNumber++;
+                }
+            }
+            for (Object o : synUse) {
+                Long useId = Long.parseLong(o.toString());
+                gameService.checkUserItemNumber(userId, String.valueOf(useId), number);
+                gameService.updateUserBackpack(userId, String.valueOf(useId), -number, LogUserBackpackTypeEnum.use);
+            }
+            gameService.updateUserBackpack(userId, resultId, finalNumber, LogUserBackpackTypeEnum.use);
+            JSONObject result = new JSONObject();
+            result.put("number", finalNumber);
+            result.put("itemId", resultId);
+            return result;
         }
-        for (Object o : synUse) {
-            Long useId = Long.parseLong(o.toString());
-            gameService.checkUserItemNumber(userId, String.valueOf(useId), number);
-            gameService.updateUserBackpack(userId, String.valueOf(useId), -number, LogUserBackpackTypeEnum.use);
-        }
-        gameService.updateUserBackpack(userId, resultId, finalNumber, LogUserBackpackTypeEnum.use);
-        JSONObject result = new JSONObject();
-        result.put("number", finalNumber);
-        result.put("itemId", resultId);
-        return result;
     }
 
     public void checkBalance(String userId, BigDecimal price, UserCapitalTypeEnum em) {
@@ -1063,30 +1073,34 @@ public class ManagerGameBaseService extends BaseService {
         checkNull(params);
         checkNull(params.get("userId"), params.get("text"), params.get("type"));
         Long userId = params.getLong("userId");
-        String text = params.getString("text");
-        int type = params.getIntValue("type");
-        String itemId;
-        if (type == 1) {
-            itemId = ItemIdEnum.XLB.getValue();
-        } else {
-            itemId = ItemIdEnum.DLB.getValue();
+        synchronized (LockUtil.getlock(userId)){
+            String text = params.getString("text");
+            if (text.length() > 20) {
+                throwExp("最多不超过20个字");
+            }
+            int type = params.getIntValue("type");
+            String itemId;
+            if (type == 1) {
+                itemId = ItemIdEnum.XLB.getValue();
+            } else {
+                itemId = ItemIdEnum.DLB.getValue();
+            }
+            gameService.checkUserItemNumber(userId, itemId, 1);
+            String orderNo = OrderUtil.getOrder5Number();
+            User user = userCacheService.getUserInfoById(userId);
+            Long dataId = chatService.addChat(userId, user.getName(), user.getHeadImageUrl(), text, type, orderNo, user.getUserNo(), user.getVip1());
+            gameService.updateUserBackpack(userId, itemId, -1, LogUserBackpackTypeEnum.use);
+            JSONObject obj = new JSONObject();
+            obj.put("name", user.getName());
+            obj.put("headImg", user.getHeadImageUrl());
+            obj.put("userNo", user.getUserNo());
+            obj.put("text", text);
+            obj.put("type", type);
+            obj.put("lv", user.getVip1());
+            addChat(obj);
+            Push.push(PushCode.chat, null, obj);
+            return new JSONObject();
         }
-        gameService.checkUserItemNumber(userId, itemId, 1);
-
-        String orderNo = OrderUtil.getOrder5Number();
-        User user = userCacheService.getUserInfoById(userId);
-        Long dataId = chatService.addChat(userId, user.getName(), user.getHeadImageUrl(), text, type, orderNo, user.getUserNo(), user.getVip1());
-        gameService.updateUserBackpack(userId, itemId, -1, LogUserBackpackTypeEnum.use);
-        JSONObject obj = new JSONObject();
-        obj.put("name", user.getName());
-        obj.put("headImg", user.getHeadImageUrl());
-        obj.put("userNo", user.getUserNo());
-        obj.put("text", text);
-        obj.put("type", type);
-        obj.put("lv", user.getVip1());
-        addChat(obj);
-        Push.push(PushCode.chat, null, obj);
-        return new JSONObject();
     }
 
 

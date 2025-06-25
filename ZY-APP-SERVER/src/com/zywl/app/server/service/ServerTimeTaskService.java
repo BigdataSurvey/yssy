@@ -52,6 +52,7 @@ public class ServerTimeTaskService extends BaseService{
 	
 	
 	
+/*
 	@ServiceMethod(code = "001", description = "查看限时活动列表")
 	public Object getMailInfo(final AppSocket appSocket, Command appCommand, JSONObject params) {
 		checkNull(params);
@@ -85,6 +86,7 @@ public class ServerTimeTaskService extends BaseService{
 		Executer.request(TargetSocketType.manager, CommandBuilder.builder().request("9007002", params).build(), new RequestManagerListener(appCommand));
 		return async();
 	}
+*/
 
 
 

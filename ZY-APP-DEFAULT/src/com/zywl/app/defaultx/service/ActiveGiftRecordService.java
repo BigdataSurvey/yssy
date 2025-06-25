@@ -38,10 +38,11 @@ public class ActiveGiftRecordService extends DaoService {
 		return record.getId();
 	}
 
-	public List<ActiveGiftRecord> findByUserId(Long userId){
+	public List<ActiveGiftRecord> findByUserId(Long userId,int type){
 		Map<String,Object> params = new HashMap<>();
 		params.put("userId",userId);
 		params.put("time",DateUtil.getDateByDay(-30));
+		params.put("type",type);
 		List<ActiveGiftRecord> findByUserId = findList("findByUserId", params);
 		return findByUserId;
 	}

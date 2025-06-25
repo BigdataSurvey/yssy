@@ -163,42 +163,44 @@ public class ServerUserRoleService extends BaseService {
         checkNull(params.get("giftType"), params.get("number"));
         Long giftType = params.getLong("giftType");
         Long userId = appSocket.getWsidBean().getUserId();
-        if (userCacheService.canPay(userId.toString())) {
-            throwExp("请勿频繁发起支付");
+        synchronized (LockUtil.getlock(userId)){
+            if (userCacheService.canPay(userId.toString())) {
+                throwExp("请勿频繁发起支付");
+            }
+            userCacheService.beginPay(userId.toString());
+            if (giftType != 1 && giftType != 2) {
+                throwExp("参数异常");
+            }
+            BigDecimal price;
+            if (giftType == 1L) {
+                price = serverConfigService.getBigDecimal(Config.GIFT_PRICE_1).setScale(2, RoundingMode.HALF_UP);
+            } else {
+                price = serverConfigService.getBigDecimal(Config.GIFT_PRICE_2).setScale(2, RoundingMode.HALF_UP);
+            }
+            UserVip userVipByUserId = userVipService.findUserVipByUserId(userId);
+            if (userVipByUserId.getVipLevel() == 5L) {
+                price = price.multiply(new BigDecimal("0.95")).setScale(0, RoundingMode.HALF_UP);
+            }
+            if (userVipByUserId.getVipLevel() > 5L) {
+                price = price.multiply(new BigDecimal("0.9")).setScale(0, RoundingMode.HALF_UP);
+            }
+            int number = params.getIntValue("number");
+            BigDecimal allPrice = price.multiply(BigDecimal.valueOf(number));
+            pushOrder(giftType);
+            JSONObject result = new JSONObject();
+            int channel = serverConfigService.getInteger(Config.PAY_CHANNEL);
+            result.put("channel", channel);
+            String url = ";";
+            if (channel == 1) {
+                url = getPayAddress(userId, giftType, price, appSocket.getIp(), allPrice, number);
+            } else if (channel == 2) {
+                url = getHfPayAddress(userId, giftType, price, allPrice, number);
+            }
+            result.put("payUrl", url);
+            pushOrder(giftType);
+            userCacheService.endPay(userId.toString());
+            return result;
         }
-        userCacheService.beginPay(userId.toString());
-        if (giftType != 1 && giftType != 2) {
-            throwExp("参数异常");
-        }
-        BigDecimal price;
-        if (giftType == 1L) {
-            price = serverConfigService.getBigDecimal(Config.GIFT_PRICE_1).setScale(2, RoundingMode.HALF_UP);
-        } else {
-            price = serverConfigService.getBigDecimal(Config.GIFT_PRICE_2).setScale(2, RoundingMode.HALF_UP);
-        }
-        UserVip userVipByUserId = userVipService.findUserVipByUserId(userId);
-        if (userVipByUserId.getVipLevel() == 5L) {
-            price = price.multiply(new BigDecimal("0.95")).setScale(0, RoundingMode.HALF_UP);
-        }
-        if (userVipByUserId.getVipLevel() > 5L) {
-            price = price.multiply(new BigDecimal("0.9")).setScale(0, RoundingMode.HALF_UP);
-        }
-        int number = params.getIntValue("number");
-        BigDecimal allPrice = price.multiply(BigDecimal.valueOf(number));
-        pushOrder(giftType);
-        JSONObject result = new JSONObject();
-        int channel = serverConfigService.getInteger(Config.PAY_CHANNEL);
-        result.put("channel", channel);
-        String url = ";";
-        if (channel == 1) {
-            url = getPayAddress(userId, giftType, price, appSocket.getIp(), allPrice, number);
-        } else if (channel == 2) {
-            url = getHfPayAddress(userId, giftType, price, allPrice, number);
-        }
-        result.put("payUrl", url);
-        pushOrder(giftType);
-        userCacheService.endPay(userId.toString());
-        return result;
     }
 
     public void pushOrder(Long productId) {
@@ -239,7 +241,7 @@ public class ServerUserRoleService extends BaseService {
         if (userGift != null) {
             params.put("number", userGift.getGiftNum());
         }
-        List<ActiveGiftRecord> userActiveRecords = activeGiftRecordService.findByUserId(userId);
+        List<ActiveGiftRecord> userActiveRecords = activeGiftRecordService.findByUserId(userId,type);
         if (userActiveRecords.size() == 0) {
             params.put("status", 0);
         } else {
@@ -248,52 +250,53 @@ public class ServerUserRoleService extends BaseService {
         return params;
     }
 
+    @Transactional
     @ServiceMethod(code = "002", description = "激活角色礼包")
     public JSONObject useGift(final AppSocket appSocket, Command appCommand, JSONObject params) {
         checkNull(params);
         checkNull(params.get("type"));
         Long myId = appSocket.getWsidBean().getUserId();
-        User user = userCacheService.getUserInfoById(myId);
-        int type = params.getIntValue("type");
-        if (type != 1 && type != 2) {
-            throwExp("非法请求");
-        }
-        UserGift userGift = userGiftService.findUserGift(myId, type);
-        if (userGift == null || userGift.getGiftNum() < 1) {
-            throwExp("礼包数量不足");
-        }
-        userGiftService.useGift(myId, type);
-        if (type == 1) {
-            useSmallGift(myId);
-        } else {
-            useBigGift(myId);
-            if (user.getVip2() == 0) {
-                user.setVip2(1);
-                userService.updateUserVip2(myId);
-                JSONObject pushDate = new JSONObject();
-                pushDate.put("userId", user.getId());
-                user = userCacheService.getUserInfoById(myId);
-                UserVo vo = new UserVo();
-                BeanUtils.copy(user, vo);
-                pushDate.put("userInfo", vo);
-                Push.push(PushCode.updateUserInfo, myId.toString(), pushDate);
+        synchronized (LockUtil.getlock(myId)){
+            User user = userCacheService.getUserInfoById(myId);
+            int type = params.getIntValue("type");
+            if (type != 1 && type != 2) {
+                throwExp("非法请求");
             }
-            JSONObject info = new JSONObject();
-            info.put("userId", myId);
-            Activity activity = gameCacheService.getActivity();
-            if (activity != null) {
-                if (activity.getAddPointEvent() == ActivityAddPointEventEnum.RMB_BUY_GIFT.getValue()) {
-                    //已经激活大礼包的用户 给他上级加积分并存入redis
-                    //用户父id的积分
-                    gameCacheService.addPoint(myId);
+            UserGift userGift = userGiftService.findUserGift(myId, type);
+            if (userGift == null || userGift.getGiftNum() < 1) {
+                throwExp("礼包数量不足");
+            }
+            userGiftService.useGift(myId, type);
+            if (type == 1) {
+                useSmallGift(myId);
+            } else {
+                useBigGift(myId);
+                if (user.getVip2() == 0) {
+                    user.setVip2(1);
+                    userService.updateUserVip2(myId);
+                    JSONObject pushDate = new JSONObject();
+                    pushDate.put("userId", user.getId());
+                    user = userCacheService.getUserInfoById(myId);
+                    UserVo vo = new UserVo();
+                    BeanUtils.copy(user, vo);
+                    pushDate.put("userInfo", vo);
+                    Push.push(PushCode.updateUserInfo, myId.toString(), pushDate);
+                }
+                JSONObject info = new JSONObject();
+                info.put("userId", myId);
+                Activity activity = gameCacheService.getActivity();
+                if (activity != null) {
+                    if (activity.getAddPointEvent() == ActivityAddPointEventEnum.RMB_BUY_GIFT.getValue()) {
+                        //已经激活大礼包的用户 给他上级加积分并存入redis
+                        //用户父id的积分
+                        gameCacheService.addPoint(myId);
+                    }
                 }
             }
+            activeGiftRecordService.addRecord(myId, user.getId(), type);
+            return params;
         }
 
-
-        activeGiftRecordService.addRecord(myId, user.getId(), type);
-
-        return params;
     }
 
 
@@ -325,16 +328,22 @@ public class ServerUserRoleService extends BaseService {
     @ServiceMethod(code = "003", description = "进入场景查看角色工作信息")
     public Object findWorkingRoles(final AppSocket appSocket, Command appCommand, JSONObject params) {
         Long userId = appSocket.getWsidBean().getUserId();
-        List<UserRole> roles = userRoleService.findWorkingRoles(userId);
-        return settleRoleReceive(roles);
+        synchronized (LockUtil.getlock(userId)){
+            List<UserRole> roles = userRoleService.findWorkingRoles(userId);
+            return settleRoleReceive(roles);
+        }
+
     }
 
     @Transactional
     @ServiceMethod(code = "004", description = "查看我的角色")
     public Object myRoles(final AppSocket appSocket, Command appCommand, JSONObject params) {
         Long userId = appSocket.getWsidBean().getUserId();
-        List<UserRole> roles = userRoleService.findByUserId(userId);
-        return settleRoleReceive(roles);
+        synchronized (LockUtil.getlock(userId)){
+            List<UserRole> roles = userRoleService.findByUserId(userId);
+            return settleRoleReceive(roles);
+        }
+
     }
 
     public List<UserRole> settleRoleReceive(List<UserRole> roles) {
@@ -399,33 +408,37 @@ public class ServerUserRoleService extends BaseService {
         System.out.println(array);
     }
 
+
+    @Transactional
     @ServiceMethod(code = "005", description = "设置角色为工作状态")
     public JSONObject working(final AppSocket appSocket, Command appCommand, JSONObject params) {
         checkNull(params);
         checkNull(params.get("index"), params.get("userRoleId"));
         Long userId = appSocket.getWsidBean().getUserId();
-        int index = params.getIntValue("index");
-        Long userRoleId = params.getLong("userRoleId");
-        UserRole userRole = userRoleService.findByUserIdAndRoleId(userId, userRoleId);
-        UserRole byIndex = userRoleService.findByIndex(userId, index);
-        if (byIndex != null) {
-            throwExp("该位置已经有角色啦");
+        synchronized (LockUtil.getlock(userId)){
+            int index = params.getIntValue("index");
+            Long userRoleId = params.getLong("userRoleId");
+            UserRole userRole = userRoleService.findByUserIdAndRoleId(userId, userRoleId);
+            UserRole byIndex = userRoleService.findByIndex(userId, index);
+            if (byIndex != null) {
+                throwExp("该位置已经有角色啦");
+            }
+            if (userRole == null) {
+                throwExp("未查询到角色信息");
+            }
+            if (userRole.getIndex() != 0 || userRole.getStatus() == 1) {
+                throwExp("角色已经在工作啦");
+            }
+            if (userRole.getStatus() == 2) {
+                throwExp("角色已到期");
+            }
+            userRole.setIndex(index);
+            userRole.setStatus(1);
+            userRole.setLastReceiveTime(new Date());
+            userRole.setLastLookTime(new Date());
+            userRoleService.updateUserRole(userRole);
+            return params;
         }
-        if (userRole == null) {
-            throwExp("未查询到角色信息");
-        }
-        if (userRole.getIndex() != 0 || userRole.getStatus() == 1) {
-            throwExp("角色已经在工作啦");
-        }
-        if (userRole.getStatus() == 2) {
-            throwExp("角色已到期");
-        }
-        userRole.setIndex(index);
-        userRole.setStatus(1);
-        userRole.setLastReceiveTime(new Date());
-        userRole.setLastLookTime(new Date());
-        userRoleService.updateUserRole(userRole);
-        return params;
     }
 
 
@@ -502,27 +515,33 @@ public class ServerUserRoleService extends BaseService {
         int number = params.getIntValue("number");
         String userNo = params.getString("userNo");
         User toUser = userCacheService.getUserInfoByUserNo(userNo);
+
         if (toUser == null) {
             throwExp("用户不存在");
         }
         Long myId = appSocket.getWsidBean().getUserId();
-        int type = params.getIntValue("type");
-        if (type != 1 && type != 2) {
-            throwExp("非法请求");
+        synchronized (LockUtil.getlock(myId)){
+            if (Objects.equals(myId, toUser.getId())){
+                throwExp("不能赠送给自己");
+            }
+            int type = params.getIntValue("type");
+            if (type != 1 && type != 2) {
+                throwExp("非法请求");
+            }
+            User user = userCacheService.getUserInfoByUserNo(userNo);
+            if (user == null) {
+                throwExp("玩家不存在");
+            }
+            UserGift userGift = userGiftService.findUserGift(myId, type);
+            if (userGift == null || userGift.getGiftNum() < number) {
+                throwExp("礼包数量不足");
+            }
+            userGiftService.sendGift(myId, number, type);
+            userGiftService.addGiftNumber(toUser.getId(), number, type);
+            JSONObject result = new JSONObject();
+            result.put("nowNumber", userGift.getGiftNum() - number);
+            return result;
         }
-        User user = userCacheService.getUserInfoByUserNo(userNo);
-        if (user == null) {
-            throwExp("玩家不存在");
-        }
-        UserGift userGift = userGiftService.findUserGift(myId, type);
-        if (userGift == null || userGift.getGiftNum() < number) {
-            throwExp("礼包数量不足");
-        }
-        userGiftService.sendGift(myId, number, type);
-        userGiftService.addGiftNumber(toUser.getId(), number, type);
-        JSONObject result = new JSONObject();
-        result.put("nowNumber", userGift.getGiftNum() - number);
-        return result;
     }
 
 

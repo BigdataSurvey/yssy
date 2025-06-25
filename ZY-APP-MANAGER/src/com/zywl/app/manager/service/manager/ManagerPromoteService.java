@@ -13,8 +13,6 @@ import com.zywl.app.defaultx.annotation.ServiceMethod;
 import com.zywl.app.defaultx.cache.AppConfigCacheService;
 import com.zywl.app.defaultx.cache.UserCacheService;
 import com.zywl.app.defaultx.cache.UserCapitalCacheService;
-import com.zywl.app.defaultx.enmus.LogUserBackpackTypeEnum;
-import com.zywl.app.defaultx.enmus.RedReminderIndexEnum;
 import com.zywl.app.defaultx.enmus.UserCapitalTypeEnum;
 import com.zywl.app.defaultx.service.*;
 import com.zywl.app.manager.context.MessageCodeContext;
@@ -161,11 +159,9 @@ public class ManagerPromoteService extends BaseService {
     public void parentAddFriendNumber(Long myId) {
         User user = userCacheService.getUserInfoById(myId);
         if (user.getParentId() != null) {
-            String parentId = user.getParentId().toString();
-            getUserInviteInfo(parentId);
-            int res = userInviteInfoService.addFriendNumber(user.getParentId());
-            if (res > 0) {
-                userInviteInfos.get(parentId).setNumber(userInviteInfos.get(parentId).getNumber() + 1);
+            userStatisticService.addOneCount(user.getParentId());
+            if (user.getGrandfaId()!=null){
+                userStatisticService.addTwoCount(user.getGrandfaId());
             }
         }
     }

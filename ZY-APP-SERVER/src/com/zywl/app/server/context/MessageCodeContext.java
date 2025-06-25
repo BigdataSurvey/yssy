@@ -15,7 +15,8 @@ public class MessageCodeContext {
 	public final static String CONFIG_SETVER="011";
 	public final static String NOTICE_SERVER = "014";
 	public final static String PROMOTE_SERVER = "017";
-	public final static String GUILD_SERVER = "018";
+	//没用的先乱码隐藏接口
+	public final static String GUILD_SERVER = "asdfaw";
 
 	public final static String WX_PAY_SERVER = "019";
 	public final static String DZ_SERVER="020";

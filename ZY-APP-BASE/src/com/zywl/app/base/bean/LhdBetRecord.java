@@ -132,4 +132,22 @@ public class LhdBetRecord extends BaseBean{
 	public void setLotteryResult(String lotteryResult) {
 		this.lotteryResult = lotteryResult;
 	}
+
+	@Override
+	public String toString() {
+		return "LhdBetRecord{" +
+				"id=" + id +
+				", userId=" + userId +
+				", orderNo='" + orderNo + '\'' +
+				", periodsNum=" + periodsNum +
+				", betInfo='" + betInfo + '\'' +
+				", betAmount=" + betAmount +
+				", profit=" + profit +
+				", lotteryResult='" + lotteryResult + '\'' +
+				", winOrLose=" + winOrLose +
+				", status=" + status +
+				", createTime=" + createTime +
+				", updateTime=" + updateTime +
+				'}';
+	}
 }

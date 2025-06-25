@@ -49,7 +49,7 @@ public class ServerAliPayService extends BaseService {
 
     private static final Map<String,String>  REQUEST_ORDER=new ConcurrentHashMap<>();
 
-    @ServiceMethod(code = "001", description = "获取支付宝唤起地址")
+   /* @ServiceMethod(code = "001", description = "获取支付宝唤起地址")
     public Object getAddress(AppSocket appSocket, Command command, JSONObject params) throws UnsupportedEncodingException {
         StringBuffer buffer = new StringBuffer();
         buffer.append("apiname=com.alipay.account.auth&method=alipay.open.auth.sdk.code.get&app_id=2021005111696226" +
@@ -84,6 +84,6 @@ public class ServerAliPayService extends BaseService {
         Executer.request(TargetSocketType.manager, CommandBuilder.builder().request("100030", params).build(),
                 new RequestManagerListener(command));
         return async();
-    }
+    }*/
 
 }

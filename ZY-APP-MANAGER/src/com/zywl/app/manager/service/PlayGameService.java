@@ -463,6 +463,10 @@ public class PlayGameService extends BaseService {
         updateUserBackpack(userId.toString(), itemId, number, em);
     }
 
+    public void updateUserBackpack(Long userId, String itemId, int number, LogUserBackpackTypeEnum em,String otherUserId) {
+        updateUserBackpack(userId.toString(), itemId, number, em,otherUserId);
+    }
+
 
     public void updateUserBackpackCache(Long userId, String itemId, int number) {
         synchronized (LockUtil.getlock(userId)) {
@@ -493,6 +497,48 @@ public class PlayGameService extends BaseService {
                 result = backpackService.subItemNumber(Long.parseLong(userId), Long.parseLong(itemId), -number, em, beforeNumber, id);
             } else {
                 result = backpackService.addItemNumber(Long.parseLong(userId), Long.parseLong(itemId), number, em, type, beforeNumber, id);
+            }
+            if (result < 1) {
+                userCapitalCacheService.deltedUserCapitalCache(Long.parseLong(userId), UserCapitalTypeEnum.currency_2.getValue());
+                playerItems.remove(userId);
+                throwExp("道具操作失败,请重试");
+            }
+            if (playerItems.containsKey(userId)) {
+                //TODO
+                if (playerItems.get(userId).containsKey(itemId)) {
+                    playerItems.get(userId).get(itemId).setItemNumber(playerItems.get(userId).get(itemId).getItemNumber() + number);
+                } else {
+                    Backpack backpack = new Backpack();
+                    backpack.setItemId(Long.parseLong(itemId));
+                    backpack.setItemNumber(number);
+                    backpack.setCreateTime(new Date());
+                    backpack.setUpdateTime(new Date());
+                    backpack.setUserId(Long.parseLong(userId));
+                    playerItems.get(userId).put(itemId, backpack);
+                }
+            }
+            managerGameBaseService.pushBackpackUpdate(Long.parseLong(userId), itemId, number, 1);
+        }
+    }
+
+    public void updateUserBackpack(String userId, String itemId, int number, LogUserBackpackTypeEnum em,String otherUserId) {
+        synchronized (LockUtil.getlock(userId)) {
+            Map<String, Backpack> map = getUserBackpack(userId);
+            int type = 0;
+            int beforeNumber = 0;
+            Long id = null;
+            if (map != null && map.size() > 0) {
+                if (map.containsKey(itemId)) {
+                    type = 1;
+                    beforeNumber = map.get(itemId).getItemNumber();
+                    id = map.get(itemId).getId();
+                }
+            }
+            int result;
+            if (number < 0) {
+                result = backpackService.subItemNumber(Long.parseLong(userId), Long.parseLong(itemId), -number, em, beforeNumber, id,otherUserId);
+            } else {
+                result = backpackService.addItemNumber(Long.parseLong(userId), Long.parseLong(itemId), number, em, type, beforeNumber, id,otherUserId);
             }
             if (result < 1) {
                 userCapitalCacheService.deltedUserCapitalCache(Long.parseLong(userId), UserCapitalTypeEnum.currency_2.getValue());
@@ -658,7 +704,13 @@ public class PlayGameService extends BaseService {
                 } else {
                     //正常道具
                     if (!id.equals("1001")) {
-                        updateUserBackpack(userId, id, number, LogUserBackpackTypeEnum.game);
+                        if (em.getValue()==LogCapitalTypeEnum.mail.getValue()){
+                            //邮件
+                            updateUserBackpack(userId, id, number, LogUserBackpackTypeEnum.zs,reward.getString("fromUserId"));
+                        }else{
+                            updateUserBackpack(userId, id, number, LogUserBackpackTypeEnum.game);
+                        }
+
                     } else {
                         JDCard noExchange = jdCardService.findNoExchange();
                         if (noExchange == null) {
@@ -691,6 +743,21 @@ public class PlayGameService extends BaseService {
         addRankCache(id, Integer.parseInt(amount.setScale(0).toString()),GameTypeEnum.battleRoyale.getValue());
     }
 
+
+    @KafkaProducer(topic = KafkaTopicContext.RED_POINT, event = KafkaEventContext.LHD, sendParams = true)
+    public  void updateLhdData(String a,JSONObject orderInfo){
+        String id = orderInfo.getString("userId");
+        String orderNo = orderInfo.getString("orderNo");
+        Long dataId = orderInfo.getLong("dataId");
+        BigDecimal amount = orderInfo.getBigDecimal("betAmount");
+        UserCapital userCapital = userCapitalCacheService.getUserCapitalCacheByType(Long.parseLong(id), UserCapitalTypeEnum.currency_2.getValue());
+        userCacheService.addTodayUserPlayCount(Long.valueOf(id));
+        userCapitalCacheService.sub(Long.parseLong(id), UserCapitalTypeEnum.yyb.getValue(), amount, BigDecimal.ZERO);
+        userCapital = userCapitalCacheService.getUserCapitalCacheByType(Long.parseLong(id), UserCapitalTypeEnum.yyb.getValue());
+        userCapitalService.pushLog(1, Long.parseLong(id), UserCapitalTypeEnum.yyb.getValue(), userCapital.getBalance(), userCapital.getOccupyBalance(), amount.negate(), LogCapitalTypeEnum.game_bet_nh, orderNo, dataId, null);
+        managerGameBaseService.pushCapitalUpdate(Long.valueOf(id),UserCapitalTypeEnum.yyb.getValue());
+        addRankCache(id, Integer.parseInt(amount.setScale(0).toString()),GameTypeEnum.nh.getValue());
+    }
 
     public void checkUserItemNumber(String userId, String itemId, int number) {
         Map<String, Backpack> userBackpack = getUserBackpack(userId);

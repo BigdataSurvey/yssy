@@ -73,6 +73,20 @@ public class BackpackService extends DaoService {
     }
 
     @Transactional
+    public int subItemNumber(Long userId, Long itemId, int number, LogUserBackpackTypeEnum em, int beforeNumber, Long id,String otherUserId) {
+        Map<String, Object> params = new HashedMap<String, Object>();
+        params.put("userId", userId);
+        params.put("itemId", itemId);
+        params.put("number", number);
+        params.put("id", id);
+        params.put("beforNumber", beforeNumber);
+        params.put("tableName", Backpack.tablePrefix + userId.toString().charAt(userId.toString().length() - 1));
+        int a = execute("subItemNumber", params);
+        pushLog(userId, itemId, beforeNumber, -number, em,otherUserId);
+        return a;
+    }
+
+    @Transactional
     public int subItemNumberByDts(Long userId, Long itemId, int number) {
         Map<String, Object> params = new HashedMap<String, Object>();
         params.put("userId", userId);
@@ -99,6 +113,19 @@ public class BackpackService extends DaoService {
 
     }
 
+    public void pushLog(Long userId, Long itemId, int numberBefore, int number, LogUserBackpackTypeEnum em,String otherUserId) {
+        JSONObject a = new JSONObject();
+        a.put("logType", 2);
+        a.put("userId", userId);
+        a.put("numberBefore", numberBefore);
+        a.put("number", number);
+        a.put("itemId", itemId);
+        a.put("em", em);
+        a.put("otherUserId",otherUserId);
+        Push.push(PushCode.insertLog, null, a);
+
+    }
+
     //玩家增加道具数量
     @Transactional
     public int addItemNumber(Long userId, Long itemId, int number, LogUserBackpackTypeEnum em, int type, int beforeNumber, Long id) {
@@ -119,6 +146,24 @@ public class BackpackService extends DaoService {
         return a;
     }
 
+    @Transactional
+    public int addItemNumber(Long userId, Long itemId, int number, LogUserBackpackTypeEnum em, int type, int beforeNumber, Long id,String fromUserId) {
+        int a = 0;
+        if (type == 0) {
+            //没有该道具 向背包种添加
+            a = addBackpackInfo(itemId, number, userId);
+        } else {
+            Map<String, Object> params = new HashedMap<String, Object>();
+            params.put("userId", userId);
+            params.put("itemId", itemId);
+            params.put("id", id);
+            params.put("number", number);
+            params.put("tableName", Backpack.tablePrefix + userId.toString().charAt(userId.toString().length() - 1));
+            a = execute("addItemNumber", params);
+        }
+        pushLog(userId, itemId, beforeNumber, number, em,fromUserId);
+        return a;
+    }
     @Transactional
     public void batchUpdateBackpack(List<Map<String, Object>> backpacks, long userId) {
         if (backpacks.size() > 0) {

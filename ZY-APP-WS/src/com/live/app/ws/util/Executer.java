@@ -79,7 +79,7 @@ public class Executer {
                                     task.getDoThread().interrupt();
                                 } catch (Exception e) {
                                 }
-                                response(CommandBuilder.builder(task.getCommandId()).error("请求超时").build());
+                                response(CommandBuilder.builder(task.getCommandId()).error("连接超时").build());
                             }
                         }
                     }
@@ -186,7 +186,7 @@ public class Executer {
                     response(CommandBuilder.builder(command).error(e.getMessage()).build());
                 } catch (Exception e) {
                     logger.error("未知执行异常：" + e, e);
-                    response(CommandBuilder.builder(command).error("ERROR").build());
+                    response(CommandBuilder.builder(command).error("未知错误").build());
                 }
             }
         });

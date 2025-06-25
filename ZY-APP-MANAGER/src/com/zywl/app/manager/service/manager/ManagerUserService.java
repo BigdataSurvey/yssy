@@ -913,6 +913,9 @@ public class ManagerUserService extends BaseService {
             if (sonUser.getGrandfaId() != null && !sonUser.getGrandfaId().toString().equals(String.valueOf(myId))) {
                 throwExp("该玩家不是您的好友");
             }
+            if (sonUser.getGrandfaId()==null){
+                throwExp("该玩家不是您的好友");
+            }
         }
     }
 

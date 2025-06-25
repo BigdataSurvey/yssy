@@ -129,9 +129,7 @@ public class RedisKeyConstant {
 	//交易行手续费设置
 	public final static String APP_CONFIG_TRADING_FEE = "t:app:config:fee:tradingfee";
 	
-	//好友转增的手续费设置
-	public final static String APP_CONFIG_TRANSFER_FEE ="t:app:config:fee:transfer";
-	
+
 	//好友转增的门槛设置
 	public final static String APP_TRANSFER_SILL = "t:app:config:fee:sillTransfer";
 	

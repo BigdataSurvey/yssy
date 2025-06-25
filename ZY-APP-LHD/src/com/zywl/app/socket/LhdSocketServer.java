@@ -121,6 +121,7 @@ public class LhdSocketServer extends BaseServerSocket {
 				int gameId = json.getIntValue("gameId");
 				if (gameId == 5) {
 					lhdService.STATUS = json.getIntValue("status");
+
 				}
 			}
 		}, this);

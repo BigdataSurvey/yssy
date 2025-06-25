@@ -19,6 +19,7 @@ import org.springframework.stereotype.Service;
 
 import javax.annotation.PostConstruct;
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.*;
 
 @Service
@@ -159,6 +160,9 @@ public class GameCacheService extends RedisService {
             array =new ArrayList<>();
             for (String id : ids) {
                 User userInfoById = userCacheService.getUserInfoById(id);
+                if (userInfoById==null){
+                    continue;
+                }
                 JSONObject info = new JSONObject();
                 info.put("userHeadImg",userInfoById.getHeadImageUrl());
                 info.put("userId",id);
@@ -169,6 +173,7 @@ public class GameCacheService extends RedisService {
             }
             set(key,array,86400*10);
         }
+        safeSortByScoreDesc(array);
         return  array;
     }
 
@@ -181,6 +186,9 @@ public class GameCacheService extends RedisService {
             array = new ArrayList<>();
             for (String id : ids) {
                 User userInfoById = userCacheService.getUserInfoById(id);
+                if (userInfoById==null){
+                    continue;
+                }
                 JSONObject info = new JSONObject();
                 info.put("userHeadImg", userInfoById.getHeadImageUrl());
                 info.put("userId", id);
@@ -191,6 +199,7 @@ public class GameCacheService extends RedisService {
             }
             set(key, array, 86400 * 10);
         }
+        safeSortByScoreDesc(array);
         return array;
     }
 
@@ -261,7 +270,8 @@ public class GameCacheService extends RedisService {
                 info.put("userId", id);
                 info.put("userName", userInfoById.getName());
                 info.put("userNo", userInfoById.getUserNo());
-                info.put("score", score);
+                BigDecimal bd = new BigDecimal(score).setScale(2, RoundingMode.HALF_UP);
+                info.put("score", bd.doubleValue());
                 info.put("rank",rank);
                 list.add(info);
                 allScore += score;
@@ -371,6 +381,9 @@ public class GameCacheService extends RedisService {
             list = new ArrayList<>();
             for (String id : ids) {
                 User userInfoById = userCacheService.getUserInfoById(id);
+                if (userInfoById==null){
+                    continue;
+                }
                 JSONObject info = new JSONObject();
                 info.put("userHeadImg", userInfoById.getHeadImageUrl());
                 info.put("userId", id);
@@ -381,9 +394,26 @@ public class GameCacheService extends RedisService {
             }
             set(key, list, 60);
         }
+        safeSortByScoreDesc(list);
         return list;
     }
 
+    public static void sortByScoreDesc(List<JSONObject> list) {
+        Collections.sort(list, (o1, o2) -> {
+            double score1 = o1.getDoubleValue("score");
+            double score2 = o2.getDoubleValue("score");
+            return Double.compare(score2, score1); // 降序
+        });
+    }
+
+    // 安全版本（处理字段不存在情况）
+    public static void safeSortByScoreDesc(List<JSONObject> list) {
+        Collections.sort(list, (o1, o2) -> {
+            double score1 = o1.getDoubleValue("score"); // 默认值0
+            double score2 = o2.getDoubleValue("score");
+            return Double.compare(score2, score1);
+        });
+    }
 
     public List<JSONObject> getThisWeekListLhd() {
         String key = RedisKeyConstant.GAME_RANK_LIST_LHD;
@@ -394,6 +424,9 @@ public class GameCacheService extends RedisService {
             list = new ArrayList<>();
             for (String id : ids) {
                 User userInfoById = userCacheService.getUserInfoById(id);
+                if (userInfoById==null){
+                    continue;
+                }
                 JSONObject info = new JSONObject();
                 info.put("userHeadImg", userInfoById.getHeadImageUrl());
                 info.put("userId", id);
@@ -404,6 +437,7 @@ public class GameCacheService extends RedisService {
             }
             set(key, list, 60);
         }
+        safeSortByScoreDesc(list);
         return list;
     }
 
@@ -454,11 +488,12 @@ public class GameCacheService extends RedisService {
     }
 
     public Long getThisWeekUserRankLhd(String userId){
-        return getZsetRank(userId,RedisKeyConstant.GAME_RANK_NS+ DateUtil.getFirstDayOfWeek(new Date()));
+        String key = RedisKeyConstant.GAME_RANK_NH+ DateUtil.getFirstDayOfWeek(new Date());
+        return getZsetRank(userId,key);
     }
 
     public Long getLastWeekUserRankLhd(String userId){
-        return getZsetRank(userId,RedisKeyConstant.GAME_RANK_NS+DateUtil.getFirstDayOfLastWeek());
+        return getZsetRank(userId,RedisKeyConstant.GAME_RANK_NH+DateUtil.getFirstDayOfLastWeek());
     }
 
 

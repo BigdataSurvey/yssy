@@ -37,6 +37,8 @@ public class Config extends BaseBean {
 
 	public static final String GAME_DTS2_NEED_BOT="GAME_DTS2_NEED_BOT";
 
+	public static final String GAME_LHD_NEED_BOT="GAME_LHD_NEED_BOT";
+
 	public static final String DAILY_STOLEN_COUNT = "DAILY_STOLEN_COUNT";
 	public static final String DTS_STATUS="GAME_DTS_STATUS";
 	public static final String DZ_GAME_ON = "GAME_DZ_GAME_ON";
@@ -52,7 +54,6 @@ public class Config extends BaseBean {
 
 	public static final String IP_LOGIN_RISK = "IP_LOGIN_RISK";
 	public static final String TODAY_LUCKY = "TODAY_LUCKY";
-	public static final String CAN_BUY_HEAD_BOX = "CAN_BUY_HEAD_BOX";
 	public static final String UPDATE_GIFT = "UPDATE_GIFT";
 	public static final String BBSC_DAYS_1 = "BBSC_DAYS_1";
 
@@ -98,10 +99,6 @@ public class Config extends BaseBean {
 	// 交易行手续费
 	public static final String TRADING_FEE = "TRADING_FEE";
 
-	// 好友转增手续费
-	public static final String TRANSFER_FEE = "TRANSFER_FEE";
-	public static final String TRANSFER_FEE2 = "TRANSFER_FEE2";
-	public static final String TRANSFER_FEE3 = "TRANSFER_FEE3";
 
 	// 提现手续费
 	public static final String CASH_FEE = "CASH_FEE";

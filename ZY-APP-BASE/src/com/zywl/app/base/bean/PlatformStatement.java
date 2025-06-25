@@ -145,45 +145,45 @@ public class PlatformStatement extends BaseBean {
 
     private BigDecimal subShopMagic = BigDecimal.ZERO;
 
-    private BigDecimal allOutPut;
+    private BigDecimal allOutPut= BigDecimal.ZERO;
 
-    private  BigDecimal allExpend;
+    private  BigDecimal allExpend= BigDecimal.ZERO;
 
-    private BigDecimal allMagicOutPut;
+    private BigDecimal allMagicOutPut= BigDecimal.ZERO;
 
-    private  BigDecimal allMagicExpend;
+    private  BigDecimal allMagicExpend= BigDecimal.ZERO;
 
-    private  BigDecimal addReceivePop;
-    private  BigDecimal subSendGreetingCard;
-    private  BigDecimal addReceiveAchievement;
-    private  BigDecimal addFromItem;
-    private  BigDecimal addDispatch;
-    private  BigDecimal addWander;
-    private  BigDecimal addDice;
+    private  BigDecimal addReceivePop= BigDecimal.ZERO;
+    private  BigDecimal subSendGreetingCard= BigDecimal.ZERO;
+    private  BigDecimal addReceiveAchievement= BigDecimal.ZERO;
+    private  BigDecimal addFromItem= BigDecimal.ZERO;
+    private  BigDecimal addDispatch= BigDecimal.ZERO;
+    private  BigDecimal addWander= BigDecimal.ZERO;
+    private  BigDecimal addDice= BigDecimal.ZERO;
 
-    private BigDecimal subGift;
+    private BigDecimal subGift= BigDecimal.ZERO;
 
-    private BigDecimal subVip;
+    private BigDecimal subVip= BigDecimal.ZERO;
 
-    private BigDecimal subAfk;
+    private BigDecimal subAfk= BigDecimal.ZERO;
 
-    private BigDecimal subGameEscort;
+    private BigDecimal subGameEscort= BigDecimal.ZERO;
 
-    private BigDecimal addGameEscort;
+    private BigDecimal addGameEscort= BigDecimal.ZERO;
 
-    private BigDecimal subBuyPass;
+    private BigDecimal subBuyPass= BigDecimal.ZERO;
 
-    private BigDecimal addFriendBuy;
+    private BigDecimal addFriendBuy= BigDecimal.ZERO;
 
-    private BigDecimal addPetBuy;
+    private BigDecimal addPetBuy= BigDecimal.ZERO;
 
-    private BigDecimal addAnima;
+    private BigDecimal addAnima= BigDecimal.ZERO;
 
-    private BigDecimal subMine;
+    private BigDecimal subMine= BigDecimal.ZERO;
 
-    private BigDecimal subXhmj;
+    private BigDecimal subXhmj= BigDecimal.ZERO;
 
-    private BigDecimal addXhmj;
+    private BigDecimal addXhmj= BigDecimal.ZERO;
 
     public BigDecimal getSubMine() {
         return subMine;

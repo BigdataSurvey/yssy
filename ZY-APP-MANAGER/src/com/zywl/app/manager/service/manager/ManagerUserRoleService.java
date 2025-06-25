@@ -7,6 +7,7 @@ import com.zywl.app.base.bean.DicRole;
 import com.zywl.app.base.bean.User;
 import com.zywl.app.base.bean.UserRole;
 import com.zywl.app.base.service.BaseService;
+import com.zywl.app.base.util.LockUtil;
 import com.zywl.app.defaultx.annotation.KafkaProducer;
 import com.zywl.app.defaultx.annotation.ServiceClass;
 import com.zywl.app.defaultx.annotation.ServiceMethod;
@@ -54,43 +55,46 @@ public class ManagerUserRoleService extends BaseService {
         checkNull(data);
         checkNull(data.get("userId"),data.get("userRoleId"),data.get("number"));
         Long userId = data.getLong("userId");
-        Long userRoleId = data.getLong("userRoleId");
-        int number = data.getIntValue("number");
-        gameService.checkUserItemNumber(userId,"5",number);
-        gameService.updateUserBackpack(userId,"5",-number, LogUserBackpackTypeEnum.use);
-        int oneItemAddHp = managerConfigService.getInteger(Config.ADD_HP_WFSB);
-        int allHp = oneItemAddHp*number;
-        UserRole userRole = userRoleService.findByUserIdAndRoleId(userId,userRoleId);
-        if (userRole==null){
-            throwExp("未查询到角色信息");
+        synchronized (LockUtil.getlock(userId)){
+            Long userRoleId = data.getLong("userRoleId");
+            int number = data.getIntValue("number");
+            gameService.checkUserItemNumber(userId,"5",number);
+            int oneItemAddHp = managerConfigService.getInteger(Config.ADD_HP_WFSB);
+            int allHp = oneItemAddHp*number;
+            UserRole userRole = userRoleService.findByUserIdAndRoleId(userId,userRoleId);
+            if (userRole==null){
+                throwExp("未查询到角色信息");
+            }
+            if (userRole.getStatus()==0){
+                throwExp("角色尚未开始工作，无需补充体力");
+            }
+            if (userRole.getEndTime().getTime()<System.currentTimeMillis()){
+                throwExp("角色已到期，请重新激活礼包");
+            }
+            gameService.updateUserBackpack(userId,"5",-number, LogUserBackpackTypeEnum.addHp);
+            if (userRole.getHp()==0){
+                userRole.setLastReceiveTime(new Date());
+            }
+            DicRole dicRole = PlayGameService.DIC_ROLE.get(userRole.getRoleId().toString());
+            int maxHp = dicRole.getHp();
+            if (allHp+userRole.getHp()>maxHp){
+                userRole.setHp(maxHp);
+            }else {
+                userRole.setHp(userRole.getHp()+allHp);
+            }
+            User user = userCacheService.getUserInfoById(userId);
+            if (user.getParentId()!=null){
+                gameService.addParentGetAnima(userId,user.getParentId().toString(),new BigDecimal("0.25").multiply(new BigDecimal(number)));
+            }
+            if (user.getGrandfaId()!=null){
+                gameService.addGrandfaGetAnima(userId,user.getGrandfaId().toString(),new BigDecimal("0.15").multiply(new BigDecimal(number)));
+            }
+            userRoleService.updateUserRole(userRole);
+            JSONObject result = new JSONObject();
+            result.put("userRole",userRole);
+            return result;
         }
-        if (userRole.getStatus()==0){
-            throwExp("角色尚未开始工作，无需补充体力");
-        }
-        if (userRole.getEndTime().getTime()<System.currentTimeMillis()){
-            throwExp("角色已到期，请重新激活礼包");
-        }
-        if (userRole.getHp()==0){
-            userRole.setLastReceiveTime(new Date());
-        }
-        DicRole dicRole = PlayGameService.DIC_ROLE.get(userRole.getRoleId().toString());
-        int maxHp = dicRole.getHp();
-        if (allHp+userRole.getHp()>maxHp){
-            userRole.setHp(maxHp);
-        }else {
-            userRole.setHp(userRole.getHp()+allHp);
-        }
-        User user = userCacheService.getUserInfoById(userId);
-        if (user.getParentId()!=null){
-            gameService.addParentGetAnima(userId,user.getParentId().toString(),new BigDecimal("0.25").multiply(new BigDecimal(number)));
-        }
-        if (user.getGrandfaId()!=null){
-            gameService.addGrandfaGetAnima(userId,user.getGrandfaId().toString(),new BigDecimal("0.15").multiply(new BigDecimal(number)));
-        }
-        userRoleService.updateUserRole(userRole);
-        JSONObject result = new JSONObject();
-        result.put("userRole",userRole);
-        return result;
+
     }
 
     @Transactional
@@ -100,16 +104,18 @@ public class ManagerUserRoleService extends BaseService {
         checkNull(data.get("userId"),data.get("userRoleId"));
         Long userRoleId = data.getLong("userRoleId");
         Long userId = data.getLong("userId");
-        UserRole userRole = userRoleService.findByUserIdAndRoleId(userId,userRoleId);
-        if (userRole==null){
-            throwExp("未查询到角色信息");
+        synchronized (LockUtil.getlock(userId)){
+            UserRole userRole = userRoleService.findByUserIdAndRoleId(userId,userRoleId);
+            if (userRole==null){
+                throwExp("未查询到角色信息");
+            }
+            JSONArray reward = userRole.getUnReceive();
+            gameService.addReward(userId,reward,null);
+            userRole.setUnReceive(new JSONArray());
+            userRoleService.updateUserRole(userRole);
+            JSONObject result = new JSONObject();
+            result.put("rewards",reward);
+            return result;
         }
-        JSONArray reward = userRole.getUnReceive();
-        gameService.addReward(userId,reward,null);
-        userRole.setUnReceive(new JSONArray());
-        userRoleService.updateUserRole(userRole);
-        JSONObject result = new JSONObject();
-        result.put("rewards",reward);
-        return result;
     }
 }

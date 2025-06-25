@@ -114,7 +114,6 @@ public class ManagerMailService extends BaseService {
             }
 
             // 读取邮件完成 更新邮件为已读状态
-
             List<Long> mailIds = new ArrayList<>();
             for (Mail mail : mails) {
                 if (mail.getIsRead() == 1) {
@@ -159,68 +158,75 @@ public class ManagerMailService extends BaseService {
         //第一个是赠送的文房四宝
         JSONObject detail = new JSONObject();
         //第二个是根据等级额外获得的信封道具
-        JSONObject detail1 = new JSONObject();
         long userId = data.getLongValue("userId");
-        long toUserId = data.getLongValue("toUserId");
-        String context = data.getString("context");
-        int number = data.getIntValue("amount");
-        if (number < 0) {
-            throwExp("数值异常");
-        }
-        String itemId = "5";
-        String useItemId = "31";
-        String smallItemId = "32";
-        String bigItemId = "33";
-        String title = data.getString("title");
-        User user = userCacheService.getUserInfoById(userId);
-        gameService.checkUserItemNumber(userId, itemId, number);
-        //根据userId查询出当前用户的vip等级
-        UserVip uservip = userVipService.findRechargeAmountByUserId(userId);
-        UserVip toUservip = userVipService.findRechargeAmountByUserId(toUserId);
-        if(uservip.getVipLevel()<4 ){
-            //需要消耗一个信鸽
-            gameService.checkUserItemNumber(userId, useItemId, number);
-            //修改该用户的道具
-            gameService.updateUserBackpack(userId, useItemId,-number, LogUserBackpackTypeEnum.use);
-        }
-        if(uservip.getVipLevel()<4 && toUservip.getVipLevel() == 4){
-            //收件人将获得一个小信封
-            //修改该用户的道具
-            gameService.updateUserBackpack(toUserId, smallItemId,number, LogUserBackpackTypeEnum.use);
-            detail1.put("type", 1);
-            detail1.put("id", smallItemId);
-            detail1.put("number", number);
-            detail1.put("channel", MailGoldTypeEnum.FRIEND.getValue());
-            array.add(detail1);
-        }else if(uservip.getVipLevel()<4 && toUservip.getVipLevel() > 4){
-            gameService.updateUserBackpack(toUserId, bigItemId,number, LogUserBackpackTypeEnum.use);
-            detail1.put("type", 1);
-            detail1.put("id", bigItemId);
-            detail1.put("number", number);
-            detail1.put("channel", MailGoldTypeEnum.FRIEND.getValue());
-            array.add(detail1);
-        }
-        if (title == null) {
-            title = "好友赠送";
-        }
-        if (context == null) {
-            context = user.getName() + "(" + user.getUserNo() + ")赠送" + PlayGameService.itemMap.get(itemId).getName()
-                    + ":" + number;
-        }
-        detail.put("type", 1);
-        detail.put("id", itemId);
-        detail.put("number", number);
-        detail.put("channel", MailGoldTypeEnum.FRIEND.getValue());
-        //添加邮件记录
-        int isAttachments = 1;
+        synchronized (LockUtil.getlock(userId)){
+            long toUserId = data.getLongValue("toUserId");
+            String toUserNo  = data.getString("toUserNo");
+            String context = data.getString("context");
+            int number = data.getIntValue("amount");
+            if (number < 0) {
+                throwExp("数值异常");
+            }
+            String itemId = ItemIdEnum.WFSB.getValue();
+            String useItemId = ItemIdEnum.XG.getValue();
+            String smallItemId = ItemIdEnum.XXF.getValue();
+            String bigItemId = ItemIdEnum.DXF.getValue();
+            String title = data.getString("title");
+            User user = userCacheService.getUserInfoById(userId);
+            gameService.checkUserItemNumber(userId, itemId, number);
+            //根据userId查询出当前用户的vip等级
+            UserVip uservip = userVipService.findRechargeAmountByUserId(userId);
+            UserVip toUservip = userVipService.findRechargeAmountByUserId(toUserId);
+            if(uservip.getVipLevel()<4 ){
+                //需要消耗一个信鸽
+                gameService.checkUserItemNumber(userId, useItemId, number);
+                //修改该用户的道具
+                gameService.updateUserBackpack(userId, useItemId,-number, LogUserBackpackTypeEnum.use);
+            }
+            if(uservip.getVipLevel()<4 && toUservip.getVipLevel() == 4){
+                //收件人将获得一个小信封
+                //修改该用户的道具
+                //gameService.updateUserBackpack(toUserId, smallItemId,number, LogUserBackpackTypeEnum.use);
+                JSONObject detail1 = new JSONObject();
+                detail1.put("type", 1);
+                detail1.put("id", smallItemId);
+                detail1.put("number", number);
+                detail1.put("channel", MailGoldTypeEnum.FRIEND.getValue());
+                detail1.put("fromUserId",toUserNo);
+                array.add(detail1);
+            }else if(uservip.getVipLevel()<4 && toUservip.getVipLevel() > 4){
+                //gameService.updateUserBackpack(toUserId, bigItemId,number, LogUserBackpackTypeEnum.use);
+                JSONObject detail1 = new JSONObject();
+                detail1.put("type", 1);
+                detail1.put("id", bigItemId);
+                detail1.put("number", number);
+                detail1.put("channel", MailGoldTypeEnum.FRIEND.getValue());
+                detail1.put("fromUserId",toUserNo);
+                array.add(detail1);
+            }
+            if (title == null) {
+                title = "好友赠送";
+            }
+            if (context == null) {
+                context = user.getName() + "(" + user.getUserNo() + ")赠送" + PlayGameService.itemMap.get(itemId).getName()
+                        + ":" + number;
+            }
 
-        array.add(detail);
+            detail.put("type", 1);
+            detail.put("id", itemId);
+            detail.put("number", number);
+            detail.put("channel", MailGoldTypeEnum.FRIEND.getValue());
+            detail.put("fromUserId",toUserNo);
+            //添加邮件记录
+            int isAttachments = 1;
+            array.add(detail);
+            Long mailId = mailService.sendMail(userId, toUserId, title, context, null, isAttachments, array);
+            String orderNo = OrderUtil.getOrder5Number();
+            //如果是赠送   则再扣除赠送的金额  增加流水  赠送记录
+            gameService.updateUserBackpack(userId,itemId,-number, LogUserBackpackTypeEnum.zsg, String.valueOf(toUserNo));
+            return null;
+        }
 
-        Long mailId = mailService.sendMail(userId, toUserId, title, context, null, isAttachments, array);
-        String orderNo = OrderUtil.getOrder5Number();
-        //如果是赠送   则再扣除赠送的金额  增加流水  赠送记录
-        gameService.updateUserBackpack(userId,itemId,-number, LogUserBackpackTypeEnum.use);
-        return null;
     }
 
     @Transactional
@@ -252,10 +258,6 @@ public class ManagerMailService extends BaseService {
 
     }
 
-    public BigDecimal getUserFee() {
-        BigDecimal transferRate = appConfigCacheService.getTransferRate();
-        return transferRate;
-    }
 
 
 }

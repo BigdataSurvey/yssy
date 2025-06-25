@@ -225,7 +225,7 @@ public class ServerUserService extends BaseService {
         return result;
     }
 
-    @ServiceMethod(code = "013", description = "申请开通渠道")
+   /* @ServiceMethod(code = "013", description = "申请开通渠道")
     public Object applyForChannel(final AppSocket appSocket, Command appCommand, JSONObject params) {
         checkNull(params);
         Long userId = appSocket.getWsidBean().getUserId();
@@ -234,7 +234,7 @@ public class ServerUserService extends BaseService {
                 new RequestManagerListener(appCommand));
         return async();
     }
-
+*/
     @ServiceMethod(code = "014", description = "绑定手机号")
     public Object addTel(final AppSocket appSocket, Command appCommand, JSONObject params) {
         checkNull(params);
@@ -246,7 +246,7 @@ public class ServerUserService extends BaseService {
         return async();
     }
 
-    @ServiceMethod(code = "week", description = "周卡")
+  /*  @ServiceMethod(code = "week", description = "周卡")
     public Object week(final AppSocket appSocket, Command appCommand, JSONObject params) {
         checkNull(params);
         Long userId = appSocket.getWsidBean().getUserId();
@@ -265,7 +265,7 @@ public class ServerUserService extends BaseService {
                 new RequestManagerListener(appCommand));
         return async();
     }
-
+*/
     @ServiceMethod(code = "015", description = "我的信息")
     public Object getMyInfo(final AppSocket appSocket, Command appCommand, JSONObject params){
         Long userId = appSocket.getWsidBean().getUserId();

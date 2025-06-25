@@ -108,6 +108,9 @@ public class ManagerUserVipService extends BaseService {
         synchronized (LockUtil.getlock(userId)) {
             UserVip userVip = userVipService.findRechargeAmountByUserId(userId);
             long vipLevel = userVip.getVipLevel();
+            if (vipLevel==0){
+                throwExp("当前没有可以领取的礼包");
+            }
             JSONArray reward = DIC_VIP_MAP.get(String.valueOf(vipLevel)).getReward();
             String orderNo = OrderUtil.getOrder5Number();
                 List<VipReceiveRecord> vipReceiveRecord = vipReceiveRecordService.findVipReceiveRecordByLevel(userId, vipLevel);

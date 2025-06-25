@@ -41,6 +41,9 @@ public class ManagerAchievementService extends BaseService {
     @Autowired
     private UserStatisticService userStatisticService;
 
+    @Autowired
+    private UserService userService;
+
 
 
     @Transactional
@@ -50,7 +53,7 @@ public class ManagerAchievementService extends BaseService {
         checkNull(data.get("userId"), data.get("achievementId"));
         String id = data.getString("achievementId");
         Long userId = data.getLong("userId");
-        synchronized (LockUtil.getlock(userId.toString())) {
+        synchronized (LockUtil.getlock(userId)) {
             UserAchievement userAchievement = gameService.getUserAchievement(userId.toString());
             JSONArray array = userAchievement.getAchievementList();
             boolean b = false;
@@ -99,10 +102,11 @@ public class ManagerAchievementService extends BaseService {
         JSONArray achievementList = userAchievement.getAchievementList();
         UserStatistic userStatistic = userStatisticService.findByUserId(Long.valueOf(userId));
         boolean b = false;
+        long oneJuniorCount = userService.getOneJuniorCount(Long.valueOf(userId));
         for (Object o : achievementList) {
             JSONObject info = (JSONObject) o;
             if (info.getInteger("group") == 2) {
-               boolean c = checkAchievementByInviteUser(info, userStatistic);
+               boolean c = checkAchievementByInviteUser(info, oneJuniorCount);
                if (!b && c){
                     b= true;
                }
@@ -117,15 +121,15 @@ public class ManagerAchievementService extends BaseService {
         return result;
     }
 
-    public boolean checkAchievementByInviteUser(JSONObject info, UserStatistic userStatistic) {
+    public boolean checkAchievementByInviteUser(JSONObject info, Long number) {
         int status = info.getInteger("status");
         if (status==1){
             return false;
         }
-        info.put("schedule",userStatistic.getOneJuniorNum());
+        info.put("schedule",number);
         // 0 未完成  2 完成未领取
         if (status==0 || status==2){
-            if (userStatistic.getOneJuniorNum()>=info.getInteger("condition")){
+            if (number>=info.getInteger("condition")){
                 info.put("schedule",info.getIntValue("condition"));
                 info.put("status",2);
                 return true;

@@ -102,7 +102,6 @@ public class ServerConfigService extends BaseService {
 		String keyStr = params.getString("key");
 		checkNull(keyStr);
 		String keyItems[] = keyStr.replaceAll(" ", "").split(",");
-		
 		JSONObject result = new JSONObject();
 		for (String key : keyItems) {
 			if(WHITE_LIST.contains(key)){

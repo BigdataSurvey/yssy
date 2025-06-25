@@ -116,7 +116,7 @@ public class UserCapitalService extends DaoService {
 
     @Transactional
     public void betUpdateBalance(JSONObject obj) {
-        int capitalType = UserCapitalTypeEnum.currency_2.getValue();
+        int capitalType = UserCapitalTypeEnum.yyb.getValue();
         List<Map<String, Object>> list = new ArrayList<>();
         Set<String> set = obj.keySet();
         LogCapitalTypeEnum em = null;
@@ -170,7 +170,6 @@ public class UserCapitalService extends DaoService {
         Set<String> set = obj.keySet();
         LogCapitalTypeEnum em = null;
         Map<String, BigDecimal> beforeMoney = new HashMap<>();
-
         for (String key : set) {
             Map<String, Object> map = new HashedMap<>();
             map.put("userId", key);
@@ -187,10 +186,10 @@ public class UserCapitalService extends DaoService {
         int a = execute("betUpdateBalance2", list);
         if (a < 1) {
             for (String key : set) {
-                userCapitalCacheService.deltedUserCapitalCache(Long.parseLong(key), UserCapitalTypeEnum.currency_2.getValue());
+                userCapitalCacheService.deltedUserCapitalCache(Long.parseLong(key), UserCapitalTypeEnum.yyb.getValue());
             }
             if (em.getValue() == LogCapitalTypeEnum.game_bet.getValue()) {
-                throwExp("灵石不足，参与失败！");
+                throwExp("失败！");
             } else {
                 throwExp("结算失败！");
             }
@@ -199,7 +198,7 @@ public class UserCapitalService extends DaoService {
             for (String userId : set) {
                 BigDecimal before;
                 if (!beforeMoney.containsKey(userId)) {
-                    before = userCapitalCacheService.getUserCapitalCacheByType(Long.parseLong(userId), UserCapitalTypeEnum.currency_2.getValue()).getBalance();
+                    before = userCapitalCacheService.getUserCapitalCacheByType(Long.parseLong(userId), UserCapitalTypeEnum.yyb.getValue()).getBalance();
                 } else {
                     before = beforeMoney.get(userId);
                 }
@@ -235,7 +234,7 @@ public class UserCapitalService extends DaoService {
     @Transactional
     public void addUserBalanceByCancelAskBuy(Long userId, Long itemId, BigDecimal amount) {
         // 查询撤销的的单子有多少钱
-        /*UserCapital userCapital = userCapitalCacheService.getUserCapitalCacheByType(userId, UserCapitalTypeEnum.currency_2.getValue());
+        UserCapital userCapital = userCapitalCacheService.getUserCapitalCacheByType(userId, UserCapitalTypeEnum.currency_2.getValue());
         // 求购不添加求购记录 只有资产流水 但是求购的资产会被冻结 需要解冻资产
         int a = addUserBalanceAndSubOccupyBalance(amount, userId, UserCapitalTypeEnum.currency_2.getValue(), userCapital.getBalance(), userCapital.getOccupyBalance(), null, null, LogCapitalTypeEnum.cancel_askbuy, null);
         if (a < 1) {
@@ -245,7 +244,7 @@ public class UserCapitalService extends DaoService {
             if (b < 1) {
                 throwExp("取消求购失败，请重试！");
             }
-        }*/
+        }
     }
 
     /**

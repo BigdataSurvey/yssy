@@ -33,7 +33,7 @@ public class ServerPromoteService extends BaseService {
     private UserCacheService userCacheService;
 
 
-    @ServiceMethod(code = "info", description = "获取限时邀请好友活动")
+  /*  @ServiceMethod(code = "info", description = "获取限时邀请好友活动")
     public Object getUserInviteInfo(final AppSocket appSocket, Command appCommand, JSONObject params) {
         long userId =  appSocket.getWsidBean().getUserId();
         User user = userCacheService.getUserInfoById(userId);
@@ -57,7 +57,7 @@ public class ServerPromoteService extends BaseService {
         }
         Executer.request(TargetSocketType.manager, CommandBuilder.builder().request("017002", params).build(), new RequestManagerListener(appCommand));
         return async();
-    }
+    }*/
 
 
 }

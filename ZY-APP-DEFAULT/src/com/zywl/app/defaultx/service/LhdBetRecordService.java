@@ -83,6 +83,7 @@ public class LhdBetRecordService extends DaoService {
 			JSONObject o = (JSONObject) obj.get(key);
 			map.put("winAmount", o.get("winAmount"));
 			map.put("lotteryResult", o.get("lotteryResult"));
+			map.put("winOrLose",o.get("winOrLose"));
 			list.add(map);
 		}
 		 execute("batchUpdateRecord", list);

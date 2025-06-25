@@ -4,10 +4,7 @@ import com.alibaba.fastjson2.JSONObject;
 import com.live.app.ws.enums.PushCode;
 import com.live.app.ws.util.DefaultPushHandler;
 import com.live.app.ws.util.Push;
-import com.zywl.app.base.bean.BackpackStatement;
-import com.zywl.app.base.bean.Item;
-import com.zywl.app.base.bean.LogLogin;
-import com.zywl.app.base.bean.PlatformStatement;
+import com.zywl.app.base.bean.*;
 import com.zywl.app.base.bean.vo.LogUserCapitalVo;
 import com.zywl.app.base.service.BaseService;
 import com.zywl.app.base.util.DateUtil;
@@ -52,9 +49,9 @@ public class LogService extends BaseService {
     public void insertLog(JSONObject data) {
         if (data.getIntValue("logType") == 1) {
             insertCapitalLog(data);
-        } else if (data.getIntValue("logType") == 2){
+        } else if (data.getIntValue("logType") == 2) {
             insertBackPackLog(data);
-        }else if (data.getIntValue("logType") == 3){
+        } else if (data.getIntValue("logType") == 3) {
             insertLoginLog(data);
         }
     }
@@ -78,6 +75,7 @@ public class LogService extends BaseService {
 
         new Timer("定时增加每日报表数据").schedule(new TimerTask() {
             Long time = DateUtil.getAddStaticsDate();
+
             public void run() {
                 platformStatementService.addStatement();
                 for (Item item : items) {
@@ -93,7 +91,7 @@ public class LogService extends BaseService {
                     logger.info("删除背包日志开始");
                     int res = logUserBackpackService.deleteLog(DateUtil.getOneDaysAgoBegin());
                     logger.info("删除背包结束，删除【" + res + "】条数据，用时【" + (System.currentTimeMillis() - time) + "】ms");
-                }catch (Exception e){
+                } catch (Exception e) {
                     e.printStackTrace();
                 }
 
@@ -125,10 +123,13 @@ public class LogService extends BaseService {
         int number = data.getIntValue("number");
         long itemId = data.getLong("itemId");
         LogUserBackpackTypeEnum em = data.getObject("em", LogUserBackpackTypeEnum.class);
-        if (em.getValue() != LogUserBackpackTypeEnum.skill.getValue()) {
+        if (em.getValue()==LogUserBackpackTypeEnum.zs.getValue() || em.getValue()==LogUserBackpackTypeEnum.zsg.getValue()){
+            logUserBackpackService.addLogUserBackpack(userId, itemId, numberBefore, number, em,data.getString("otherUserId"));
+        }else{
             logUserBackpackService.addLogUserBackpack(userId, itemId, numberBefore, number, em);
-            addItemStatement(em.getValue(), number, itemId);
         }
+        addItemStatement(em.getValue(), number, itemId);
+
     }
 
     public void insertLoginLog(JSONObject data) {
@@ -136,7 +137,7 @@ public class LogService extends BaseService {
         long userId = data.getLong("userId");
         String type = data.getString("type");
         String requestId = data.getString("requestId");
-        String deviceId =data.getString("deviceId");
+        String deviceId = data.getString("deviceId");
         String code = data.getString("code");
         String riskLevel = data.getString("riskLevel");
         String detail = data.getString("detail");
@@ -146,7 +147,7 @@ public class LogService extends BaseService {
         String ipProvince = data.getString("ipProvince");
         String ipCity = data.getString("ipCity");
         String message = data.getString("message");
-        logLoginService.addLog(userId,type,requestId,deviceId,code,riskLevel,detail,model,ip,ipCountry,ipProvince,ipCity,message);
+        logLoginService.addLog(userId, type, requestId, deviceId, code, riskLevel, detail, model, ip, ipCountry, ipProvince, ipCity, message);
 
     }
 
@@ -158,7 +159,7 @@ public class LogService extends BaseService {
         checkNull(params.get("userId"));
         Long userId = params.getLong("userId");
         int type = params.getIntValue("type");
-        List<LogUserCapitalVo> vos = logUserCapitalService.getLog(userId, params.getIntValue("capitalType"), params.getIntValue("page"), params.getIntValue("num"),type);
+        List<LogUserCapitalVo> vos = logUserCapitalService.getLog(userId, params.getIntValue("capitalType"), params.getIntValue("page"), params.getIntValue("num"), type);
         JSONObject logInfo = new JSONObject();
         logInfo.put("logInfo", vos);
         return logInfo;
@@ -170,9 +171,9 @@ public class LogService extends BaseService {
         String startDate = data.getString("startDate");
         String endDate = data.getString("endDate");
         List<PlatformStatement> allPlatformStatement = platformStatementService.findAllPlatformStatement();
-        allPlatformStatement.forEach(e->e.init());
+        allPlatformStatement.forEach(e -> e.init());
         JSONObject result = new JSONObject();
-        Collections.reverse( allPlatformStatement);
+        Collections.reverse(allPlatformStatement);
         result.put("list", allPlatformStatement);
         result.put("count", allPlatformStatement.size());
         return result;
@@ -189,11 +190,24 @@ public class LogService extends BaseService {
         return result;
     }
 
+    @Transactional
+    @ServiceMethod(code = "004", description = "获取玩家道具日志")
+    public Object getUserItemLog(LogSocketServer socketServer, JSONObject params) {
+        checkNull(params);
+        checkNull(params.get("userId"));
+        Long userId = params.getLong("userId");
+        int type = params.getIntValue("type");
+        List<LogUserBackpack> vos = logUserBackpackService.getLog(userId, params.getString("itemId"), params.getIntValue("page"), params.getIntValue("num"), type,params.getString("mark"));
+        JSONObject logInfo = new JSONObject();
+        logInfo.put("logInfo", vos);
+        return logInfo;
+    }
+
 
     public void addStatement(int type, BigDecimal amount) {
         Map<String, Object> params = new HashMap<>();
         params.put("ymd", DateUtil.format9(new Date()));
-        if (type==LogCapitalTypeEnum.ios_test.getValue() || type==LogCapitalTypeEnum.cancel_bet.getValue() || type==LogCapitalTypeEnum.askbuy_sucess.getValue()){
+        if (type == LogCapitalTypeEnum.ios_test.getValue() || type == LogCapitalTypeEnum.cancel_bet.getValue() || type == LogCapitalTypeEnum.askbuy_sucess.getValue()) {
             return;
         }
         if (type == LogCapitalTypeEnum.pirze_draw.getValue()) {
@@ -208,7 +222,7 @@ public class LogService extends BaseService {
             params.put("subAskBuy", amount);
         } else if (type == LogCapitalTypeEnum.game_bet.getValue()) {
             params.put("subGameBetDts", amount);
-        }else if (type == LogCapitalTypeEnum.game_bet_food.getValue()) {
+        } else if (type == LogCapitalTypeEnum.game_bet_food.getValue()) {
             params.put("subGameBetFood", amount);
         } else if (type == LogCapitalTypeEnum.sign.getValue()) {
             params.put("subSign", amount);
@@ -230,7 +244,7 @@ public class LogService extends BaseService {
             params.put("subExchange", amount);
         } else if (type == LogCapitalTypeEnum.pirze_draw_reward.getValue()) {
             params.put("addPirze", amount);
-        }  else if (type == LogCapitalTypeEnum.sign_reward.getValue() || type == LogCapitalTypeEnum.receive_total_sign_reward.getValue()) {
+        } else if (type == LogCapitalTypeEnum.sign_reward.getValue() || type == LogCapitalTypeEnum.receive_total_sign_reward.getValue()) {
             params.put("addSign", amount);
         } else if (type == LogCapitalTypeEnum.sell.getValue()) {
             params.put("addSell", amount);
@@ -244,15 +258,15 @@ public class LogService extends BaseService {
             params.put("addReceiveMail", amount);
         } else if (type == LogCapitalTypeEnum.game_bet_win.getValue()) {
             params.put("addGameWinDts", amount);
-        }else if (type == LogCapitalTypeEnum.game_bet_win_food.getValue()) {
+        } else if (type == LogCapitalTypeEnum.game_bet_win_food.getValue()) {
             params.put("addGameWinFood", amount);
         } else if (type == LogCapitalTypeEnum.sell_sys.getValue()) {
             params.put("addSellSys", amount);
-        }else if (type == LogCapitalTypeEnum.sell_sys_magic.getValue()) {
+        } else if (type == LogCapitalTypeEnum.sell_sys_magic.getValue()) {
             params.put("addSellSysMagic", amount);
-        }else if (type == LogCapitalTypeEnum.sell_sys2.getValue()) {
+        } else if (type == LogCapitalTypeEnum.sell_sys2.getValue()) {
             params.put("addSellSys2", amount);
-        }else if (type == LogCapitalTypeEnum.sell_sys3.getValue()) {
+        } else if (type == LogCapitalTypeEnum.sell_sys3.getValue()) {
             params.put("addSellSys3", amount);
         } else if (type == LogCapitalTypeEnum.receive_invite.getValue()) {
             params.put("addInvite", amount);
@@ -260,7 +274,7 @@ public class LogService extends BaseService {
             params.put("addGuildSend", amount);
         } else if (type == LogCapitalTypeEnum.achievement_reward.getValue()) {
             params.put("addAchievement", amount);
-        } else if (type == LogCapitalTypeEnum.balance_convert.getValue() || type==LogCapitalTypeEnum.cash_channel_income.getValue() ||type == LogCapitalTypeEnum.c3_convert.getValue()) {
+        } else if (type == LogCapitalTypeEnum.balance_convert.getValue() || type == LogCapitalTypeEnum.cash_channel_income.getValue() || type == LogCapitalTypeEnum.c3_convert.getValue()) {
             if (amount.compareTo(BigDecimal.ZERO) > 0) {
                 params.put("addConvert", amount);
             } else {
@@ -276,128 +290,108 @@ public class LogService extends BaseService {
             params.put("addFriendPlayGame", amount);
         } else if (type == LogCapitalTypeEnum.play_game.getValue()) {
             params.put("addPlayGame", amount);
-        }else if (type == LogCapitalTypeEnum.daily_task.getValue()) {
+        } else if (type == LogCapitalTypeEnum.daily_task.getValue()) {
             params.put("addDailyTask", amount);
-        }else if(type==LogCapitalTypeEnum.game_bet_ns.getValue()){
-            params.put("subNs",amount);
-        } else if (type==LogCapitalTypeEnum.open_box.getValue() || type==LogCapitalTypeEnum.game_kill_ns.getValue() || type == LogCapitalTypeEnum.game_win_ns.getValue()) {
-            params.put("addNs",amount);
-        }else if(type==LogCapitalTypeEnum.game_bet_nh.getValue()){
-            params.put("subNh",amount);
-        } else if (type==LogCapitalTypeEnum.game_bet_win_nh.getValue()) {
-            params.put("addNh",amount);
-        } else if (type==LogCapitalTypeEnum.add_magic.getValue() || type == LogCapitalTypeEnum.magic_convert.getValue()) {
-            params.put("subMagic",amount);
-        } else if (type==LogCapitalTypeEnum.receive_magic.getValue() || type==LogCapitalTypeEnum.get_magic_convert.getValue()) {
-            params.put("addMagic",amount);
-        }else if (type==LogCapitalTypeEnum.dz_dk_lq_reward.getValue()) {
-            params.put("addDzGame",amount);
-        }else if (type==LogCapitalTypeEnum.dz_kc_reward.getValue()) {
-            params.put("subDzGame",amount);
-        }else if (type==LogCapitalTypeEnum.lq_red_package.getValue()) {
-            params.put("addRedGame",amount);
-        }else if (type==LogCapitalTypeEnum.send_red_package.getValue()) {
-            params.put("subRedGame",amount);
-        }else if(type==LogCapitalTypeEnum.game_bet_dts2.getValue()){
-            params.put("subDts2",amount);
-        }else if(type==LogCapitalTypeEnum.game_bet_win_dts2.getValue()){
-            params.put("addDts2",amount);
-        }else if(type == LogCapitalTypeEnum.dts_rank_rebate.getValue()){
-            params.put("addDtsRebate",amount);
-        } else if (type==LogCapitalTypeEnum.game_bet_win_sg.getValue()) {
-            params.put("addCq",amount);
-        } else if (type==LogCapitalTypeEnum.game_bet_sg.getValue()) {
-            params.put("subCq",amount);
-        } else if (type==LogCapitalTypeEnum.create_jsxm_gate.getValue()) {
-            params.put("subCreateXm",amount);
-        } else if (type==LogCapitalTypeEnum.contribution_jsxm_zj.getValue()) {
-            params.put("subContribution",amount);
-        }else if (type==LogCapitalTypeEnum.buy_jsxm_image.getValue()) {
-            params.put("subBuyHead",amount);
-        }else if (type==LogCapitalTypeEnum.update_jsxm_name.getValue()) {
-            params.put("subUpdateName",amount);
-        }else if (type==LogCapitalTypeEnum.jsxm_xm_reward.getValue()) {
-            params.put("addXmReward",amount);
-        }else if (type==LogCapitalTypeEnum.join_ancient.getValue()) {
-            params.put("subJoinAncient",amount);
-        }else if (type==LogCapitalTypeEnum.ancient_get_c2.getValue()) {
-            params.put("addAncientC2",amount);
-        }else if (type==LogCapitalTypeEnum.ancient_get_c5.getValue()) {
-            params.put("addAncientC5",amount);
-        }else if (type==LogCapitalTypeEnum.refresh.getValue()) {
-            params.put("subRefresh",amount);
-        } else if (type==LogCapitalTypeEnum.receive_cave.getValue()) {
-            params.put("addCave",amount);
-        } else if (type==LogCapitalTypeEnum.add_flag.getValue()) {
-            params.put("subAddFlag",amount);
-        } else if (type==LogCapitalTypeEnum.game_bet_bt.getValue()) {
-            params.put("subBt",amount);
-        }else if (type==LogCapitalTypeEnum.game_bet_win_bt.getValue()) {
-            params.put("addBt",amount);
-        } else if (type==LogCapitalTypeEnum.exchange_ticket.getValue()) {
-            params.put("subTicket",amount);
-        } else if (type==LogCapitalTypeEnum.shopping_magic.getValue()) {
-            params.put("subShopMagic",amount);
-        }
-        else if (type==LogCapitalTypeEnum.receive_pop.getValue()) {
-            params.put("addReceivePop",amount);
-        }
-        else if (type==LogCapitalTypeEnum.send_greeting_card.getValue()) {
-            params.put("subSendGreetingCard",amount);
-        }
-        else if (type==LogCapitalTypeEnum.add_reward.getValue()) {
-            params.put("addReward",amount);
-        }
-        else if (type==LogCapitalTypeEnum.receive_achievement.getValue()) {
-            params.put("addReceiveAchievement",amount);
-        }
-        else if (type==LogCapitalTypeEnum.from_item.getValue()) {
-            params.put("addFromItem",amount);
-        }
-        else if (type==LogCapitalTypeEnum.dispatch.getValue()) {
-            params.put("addDispatch",amount);
-        }
-        else if (type==LogCapitalTypeEnum.wander.getValue()) {
-            params.put("addWander",amount);
-        }
-        else if (type==LogCapitalTypeEnum.dice.getValue()) {
-            params.put("addDice",amount);
-        }
-        else if (type==LogCapitalTypeEnum.buy_gift.getValue()) {
-            params.put("subGift",amount);
-        }
-        else if (type==LogCapitalTypeEnum.buy_vip.getValue()) {
-            params.put("subVip",amount);
-        }
-        else if (type==LogCapitalTypeEnum.afk.getValue()) {
-            params.put("subAfk",amount);
-        }
-        else if (type==LogCapitalTypeEnum.game_bet_escort.getValue()) {
-            params.put("subGameEscort",amount);
-        }
-        else if (type==LogCapitalTypeEnum.game_escort_win.getValue()) {
-            params.put("addGameEscort",amount);
-        }
-        else if (type==LogCapitalTypeEnum.buy_pass.getValue()) {
-            params.put("subBuyPass",amount);
-        }
-        else if (type==LogCapitalTypeEnum.friend_buy.getValue()) {
-            params.put("addFriendBuy",amount);
-        }
-        else if (type==LogCapitalTypeEnum.pet_buy.getValue()) {
-            params.put("addPetBuy",amount);
-        }
-        else if (type==LogCapitalTypeEnum.receive_anima.getValue()) {
-            params.put("addAnima",amount);
-        }
-        else if (type==LogCapitalTypeEnum.open_mine.getValue()) {
-            params.put("subMine",amount);
-        }
-        else if (type==LogCapitalTypeEnum.game_bet_cards.getValue()) {
-            params.put("subXhmj",amount);
-        }
-        else if (type==LogCapitalTypeEnum.game_cards_win.getValue()) {
-            params.put("addXhmj",amount);
+        } else if (type == LogCapitalTypeEnum.game_bet_ns.getValue()) {
+            params.put("subNs", amount);
+        } else if (type == LogCapitalTypeEnum.open_box.getValue() || type == LogCapitalTypeEnum.game_kill_ns.getValue() || type == LogCapitalTypeEnum.game_win_ns.getValue()) {
+            params.put("addNs", amount);
+        } else if (type == LogCapitalTypeEnum.game_bet_nh.getValue()) {
+            params.put("subNh", amount);
+        } else if (type == LogCapitalTypeEnum.game_bet_win_nh.getValue()) {
+            params.put("addNh", amount);
+        } else if (type == LogCapitalTypeEnum.add_magic.getValue() || type == LogCapitalTypeEnum.magic_convert.getValue()) {
+            params.put("subMagic", amount);
+        } else if (type == LogCapitalTypeEnum.receive_magic.getValue() || type == LogCapitalTypeEnum.get_magic_convert.getValue()) {
+            params.put("addMagic", amount);
+        } else if (type == LogCapitalTypeEnum.dz_dk_lq_reward.getValue()) {
+            params.put("addDzGame", amount);
+        } else if (type == LogCapitalTypeEnum.dz_kc_reward.getValue()) {
+            params.put("subDzGame", amount);
+        } else if (type == LogCapitalTypeEnum.lq_red_package.getValue()) {
+            params.put("addRedGame", amount);
+        } else if (type == LogCapitalTypeEnum.send_red_package.getValue()) {
+            params.put("subRedGame", amount);
+        } else if (type == LogCapitalTypeEnum.game_bet_dts2.getValue()) {
+            params.put("subDts2", amount);
+        } else if (type == LogCapitalTypeEnum.game_bet_win_dts2.getValue()) {
+            params.put("addDts2", amount);
+        } else if (type == LogCapitalTypeEnum.dts_rank_rebate.getValue()) {
+            params.put("addDtsRebate", amount);
+        } else if (type == LogCapitalTypeEnum.game_bet_win_sg.getValue()) {
+            params.put("addCq", amount);
+        } else if (type == LogCapitalTypeEnum.game_bet_sg.getValue()) {
+            params.put("subCq", amount);
+        } else if (type == LogCapitalTypeEnum.create_jsxm_gate.getValue()) {
+            params.put("subCreateXm", amount);
+        } else if (type == LogCapitalTypeEnum.contribution_jsxm_zj.getValue()) {
+            params.put("subContribution", amount);
+        } else if (type == LogCapitalTypeEnum.buy_jsxm_image.getValue()) {
+            params.put("subBuyHead", amount);
+        } else if (type == LogCapitalTypeEnum.update_jsxm_name.getValue()) {
+            params.put("subUpdateName", amount);
+        } else if (type == LogCapitalTypeEnum.jsxm_xm_reward.getValue()) {
+            params.put("addXmReward", amount);
+        } else if (type == LogCapitalTypeEnum.join_ancient.getValue()) {
+            params.put("subJoinAncient", amount);
+        } else if (type == LogCapitalTypeEnum.ancient_get_c2.getValue()) {
+            params.put("addAncientC2", amount);
+        } else if (type == LogCapitalTypeEnum.ancient_get_c5.getValue()) {
+            params.put("addAncientC5", amount);
+        } else if (type == LogCapitalTypeEnum.refresh.getValue()) {
+            params.put("subRefresh", amount);
+        } else if (type == LogCapitalTypeEnum.receive_cave.getValue()) {
+            params.put("addCave", amount);
+        } else if (type == LogCapitalTypeEnum.add_flag.getValue()) {
+            params.put("subAddFlag", amount);
+        } else if (type == LogCapitalTypeEnum.game_bet_bt.getValue()) {
+            params.put("subBt", amount);
+        } else if (type == LogCapitalTypeEnum.game_bet_win_bt.getValue()) {
+            params.put("addBt", amount);
+        } else if (type == LogCapitalTypeEnum.exchange_ticket.getValue()) {
+            params.put("subTicket", amount);
+        } else if (type == LogCapitalTypeEnum.shopping_magic.getValue()) {
+            params.put("subShopMagic", amount);
+        } else if (type == LogCapitalTypeEnum.receive_pop.getValue()) {
+            params.put("addReceivePop", amount);
+        } else if (type == LogCapitalTypeEnum.send_greeting_card.getValue()) {
+            params.put("subSendGreetingCard", amount);
+        } else if (type == LogCapitalTypeEnum.add_reward.getValue()) {
+            params.put("addReward", amount);
+        } else if (type == LogCapitalTypeEnum.receive_achievement.getValue()) {
+            params.put("addReceiveAchievement", amount);
+        } else if (type == LogCapitalTypeEnum.from_item.getValue()) {
+            params.put("addFromItem", amount);
+        } else if (type == LogCapitalTypeEnum.dispatch.getValue()) {
+            params.put("addDispatch", amount);
+        } else if (type == LogCapitalTypeEnum.wander.getValue()) {
+            params.put("addWander", amount);
+        } else if (type == LogCapitalTypeEnum.dice.getValue()) {
+            params.put("addDice", amount);
+        } else if (type == LogCapitalTypeEnum.buy_gift.getValue()) {
+            params.put("subGift", amount);
+        } else if (type == LogCapitalTypeEnum.buy_vip.getValue()) {
+            params.put("subVip", amount);
+        } else if (type == LogCapitalTypeEnum.afk.getValue()) {
+            params.put("subAfk", amount);
+        } else if (type == LogCapitalTypeEnum.game_bet_escort.getValue()) {
+            params.put("subGameEscort", amount);
+        } else if (type == LogCapitalTypeEnum.game_escort_win.getValue()) {
+            params.put("addGameEscort", amount);
+        } else if (type == LogCapitalTypeEnum.buy_pass.getValue()) {
+            params.put("subBuyPass", amount);
+        } else if (type == LogCapitalTypeEnum.friend_buy.getValue()) {
+            params.put("addFriendBuy", amount);
+        } else if (type == LogCapitalTypeEnum.pet_buy.getValue()) {
+            params.put("addPetBuy", amount);
+        } else if (type == LogCapitalTypeEnum.receive_anima.getValue()) {
+            params.put("addAnima", amount);
+        } else if (type == LogCapitalTypeEnum.open_mine.getValue()) {
+            params.put("subMine", amount);
+        } else if (type == LogCapitalTypeEnum.game_bet_cards.getValue()) {
+            params.put("subXhmj", amount);
+        } else if (type == LogCapitalTypeEnum.game_cards_win.getValue()) {
+            params.put("addXhmj", amount);
         }
         platformStatementService.updateStatement(params);
     }
@@ -429,15 +423,15 @@ public class LogService extends BaseService {
         } else if (type == LogUserBackpackTypeEnum.buy.getValue()) {
             params.put("tradBuy", num);
         } else if (type == LogUserBackpackTypeEnum.cave_prize_draw.getValue()) {
-            params.put("cavePrizeDraw",num);
+            params.put("cavePrizeDraw", num);
         } else if (type == LogUserBackpackTypeEnum.search.getValue()) {
-            params.put("search",num);
+            params.put("search", num);
         } else if (type == LogUserBackpackTypeEnum.xm_buy.getValue()) {
-            params.put("xmBuy",num);
-        } else if (type==LogUserBackpackTypeEnum.ancient_get.getValue()) {
-            params.put("ancientGet",num);
+            params.put("xmBuy", num);
+        } else if (type == LogUserBackpackTypeEnum.ancient_get.getValue()) {
+            params.put("ancientGet", num);
         }
 
-       // backpackStatementService.updateStatement(params);
+        // backpackStatementService.updateStatement(params);
     }
 }

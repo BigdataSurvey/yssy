@@ -5,6 +5,7 @@ import com.zywl.app.base.bean.Activity;
 import com.zywl.app.base.bean.Config;
 import com.zywl.app.base.bean.User;
 import com.zywl.app.base.service.BaseService;
+import com.zywl.app.base.util.LockUtil;
 import com.zywl.app.base.util.OrderUtil;
 import com.zywl.app.defaultx.annotation.ServiceClass;
 import com.zywl.app.defaultx.annotation.ServiceMethod;
@@ -69,28 +70,30 @@ public class ManagerBuyGiftService extends BaseService {
         BigDecimal price = getGiftPriceById( giftType);
         //购买礼包的用户ID
         Long userId = data.getLong("userId");
-        //礼包加数量之前先判断用户余额是否足够
-        managerGameBaseService.checkBalance(userId, price, UserCapitalTypeEnum.currency_2);
-        //余额充足 1.插入订单 2.扣钱  3.加礼包数量
-        //1.插入订单
-        String orderNo = OrderUtil.getOrder5Number();
-        Long recordId = userGiftRecordService.addGiftRecord(userId, orderNo, UserCapitalTypeEnum.currency_2.getValue(), 1, price);
-        //2.扣钱
-        userCapitalService.subBalanceByGift(price, userId, orderNo, recordId);
-        managerUserVipService.addExper(userId, price);
-        //3.礼包数+1
-        userGiftService.addUserGiftNumber(userId, giftType,1);
-        //推送用户余额变化
-        managerGameBaseService.pushCapitalUpdate(userId, UserCapitalTypeEnum.currency_2.getValue());
-        Activity activity = gameCacheService.getActivity();
-        if (activity!=null){
-            if (activity.getAddPointEvent()== ActivityAddPointEventEnum.GAME_MONEY_BUY_GIFT.getValue()){
-                //已经激活大礼包的用户 给他上级加积分并存入redis
-                //用户父id的积分
-                gameCacheService.addPoint(userId);
+        synchronized (LockUtil.getlock(userId)){
+            //礼包加数量之前先判断用户余额是否足够
+            managerGameBaseService.checkBalance(userId, price, UserCapitalTypeEnum.currency_2);
+            //余额充足 1.插入订单 2.扣钱  3.加礼包数量
+            //1.插入订单
+            String orderNo = OrderUtil.getOrder5Number();
+            Long recordId = userGiftRecordService.addGiftRecord(userId, orderNo, UserCapitalTypeEnum.currency_2.getValue(), 1, price);
+            //2.扣钱
+            userCapitalService.subBalanceByGift(price, userId, orderNo, recordId);
+            managerUserVipService.addExper(userId, price);
+            //3.礼包数+1
+            userGiftService.addUserGiftNumber(userId, giftType,1);
+            //推送用户余额变化
+            managerGameBaseService.pushCapitalUpdate(userId, UserCapitalTypeEnum.currency_2.getValue());
+            Activity activity = gameCacheService.getActivity();
+            if (activity!=null){
+                if (activity.getAddPointEvent()== ActivityAddPointEventEnum.GAME_MONEY_BUY_GIFT.getValue()){
+                    //已经激活大礼包的用户 给他上级加积分并存入redis
+                    //用户父id的积分
+                    gameCacheService.addPoint(userId);
+                }
             }
+            return new JSONObject();
         }
-        return new JSONObject();
     }
 
 

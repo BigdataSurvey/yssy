@@ -98,7 +98,7 @@ public class UserService extends DaoService {
         newPlayer.setTokenTime(DateUtil.getDateByDay(7));
         newPlayer.setIsChannel(0);
         newPlayer.setIsCash(0);
-        newPlayer.setVip1(1);
+        newPlayer.setVip1(0);
         newPlayer.setVip2(0);
         newPlayer.setVipExpireTime(DateUtil.getDateByDay(7));
         newPlayer.setVip2ExpireTime(new Date());
@@ -639,7 +639,7 @@ public class UserService extends DaoService {
     @Transactional
     public int updateUserNo(String goodNo, Long userId) {
         Map<String, Object> params = new HashMap<>();
-        params.put("goodNo", goodNo);
+        params.put("userNo", goodNo);
         params.put("userId", userId);
         int a = execute("updateUserNo", params);
         userCacheService.removeUserInfoCache(userId);

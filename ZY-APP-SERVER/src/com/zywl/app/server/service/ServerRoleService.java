@@ -74,7 +74,7 @@ public class ServerRoleService extends BaseService {
     private UserMineService userMineService;
 
     @Transactional
-    @ServiceMethod(code = "001", description = "进入矿场获取矿产信息")
+    @ServiceMethod(code = "001", description = "进入角色工作界面信息")
     public Object getInfo(final AppSocket appSocket, Command appCommand, JSONObject params) {
         checkNull(params);
         Long userId = appSocket.getWsidBean().getUserId();

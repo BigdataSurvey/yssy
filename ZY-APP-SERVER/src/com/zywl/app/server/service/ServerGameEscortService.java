@@ -40,7 +40,7 @@ public class ServerGameEscortService extends BaseService {
     @Autowired
     private UserCacheService userCacheService;
 
-    @Transactional
+    /*@Transactional
     @ServiceMethod(code = "getGameInfo", description = "进入游戏界面")
     public JSONObject getMailInfo(final AppSocket appSocket, Command appCommand, JSONObject params) {
         checkNull(params);
@@ -131,5 +131,5 @@ public class ServerGameEscortService extends BaseService {
         }
         System.out.println(all);
         System.out.println(all2);
-    }
+    }*/
 }

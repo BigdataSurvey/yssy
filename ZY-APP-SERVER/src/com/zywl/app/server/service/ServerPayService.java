@@ -22,7 +22,7 @@ public class ServerPayService extends BaseService {
 
 
 
-    @ServiceMethod(code = "001", description = "发起微信支付")
+   /* @ServiceMethod(code = "001", description = "发起微信支付")
     public Async wxPay(final AppSocket appSocket, Command appCommand, JSONObject params) {
         checkNull(params);
         checkNull(params.get("productId"));
@@ -54,6 +54,6 @@ public class ServerPayService extends BaseService {
         Executer.request(TargetSocketType.manager, CommandBuilder.builder().request("034001", params).build(),
                 new RequestManagerListener(appCommand));
         return async();
-    }
+    }*/
 
 }

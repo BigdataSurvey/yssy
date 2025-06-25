@@ -29,6 +29,7 @@ import org.springframework.transaction.annotation.Transactional;
 import javax.annotation.PostConstruct;
 import java.math.BigDecimal;
 import java.util.Map;
+import java.util.Objects;
 
 @Service
 @ServiceClass(code = MessageCodeContext.TRADING_SERVER)
@@ -168,28 +169,30 @@ public class ManagerTradingService extends BaseService {
         checkNull(data);
         checkNull(data.get("price"), data.get("userId"), data.get("itemId"), data.get("number"));
         Long userId = data.getLong("userId");
-        Long itemId = data.getLong("itemId");
-        int number = data.getIntValue("number");
-        BigDecimal price = data.getBigDecimal("price");
-        Item item = itemCacheService.getItemInfoById(itemId);
-        BigDecimal itemPrice = PlayGameService.itemMap.get(itemId.toString()).getTradPrice();
-        BigDecimal min = itemPrice.subtract(itemPrice.multiply(managerConfigService.getBigDecimal(Config.TRAD_MIN)));
-        BigDecimal max = itemPrice.add(itemPrice.multiply(managerConfigService.getBigDecimal(Config.TRAD_MAX)));
-        if (price.compareTo(min)<0 || price.compareTo(max)>0){
-            throwExp("价格区间不合理");
+        synchronized (LockUtil.getlock(userId)){
+            Long itemId = data.getLong("itemId");
+            int number = data.getIntValue("number");
+            BigDecimal price = data.getBigDecimal("price");
+            Item item = itemCacheService.getItemInfoById(itemId);
+            BigDecimal itemPrice = PlayGameService.itemMap.get(itemId.toString()).getTradPrice();
+            BigDecimal min = itemPrice.subtract(itemPrice.multiply(managerConfigService.getBigDecimal(Config.TRAD_MIN)));
+            BigDecimal max = itemPrice.add(itemPrice.multiply(managerConfigService.getBigDecimal(Config.TRAD_MAX)));
+            if (price.compareTo(min)<0 || price.compareTo(max)>0){
+                throwExp("价格区间不合理");
+            }
+            // 验证用户是否有这个道具以及道具是否充足
+            Map<String, Backpack> backs = gameService.getUserBackpack(userId.toString());
+            if (!backs.containsKey(itemId.toString()) || backs.get(itemId.toString()).getItemNumber() < number) {
+                throwExp("道具数量不足！");
+            }
+            //更新用户背包同时更新用户道具流水  再更新交易行数据
+            gameService.updateUserBackpack(userId.toString(), itemId.toString(), -number, LogUserBackpackTypeEnum.listing);
+            tradingService.addTrading(userId, itemId, number, price, TradingTypeEnum.sell.getValue(), item.getType());
+            JSONObject result = new JSONObject();
+            result.put("itemId", itemId);
+            result.put("number", number);
+            return result;
         }
-        // 验证用户是否有这个道具以及道具是否充足
-        Map<String, Backpack> backs = gameService.getUserBackpack(userId.toString());
-        if (!backs.containsKey(itemId.toString()) || backs.get(itemId.toString()).getItemNumber() < number) {
-            throwExp("道具数量不足！");
-        }
-        //更新用户背包同时更新用户道具流水  再更新交易行数据
-        gameService.updateUserBackpack(userId.toString(), itemId.toString(), -number, LogUserBackpackTypeEnum.listing);
-        tradingService.addTrading(userId, itemId, number, price, TradingTypeEnum.sell.getValue(), item.getType());
-        JSONObject result = new JSONObject();
-        result.put("itemId", itemId);
-        result.put("number", number);
-        return result;
     }
 
     @Transactional
@@ -246,32 +249,34 @@ public class ManagerTradingService extends BaseService {
         checkNull(data);
         checkNull(data.get("price"), data.get("userId"), data.get("itemId"), data.get("number"));
         Long userId = data.getLong("userId");
-        Long itemId = data.getLong("itemId");
-        int number = data.getIntValue("number");
-        BigDecimal price = data.getBigDecimal("price");
-        BigDecimal itemPrice = PlayGameService.itemMap.get(itemId.toString()).getTradPrice();
-        BigDecimal min = itemPrice.subtract(itemPrice.multiply(managerConfigService.getBigDecimal(Config.TRAD_MIN)));
-        BigDecimal max = itemPrice.add(itemPrice.multiply(managerConfigService.getBigDecimal(Config.TRAD_MAX)));
-        if (price.compareTo(min)<0 || price.compareTo(max)>0){
-            throwExp("价格区间不合理");
+        synchronized (LockUtil.getlock(userId)){
+            Long itemId = data.getLong("itemId");
+            int number = data.getIntValue("number");
+            BigDecimal price = data.getBigDecimal("price");
+            BigDecimal itemPrice = PlayGameService.itemMap.get(itemId.toString()).getTradPrice();
+            BigDecimal min = itemPrice.subtract(itemPrice.multiply(managerConfigService.getBigDecimal(Config.TRAD_MIN)));
+            BigDecimal max = itemPrice.add(itemPrice.multiply(managerConfigService.getBigDecimal(Config.TRAD_MAX)));
+            if (price.compareTo(min)<0 || price.compareTo(max)>0){
+                throwExp("价格区间不合理");
+            }
+            Item item = itemCacheService.getItemInfoById(itemId);
+            UserCapital userCapital = userCapitalCacheService.getUserCapitalCacheByType(userId,
+                    UserCapitalTypeEnum.currency_2.getValue());
+            BigDecimal balance = userCapital.getBalance();
+            BigDecimal occupyBalance = userCapital.getOccupyBalance();
+            if (userCapital.getBalance().compareTo(price.multiply(new BigDecimal(number))) <= 0) {
+                // 余额不够 无法添加求购信息
+                throwExp("余额不足");
+            }
+            //更新用户资产  添加交易行数据
+            userCapitalService.subUserBalanceByAskBuy(userId, itemId, price.multiply(new BigDecimal(number)), balance, occupyBalance);
+            JSONObject pushData = new JSONObject();
+            gameBaseService.pushCapitalUpdate(userId,UserCapitalTypeEnum.currency_2.getValue());
+            tradingService.addTrading(userId, itemId, number, price, TradingTypeEnum.askbuy.getValue(), item.getType());
+            JSONObject result = new JSONObject();
+            // TODO 返回数据未定义
+            return result;
         }
-        Item item = itemCacheService.getItemInfoById(itemId);
-        UserCapital userCapital = userCapitalCacheService.getUserCapitalCacheByType(userId,
-                UserCapitalTypeEnum.currency_2.getValue());
-        BigDecimal balance = userCapital.getBalance();
-        BigDecimal occupyBalance = userCapital.getOccupyBalance();
-        if (userCapital.getBalance().compareTo(price.multiply(new BigDecimal(number))) <= 0) {
-            // 余额不够 无法添加求购信息
-            throwExp("余额不足");
-        }
-        //更新用户资产  添加交易行数据
-        userCapitalService.subUserBalanceByAskBuy(userId, itemId, price.multiply(new BigDecimal(number)), balance, occupyBalance);
-        JSONObject pushData = new JSONObject();
-        gameBaseService.pushCapitalUpdate(userId,UserCapitalTypeEnum.currency_2.getValue());
-        tradingService.addTrading(userId, itemId, number, price, TradingTypeEnum.askbuy.getValue(), item.getType());
-        JSONObject result = new JSONObject();
-        // TODO 返回数据未定义
-        return result;
     }
 
 
@@ -331,10 +336,14 @@ public class ManagerTradingService extends BaseService {
         Long tradingId = data.getLong("tradingId");
         Trading trading = tradingService.findById(tradingId);
         if (trading==null){
-            throwExp("订单已经被完成啦~请刷新后重新出售");
+            throwExp("订单不存在，请刷新后查看");
+        }
+        Long userId = data.getLong("userId");
+        if (Objects.equals(trading.getUserId(), userId)){
+            throwExp("不能出售给自己的订单");
         }
         synchronized (LockUtil.getlock(trading.getUserId().toString())) {
-            Long userId = data.getLong("userId");
+
             UserCapital myCapital = userCapitalCacheService.getUserCapitalCacheByType(userId, UserCapitalTypeEnum.currency_2.getValue());
             Long askBuyUserId = data.getLong("askBuyUserId");
             UserCapital askBuyCapital = userCapitalCacheService.getUserCapitalCacheByType(askBuyUserId, UserCapitalTypeEnum.currency_2.getValue());

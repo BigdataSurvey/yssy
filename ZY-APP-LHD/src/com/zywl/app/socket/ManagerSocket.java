@@ -31,7 +31,7 @@ public class ManagerSocket extends BaseClientSocket {
 	
 	private VersionService versionService;
 	
-	private LhdService LhdService;
+	private LhdService lhdService;
 
 	private GameService gameService;
 	
@@ -45,7 +45,7 @@ public class ManagerSocket extends BaseClientSocket {
 		super(socketType, false, reconnect, server, shakeHandsDatas);
 		versionService = SpringUtil.getService(VersionService.class);
 		incomeRecordService = SpringUtil.getService(IncomeRecordService.class);
-		LhdService = SpringUtil.getService(LhdService.class);
+		lhdService = SpringUtil.getService(LhdService.class);
 		gameService = SpringUtil.getService(GameService.class);
 		Push.addPushSuport(PushCode.cancelBet, new DefaultPushHandler() {
 			public void onRegist(BaseSocket baseSocket, PushBean pushBean) {
@@ -80,12 +80,17 @@ public class ManagerSocket extends BaseClientSocket {
 				if (config.getKey().equals(Config.LHD_STATUS)){
 					int status = Integer.parseInt(config.getValue());
 					logger.info("调整游戏状态："+status);
-					LhdService.updateStatus(status);
+					lhdService.updateStatus(status);
+
 				}
 				if (config.getKey().equals(Config.LHD_STATUS)){
 					BigDecimal rate = new BigDecimal(config.getValue());
 					logger.info("调整游戏手续费："+rate);
-					LhdService.updateRate(rate);
+					lhdService.updateRate(rate);
+				}
+
+				if (config.getKey().equals(Config.GAME_LHD_NEED_BOT)){
+					LhdService.NEED_BOT =Integer.parseInt(config.getValue());
 				}
 			}
 		}, this);

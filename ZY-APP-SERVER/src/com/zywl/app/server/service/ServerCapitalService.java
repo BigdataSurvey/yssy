@@ -15,6 +15,7 @@ import com.zywl.app.base.util.Async;
 import com.zywl.app.defaultx.annotation.ServiceClass;
 import com.zywl.app.defaultx.annotation.ServiceMethod;
 import com.zywl.app.defaultx.cache.UserCacheService;
+import com.zywl.app.defaultx.enmus.ItemIdEnum;
 import com.zywl.app.defaultx.enmus.UserCapitalTypeEnum;
 import com.zywl.app.defaultx.enmus.UserGroupEnum;
 import com.zywl.app.defaultx.service.CashRecordService;
@@ -73,7 +74,7 @@ public class ServerCapitalService extends BaseService {
     }
 
 
-    @ServiceMethod(code = "cash", description = "提交提现申请")
+  /*  @ServiceMethod(code = "cash", description = "提交提现申请")
     public synchronized Async cash(final AppSocket appSocket, Command appCommand, JSONObject params) {
         checkNull(params);
         checkNull(params.get("amount"));
@@ -98,9 +99,9 @@ public class ServerCapitalService extends BaseService {
             if (user.getGroup() != UserGroupEnum.NORMAL_USER.getValue()) {
                 throwExp("禁止提现");
             }
-            /*if (type == CashTypeEnum.ZFB.getValue() && user.getPhone() == null) {
+            *//*if (type == CashTypeEnum.ZFB.getValue() && user.getPhone() == null) {
                 throwExp("未绑定手机号不能提现到支付宝");
-            }*/
+            }*//*
             if (cashOrderCount > 0) {
                 throwExp("今天已经提现过了，请明天再来");
             }
@@ -128,9 +129,9 @@ public class ServerCapitalService extends BaseService {
             });
             return async();
         }
-    }
+    }*/
 
-    @ServiceMethod(code = "002", description = "余额兑换金币")
+   /* @ServiceMethod(code = "002", description = "余额兑换金币")
     public Async assetConversion(final AppSocket appSocket, Command appCommand, JSONObject params) {
         checkNull(params);
         checkNull(params.get("amount"),params.get("type"));
@@ -184,8 +185,24 @@ public class ServerCapitalService extends BaseService {
         Executer.request(TargetSocketType.manager, CommandBuilder.builder().request("200500", params).build(), new RequestManagerListener(appCommand));
         return async();
     }
+*/
 
 
+    @ServiceMethod(code = "007", description = "查询道具日志")
+    public Object getItemLog(final AppSocket appSocket, Command appCommand, JSONObject params) {
+        checkNull(params);
+        checkNull(params.get("type"));
+        long userId = appSocket.getWsidBean().getUserId();
+        User user = userCacheService.getUserInfoById(userId);
+        if (user == null) {
+            throwExp("查询角色信息异常");
+        }
+        params.put("userId", userId);
+        params.put("itemId", ItemIdEnum.WFSB.getValue());
+        Executer.request(TargetSocketType.logServer, CommandBuilder.builder().request("109004", params).build(),
+                new RequestManagerListener(appCommand));
+        return async();
+    }
 
     @ServiceMethod(code = "006", description = "查询资产日志")
     public Object getCapitalLog(final AppSocket appSocket, Command appCommand, JSONObject params) {
@@ -203,7 +220,7 @@ public class ServerCapitalService extends BaseService {
     }
 
 
-    @ServiceMethod(code = "cashOrder", description = "查询提现订单")
+  /*  @ServiceMethod(code = "cashOrder", description = "查询提现订单")
     public JSONObject getCashOrder(final AppSocket appSocket, Command appCommand, JSONObject params) {
         checkNull(params);
         checkNull(params.get("page"), params.get("num"));
@@ -224,7 +241,7 @@ public class ServerCapitalService extends BaseService {
         JSONObject result = new JSONObject();
         result.put("cashList", list);
         return result;
-    }
+    }*/
 
     @ServiceMethod(code = "008", description = "获取收益信息")
     public Object getIncomeStatementInfo(final AppSocket appSocket, Command appCommand, JSONObject params) {
@@ -237,7 +254,7 @@ public class ServerCapitalService extends BaseService {
     }
 
 
-    @ServiceMethod(code = "009", description = "余额兑换金币")
+   /* @ServiceMethod(code = "009", description = "余额兑换金币")
     public Async conversion(final AppSocket appSocket, Command appCommand, JSONObject params) {
         checkNull(params);
         checkNull(params.get("amount"),params.get("sourceType"),params.get("targetType"));
@@ -276,16 +293,16 @@ public class ServerCapitalService extends BaseService {
             });
             return async();
         }
-    }
+    }*/
 
 
 
-    @ServiceMethod(code = "010", description = "兑换汇率")
+  /*  @ServiceMethod(code = "010", description = "兑换汇率")
     public Object rate(final AppSocket appSocket, Command appCommand, JSONObject params) {
         JSONObject result = new JSONObject();
         result.put("rate",serverConfigService.getBigDecimal(Config.CONVERT_RATE));
         return result;
-    }
+    }*/
 }
 
 

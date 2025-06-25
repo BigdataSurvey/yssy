@@ -34,6 +34,14 @@ public class GoodNoService extends DaoService{
 		no.setPrice(price);
 		no.setNumber(1);
 		no.setStatus(status);
+		int type=2;
+		if (goodNo.length()==6){
+			type=0;
+		}
+		if (goodNo.length()==4){
+			type=1;
+		}
+		no.setType(type);
 		save(no);
 
 	}

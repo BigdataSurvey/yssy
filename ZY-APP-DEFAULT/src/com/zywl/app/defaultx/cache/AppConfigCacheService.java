@@ -27,37 +27,16 @@ public class AppConfigCacheService extends RedisService {
 
 
 	// 获取好友转增手续费
-	public BigDecimal getTransferRate() {
-		return getRate(RedisKeyConstant.APP_CONFIG_TRANSFER_FEE, Config.TRANSFER_FEE);
-	}
 
 	// 获取提现手续费
 	public BigDecimal getCashRate() {
 		return getRate(RedisKeyConstant.APP_CASH_FEE, Config.CASH_FEE);
 	}
-	
-	//获取余额兑换比例
-	public BigDecimal getConvertRate() {
-		return getRate(RedisKeyConstant.APP_CONVERT_RATE, Config.CONVERT_RATE);
-	}
-	
 
 
-	//获取好友转赠门槛
-	public BigDecimal getTransferSill() {
-		return getRate(RedisKeyConstant.APP_TRANSFER_SILL, Config.TRANSFER_SILL);
-	}
-	
-	//移除领取气泡收益门槛
-	public void removerIncomeSill() {
-		del(RedisKeyConstant.APP_CONVERT_RATE, Config.CONVERT_RATE);
-	}
 
-	// 移除好友转赠门槛
-	public void removeTransferSill() {
-		del(RedisKeyConstant.APP_TRANSFER_SILL);
-	}
-	
+
+
 	//移除余额兑换比例
 	public void removerConvertRate() {
 		del(RedisKeyConstant.APP_CONVERT_RATE, Config.CONVERT_RATE);
@@ -73,10 +52,6 @@ public class AppConfigCacheService extends RedisService {
 		del(RedisKeyConstant.APP_CONFIG_TRADING_FEE);
 	}
 
-	// 移除好友转增手续费
-	public void removeTransferRate() {
-		del(RedisKeyConstant.APP_CONFIG_TRANSFER_FEE);
-	}
 
 	public BigDecimal getRate(String redisKey, String configKey) {
 		BigDecimal fee = null;

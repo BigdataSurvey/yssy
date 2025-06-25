@@ -8,14 +8,16 @@
                `good_no`,
                `price`,
                `number`,
-               `status`
+               `status`,
+		        `type`
 		)
 		values
 		(
                #{goodNo},
                #{price},
                #{number},
-               #{status}
+               #{status},
+		        #{type}
 		)
 	</insert>
 

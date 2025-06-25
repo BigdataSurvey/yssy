@@ -282,7 +282,7 @@ public class GameBaseService extends BaseService {
         return result;
     }
 
-    @ServiceMethod(code = "012", description = "更改基础设置")
+/*    @ServiceMethod(code = "012", description = "更改基础设置")
     public Object updateBaseSetting(AppSocket appSocket, Command command, JSONObject data) {
         checkNull(data);
         checkNull(data.get("userId"), data.get("audio"), data.get("music"));
@@ -308,7 +308,7 @@ public class GameBaseService extends BaseService {
         Executer.request(TargetSocketType.manager, CommandBuilder.builder().request("100600", data).build(),
                 new RequestManagerListener(command));
         return async();
-    }
+    }*/
 
     @ServiceMethod(code = "013", description = "用户获取背包")
     public Object getBackPackInfo(AppSocket appSocket, Command command, JSONObject data) {
@@ -326,7 +326,7 @@ public class GameBaseService extends BaseService {
     }
 
 
-    @ServiceMethod(code = "014", description = "用户广告位观看次数")
+  /*  @ServiceMethod(code = "014", description = "用户广告位观看次数")
     public Object getUserAdvertNumber(AppSocket appSocket, Command command, JSONObject data) {
         checkNull(data);
         checkNull(data.get("index"));
@@ -337,7 +337,7 @@ public class GameBaseService extends BaseService {
         long userId = appSocket.getWsidBean().getUserId();
         Long number = userCacheService.getUserAdvertLookNum(userId, data.getIntValue("index"));
         return number;
-    }
+    }*/
 
 
     @ServiceMethod(code = "016", description = "获取每日任务详情")
@@ -443,7 +443,7 @@ public class GameBaseService extends BaseService {
         return async();
     }
 
-    @ServiceMethod(code = "033", description = "每日任务活跃度领奖")
+    /*@ServiceMethod(code = "033", description = "每日任务活跃度领奖")
     public Object receiveUserDailyTaskAp(AppSocket appSocket, Command command, JSONObject data) {
         checkNull(data);
         checkNull(data.get("ap"));
@@ -455,7 +455,7 @@ public class GameBaseService extends BaseService {
         Executer.request(TargetSocketType.manager, CommandBuilder.builder().request("100116", data).build(),
                 new RequestManagerListener(command));
         return async();
-    }
+    }*/
 
    /* @ServiceMethod(code = "025", description = "购买铜钱")
     public Object buyCoin(AppSocket appSocket, Command command, JSONObject data) {
@@ -468,7 +468,7 @@ public class GameBaseService extends BaseService {
     }*/
 
 
-    @ServiceMethod(code = "026", description = "开始看广告")
+   /* @ServiceMethod(code = "026", description = "开始看广告")
     public Object beginLook(AppSocket appSocket, Command command, JSONObject data) {
         checkNull(data);
         checkNull(data.get("adIndex"));
@@ -476,7 +476,7 @@ public class GameBaseService extends BaseService {
         long userId = appSocket.getWsidBean().getUserId();
         userCacheService.beginLookAd(userId, adIndex);
         return data;
-    }
+    }*/
 
     @ServiceMethod(code = "027", description = "获取某种道具的数量")
     public Object getItemNumber(AppSocket appSocket, Command command, JSONObject data) {
@@ -492,7 +492,7 @@ public class GameBaseService extends BaseService {
         return async();
     }
 
-    @ServiceMethod(code = "028", description = "购买靓号")
+ /*   @ServiceMethod(code = "028", description = "购买靓号")
     public Object buyGoodNo(AppSocket appSocket, Command command, JSONObject data) {
         checkNull(data);
         checkNull(data.get("goodNoId"));
@@ -505,34 +505,10 @@ public class GameBaseService extends BaseService {
         Executer.request(TargetSocketType.manager, CommandBuilder.builder().request("100028", data).build(),
                 new RequestManagerListener(command));
         return async();
-    }
+    }*/
 
-    @ServiceMethod(code = "029", description = "获取靓号")
-    public Object getGoodNos(AppSocket appSocket, Command command, JSONObject data) {
-        checkNull(data);
-        List<GoodNo> canBuyGoodNo = goodNoService.findCanBuyGoodNo();
-        JSONObject result = new JSONObject();
-        result.put("goodNoList",canBuyGoodNo);
-        List<Guild> allGuild = guildService.findAllGuild();
-        BigDecimal prize = serverConfigService.getBigDecimal(Config.GUILD_FEE);
-        if (allGuild.size()==0){
-            prize = prize.multiply(new BigDecimal("0.5"));
-        } else if (allGuild.size()==1) {
-            prize = prize.multiply(new BigDecimal("0.6"));
-        }else if (allGuild.size()==2) {
-            prize = prize.multiply(new BigDecimal("0.7"));
-        }else if (allGuild.size()==3) {
-            prize = prize.multiply(new BigDecimal("0.8"));
-        }else if (allGuild.size()==4) {
-            prize = prize.multiply(new BigDecimal("0.9"));
-        }
-        result.put("headBoxMoney", prize);
-        result.put("HeadBoxDisCount",allGuild.size()>4?0:allGuild.size()+5);
-        result.put("isHasHeadBox", serverConfigService.getInteger(Config.CAN_BUY_HEAD_BOX));
-        return result;
-    }
 
-    @ServiceMethod(code = "031", description = "使用道具")
+/*    @ServiceMethod(code = "031", description = "使用道具")
     public Object useItem(AppSocket appSocket, Command command, JSONObject data) {
         checkNull(data);
         long userId = appSocket.getWsidBean().getUserId();
@@ -544,7 +520,7 @@ public class GameBaseService extends BaseService {
         Executer.request(TargetSocketType.manager, CommandBuilder.builder().request("100031", data).build(),
                 new RequestManagerListener(command));
         return async();
-    }
+    }*/
 
     @ServiceMethod(code = "035", description = "商城购买")
     public Object buy(AppSocket appSocket, Command command, JSONObject data) {
@@ -593,16 +569,9 @@ public class GameBaseService extends BaseService {
     }
 
 
-    @ServiceMethod(code = "buyGift", description = "购买每日礼包")
-    public Object buyGift(AppSocket appSocket, Command command, JSONObject data) {
-        Long userId = appSocket.getWsidBean().getUserId();
-        data.put("userId", userId);
-        Executer.request(TargetSocketType.manager, CommandBuilder.builder().request("100041", data).build(),
-                new RequestManagerListener(command));
-        return async();
-    }
 
-    @ServiceMethod(code = "vipPrice", description = "vip价格")
+
+   /* @ServiceMethod(code = "vipPrice", description = "vip价格")
     public Object vipPrice(AppSocket appSocket, Command command, JSONObject data) {
         Long userId = appSocket.getWsidBean().getUserId();
         data.put("userId", userId);
@@ -612,7 +581,7 @@ public class GameBaseService extends BaseService {
         result.put("monthPrice", monthPrice);
         result.put("weekPrice", weekPrice);
         return result;
-    }
+    }*/
 
 
 
@@ -659,6 +628,14 @@ public class GameBaseService extends BaseService {
         checkNull(data.get("itemId"),data.get("number"));
         Long userId = appSocket.getWsidBean().getUserId();
         data.put("userId",userId);
+        int number = data.getIntValue("number");
+        if (number<1 || number>999){
+            throwExp("请输入合理的数量");
+        }
+        String itemId = data.getString("itemId");
+        if (!itemMap.containsKey(itemId)){
+            throwExp("道具不存在");
+        }
         Executer.request(TargetSocketType.manager, CommandBuilder.builder().request("100046", data).build(),
                 new RequestManagerListener(command));
         return async();
@@ -669,11 +646,15 @@ public class GameBaseService extends BaseService {
         checkNull(data.get("num"));
         Long userId = appSocket.getWsidBean().getUserId();
         data.put("userId",userId);
+        int number = data.getIntValue("num");
+        if (number<1 || number>9999){
+            throwExp("请输入合理的数量");
+        }
         Executer.request(TargetSocketType.manager, CommandBuilder.builder().request("100047", data).build(),
                 new RequestManagerListener(command));
         return async();
     }
-    @ServiceMethod(code = "054", description = "使用道具")
+    @ServiceMethod(code = "054", description = "使用道具(靓号)")
     public Object selectItem(AppSocket appSocket, Command command, JSONObject data) {
         Long userId = appSocket.getWsidBean().getUserId();
         data.put("userId",userId);

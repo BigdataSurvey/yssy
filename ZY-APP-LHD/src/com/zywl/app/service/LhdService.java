@@ -23,6 +23,7 @@ import com.zywl.app.defaultx.annotation.ServiceMethod;
 import com.zywl.app.defaultx.enmus.GameTypeEnum;
 import com.zywl.app.defaultx.enmus.LogCapitalTypeEnum;
 import com.zywl.app.defaultx.enmus.LotteryGameStatusEnum;
+import com.zywl.app.defaultx.enmus.UserCapitalTypeEnum;
 import com.zywl.app.defaultx.service.*;
 import com.zywl.app.util.RequestManagerListener;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -66,6 +67,9 @@ public class LhdService extends BaseService {
     private GameLotteryResultService gameLotteryResultService;
 
     @Autowired
+    private UserService userService;
+
+    @Autowired
     private LhdService lhdService;
 
     public static JSONObject GAME_SETTING;
@@ -91,6 +95,8 @@ public class LhdService extends BaseService {
 
     public static Long endTime;
 
+    public static int GAME_STATUS = 1;
+
     public static BigDecimal ALL_PRIZE = BigDecimal.ZERO;
 
     public static final Map<String, LhdBetRecord> userOrders = new ConcurrentHashMap<>();
@@ -111,6 +117,9 @@ public class LhdService extends BaseService {
 
     private static JSONArray history10Result = new JSONArray();
 
+
+    private static JSONObject result100All = new JSONObject();
+
     private BigDecimal RATE;
 
     private BigDecimal BET_AMOUNT;
@@ -125,6 +134,43 @@ public class LhdService extends BaseService {
     public static String key2 = DateUtil.getCurrent5();
 
     public static final Map<String, JSONArray> pushArray = new ConcurrentHashMap<>();
+
+    public static Map<String, User> BOT_USER = new ConcurrentHashMap<>();
+
+    public static int NEED_BOT = 0;
+
+    public static List<BigDecimal> BOT_MONEY= new ArrayList<>();
+
+
+    public static final Random random = new Random();
+
+    @PostConstruct
+    public void _construct() {
+        initRate();
+        addPushSuport();
+        initGameSetting();
+        initHistoryResult();
+        addPushSuport();
+        init();
+        periodsNum();
+        requestManagerUpdateCapital();
+        pushRoomDate();
+        canBet.add(0);
+        canBet.add(1);
+        canBet.add(2);
+        canBet.add(3);
+        canBet.add(4);
+        canBet.add(5);
+        canBet.add(6);
+        logger.info("开始加载人机");
+        List<User> bot = userService.findBot();
+        bot.forEach(e -> BOT_USER.put(e.getId().toString(), e));
+        logger.info("加载人机完成，加载数量：" + BOT_USER.size());
+        gameAddBot();
+        BOT_MONEY.add(new BigDecimal("1"));
+        BOT_MONEY.add(new BigDecimal("10"));
+        BOT_MONEY.add(new BigDecimal("100"));
+    }
 
     public void init() {
         userOrders.clear();
@@ -147,6 +193,48 @@ public class LhdService extends BaseService {
 
     public void updateStatus(int status) {
         STATUS = status;
+        GAME_STATUS = status;
+        NEED_BOT=0;
+    }
+
+
+    public static <K, V> V getRandomValue(Map<K, V> map) {
+        return map.values().stream()
+                .skip(new Random().nextInt(map.size()))
+                .findFirst().orElse(null);
+    }
+
+    public static BigDecimal getBotMoney(){
+        Collections.shuffle(BOT_MONEY);
+        return BOT_MONEY.get(0);
+    }
+
+
+    public User getBotUser() {
+        return getRandomValue(BOT_USER);
+    }
+
+    public void gameAddBot() {
+        new Timer("游戏添加人机").schedule(new TimerTask() {
+            public void run() {
+                try {
+                    if ((STATUS == LotteryGameStatusEnum.ready.getValue() || STATUS == LotteryGameStatusEnum.gaming.getValue()) && NEED_BOT > 0) {
+                        int rate = random.nextInt(100);
+                        if (rate<NEED_BOT){
+                            //  概率添加人机  每100毫秒判断1次  NEED_BOT值越大概率越高
+                            //游戏阶段 添加人机
+                            User user = getBotUser();
+                            int i = random.nextInt(2);
+                            userBetBet(user.getId().toString(), String.valueOf(i), getBotMoney(), null, null);
+                        }
+
+                    }
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+
+            }
+        }, 0, 100);
     }
 
 
@@ -174,29 +262,11 @@ public class LhdService extends BaseService {
         return myOrder;
     }
 
+
+
     public void addPushSuport() {
         Push.addPushSuport(PushCode.updateNhInfo, new DefaultPushHandler());
         Push.addPushSuport(PushCode.updateNhStatus, new DefaultPushHandler());
-    }
-
-    @PostConstruct
-    public void _construct() {
-        initRate();
-        addPushSuport();
-        initGameSetting();
-        initHistoryResult();
-        addPushSuport();
-        init();
-        periodsNum();
-        requestManagerUpdateCapital();
-        pushRoomDate();
-        canBet.add(0);
-        canBet.add(1);
-        canBet.add(2);
-        canBet.add(3);
-        canBet.add(4);
-        canBet.add(5);
-        canBet.add(6);
     }
 
     public void pushRoomDate() {
@@ -274,12 +344,17 @@ public class LhdService extends BaseService {
     public void initHistoryResult() {
         logger.info("更新2选1历史开奖结果");
         long time = System.currentTimeMillis();
-        List<GameLotteryResult> result20 = gameLotteryResultService.findHistoryResultByGameId(5L, 10);
-        JSONObject result2 = new JSONObject();
-        this.history10Result.clear();
-        for (GameLotteryResult gameLotteryResult : result20) {
+        List<GameLotteryResult> result10 = gameLotteryResultService.findHistoryResultByGameId(5L, 10);
+        history10Result.clear();
+        for (GameLotteryResult gameLotteryResult : result10) {
             String lotteryResult = gameLotteryResult.getLotteryResult();
-            this.history10Result.add(Integer.parseInt(lotteryResult));
+            history10Result.add(Integer.parseInt(lotteryResult));
+        }
+        List<GameLotteryResult> result100 = gameLotteryResultService.findHistoryResultByGameId(5L, 100);
+        result100All.clear();
+        for (GameLotteryResult gameLotteryResult : result100) {
+            String lotteryResult = gameLotteryResult.getLotteryResult();
+            result100All.put(lotteryResult,result100All.getIntValue(lotteryResult,0)+1);
         }
         logger.info("更新2选1历史开奖结果完成，用时：" + (System.currentTimeMillis() - time));
     }
@@ -322,7 +397,7 @@ public class LhdService extends BaseService {
             returnInfo.put("myBetRoom", 0);
             returnInfo.put("myBetAmount", ROOM_LIST.get("0").get(userId).getBigDecimal("amount"));
         }
-        returnInfo.put("history10Result",history10Result);
+        returnInfo.put("history10Result", history10Result);
         return returnInfo;
     }
 
@@ -335,14 +410,8 @@ public class LhdService extends BaseService {
         return new JSONObject();
     }
 
-    @Transactional
-    @ServiceMethod(code = "103", description = "用户参与投入")
-    public Object play(LhdService adminSocketServer, Command lotteryCommand, JSONObject data) {
-        String betInfo = data.getString("bet");
-        BigDecimal amount = data.getBigDecimal("betAmount");
-        String userId = data.getString("userId");
+    public Object userBetBet(String userId, String betInfo, BigDecimal amount, Command lotteryCommand, JSONObject data) {
         synchronized (LockUtil.getlock(userId)) {
-
             if (STATUS == 0) {
                 throwExp("小游戏即将更新");
             }
@@ -352,14 +421,10 @@ public class LhdService extends BaseService {
             if (STATUS != LotteryGameStatusEnum.ready.getValue() && endTime != 0L && endTime - System.currentTimeMillis() < 1000) {
                 throwExp("本局已停止参与，请等待下一局游戏开始");
             }
-
-
-        /*
-            1.生成订单
-            2.扣款
-            3.处理内存信息
-         */
-            logger.info("加入游戏");
+            if (!betInfo.equals("0") && !betInfo.equals("1")) {
+                throwExp("非法操作");
+            }
+            logger.info(userId+"加入游戏，投入选项："+betInfo+",参与金额："+amount);
             String orderNo;
             Long dataId;
             //得到订单信息
@@ -368,14 +433,20 @@ public class LhdService extends BaseService {
                 LhdBetRecord lhdBetRecord = userOrders.get(userId);
                 orderNo = lhdBetRecord.getOrderNo();
                 dataId = lhdBetRecord.getId();
+                if (!betInfo.equals(lhdBetRecord.getBetInfo())){
+                    throwExp("请选择自己所在的房间投入");
+                }
             } else {
                 orderNo = OrderUtil.getOrder5Number();
                 LhdBetRecord record = lhdBetRecordService.addRecord(Long.parseLong(userId), orderNo, PERIODS_NUM, betInfo, amount);
                 dataId = record.getId();
                 userOrders.put(userId, record);
             }
-            //处理资产信息
-            updateCapital(userId, amount, orderNo, dataId);
+            BET_USERS.add(userId);
+            if (!BOT_USER.containsKey(userId)) {
+                //处理资产信息
+                updateCapital(userId, amount, orderNo, dataId);
+            }
             //本局总金额
             ALL_PRIZE = ALL_PRIZE.add(amount);
             //处理内存信息
@@ -389,10 +460,17 @@ public class LhdService extends BaseService {
                 lhdBetRecord.setBetInfo(betInfo);
                 lhdBetRecordService.updateRecord(lhdBetRecord);
             } else {
-                BET_USERS.add(userId);
                 JSONObject jsonObject = new JSONObject();
                 jsonObject.put("userId", userId);
-                jsonObject.put("name", USER_MAP.getOrDefault(userId, "***"));
+                if (BOT_USER.containsKey(userId)) {
+                    String name = BOT_USER.get(userId).getName();
+                    if (name.length() > 2) {
+                        name = name.substring(0, 2);
+                    }
+                    jsonObject.put("name", name);
+                } else {
+                    jsonObject.put("name", USER_MAP.getOrDefault(userId, "***"));
+                }
                 jsonObject.put("betAmount", amount);
                 ROOM_LIST.get(betInfo).put(userId, jsonObject);
             }
@@ -411,6 +489,18 @@ public class LhdService extends BaseService {
             needPush = 1;
             return result;
         }
+    }
+
+    @Transactional
+    @ServiceMethod(code = "103", description = "用户参与投入")
+    public Object play(LhdService adminSocketServer, Command lotteryCommand, JSONObject data) {
+        String betInfo = data.getString("bet");
+        BigDecimal amount = data.getBigDecimal("betAmount");
+        String userId = data.getString("userId");
+        if (GAME_STATUS == 0) {
+            throwExp("小游戏维护中。");
+        }
+        return userBetBet(userId, betInfo, amount, lotteryCommand, data);
 
     }
 
@@ -419,7 +509,6 @@ public class LhdService extends BaseService {
     public JSONObject updateRoom(LhdService adminSocketServer, Command lotteryCommand, JSONObject data) {
         checkNull(data);
         checkNull(data.get("userId"), data.get("userNo"), data.get("userName"));
-
 
         if (STATUS != LotteryGameStatusEnum.ready.getValue() && endTime != 0L && endTime - System.currentTimeMillis() < 1000) {
             throwExp("游戏即将开始，禁止更换");
@@ -430,12 +519,13 @@ public class LhdService extends BaseService {
         if (!newRoomId.equals("0") && !newRoomId.equals("1")) {
             throwExp("异常操作");
         }
-        synchronized (LockUtil.getlock(userId + "bet")) {
+        synchronized (LockUtil.getlock(userId )) {
+
             if (ROOM_LIST.get(newRoomId).containsKey(userId)) {
                 throwExp("已经在该房间");
             }
             if (!BET_USERS.contains(userId)) {
-                throwExp("请求异常");
+                throwExp("请选择进入的房间");
             }
             String oldRoomId = "";
             if (ROOM_LIST.get("0").containsKey(userId)) {
@@ -443,6 +533,7 @@ public class LhdService extends BaseService {
             } else {
                 oldRoomId = "1";
             }
+            logger.info(userId+"用户更换房间，新房间ID："+newRoomId+",旧房间ID："+oldRoomId);
             //处理内存信息
             JSONObject userBetInfo = ROOM_LIST.get(oldRoomId).get(userId);
             ROOM_LIST.get(oldRoomId).remove(userId);
@@ -465,10 +556,15 @@ public class LhdService extends BaseService {
         if (type == 1) {
             //下注 更换房间
             pushResult.put("roomId", bet);
-            pushResult.put("name", USER_MAP.getOrDefault(userId, "***"));
             pushResult.put("betAmount", amount);
-        } else if (type == 2 || type == 3) {
-            // 离开房间 或者 加入房间
+        }
+        if (BOT_USER.containsKey(userId)) {
+            String name = BOT_USER.get(userId).getName();
+            if (name.length() > 2) {
+                name = name.substring(0, 2);
+            }
+            pushResult.put("name", name);
+        } else {
             pushResult.put("name", USER_MAP.getOrDefault(userId, "***"));
         }
         return pushResult;
@@ -492,7 +588,8 @@ public class LhdService extends BaseService {
             data.put("lookList", new ConcurrentHashMap<String, Map<String, Object>>());
             data.put("roomList", ROOM_LIST);
             data.put("lastResult", LAST_RESULT);
-            data.put("history10Result",history10Result);
+            data.put("history10Result", history10Result);
+            data.put("history100Result",result100All);
             Push.push(PushCode.updateNhStatus, null, data);
         } else if (STATUS == LotteryGameStatusEnum.gaming.getValue()) {
             data.put("status", STATUS);
@@ -572,10 +669,12 @@ public class LhdService extends BaseService {
             BigDecimal winAmount = ROOM_LIST.get(winRoom).get(uid).getBigDecimal("betAmount").multiply(new BigDecimal("1.9"));
             allWinAmount = allWinAmount.add(winAmount);
             o.put("amount", winAmount);
-            o.put("capitalType", 2);
+            o.put("capitalType", UserCapitalTypeEnum.yyb.getValue());
             o.put("orderNo", userOrders.get(uid).getOrderNo());
             o.put("em", LogCapitalTypeEnum.game_bet_win_nh.getValue());
-            data.put(uid, o);
+            if (!BOT_USER.containsKey(uid)) {
+                data.put(uid, o);
+            }
             JSONObject record = new JSONObject();
             record.put("winAmount", winAmount);
             record.put("lotteryResult", result);
@@ -586,11 +685,11 @@ public class LhdService extends BaseService {
             map.put("winAmount", winAmount);
             map.put("betAmount", ROOM_LIST.get(winRoom).get(uid).getBigDecimal("betAmount"));
             map.put("roomResult", BigDecimal.ONE);
-            map.put("isWin",BigDecimal.ONE);
+            map.put("isWin", BigDecimal.ONE);
             settleInfo.put(uid, map);
         }
         for (String uid : loseMap.keySet()) {
-            userDtsAmountService.addDtsAmount(Long.valueOf(uid),ROOM_LIST.get(loseRoom).get(uid).getBigDecimal("betAmount").multiply(new BigDecimal("0.05")));
+            userDtsAmountService.addDtsAmount(Long.valueOf(uid), ROOM_LIST.get(loseRoom).get(uid).getBigDecimal("betAmount").multiply(new BigDecimal("0.05")));
             JSONObject record = new JSONObject();
             record.put("winAmount", 0);
             record.put("lotteryResult", result);
@@ -601,12 +700,13 @@ public class LhdService extends BaseService {
             map.put("winAmount", BigDecimal.ZERO);
             map.put("betAmount", ROOM_LIST.get(loseRoom).get(uid).getBigDecimal("betAmount"));
             map.put("roomResult", BigDecimal.ZERO);
-            map.put("isWin",BigDecimal.ZERO);
+            map.put("isWin", BigDecimal.ZERO);
             settleInfo.put(uid, map);
         }
         gameLotteryResultService.drawLottery(5L, String.valueOf(PERIODS_NUM == 0 ? 1 : PERIODS_NUM),
                 String.valueOf(result), ALL_PRIZE, allWinAmount, ALL_PRIZE.subtract(allWinAmount), BET_USERS.size(), winMap.size(), loseMap.size(),
                 1);
+        logger.info("期号："+PERIODS_NUM+",LIST:"+ROOM_LIST);
         requestMangerService.requestManagerBet(data, new Listener() {
             public void handle(BaseClientSocket clientSocket, Command command) {
                 if (command.isSuccess()) {
@@ -642,6 +742,7 @@ public class LhdService extends BaseService {
         }
         JSONObject result = new JSONObject();
         result.put("historyList", history10Result);
+        result.put("historyList100",result100All);
         result.put("myRecord", resultArray);
         return result;
     }

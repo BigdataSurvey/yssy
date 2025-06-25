@@ -59,7 +59,7 @@ public class ServerDzService extends BaseService {
 //    //初始化房间基本信息
 //    }
 
-    @ServiceMethod(code = "001", description = "获取打坐房间信息")
+   /* @ServiceMethod(code = "001", description = "获取打坐房间信息")
     public Object getDzRomInfo(AppSocket appSocket, Command command, JSONObject params) {
         long userId = appSocket.getWsidBean().getUserId();
 //        long userId = params.getLongValue("userId");
@@ -378,6 +378,6 @@ public class ServerDzService extends BaseService {
             bbb.append(user).append(",");
         }
         System.out.println(bbb);
-    }
+    }*/
 
 }
