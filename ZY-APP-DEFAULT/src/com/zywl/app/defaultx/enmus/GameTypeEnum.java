@@ -16,7 +16,8 @@ public enum GameTypeEnum {
 	dz("打坐",6),
 	dts2("倩女幽魂",1),
 	sg("算卦",8),
-	bt("宝塔",9);
+	bt("宝塔",9),
+	dgs("打怪兽",10);
 	private String name;
 
 	private int value;

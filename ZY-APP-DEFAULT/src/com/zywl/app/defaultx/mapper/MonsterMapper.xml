@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.zywl.app.defaultx.mapper.MonsterMapper">
+
+    <insert id="insert" parameterType="Monster" useGeneratedKeys="true" keyProperty="id" keyColumn="id">
+        insert into t_monster
+        (
+            `monster_type`,
+            `user_id`,
+            `die_staus`,
+            `curr_blood`,
+            `create_time`,
+            `update_time`
+        )
+        values
+            (
+                #{monsterType},
+                #{userId},
+                #{dieStaus},
+                #{currBlood},
+                #{createTime},
+                #{updateTime}
+            )
+    </insert>
+
+    <update id="update" parameterType="Monster">
+        update t_monster
+        <set >
+            <if test="die_staus != null">
+                die_staus= #{dieStaus},
+            </if>
+            <if test="updateTime != null">
+                update_time= #{updateTime}
+            </if>
+        </set>
+        where  monster_type= #{monsterType}
+    </update>
+
+
+    <select id="findMonsterByStatus" resultType="Monster">
+        select * from t_monster where die_staus = #{dieStatus} and monster_type = #{monsterType} order by curr_blood ASC
+    </select>
+
+
+
+
+
+
+
+
+</mapper>

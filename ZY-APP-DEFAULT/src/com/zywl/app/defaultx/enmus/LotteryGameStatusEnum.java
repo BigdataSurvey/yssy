@@ -11,7 +11,9 @@ public enum LotteryGameStatusEnum {
 	cantPlay("禁止游戏状态",0),
 	ready("准备阶段", 1), 
 	gaming("下注阶段", 2),
-	settle("结算阶段",3);
+	settle("结算阶段",3),
+	alda("已经击打",4);
+
 	private String name;
 
 	private int value;

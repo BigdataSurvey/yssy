@@ -40,5 +40,6 @@ public class MessageCodeContext {
 
 	public final static String USER_VIP="078";
 	public final static String Activity="079";
+	public final static String Dgs="080";
 
 }

@@ -1,0 +1,116 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.zywl.app.defaultx.mapper.DgsBetRecordMapper">
+
+    <insert id="insert" parameterType="DgsBetRecord" useGeneratedKeys="true" keyProperty="id" keyColumn="id">
+        insert into r_dgs_bet_record
+        (`user_id`,
+         `order_no`,
+         `bet_amount`,
+         `status`,
+         `create_time`,
+         `update_time`)
+        values (#{userId},
+                #{orderNo},
+                #{betAmount},
+                #{status},
+                #{createTime},
+                #{updateTime})
+    </insert>
+
+
+    <select id="findOne" resultType="DgsBetRecord">
+        select *
+        from r_dgs_bet_record
+        where id = #{id}
+    </select>
+
+    <select id="findByUserId" resultType="DgsBetRecord">
+        select * from r_dgs_bet_record where user_id = #{userId} and status=1 order by id desc
+        <if test="start != null and limit != null">
+            limit #{start}, #{limit}
+        </if>
+    </select>
+
+    <select id="findAll" resultType="DgsBetRecord">
+        select *
+        from r_dgs_bet_record
+    </select>
+
+    <sql id="conditions">
+        <if test="date != null">
+            and date=#{date}
+        </if>
+
+
+        <if test="userId != null">
+            and user_id = #{userId}
+        </if>
+
+    </sql>
+
+    <select id="countByConditions" resultType="Long">
+        select count(1) from r_dgs_bet_record
+        <where>
+            <include refid="conditions"></include>
+        </where>
+    </select>
+
+
+    <select id="findNoPrize" resultType="DgsBetRecord">
+        select *
+        from r_dgs_bet_record
+        where status = 1
+    </select>
+
+    <select id="findPeriodsNum" resultType="DgsBetRecord">
+        select *
+        from r_dgs_bet_record
+        where status = 1
+        order by id desc limit 1
+    </select>
+
+
+    <select id="findByConditions" resultType="DgsBetRecord">
+        select * from r_dgs_bet_record
+        <where>
+            <include refid="conditions"></include>
+        </where>
+
+        ORDER BY create_time desc
+        <if test="start != null and limit != null">
+            limit #{start}, #{limit}
+        </if>
+    </select>
+
+    <update id="batchUpdateRecord" parameterType="java.util.List">
+        <foreach collection="list" item="item" index="index" open="" close="" separator=";">
+            update r_dgs_bet_record
+            <set>
+              status=1
+            </set>
+            where order_no = #{item.orderNo}
+        </foreach>
+    </update>
+
+    <update id="addBetAmount" parameterType="DgsBetRecord">
+        update r_dgs_bet_record
+        set bet_amount = bet_amount + #{betAmount}
+        where order_no = #{orderNo}
+
+    </update>
+
+
+    <delete id="deletedThreeDayRecord">
+        delete
+        from r_dgs_bet_record
+        where create_time &lt; #{time}
+    </delete>
+
+
+    <update id="updateRecord" parameterType="DgsBetRecord">
+        update r_dgs_bet_record
+        set bet_amount=#{betAmount}
+        where order_no = #{orderNo}
+    </update>
+</mapper>

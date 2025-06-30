@@ -104,6 +104,8 @@ public class GameCacheService extends RedisService {
             key = RedisKeyConstant.GAME_RANK_NS + DateUtil.getFirstDayOfWeek(new Date());
         } else if (gameId == GameTypeEnum.nh.getValue()) {
             key = RedisKeyConstant.GAME_RANK_NH + DateUtil.getFirstDayOfWeek(new Date());
+        }else if (gameId == GameTypeEnum.dgs.getValue()) {
+            key = RedisKeyConstant.GAME_LAST_WEEK_TOP_LIST_DGS + DateUtil.getFirstDayOfWeek(new Date());
         }
         return key;
     }
@@ -118,6 +120,8 @@ public class GameCacheService extends RedisService {
             key = RedisKeyConstant.GAME_RANK_NS + DateUtil.getFirstDayOfLastWeek();
         } else if (gameId == GameTypeEnum.nh.getValue()) {
             key = RedisKeyConstant.GAME_RANK_NH + DateUtil.getFirstDayOfLastWeek();
+        } else if (gameId == GameTypeEnum.dgs.getValue()) {
+            key = RedisKeyConstant.GAME_LAST_WEEK_TOP_LIST_DGS + DateUtil.getFirstDayOfLastWeek();
         }
         return key;
     }
@@ -209,6 +213,31 @@ public class GameCacheService extends RedisService {
         return array;
     }
 
+    public List<JSONObject> getDGSLastWeekList() {
+        String key = RedisKeyConstant.GAME_LAST_WEEK_TOP_LIST_DGS + DateUtil.getFirstDayOfWeek(new Date());
+        List<JSONObject> array = getList(key, JSONObject.class);
+        if (array == null || array.size() == 0) {
+            Map<String, Double> lastWeekTopList = getLastWeekTopList(GameTypeEnum.dgs.getValue(), 10);
+            Set<String> ids = lastWeekTopList.keySet();
+            array = new ArrayList<>();
+            for (String id : ids) {
+                User userInfoById = userCacheService.getUserInfoById(id);
+                if (userInfoById==null){
+                    continue;
+                }
+                JSONObject info = new JSONObject();
+                info.put("userHeadImg", userInfoById.getHeadImageUrl());
+                info.put("userId", id);
+                info.put("userName", userInfoById.getName());
+                info.put("userNo", userInfoById.getUserNo());
+                info.put("score", lastWeekTopList.get(id));
+                array.add(info);
+            }
+            set(key, array, 86400 * 10);
+        }
+        safeSortByScoreDesc(array);
+        return array;
+    }
     public List<JSONObject> getActiveTopList() {
         String key = RedisKeyConstant.APP_TOP_lIST + getActivity().getId();
         String rankKey = RedisKeyConstant.POINT_RANK_LIST;
@@ -538,6 +567,32 @@ public class GameCacheService extends RedisService {
         return list;
     }
 
+    public List<JSONObject> getThisWeekListDgs() {
+        String key = RedisKeyConstant.GAME_RANK_LIST_DGS;
+        List<JSONObject> list = getList(key, JSONObject.class);
+        if (list == null || list.size() == 0) {
+            Map<String, Double> lastWeekTopList = getThisWeekTopList(GameTypeEnum.dgs.getValue(), 10);
+            Set<String> ids = lastWeekTopList.keySet();
+            list = new ArrayList<>();
+            for (String id : ids) {
+                User userInfoById = userCacheService.getUserInfoById(id);
+                if (userInfoById==null){
+                    continue;
+                }
+                JSONObject info = new JSONObject();
+                info.put("userHeadImg", userInfoById.getHeadImageUrl());
+                info.put("userId", id);
+                info.put("userName", userInfoById.getName());
+                info.put("userNo", userInfoById.getUserNo());
+                info.put("score", lastWeekTopList.get(id));
+                list.add(info);
+            }
+            set(key, list, 60);
+        }
+        safeSortByScoreDesc(list);
+        return list;
+    }
+
     public List<JSONObject> getKillThisDayList() {
         String key = RedisKeyConstant.KILL_RANK_LIST;
         List<JSONObject> list = getList(key, JSONObject.class);
@@ -587,10 +642,17 @@ public class GameCacheService extends RedisService {
     public Long getThisWeekUserRankLhd(String userId){
         String key = RedisKeyConstant.GAME_RANK_NH+ DateUtil.getFirstDayOfWeek(new Date());
         return getZsetRank(userId,key);
+    } public Long getThisWeekUserRankDgs(String userId){
+        String key = RedisKeyConstant.GAME_LAST_WEEK_TOP_LIST_DGS+ DateUtil.getFirstDayOfWeek(new Date());
+        return getZsetRank(userId,key);
     }
 
     public Long getLastWeekUserRankLhd(String userId){
         return getZsetRank(userId,RedisKeyConstant.GAME_RANK_NH+DateUtil.getFirstDayOfLastWeek());
+    }
+
+    public Long getLastWeekUserRankDgs(String userId){
+        return getZsetRank(userId,RedisKeyConstant.GAME_LAST_WEEK_TOP_LIST_DGS+DateUtil.getFirstDayOfLastWeek());
     }
 
 

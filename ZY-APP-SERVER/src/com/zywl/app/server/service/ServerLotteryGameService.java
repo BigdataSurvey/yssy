@@ -384,6 +384,34 @@ public class ServerLotteryGameService extends BaseService {
         }
         return result;
     }
+    @ServiceMethod(code = "019", description = "打怪兽排行榜")
+    public JSONObject dgsRankList(final AppSocket appSocket, Command appCommand, JSONObject params) {
+        checkNull(params);
+        checkNull(params.get("type"));
+        long userId = appSocket.getWsidBean().getUserId();
+        params.put("userId", userId);
+        User user = userCacheService.getUserInfoById(userId);
+        if (user == null) {
+            throwExp("用户信息异常");
+        }
+        JSONObject result = new JSONObject();
+        int type= params.getInteger("type");
+        if (type==2){
+            result.put("rankList",gameCacheService.getDGSLastWeekList());
+            Double userLastWeekRankScore = gameCacheService.getUserLastWeekRankScore(GameTypeEnum.dgs.getValue(), String.valueOf(userId));
+            result.put("myScore",userLastWeekRankScore==null?0.0:userLastWeekRankScore);
+            Long rank = gameCacheService.getLastWeekUserRankDgs(String.valueOf(userId));
+            result.put("myRank",rank==null?-1:rank+1);
+        } else if (type==1) {
+            result.put("remainingTime", DateUtil.thisWeekRemainingTime());
+            result.put("rankList",gameCacheService.getThisWeekListDgs());
+            Double userRankScore = gameCacheService.getUserRankScore(GameTypeEnum.dgs.getValue(), String.valueOf(userId));
+            result.put("myScore", userRankScore ==null?0.0:userRankScore);
+            Long thisWeekUserRank = gameCacheService.getThisWeekUserRankDgs(String.valueOf(userId));
+            result.put("myRank",thisWeekUserRank==null?-1:thisWeekUserRank+1);
+        }
+        return result;
+    }
 
 
 
