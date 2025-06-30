@@ -2,6 +2,7 @@ package com.zywl.app.defaultx.service;
 
 import com.zywl.app.base.bean.RechargeOrder;
 import com.zywl.app.base.bean.TsgPayOrder;
+import com.zywl.app.base.bean.vo.GiftStatementVo;
 import com.zywl.app.base.util.DateUtil;
 import com.zywl.app.defaultx.dbutil.DaoService;
 import com.zywl.app.defaultx.enmus.RechargeStatusEnum;
@@ -46,6 +47,13 @@ public class TsgPayOrderService extends DaoService {
         return count("countTodayAll", params);
     }
 
+
+    public List<GiftStatementVo> findStatement(String startDate,String endDate){
+        Map<String,Object> params = new HashMap<>();
+        params.put("startDate",startDate);
+        params.put("endDate",endDate);
+        return findList("findStatement",params);
+    }
 
 
 

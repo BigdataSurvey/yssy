@@ -113,7 +113,7 @@ public class LogService extends BaseService {
         int capitalType = data.getIntValue("capitalType");
         logUserCapitalService.addLogUserCapital(type, userId, capitalType, balanceBefore, occupyBalanceBefore,
                 amount, em, orderNo, sourceDataId, tableName);
-        addStatement(em.getValue(), amount);
+        addStatement(em.getValue(), amount,capitalType);
 
     }
 
@@ -204,7 +204,7 @@ public class LogService extends BaseService {
     }
 
 
-    public void addStatement(int type, BigDecimal amount) {
+    public void addStatement(int type, BigDecimal amount,int capitalType) {
         Map<String, Object> params = new HashMap<>();
         params.put("ymd", DateUtil.format9(new Date()));
         if (type == LogCapitalTypeEnum.ios_test.getValue() || type == LogCapitalTypeEnum.cancel_bet.getValue() || type == LogCapitalTypeEnum.askbuy_sucess.getValue()) {
@@ -232,9 +232,9 @@ public class LogService extends BaseService {
             params.put("subPet", amount);
         } else if (type == LogCapitalTypeEnum.study_skill.getValue()) {
             params.put("subStudySkill", amount);
-        } else if (type == LogCapitalTypeEnum.shopping.getValue() || type == LogCapitalTypeEnum.buy_user_no.getValue() || type == LogCapitalTypeEnum.update_idCard.getValue()) {
+        } else if (type == LogCapitalTypeEnum.shopping.getValue()  ) {
             params.put("subShop", amount);
-        } else if (type == LogCapitalTypeEnum.guild.getValue()) {
+        }else if (type == LogCapitalTypeEnum.guild.getValue()) {
             params.put("subGuild", amount);
         } else if (type == LogCapitalTypeEnum.cash_succrss.getValue()) {
             params.put("subCash", amount);
@@ -364,7 +364,7 @@ public class LogService extends BaseService {
             params.put("addFromItem", amount);
         } else if (type == LogCapitalTypeEnum.dispatch.getValue()) {
             params.put("addDispatch", amount);
-        } else if (type == LogCapitalTypeEnum.wander.getValue()) {
+        } else if (type == LogCapitalTypeEnum.SHOPPING_GET.getValue() && capitalType==2) {
             params.put("addWander", amount);
         } else if (type == LogCapitalTypeEnum.dice.getValue()) {
             params.put("addDice", amount);
@@ -402,9 +402,7 @@ public class LogService extends BaseService {
         params.put("itemId", itemId);
         if (type == LogUserBackpackTypeEnum.events.getValue()) {
             params.put("addEvent", num);
-        } else if (type == LogUserBackpackTypeEnum.shopping.getValue()) {
-            params.put("addShop", num);
-        } else if (type == LogUserBackpackTypeEnum.sign_reward.getValue()) {
+        }  else if (type == LogUserBackpackTypeEnum.sign_reward.getValue()) {
             params.put("addSign", num);
         } else if (type == LogUserBackpackTypeEnum.prize_draw.getValue()) {
             params.put("addPrize", num);

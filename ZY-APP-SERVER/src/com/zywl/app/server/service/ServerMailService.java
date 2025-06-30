@@ -73,9 +73,6 @@ public class ServerMailService extends BaseService{
 		params.put("toUserId", toUser.getId());
 		User user = userCacheService.getUserInfoById(userId);
 		UserMail userMail = userMailService.findUserReadMailInfo(userId);
-		if (user.getAuthentication()==0){
-			throwExp("未通过实名认证");
-		}
 		if (userMail == null || user==null ) {
 			throwExp("玩家信息有误");
 		}
@@ -121,9 +118,6 @@ public class ServerMailService extends BaseService{
 		params.put("userId", userId);
 		Long mailId = params.getLongValue("mailId");
 		User user = userCacheService.getUserInfoById(userId);
-		if (user.getAuthentication()==0){
-			throwExp("未通过实名认证");
-		}
 		if ( mailId!=0L) {
 			Mail mail = mailService.getMailByMailId(mailId);
 			if (mail.getType()!=2 && mail.getToUserId()!=userId) {

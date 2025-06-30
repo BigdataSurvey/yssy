@@ -14,6 +14,8 @@ public class VipTopVo extends BaseBean {
 
     private String userHeadImg;
 
+    private int vipLv;
+
 
 
     public Long getUserId() {
@@ -54,5 +56,13 @@ public class VipTopVo extends BaseBean {
 
     public void setNum(int num) {
         this.num = num;
+    }
+
+    public int getVipLv() {
+        return vipLv;
+    }
+
+    public void setVipLv(int vipLv) {
+        this.vipLv = vipLv;
     }
 }

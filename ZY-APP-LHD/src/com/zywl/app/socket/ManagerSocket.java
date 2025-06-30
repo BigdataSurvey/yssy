@@ -91,7 +91,12 @@ public class ManagerSocket extends BaseClientSocket {
 
 				if (config.getKey().equals(Config.GAME_LHD_NEED_BOT)){
 					LhdService.NEED_BOT =Integer.parseInt(config.getValue());
+					if (LhdService.NEED_BOT%2==1){
+						//取余剩1
+						LhdService.KKK=3;
+					}
 				}
+
 			}
 		}, this);
 

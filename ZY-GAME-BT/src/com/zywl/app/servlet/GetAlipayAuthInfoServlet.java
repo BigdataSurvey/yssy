@@ -8,7 +8,6 @@ import com.zywl.app.base.util.OrderUtil;
 import com.zywl.app.base.util.RSA2Util;
 import com.zywl.app.defaultx.cache.UserCacheService;
 import com.zywl.app.defaultx.util.SpringUtil;
-import com.zywl.app.service.AliPayCashService;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
@@ -38,7 +37,8 @@ public class GetAlipayAuthInfoServlet extends BaseServlet {
 				"target_id=");
 		buffer.append(OrderUtil.getOrder5Number());
 		buffer.append("&auth_type=AUTHACCOUNT&sign_type=RSA2&sign=");
-		String sign = RSA2Util.sign256(buffer.toString(), AliPayCashService.privateKey);
+	//	String sign = RSA2Util.sign256(buffer.toString(), AliPayCashService.privateKey);
+		String sign = "";
 		URLEncoder.encode(sign,"UTF-8");
 		buffer.append(sign);
 		String gameToken = request.getParameter("gameToken");

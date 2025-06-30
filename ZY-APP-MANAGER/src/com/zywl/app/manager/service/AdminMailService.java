@@ -7,8 +7,10 @@ import com.live.app.ws.bean.Command;
 import com.live.app.ws.enums.PushCode;
 import com.live.app.ws.util.Push;
 import com.zywl.app.base.bean.*;
+import com.zywl.app.base.bean.vo.TsgPayOrderVo;
 import com.zywl.app.base.constant.RedisKeyConstant;
 import com.zywl.app.base.service.BaseService;
+import com.zywl.app.base.util.BeanUtils;
 import com.zywl.app.base.util.DateUtil;
 import com.zywl.app.defaultx.annotation.KafkaProducer;
 import com.zywl.app.defaultx.annotation.ServiceClass;
@@ -81,8 +83,11 @@ public class AdminMailService extends BaseService {
     private CashRecordService cashRecordService;
     @Autowired
     private RechargeOrderService rechargeOrderService;
+
     @Autowired
     private AdminLogService adminLogService;
+    @Autowired
+    private TsgPayOrderService tsgPayOrderService;
     @Autowired
     private UserCapitalCacheService userCapitalCacheService;
     @Autowired
@@ -1118,19 +1123,36 @@ public class AdminMailService extends BaseService {
             condition.put("userId", user.getId());
         }
 
-        Long count = rechargeOrderService.count("countByConditions",condition);
-        List<RechargeOrder> list = rechargeOrderService.findByConditions(condition);
-
-        JSONArray array = new JSONArray();
-        for (RechargeOrder rechargeOrder : list) {
-            JSONObject obj = (JSONObject) JSON.toJSON(rechargeOrder);
-            User user1 = userCacheService.getUserInfoById(rechargeOrder.getUserId());
-            obj.put("userName", user1 == null ? "" : user1.getName());
-            array.add(obj);
+        Long count = tsgPayOrderService.count("countByConditions",condition);
+        List<TsgPayOrder> list = tsgPayOrderService.findByConditions(condition);
+        List<TsgPayOrderVo> list1 = new ArrayList<>();
+        for (TsgPayOrder tsgPayOrder : list) {
+            TsgPayOrderVo vo = new TsgPayOrderVo();
+            BeanUtils.copy(tsgPayOrder,vo);
+            Long userId1 = tsgPayOrder.getUserId();
+            User userInfo = userCacheService.getUserInfoById(userId1);
+            if (userInfo!=null){
+                vo.setUserName(userInfo.getName());
+                vo.setRealName(userInfo.getRealName());
+                vo.setIdCard(userInfo.getIdCard());
+            }
+            if (tsgPayOrder.getProductId()==1){
+                vo.setProduct("单角色礼包");
+            }else {
+                vo.setProduct("全角色礼包");
+            }
+            if (tsgPayOrder.getStatus()!=3){
+                vo.setStatusInfo("支付失败");
+            }
+            if (tsgPayOrder.getStatus()==3){
+                vo.setStatusInfo("支付成功");
+            }
+            list1.add(vo);
         }
-
+        List<RechargeOrder> list2 = rechargeOrderService.findByConditions(condition);
+        JSONArray array = new JSONArray();
         JSONObject data = new JSONObject();
-        data.put("list",array);
+        data.put("list",list1);
         data.put("count",count);
         return data;
     }

@@ -7,12 +7,21 @@ import java.util.List;
 
 public class Config extends BaseBean {
 
+
+
+	public static final String MAX_BUY_GIFT_NUMBER = "MAX_BUY_GIFT_NUMBER";
+	public static final String VV_USER_GIFT = "VV_USER_GIFT";
+	public static final String TEST_USER_NO = "TEST_USER_NO";
 	public static final String PAY_CHANNEL = "PAY_CHANNEL";
 
 	public static final String PAY_NOTIFY_HF_URL = "PAY_NOTIFY_HF_URL";
 
 	public static final String GIFT_PRICE_2_GAME = "GIFT_PRICE_2_GAME";
 	public static final String GIFT_PRICE_1_GAME = "GIFT_PRICE_1_GAME";
+
+	public static final String HF_SYS_ID = "HF_SYS_ID";
+	public static final String HF_RSA_PRIVATE_KEY = "HF_RSA_PRIVATE_KEY";
+	public static final String HF_RSA_PUBLIC_KEY = "HF_RSA_PUBLIC_KEY";
 	public static final String GIFT_RMB_STATUS = "GIFT_RMB_STATUS";
 
 	public static final String GIFT_GAME_STATUS = "GIFT_GAME_STATUS";
@@ -39,6 +48,8 @@ public class Config extends BaseBean {
 
 	public static final String GAME_LHD_NEED_BOT="GAME_LHD_NEED_BOT";
 
+	public static final String GAME_LHD_KKK="GAME_LHD_KKK";
+
 	public static final String DAILY_STOLEN_COUNT = "DAILY_STOLEN_COUNT";
 	public static final String DTS_STATUS="GAME_DTS_STATUS";
 	public static final String DZ_GAME_ON = "GAME_DZ_GAME_ON";
@@ -47,32 +58,15 @@ public class Config extends BaseBean {
 	public static final String DZ_LUCK_USER = "DZ_LUCK_USER";
 
 	public static final String SG_ISK="SG_ISK";
-	public static final String CDM = "CDM";
-	public static final String XWMJ_STATUS = "XWMJ_STATUS";
-	public static final String PJZL_STATUS = "PJZL_STATUS";
 	public static final String IP_USER_NUMBER = "IP_USER_NUMBER";
 
 	public static final String IP_LOGIN_RISK = "IP_LOGIN_RISK";
-	public static final String TODAY_LUCKY = "TODAY_LUCKY";
-	public static final String UPDATE_GIFT = "UPDATE_GIFT";
-	public static final String BBSC_DAYS_1 = "BBSC_DAYS_1";
-
-	public static final String BBSC_DAYS_2 = "BBSC_DAYS_2";
-
-	public static final String BBSC_DICE_1="BBSC_DICE_1";
-
-	public static final String BBSC_DICE_2="BBSC_DICE_2";
-
-	public static final String BBSC_1="BBSC_1";
-
-	public static final String BBSC_2="BBSC_2";
 
 	public static final String GOOD_AD = "GOOD_AD";
 	public static final String IS_REGISTER = "IS_REGISTER";
 	public static final String VIP_MONTH_PRICE = "VIP_MONTH_PRICE";
 	public static final String VIP_WEEK_PRICE = "VIP_WEEK_PRICE";
 	public static final String REAL_NAME_REWARD = "REAL_NAME_REWARD";
-	public static final String USER_CARD_MAX_COUNT = "USER_CARD_MAX_COUNT";
 
 	public static final String REGISTER_NUM = "REGISTER_NUM";
 
@@ -106,27 +100,12 @@ public class Config extends BaseBean {
 	// 余额兑换比例
 	public static final String CONVERT_RATE = "CONVERT_RATE";
 
-	//一朵花的价值
-	public static final String FLOWER_AMOUNT = "FLOWER_AMOUNT";
-	// 好友转赠起赠门槛
-	public static final String TRANSFER_SILL = "TRANSFER_SILL";
 
 	// 邮件有效期
 	public static final String MAIL_VALIDITY = "MAIL_VALIDITY";
 
 	// 排行榜显示数量
 	public static final String TOP_NUMBER = "TOP_NUMBER";
-
-
-
-
-	// 卡牌表版本
-	public static final String CARD_VERSION = "VERSION_CARD";
-
-	//装备表版本
-	public static final String EQUIPMENT_VERSION="VERSION_EQUIPMENT";
-
-	public static final String CHECKPOINT_VERSION="VERSION_CHECKPOINT";
 
 	// 物品表版本
 	public static final String ITEM_VERSION = "VERSION_ITEM";
@@ -140,16 +119,11 @@ public class Config extends BaseBean {
 
 
 
-
-
-
 	//开通公会质押价格
 	public static final String GUILD_FEE = "GUILD_FEE";
 
 	//添加公会成员质押价格
 	public static final String GUILD_MEMBER_FEE = "GUILD_MEMBER_FEE";
-
-	public static final String BUY_COIN_NUMBER="BUY_COIN_NUMBER";
 
 	//当前开通渠道需要的收益
 	public static final String CHANNEL_FEE="CHANNEL_FEE";
@@ -177,7 +151,6 @@ public class Config extends BaseBean {
 
 	public static final String APP_VERSION= "APP_VERSION";
 
-	public static final String COUNTDOWN= "COUNTDOWN";
 
 	public static final String SERVER_MAX_CONNECT="SERVER_MAX_CONNECT";
 
@@ -194,18 +167,9 @@ public class Config extends BaseBean {
 	public static final String GZS_FK="GZS_FK";
 
 
-
-
-	public static final String MAIL_CD = "MAIL_CD";
-
-	public static final String MAIL_CD_STATUS = "MAIL_CD_STATUS";
-
-
 	public static final String ALIPAY_CASH_TYPE = "ALIPAY_CASH_TYPE";
 
 	public static final String ALIPAY_MAX_NUMBER = "ALIPAY_MAX_NUMBER";
-
-
 
 
 	public static final String CASH_LIMIT_DAY = "CASH_LIMIT_DAY";
@@ -213,10 +177,6 @@ public class Config extends BaseBean {
 	public static final String CASH_LIMIT_TIPS = "CASH_LIMIT_TIPS";
 
 
-
-
-	//分解卡牌给的星星数量
-	public static final String SALVAGE_STAR = "SALVAGE_STAR";
 	private String key;
 
 	private String value;

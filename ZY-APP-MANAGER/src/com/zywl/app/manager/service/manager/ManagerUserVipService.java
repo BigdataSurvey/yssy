@@ -28,6 +28,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import javax.annotation.PostConstruct;
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -78,6 +79,7 @@ public class ManagerUserVipService extends BaseService {
      * 新增经验
      */
     public void addExper(long userId, BigDecimal rechargeAmount) {
+        rechargeAmount = rechargeAmount.setScale(0, RoundingMode.HALF_UP);
         //vip等级
         UserVip uservip = userVipService.findRechargeAmountByUserId(userId);
         //充值金额（经验）
@@ -92,6 +94,9 @@ public class ManagerUserVipService extends BaseService {
                 if (uservip.getRechargeAmount().compareTo(new BigDecimal(value.getBeginExp())) > 0
                         && uservip.getRechargeAmount().compareTo(new BigDecimal(value.getEndExp())) < 0) {
                     uservip.setVipLevel(value.getLv());
+                    //查询当前有几个这个等级的人 +1为自己的排名
+                    long countByLv = userVipService.findCountByLv(value.getLv());
+                    uservip.setRank(countByLv+1);
                     userService.updateUserVip1(userId,value.getLv());
                     break;
                 }
@@ -99,6 +104,7 @@ public class ManagerUserVipService extends BaseService {
         }
         userVipService.updateUserVipInfo(uservip);
     }
+
 
     @Transactional
     @ServiceMethod(code = "011", description = "领取vip礼包")

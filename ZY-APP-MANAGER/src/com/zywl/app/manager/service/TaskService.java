@@ -1,25 +1,25 @@
 package com.zywl.app.manager.service;
 
-import com.alibaba.fastjson2.JSONArray;
 import com.alibaba.fastjson2.JSONObject;
 import com.zywl.app.base.bean.*;
 import com.zywl.app.base.service.BaseService;
 import com.zywl.app.base.util.DateUtil;
-import com.zywl.app.base.util.LockUtil;
 import com.zywl.app.base.util.OrderUtil;
 import com.zywl.app.defaultx.cache.DzCacheService;
 import com.zywl.app.defaultx.cache.GameCacheService;
 import com.zywl.app.defaultx.cache.UserCacheService;
 import com.zywl.app.defaultx.cache.card.CardGameCacheService;
 import com.zywl.app.defaultx.service.*;
-import com.zywl.app.manager.service.manager.ManagerConfigService;
 import com.zywl.app.manager.service.manager.ManagerUserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import javax.annotation.PostConstruct;
 import java.math.BigDecimal;
-import java.util.*;
+import java.util.List;
+import java.util.Map;
+import java.util.Timer;
+import java.util.TimerTask;
 import java.util.concurrent.ConcurrentHashMap;
 
 @Service
@@ -51,7 +51,8 @@ public class TaskService extends BaseService {
     @Autowired
     private ActivityService activityService;
 
-
+    @Autowired
+    private Activity2Service activityService2;
     @Autowired
     private DzCacheService dzCacheService;
 
@@ -208,7 +209,7 @@ public class TaskService extends BaseService {
                     e.printStackTrace();
                 }
             }
-        }, DateUtil.getTopNeed(), 60000 * 30);
+        }, DateUtil.getTopNeed(), 60000 * 5);
 
         new Timer("检查支付超时订单").schedule(new TimerTask() {
             public void run() {
@@ -283,6 +284,23 @@ public class TaskService extends BaseService {
                         }
                     }
 
+
+                    Activity activityByTime2 = activityService2.findActivity2ByTime();
+                    Activity lastActive2 = activityService2.findById(activityByTime.getId() - 1);
+                    long activeTime2 = activityByTime2.getBeginTime().getTime();
+                    logger.info("本期活动2开启时间"+activeTime2);
+                    if ((System.currentTimeMillis() - activeTime2)/1000 <10 ){
+                        //本期活动刚开启还不到10秒  证明上一期刚结束
+                        List<JSONObject> lastActiveTopList = gameCacheService.getLastActiveTopList2(lastActive2);
+                        for (JSONObject info : lastActiveTopList) {
+                            Long userId = info.getLong("userId");
+                            User user = userCacheService.getUserInfoById(userId);
+                            BigDecimal rewardAmount = info.getBigDecimal("rewardAmount");
+                            String orderNo = OrderUtil.getOrder5Number();
+                            cashRecordService.addCashOrder(user.getOpenId(), userId, user.getUserNo(), user.getName(), user.getRealName(), orderNo,
+                                    rewardAmount, 2, user.getPhone());
+                        }
+                    }
 
                     logger.info("判断限时活动用时【" + (System.currentTimeMillis() - time) + "】ms");
                 } catch (Exception e) {

@@ -42,4 +42,27 @@ public class OppsMerchantConfig {
         merConfig.setSysId(HFPayContext.SYS_ID);
         return merConfig;
     }
+
+    public static MerConfig getMerchantWechatConfig(String privateKey,String publicKey,String sysId) {
+        /** debug 模式，开启后有详细的日志
+         */
+        BasePay.debug = true;
+
+        /**
+         * prodMode 模式，默认为生产模式
+         * MODE_PROD = "prod"; // 生产环境
+         * MODE_TEST = "test"; // 线上联调环境(针对商户联调测试)
+         */
+        BasePay.prodMode = BasePay.MODE_PROD;
+
+        /**
+         * 单商户模式
+         */
+        MerConfig merConfig = new MerConfig();
+        merConfig.setRsaPrivateKey(privateKey);
+        merConfig.setProcutId(HFPayWechatContext.PRODUCT_ID);
+        merConfig.setRsaPublicKey(publicKey);
+        merConfig.setSysId(sysId);
+        return merConfig;
+    }
 }

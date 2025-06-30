@@ -497,6 +497,8 @@ public class ManagerGameBaseService extends BaseService {
             return result;
         }
     }
+    //51391375
+
 
 
     @Transactional
@@ -513,8 +515,11 @@ public class ManagerGameBaseService extends BaseService {
             if (dailyTask == null) {
                 throwExp("非法请求");
             }
-            int isLook = params.getIntValue("isLook");
 
+            int isLook = params.getIntValue("isLook");
+            if (isLook==1 && dailyTask.getCategory().equals("INVITE")){
+                throwExp("限时任务不可双倍领取奖励");
+            }
             //获取玩家每日任务的信息
             UserDailyTaskVo userTaskById = cardGameCacheService.getUserTaskById(userId, taskId);
             if (userTaskById == null) {
@@ -601,7 +606,7 @@ public class ManagerGameBaseService extends BaseService {
     }
 
 
-    @Transactional
+   /* @Transactional
     @ServiceMethod(code = "028", description = "购买靓号")
     public Object buyGoodNo(ManagerSocketServer adminSocketServer, JSONObject params) {
         checkNull(params);
@@ -641,7 +646,7 @@ public class ManagerGameBaseService extends BaseService {
         JSONObject result = new JSONObject();
         result.put("goodNo", byId.getGoodNo());
         return result;
-    }
+    }*/
 
     @Transactional
     @ServiceMethod(code = "029", description = "离线同步")
@@ -805,7 +810,7 @@ public class ManagerGameBaseService extends BaseService {
             result.put("id", dicShop.getItemId());
             result.put("number", number);
             array.add(result);
-            gameService.addReward(userId, array, LogCapitalTypeEnum.shopping);
+            gameService.addReward(userId, array, LogCapitalTypeEnum.SHOPPING_GET);
             return array;
         }
     }
@@ -999,9 +1004,8 @@ public class ManagerGameBaseService extends BaseService {
         if (user != null && user.getIsChannel() == 1) {
             result.put("isChannel", 1);
         }
-        UserStatistic byUserId = userStatisticService.findByUserId(userId);
-        int number = byUserId.getOneJuniorNum() + byUserId.getTwoJuniorNum();
-        result.put("number", number);
+        Long aLong = userService.countAllSon(userId);
+        result.put("number", aLong);
         result.put("canReceive", userStatistic.getGetAnima());
         return result;
     }
@@ -1047,7 +1051,7 @@ public class ManagerGameBaseService extends BaseService {
                 gameService.checkUserItemNumber(userId, String.valueOf(useId), number);
                 gameService.updateUserBackpack(userId, String.valueOf(useId), -number, LogUserBackpackTypeEnum.use);
             }
-            gameService.updateUserBackpack(userId, resultId, finalNumber, LogUserBackpackTypeEnum.use);
+            gameService.updateUserBackpack(userId, resultId, finalNumber, LogUserBackpackTypeEnum.syn);
             JSONObject result = new JSONObject();
             result.put("number", finalNumber);
             result.put("itemId", resultId);

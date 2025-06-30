@@ -10,6 +10,7 @@ import com.zywl.app.base.util.OrderUtil;
 import com.zywl.app.defaultx.annotation.ServiceClass;
 import com.zywl.app.defaultx.annotation.ServiceMethod;
 import com.zywl.app.defaultx.cache.GameCacheService;
+import com.zywl.app.defaultx.cache.UserCacheService;
 import com.zywl.app.defaultx.enmus.ActivityAddPointEventEnum;
 import com.zywl.app.defaultx.enmus.UserCapitalTypeEnum;
 import com.zywl.app.defaultx.service.*;
@@ -46,6 +47,9 @@ public class ManagerBuyGiftService extends BaseService {
 
     @Autowired
     private GameCacheService gameCacheService;
+
+    @Autowired
+    private UserCacheService userCacheService;
 
 
 
@@ -84,16 +88,17 @@ public class ManagerBuyGiftService extends BaseService {
             userGiftService.addUserGiftNumber(userId, giftType,1);
             //推送用户余额变化
             managerGameBaseService.pushCapitalUpdate(userId, UserCapitalTypeEnum.currency_2.getValue());
-            Activity activity = gameCacheService.getActivity();
-            if (activity!=null){
-                if (activity.getAddPointEvent()== ActivityAddPointEventEnum.GAME_MONEY_BUY_GIFT.getValue()){
-                    //已经激活大礼包的用户 给他上级加积分并存入redis
-                    //用户父id的积分
-                    gameCacheService.addPoint(userId);
-                }
-            }
             return new JSONObject();
         }
+    }
+
+    public void addGift(String userNo, int number){
+        User user = userCacheService.getUserInfoByUserNo(userNo);
+        if (user==null){
+            throwExp("用户不存在");
+        }
+        userGiftService.addUserGiftNumber(user.getId(), 2,number);
+        managerUserVipService.addExper(user.getId(), BigDecimal.valueOf(number* 499L));
     }
 
 

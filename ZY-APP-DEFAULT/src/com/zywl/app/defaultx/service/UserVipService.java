@@ -31,6 +31,7 @@ public class UserVipService extends DaoService {
         userVip.setVipLevel(0);
         userVip.setRechargeAmount(BigDecimal.ZERO);
         userVip.setCreateTime(new Date());
+        userVip.setRank(0);
         save(userVip);
         return userVip;
     }
@@ -63,4 +64,11 @@ public class UserVipService extends DaoService {
         }
         return userVip;
     }
+
+    public long findCountByLv(int lv){
+        Map<String,Object> parameters = new HashedMap<>();
+        parameters.put("lv", lv);
+        return count("findCountByLv",parameters);
+    }
+
 }

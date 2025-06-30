@@ -2,6 +2,7 @@ package com.zywl.app.manager.service.manager;
 
 import com.alibaba.fastjson2.JSONArray;
 import com.alibaba.fastjson2.JSONObject;
+import com.zywl.app.base.bean.ActiveGiftRecord;
 import com.zywl.app.base.bean.CompleteAchievementRecord;
 import com.zywl.app.base.bean.UserAchievement;
 import com.zywl.app.base.bean.UserStatistic;
@@ -43,6 +44,9 @@ public class ManagerAchievementService extends BaseService {
 
     @Autowired
     private UserService userService;
+
+    @Autowired
+    private ActiveGiftRecordService activeGiftRecordService;
 
 
 
@@ -110,6 +114,19 @@ public class ManagerAchievementService extends BaseService {
                if (!b && c){
                     b= true;
                }
+            }
+
+            if (info.getInteger("group")==1){
+                List<ActiveGiftRecord> byUserId = activeGiftRecordService.findByUserId(Long.valueOf(userId), 2);
+                boolean c;
+                if (byUserId.size()>0){
+                     c = checkAchievementByInviteUser(info, 1L);
+                }else{
+                     c = checkAchievementByInviteUser(info, 0L);
+                }
+                if (!b && c){
+                    b= true;
+                }
             }
         }
         if (b){

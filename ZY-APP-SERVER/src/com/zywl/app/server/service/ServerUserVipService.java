@@ -81,9 +81,9 @@ public class ServerUserVipService extends BaseService {
         String receiveState = "";
         Long userId = appSocket.getWsidBean().getUserId();
         JSONObject result = new JSONObject();
-        UserVip rechargeAmountByUserId = userVipService.findRechargeAmountByUserId(userId);
+        UserVip userVip = userVipService.findRechargeAmountByUserId(userId);
         //判断领取状态
-        List<VipReceiveRecord> vipReceiveRecord = vipReceiveRecordService.findVipReceiveRecordByLevel(userId,rechargeAmountByUserId.getVipLevel());
+        List<VipReceiveRecord> vipReceiveRecord = vipReceiveRecordService.findVipReceiveRecordByLevel(userId,userVip.getVipLevel());
         if(vipReceiveRecord.size()>0){
             //说明该用户已领取过该等级奖励
             receiveState = RECEIVED;
@@ -92,12 +92,13 @@ public class ServerUserVipService extends BaseService {
         }
         // 当前经验 升到下一级需要多少经验
         //BigDecimal differ = comparToRechargeAmount(rechargeAmountByUserId.getRechargeAmount());
-        int endExp = DIC_VIP_MAP.get(String.valueOf(rechargeAmountByUserId.getVipLevel())).getEndExp();
-        JSONArray reward = DIC_VIP_MAP.get(String.valueOf(rechargeAmountByUserId.getVipLevel())).getReward();
+        int endExp = DIC_VIP_MAP.get(String.valueOf(userVip.getVipLevel())).getEndExp();
+        JSONArray reward = DIC_VIP_MAP.get(String.valueOf(userVip.getVipLevel())).getReward();
         result.put("endExp", endExp);
         result.put("receiveState", receiveState);
         result.put("reward", reward);
-        result.put("vipInfo", rechargeAmountByUserId);
+        result.put("vipInfo", userVip);
+        result.put("rank",userVip.getRank());
         return result;
     }
 

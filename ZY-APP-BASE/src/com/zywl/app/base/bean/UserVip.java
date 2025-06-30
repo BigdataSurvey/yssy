@@ -8,6 +8,8 @@ public class UserVip {
     private long id;
     private long userId;
     private long vipLevel;
+
+    private long rank;
     private BigDecimal rechargeAmount;
     private Date createTime;
     private Date updateTime;
@@ -68,6 +70,14 @@ public class UserVip {
         this.rechargeAmount = rechargeAmount;
         this.createTime = createTime;
         this.updateTime = updateTime;
+    }
+
+    public long getRank() {
+        return rank;
+    }
+
+    public void setRank(long rank) {
+        this.rank = rank;
     }
 
     public UserVip() {

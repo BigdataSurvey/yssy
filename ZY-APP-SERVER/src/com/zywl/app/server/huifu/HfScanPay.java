@@ -6,6 +6,7 @@ import com.huifu.bspay.sdk.opps.core.request.V2TradePaymentJspayRequest;
 import com.huifu.bspay.sdk.opps.core.utils.DateTools;
 import com.zywl.app.base.bean.huifu.BaseCommon;
 import com.zywl.app.base.bean.huifu.HFPayContext;
+import com.zywl.app.base.bean.huifu.HFPayWechatContext;
 import com.zywl.app.base.bean.huifu.OppsMerchantConfig;
 import com.zywl.app.base.util.DateUtil;
 import com.zywl.app.base.util.OrderUtil;
@@ -26,9 +27,9 @@ public class HfScanPay extends BaseCommon {
     }
 
 
-    public static String scanPay(BigDecimal price,String notifyUrl,String orderNo) throws Exception {
+    public static String scanPay(BigDecimal price,String notifyUrl,String orderNo,String privateKey,String publicKey,String sysId) throws Exception {
         // 1. 数据初始化
-        doInit(OppsMerchantConfig.getMerchantConfig());
+        doInit(OppsMerchantConfig.getMerchantWechatConfig(privateKey,publicKey,sysId));
         // 2.组装请求参数
         V2TradePaymentJspayRequest request = new V2TradePaymentJspayRequest();
         // 请求日期
@@ -55,6 +56,8 @@ public class HfScanPay extends BaseCommon {
         System.out.println("返回数据:" + JSONObject.toJSONString(response));
         return payUrl;
     }
+
+
 
     /**
      * 非必填字段

@@ -38,26 +38,10 @@ if(!window.CtrlFn_${menuId}){
                     {data: "id", title: '#', render: function(data, type, row, setting){
                         return setting.row + 1;
                     }},
-                    {data: "ymd", title: '日期', render: datatableUtil.renderNormal},
-                    {data: "allOutPut", title: '今日总产出', render: datatableUtil.renderNormal},
-                    {data: "allExpend", title: '今日总消耗', render: datatableUtil.renderNormal},
-                    {data: "addDice", title: '捐赠产出通宝', render: datatableUtil.renderNormal},
-                    {data: "addDailyTask", title: '每日任务增加', render: datatableUtil.renderNormal},
-                    {data: "addReceiveAchievement", title: '领取成就奖励', render: datatableUtil.renderNormal},
-                    {data: "addWander", title: '商城产出通宝', render: datatableUtil.renderNormal},
-                    {data: "addSellSys", title: '背包卖出道具', render: datatableUtil.renderNormal},
-                    {data: "addSell", title: '交易行出售获得', render: datatableUtil.renderNormal},
-                    {data: "addReceiveIncome", title: '领取收益', render: datatableUtil.renderNormal},
-                    {data: "subShop", title: '商店购买', render: datatableUtil.renderNormal},
-                    {data: "subTradingBuy", title: '交易行购买消耗', render: datatableUtil.renderNormal},
-                    {data: "subGift", title: '购买每日礼包', render: datatableUtil.renderNormal},
-                    {data: "subMine", title: '开通书境消耗', render: datatableUtil.renderNormal},
-                    {data: "subDts2", title: '倩女幽魂参与', render: datatableUtil.renderNormal},
-                    {data: "addDts2", title: '倩女幽魂获得', render: datatableUtil.renderNormal},
-                    {data: "subNh", title: '躲雨参与', render: datatableUtil.renderNormal},
-                    {data: "addNh", title: '躲雨获得', render: datatableUtil.renderNormal},
-                    {data:"subDzGame",title: '报名打坐',render: datatableUtil.renderNormal},
-                    {data:"addDzGame",title: '领取打坐',render: datatableUtil.renderNormal}
+                    {data: "time", title: '日期', render: datatableUtil.renderNormal},
+                    {data: "total", title: '今日总订单', render: datatableUtil.renderNormal},
+                    {data: "pay", title: '今日总付款', render: datatableUtil.renderNormal}
+
 
 
 
@@ -98,7 +82,7 @@ if(!window.CtrlFn_${menuId}){
                 return false;
             }
             me.loading = true;
-            websocketService.request('019001', searchData, function(command){
+            websocketService.request('019003', searchData, function(command){
                 if(command.success){
                     var result = command.data || {};
                     var dataList = result.list || [];

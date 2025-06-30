@@ -11,12 +11,15 @@ import com.zywl.app.defaultx.util.SpringUtil;
 import com.zywl.app.manager.service.manager.ManagerUserVipService;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.springframework.transaction.annotation.Transactional;
 
 import javax.servlet.annotation.WebServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.BufferedReader;
 import java.io.IOException;
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.TreeMap;
 
 @SuppressWarnings("serial")
@@ -46,12 +49,17 @@ public class TsgHfPayServlet extends BaseServlet {
             String respData =request.getParameter("resp_data");
             JSONObject data = JSON.parseObject(respData);
             String orderNo = data.getString("req_seq_id");
-            updatePayOrder(3, orderNo);
+            String desc = data.getString("resp_desc");
+            String code = data.getString("resp_code");
+            if (code.equals("00000000") && desc.equals("交易成功")){
+                updatePayOrder(3, orderNo);
+            }
         }
         return "ok";
     }
 
 
+    @Transactional
     public void updatePayOrder(int status, String requestNo) {
         TsgPayOrder tsgPayOrder = tsgPayOrderService.findByOrderNo(requestNo);
         if (tsgPayOrder == null) {
@@ -66,8 +74,8 @@ public class TsgHfPayServlet extends BaseServlet {
         if (status == 3) {
             Long userId = tsgPayOrder.getUserId();
             int productId = Math.toIntExact(tsgPayOrder.getProductId());
+            managerUserVipService.addExper(userId, tsgPayOrder.getAllPrice().setScale(0, RoundingMode.HALF_UP));
             userGiftService.addUserGiftNumber(userId, productId, tsgPayOrder.getNumber());
-            managerUserVipService.addExper(userId, tsgPayOrder.getPrice());
         }
         tsgPayOrderService.updateOrder(tsgPayOrder);
     }

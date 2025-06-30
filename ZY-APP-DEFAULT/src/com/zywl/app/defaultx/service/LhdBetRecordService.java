@@ -84,6 +84,7 @@ public class LhdBetRecordService extends DaoService {
 			map.put("winAmount", o.get("winAmount"));
 			map.put("lotteryResult", o.get("lotteryResult"));
 			map.put("winOrLose",o.get("winOrLose"));
+			map.put("betInfo",o.get("betInfo"));
 			list.add(map);
 		}
 		 execute("batchUpdateRecord", list);

@@ -704,7 +704,7 @@ public class PlayGameService extends BaseService {
                 } else {
                     //正常道具
                     if (!id.equals("1001")) {
-                        if (em.getValue()==LogCapitalTypeEnum.mail.getValue()){
+                        if ( em!=null && em.getValue()==LogCapitalTypeEnum.mail.getValue()){
                             //邮件
                             updateUserBackpack(userId, id, number, LogUserBackpackTypeEnum.zs,reward.getString("fromUserId"));
                         }else{

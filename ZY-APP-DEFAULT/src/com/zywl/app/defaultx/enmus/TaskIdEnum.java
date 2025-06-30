@@ -11,8 +11,10 @@ public enum TaskIdEnum {
     ADD_POWER("补充一次体力","2"),
     DTS("参与一次倩女幽魂","3"),
     LHD("参与一次2选1","4"),
-    SYN("合成一次","5")
-
+    SYN("合成一次","5"),
+    INVITE1("邀请5名好友","6"),
+    INVITE2("邀请10名好友","7"),
+    INVITE3("邀请20名好友","8"),
     ;
 
     private TaskIdEnum(String name, String value) {

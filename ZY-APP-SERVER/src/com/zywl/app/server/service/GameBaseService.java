@@ -347,9 +347,9 @@ public class GameBaseService extends BaseService {
         JSONObject result = new JSONObject();
         Map userTask = cardGameCacheService.getUserTask(userId);
         Collection values = userTask.values();
-        List list0 = new ArrayList<>();
-        List list1 = new ArrayList<>();
-        List list2 = new ArrayList<>();
+        List<UserDailyTaskVo> list0 = new ArrayList<>();
+        List<UserDailyTaskVo> list1 = new ArrayList<>();
+        List<UserDailyTaskVo> list2 = new ArrayList<>();
         for (Object value : values) {
             UserDailyTaskVo vo = (UserDailyTaskVo) value;
             if (vo.getStatus() == 0) {
@@ -360,6 +360,8 @@ public class GameBaseService extends BaseService {
                 list2.add(vo);
             }
         }
+        safeSortByScoreDesc(list0);
+        safeSortByScoreDesc(list2);
         list1.addAll(list0);
         list1.addAll(list2);
         Long ap = cardGameCacheService.getUserDtAp(userId);
@@ -368,10 +370,17 @@ public class GameBaseService extends BaseService {
         result.put("isSign",userTodaySign);
         result.put("signReward", JSONArray.parseArray(serverConfigService.getString(Config.SIGN_REWARD)));
         result.put("signNow",list2.size());
-        result.put("signAll",list1.size());
+        result.put("signAll",5);
         return result;
     }
 
+    public static void safeSortByScoreDesc(List<UserDailyTaskVo> list) {
+        Collections.sort(list, (o1, o2) -> {
+            double score1 = o1.getId(); // 默认值0
+            double score2 = o2.getId();
+            return Double.compare(score2, score1);
+        });
+    }
 
     @ServiceMethod(code = "017", description = "每日任务完成签到")
     public Async userSign(AppSocket appSocket, Command command, JSONObject data) {

@@ -381,5 +381,12 @@ public class RedisKeyConstant {
 	public final static String POINT_RANK_LIST="t:app:pointList:";
 
 	public final static String POINT_RANK_LIST_LAST="t:app:lastPointList:";
+
+
+	public final  static  String APP_TOP_lIST_2 = "t:top:list2:";
+
+	public final static String POINT_RANK_LIST_2="t:app:pointList2:";
+
+	public final static String POINT_RANK_LIST_LAST_2="t:app:lastPointList2:";
 }
 

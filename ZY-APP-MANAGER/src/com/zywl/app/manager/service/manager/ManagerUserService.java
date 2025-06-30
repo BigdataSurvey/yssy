@@ -12,6 +12,7 @@ import com.zywl.app.base.bean.vo.UserSonVo;
 import com.zywl.app.base.bean.vo.UserVo;
 import com.zywl.app.base.service.BaseService;
 import com.zywl.app.base.util.*;
+import com.zywl.app.defaultx.annotation.KafkaProducer;
 import com.zywl.app.defaultx.annotation.ServiceClass;
 import com.zywl.app.defaultx.annotation.ServiceMethod;
 import com.zywl.app.defaultx.cache.UserCacheService;
@@ -20,6 +21,8 @@ import com.zywl.app.defaultx.enmus.UserCapitalTypeEnum;
 import com.zywl.app.defaultx.service.*;
 import com.zywl.app.defaultx.service.card.BuyVipRecordService;
 import com.zywl.app.defaultx.service.card.CanLoginService;
+import com.zywl.app.manager.context.KafkaEventContext;
+import com.zywl.app.manager.context.KafkaTopicContext;
 import com.zywl.app.manager.context.MessageCodeContext;
 import com.zywl.app.manager.service.*;
 import com.zywl.app.manager.servlet.AppUploadFileServlet;
@@ -355,6 +358,7 @@ public class ManagerUserService extends BaseService {
 
     @Transactional
     @ServiceMethod(code = "008", description = "实名认证")
+    @KafkaProducer(topic = KafkaTopicContext.RED_POINT, event = KafkaEventContext.REGIST, sendParams = true)
     public JSONObject authentication(ManagerSocketServer adminSocketServer, JSONObject data) {
         checkNull(data);
         checkNull(data.get("userId"), data.get("realName"));
@@ -398,11 +402,8 @@ public class ManagerUserService extends BaseService {
                 status = -102;
             }
             if (status == 1) {
-                JSONArray reward = JSONArray.parseArray(managerConfigService.getString(Config.REAL_NAME_REWARD));
                 managerPromoteService.parentAddEffectiveFriendNumber(userId);
-                data.put("reward", reward);
                 userService.authentication(userId, realName, idCard);
-
                 userService.updateAuthentication(userId, 1);
                 if (userInfo.getParentId() != null) {
                     userCacheService.subSonCount(userInfo.getParentId(), 3);
@@ -899,6 +900,13 @@ public class ManagerUserService extends BaseService {
         result.put("loginTime", sonUser.getLastLoginTime());
         BigDecimal hisAllFriend = userStatisticService.findHisAllFriend(sonUser.getId());
         result.put("teamAll",hisAllFriend==null?BigDecimal.ZERO:hisAllFriend);
+        long giftNumber = userService.sonBuyGiftNumber(userId);
+        result.put("giftNumber",giftNumber);
+        if (Objects.equals(sonUser.getParentId(), myId)){
+            result.put("isSon",1);
+        }else {
+            result.put("isSon",0);
+        }
         return result;
     }
 

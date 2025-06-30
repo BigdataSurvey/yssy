@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.zywl.app.defaultx.mapper.Activity2Mapper">
+
+    <insert id="insert" parameterType="Activity" useGeneratedKeys="true" keyProperty="id" keyColumn="id">
+        insert into t_activity2
+        (
+            `id`,
+            `activity_name`,
+            `cycle`,
+            `begin_time`,
+            `end_time`
+        )
+        values
+            (
+                #{id},
+                #{activityName},
+                #{cycle},
+                #{beginTime},
+                #{endTime}
+            )
+    </insert>
+
+    <update id="updateActivity" parameterType="Activity">
+        update t_activity2
+        <set>
+
+            <if test="activityName!=null">
+                activity_name = #{activityName},
+            </if>
+            <if test="cycle!=null">
+                cycle = #{cycle},
+            </if>
+            <if test="beginTime!=null">
+                begin_time = #{beginTime},
+            </if>
+            <if test="endTime!=null">
+                end_time = #{endTime},
+            </if>
+        </set>
+        where  id= #{id}
+    </update>
+
+    <delete id="delete">
+        delete from t_activity2 where  id= #{id}
+    </delete>
+
+    <select id="findById" resultType="Activity">
+        select * from t_activity2 where id = #{id}
+    </select>
+
+
+    <select id="findAll" resultType="Activity">
+        select * from t_activity2
+    </select>
+    <select id="findByTime" resultType="Activity" parameterType="com.zywl.app.base.bean.Activity">
+        select * from t_activity2
+                where begin_time&lt;#{time} and end_time&gt;#{time}
+    </select>
+
+
+</mapper>

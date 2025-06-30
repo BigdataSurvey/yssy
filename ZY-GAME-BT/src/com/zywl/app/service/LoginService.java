@@ -39,7 +39,6 @@ public class LoginService extends BaseService {
     public static final String secret = "315077466fa7acb5794c02a9dc662700";
 
 
-
     @Autowired
     private LoginConfigService loginConfigService;
     @Autowired
@@ -69,14 +68,11 @@ public class LoginService extends BaseService {
     private UserMailService userMailService;
 
 
-
-
     @Autowired
     private UserStatisticService userStatisticService;
 
     @Autowired
     private UserAchievementService userAchievementService;
-
 
 
     @Autowired
@@ -85,14 +81,14 @@ public class LoginService extends BaseService {
     @Autowired
     private DeviceRiskService deviceRiskService;
 
-    public static Set<String> userNos = new ConcurrentHashSet< >();
+    public static Set<String> userNos = new ConcurrentHashSet<>();
 
     public static Map<String, User> onlineUsers = new ConcurrentHashMap<>();
 
 
     private static final List<String> MODELS = new ArrayList<>();
 
-    private static final String PRIVATE_KEY   = "MIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQCPlaG50AVwC/yXOHK7ssP2KMV3TEoVFiH7xkKRyKUkPBzcL7LfbnrospRaigAVUOIoBqhC0uMKzS60Ji3EYxtsVu8Z9Qakslr7E6TqVQ9EOdPfSJCxokpASrdM/1yl9SqECkP+I9GvuVD5mU3cjdVMwUMvomHoHL3DgByHieWEqibtNijSXbeO6XEJzXd7k67y5ecjqXzgpYWXXsZOOjsRih2eEyytWSyqlbi4/f250PckMaHtvIjW4ASebGKncipnk3hN3u/R6eWq0x4CgvjsMMWbjLMw3av9aLV2Bt7Xkpd5n1xi4yEwcwN9T7ihI3Y58lsMwkW/E+dCoQWYv8oLAgMBAAECggEAKvRiu4nl9o0/daXnfQuP4FZ2LKhgCUrjw8SeKarS7LInGCAU7Q7KKk8yXpumRro5ziufrs4UKikT7cT2MChODe07/pH0+NR6r15DGe90b761CblVwC6C9BTmHVzPxL5Bh9riWGcy1dUkymb4iiDMTPgMN3XmwF/IzXHIFyxDw5oFe4ototWRdJq2PtDMiRBo6lyr/4PwBVTV+KTTAVejw6Ft02zYr9/t9be+d78Xh3LawI1SFE4w9U9uBdSVQv7dmF3tIiCGw0U7Cnu6fNVM1HhoIDDixWpFjmPXQuzCMO0q50lvis9DuyEYLMojPI0i0n5ACDTBAEoeGkK4qU994QKBgQD07VpPZoq/D46rpIxNzH2JwqJmy5DOEke8lUksSVa0KKm8ybnb8H1DCRo9klTHtKWZWX4cIX8MoLz+tMS1hO554G23uImcCSmwFgmsXlzSj0/jHZFVyf5NOML7l8eIYi/7iO8njXL2UupBTPHLluo/a4UVAU5PsyhYLAc17h4+KQKBgQCWE2WWc1RP0mwm9x3Clfppd76MRqcd/CJA2qrS/6hPoojgNGOaXv7hzRI8xS502DH/L9dyqSo468itAK4WEXXDScI144ZBEBHJazqPHfnJKc79EZ6sDf3OlORTssruWCU3XhPLzFb8bcDp6RiyOJ+/Y8mbguqVVMPOwBlXl4NlEwKBgQC4+H/ZsyFZhZBDxHNJVgQBBALOCzKCzn9qxnuKfKCEUqlNsDMzDP4soDU3BsoMQDtIArQg3pMqoEHbQf3E8G2BkaKKu00BkFHxb9NCX8lOI3k7llrqJTBudU2b4FaKg0yldBbZEhQePyQ2yLta+9BQsQzCfkf8HNt9K1MOwZQJcQKBgBWHGMZ5Krn8jEkWn60/CFnCtJG4vNY/ScaV13VG+STbQtkuiq8lO1i2qwwOmPhn3twlR7mJ7KWXpQS0GUTPIl5uIS7LwYFpxbNn71GCUkd5+Ngyg9lYdHUCxLIA7r075bLIivxsBnpVYBvttP4zwy6YKN5m7DGZpDDvO3NmJ5IDAoGAGzRupqjYUvo25seXwl2Fy9B3mV38pccSwr6VJPjNNEGLxqnFJIx7j4KVyvOCh2915elI/T4QsqplaXhmek7Y75HxPz2qvTVPIfizvUsu2RmL5kbjlUU6WPHy7KPsSZNIzpzagjMxxBFfydIuQMNS/UaqJlF3tNclA3RQofomrjU=";
+    private static final String PRIVATE_KEY = "MIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQCPlaG50AVwC/yXOHK7ssP2KMV3TEoVFiH7xkKRyKUkPBzcL7LfbnrospRaigAVUOIoBqhC0uMKzS60Ji3EYxtsVu8Z9Qakslr7E6TqVQ9EOdPfSJCxokpASrdM/1yl9SqECkP+I9GvuVD5mU3cjdVMwUMvomHoHL3DgByHieWEqibtNijSXbeO6XEJzXd7k67y5ecjqXzgpYWXXsZOOjsRih2eEyytWSyqlbi4/f250PckMaHtvIjW4ASebGKncipnk3hN3u/R6eWq0x4CgvjsMMWbjLMw3av9aLV2Bt7Xkpd5n1xi4yEwcwN9T7ihI3Y58lsMwkW/E+dCoQWYv8oLAgMBAAECggEAKvRiu4nl9o0/daXnfQuP4FZ2LKhgCUrjw8SeKarS7LInGCAU7Q7KKk8yXpumRro5ziufrs4UKikT7cT2MChODe07/pH0+NR6r15DGe90b761CblVwC6C9BTmHVzPxL5Bh9riWGcy1dUkymb4iiDMTPgMN3XmwF/IzXHIFyxDw5oFe4ototWRdJq2PtDMiRBo6lyr/4PwBVTV+KTTAVejw6Ft02zYr9/t9be+d78Xh3LawI1SFE4w9U9uBdSVQv7dmF3tIiCGw0U7Cnu6fNVM1HhoIDDixWpFjmPXQuzCMO0q50lvis9DuyEYLMojPI0i0n5ACDTBAEoeGkK4qU994QKBgQD07VpPZoq/D46rpIxNzH2JwqJmy5DOEke8lUksSVa0KKm8ybnb8H1DCRo9klTHtKWZWX4cIX8MoLz+tMS1hO554G23uImcCSmwFgmsXlzSj0/jHZFVyf5NOML7l8eIYi/7iO8njXL2UupBTPHLluo/a4UVAU5PsyhYLAc17h4+KQKBgQCWE2WWc1RP0mwm9x3Clfppd76MRqcd/CJA2qrS/6hPoojgNGOaXv7hzRI8xS502DH/L9dyqSo468itAK4WEXXDScI144ZBEBHJazqPHfnJKc79EZ6sDf3OlORTssruWCU3XhPLzFb8bcDp6RiyOJ+/Y8mbguqVVMPOwBlXl4NlEwKBgQC4+H/ZsyFZhZBDxHNJVgQBBALOCzKCzn9qxnuKfKCEUqlNsDMzDP4soDU3BsoMQDtIArQg3pMqoEHbQf3E8G2BkaKKu00BkFHxb9NCX8lOI3k7llrqJTBudU2b4FaKg0yldBbZEhQePyQ2yLta+9BQsQzCfkf8HNt9K1MOwZQJcQKBgBWHGMZ5Krn8jEkWn60/CFnCtJG4vNY/ScaV13VG+STbQtkuiq8lO1i2qwwOmPhn3twlR7mJ7KWXpQS0GUTPIl5uIS7LwYFpxbNn71GCUkd5+Ngyg9lYdHUCxLIA7r075bLIivxsBnpVYBvttP4zwy6YKN5m7DGZpDDvO3NmJ5IDAoGAGzRupqjYUvo25seXwl2Fy9B3mV38pccSwr6VJPjNNEGLxqnFJIx7j4KVyvOCh2915elI/T4QsqplaXhmek7Y75HxPz2qvTVPIfizvUsu2RmL5kbjlUU6WPHy7KPsSZNIzpzagjMxxBFfydIuQMNS/UaqJlF3tNclA3RQofomrjU=";
 
     @PostConstruct
     public void INIT_MP() {
@@ -136,19 +132,20 @@ public class LoginService extends BaseService {
             userService.addParentIdAndGrandfaId(uid, parent.getId(), parent.getParentId(), parent.getChannelNo());
         }
     }
-    public void checkUserCno(User user){
-        if (user.getParentId()==null){
+
+    public void checkUserCno(User user) {
+        if (user.getParentId() == null) {
             return;
         }
-        if (user.getCno()!=null){
+        if (user.getCno() != null) {
             return;
         }
         User parent = userCacheService.getUserInfoById(user.getParentId());
         if (parent == null) {
             return;
         }
-        if (parent.getCno()!=null){
-            userService.updateUserCNo(parent.getCno(),user.getId());
+        if (parent.getCno() != null) {
+            userService.updateUserCNo(parent.getCno(), user.getId());
         }
     }
 
@@ -157,7 +154,7 @@ public class LoginService extends BaseService {
         if (user.getIsChannel() == 1 && user.getUserNo().equals(user.getChannelNo())) {
             return;
         }
-        if (user.getIsChannel() == 1 && !user.getUserNo().equals(user.getChannelNo()) && user.getUserNo().length()==8) {
+        if (user.getIsChannel() == 1 && !user.getUserNo().equals(user.getChannelNo()) && user.getUserNo().length() == 8) {
             //更改渠道号为自己的userNo
             userService.updateUserChannelNo(user.getUserNo(), user.getId());
         }
@@ -168,8 +165,8 @@ public class LoginService extends BaseService {
         if (parent == null) {
             return;
         }
-        if (parent.getCno()!=null){
-            userService.updateUserCNo(parent.getCno(),user.getId());
+        if (parent.getCno() != null) {
+            userService.updateUserCNo(parent.getCno(), user.getId());
         }
         if (user.getChannelNo() == null && parent.getChannelNo() != null) {
             //更改渠道号为上级的渠道号
@@ -185,9 +182,9 @@ public class LoginService extends BaseService {
     }
 
 
-    public JSONObject loginByGameToken(String gameToken,String oldWsid,String versionId,String clientIp){
+    public JSONObject loginByGameToken(String gameToken, String oldWsid, String versionId, String clientIp) {
         User user = userService.findByUserGameToken(gameToken);
-        if (user==null || user.getTokenTime().getTime()<System.currentTimeMillis()){
+        if (user == null || user.getTokenTime().getTime() < System.currentTimeMillis()) {
             throwExp("支付宝未授权或授权过期，请重新登录");
         }
         if (user.getStatus() == 0) {
@@ -212,68 +209,67 @@ public class LoginService extends BaseService {
         if (user.getLastLoginTime().getTime() < DateUtil.getToDayBegin()) {
             userCacheService.addTodayLogin();
             JSONObject data = new JSONObject();
-            data.put("userId",user.getId());
-            Push.push(PushCode.userRegist,null,data);
+            data.put("userId", user.getId());
+            Push.push(PushCode.userLogin, null, data);
         }
-        userService.loginSuccess(user.getId(), clientIp,  null, null,user.getGameToken(),user.getTokenTime());
+        userService.loginSuccess(user.getId(), clientIp, null, null, user.getGameToken(), user.getTokenTime());
         return result2;
     }
 
 
-
-
-    public JSONObject loginOrRegisterAlipay(List<User> byAliUserId,String aliPayUserId,AlipayUserInfoShareResponse response,String authCode, String clientIp, String versionId, String oldWsid, String inviteCode) throws AlipayApiException {
+    public JSONObject loginOrRegisterAlipay(List<User> byAliUserId, String aliPayUserId, AlipayUserInfoShareResponse response, String authCode, String clientIp, String versionId, String oldWsid, String inviteCode) throws AlipayApiException {
 
         String headImgUrl = response.getAvatar();
         String name = response.getNickName();
-        if (name==null){
-            name="alipayUser"+authCode.substring(0,6);
+        if (name == null) {
+            name = "alipayUser" + authCode.substring(0, 6);
         }
         if (byAliUserId.size() == 0) {
-            return registerByAlipay(clientIp, oldWsid, versionId, inviteCode, aliPayUserId,name,headImgUrl);
+            return registerByAlipay(clientIp, oldWsid, versionId, inviteCode, aliPayUserId, name, headImgUrl);
         } else {
             User user = byAliUserId.get(0);
             Long uid;
-                if (user.getStatus() == 0) {
-                    return JSONUtil.getReturnDate(0, null, "账号已注销！");
-                }
-                if (user.getStatus() == 2) {
-                    return JSONUtil.getReturnDate(0, null, "账号被封禁！");
-                }
-                if (!onlineUsers.containsKey(user.getId().toString())) {
-                    onlineUsers.put(user.getId().toString(), user);
-                }
-                //包含用户  直接登录  更新用户信息
-                uid = user.getId();
-                String gameToken = generateToken();
-                user.setGameToken(gameToken);
-                //checkParent(inviteCode, user, uid);
-                checkUserCno(user);
-                checkChannelNo(user);
-                WsidBean wsid;
-                wsid = authService.createWsid(user.getId(), oldWsid, versionId);
-                // 已有用户，登录
-                JSONObject result = new JSONObject();
-                result.put("userInfo", user);
-                result.put("wsInfo", wsid);
-                JSONObject result2 = JSONUtil.getReturnDate(1, result, "");
-                //修改用户登录时间登录ip登录次数
-                if (user.getLastLoginTime().getTime() < DateUtil.getToDayBegin()) {
-                    userCacheService.addTodayLogin();
-                    JSONObject data = new JSONObject();
-                    data.put("userId",user.getId());
-                    data.put("userNo",user.getUserNo());
-                    Push.push(PushCode.userLogin,null,data);
-                }
-                userService.loginSuccess(uid, clientIp, user.getNameStatus() == 1 ? name : null, headImgUrl,user.getGameToken(),DateUtil.getDateByDay(7));
-                return result2;
+            if (user.getStatus() == 0) {
+                return JSONUtil.getReturnDate(0, null, "账号已注销！");
             }
+            if (user.getStatus() == 2) {
+                return JSONUtil.getReturnDate(0, null, "账号被封禁！");
+            }
+            if (!onlineUsers.containsKey(user.getId().toString())) {
+                onlineUsers.put(user.getId().toString(), user);
+            }
+            //包含用户  直接登录  更新用户信息
+            uid = user.getId();
+            String gameToken = generateToken();
+            user.setGameToken(gameToken);
+            //checkParent(inviteCode, user, uid);
+            checkUserCno(user);
+            checkChannelNo(user);
+            WsidBean wsid;
+            wsid = authService.createWsid(user.getId(), oldWsid, versionId);
+            // 已有用户，登录
+            JSONObject result = new JSONObject();
+            result.put("userInfo", user);
+            result.put("wsInfo", wsid);
+            JSONObject result2 = JSONUtil.getReturnDate(1, result, "");
+            //修改用户登录时间登录ip登录次数
+            if (user.getLastLoginTime().getTime() < DateUtil.getToDayBegin()) {
+                userCacheService.addTodayLogin();
+                JSONObject data = new JSONObject();
+                data.put("userId", user.getId());
+                data.put("userNo", user.getUserNo());
+                Push.push(PushCode.userLogin, null, data);
+            }
+            userService.loginSuccess(uid, clientIp, user.getNameStatus() == 1 ? name : null, headImgUrl, user.getGameToken(), DateUtil.getDateByDay(7));
+            return result2;
+        }
     }
+
     @Transactional
-    public JSONObject registerByAlipay(String clientIp, String oldWisid, String versionId, String inviteCode, String alipayUserId,String userName, String userHead) {
-        if (loginConfigService.getInteger(Config.IP_USER_NUMBER)>0){
+    public JSONObject registerByAlipay(String clientIp, String oldWisid, String versionId, String inviteCode, String alipayUserId, String userName, String userHead) {
+        if (loginConfigService.getInteger(Config.IP_USER_NUMBER) > 0) {
             Long countByIp = userService.findCountByIp(clientIp);
-            if (countByIp>loginConfigService.getInteger(Config.IP_USER_NUMBER)){
+            if (countByIp > loginConfigService.getInteger(Config.IP_USER_NUMBER)) {
                 return JSONUtil.getReturnDate(0, null, "同IP下注册账号过多，禁止注册。");
             }
         }
@@ -282,12 +278,12 @@ public class LoginService extends BaseService {
         String cno = null;
         if (parentUser == null) {
             inviteCode = null;
-        }else{
+        } else {
             cno = parentUser.getCno();
         }
-        logger.info("上级信息："+parentUser);
+        logger.info("上级信息：" + parentUser);
         String gameToken = generateToken();
-        User newPlayer = userService.insertUserInfoByAlipay(clientIp, alipayUserId, inviteCode, getNo(), userName, userHead,gameToken,cno,ipService.getCityName(clientIp),ipService.getRegionName(clientIp));
+        User newPlayer = userService.insertUserInfoByAlipay(clientIp, alipayUserId, inviteCode, getNo(), userName, userHead, gameToken, cno, ipService.getCityName(clientIp), ipService.getRegionName(clientIp));
         initUserInfo(newPlayer.getId());
         // 创建ws 返回用户用以创建握手连接
         WsidBean wsid = authService.createWsid(newPlayer.getId(), oldWisid, versionId);
@@ -297,24 +293,16 @@ public class LoginService extends BaseService {
         JSONObject result2 = JSONUtil.getReturnDate(1, result, "");
         userCacheService.addTodayRegister();
         JSONObject data = new JSONObject();
-        data.put("userId",newPlayer.getId());
-        data.put("userNo",newPlayer.getUserNo());
-        Push.push(PushCode.userLogin,null,data);
+        data.put("userId", newPlayer.getId());
+        data.put("userNo", newPlayer.getUserNo());
+        Push.push(PushCode.userLogin, null, data);
         //上级增加下级人数
         if (parentUser == null) {
-            Push.push(PushCode.userRegist,null,data);
+            Push.push(PushCode.userRegist, null, data);
         }
-        logger.info("支付宝注册返回："+result2);
+        logger.info("支付宝注册返回：" + result2);
         return result2;
     }
-
-
-
-
-
-
-
-
 
 
     public String getNo() {
@@ -404,8 +392,6 @@ public class LoginService extends BaseService {
     }
 
 
-
-
     // 初始化用户信息
     @Transactional
     public void initUserInfo(Long userId) {
@@ -417,17 +403,11 @@ public class LoginService extends BaseService {
             UserCapital userCapital = new UserCapital();
             userCapital.setUserId(userId);
             userCapital.setCapitalType(e.getValue());
-            if (e.getValue()==UserCapitalTypeEnum.rmb.getValue()){
-                userCapital.setBalance(new BigDecimal("0.3"));
-            }else{
-                userCapital.setBalance(BigDecimal.ZERO);
-            }
-
+            userCapital.setBalance(BigDecimal.ZERO);
             userCapital.setOccupyBalance(BigDecimal.ZERO);
             userCapitalService.insertUserCapital(userCapital);
         }
         userStatisticService.addUserStatistic(userId);
-
         userMailService.addUserMail(userId);
         userInviteInfoService.addUserInviteInfo(userId);
     }
@@ -443,8 +423,6 @@ public class LoginService extends BaseService {
         }
         return hexBuilder.toString();
     }
-
-
 
 
     public boolean isHaveEmail(String mail) {
@@ -491,11 +469,11 @@ public class LoginService extends BaseService {
             if (user.getLastLoginTime().getTime() < DateUtil.getToDayBegin()) {
                 userCacheService.addTodayLogin();
                 JSONObject data = new JSONObject();
-                data.put("userId",user.getId());
-                data.put("userNo",user.getUserNo());
-                Push.push(PushCode.userLogin,null,data);
+                data.put("userId", user.getId());
+                data.put("userNo", user.getUserNo());
+                Push.push(PushCode.userLogin, null, data);
             }
-            userService.loginSuccess(uid, clientIp, wxInfo==null?null:(String) wxInfo.getOrDefault("nickname", null), wxInfo==null?null:(String) wxInfo.getOrDefault("headimgurl", null),user.getGameToken(),DateUtil.getDateByDay(7));
+            userService.loginSuccess(uid, clientIp, wxInfo == null ? null : (String) wxInfo.getOrDefault("nickname", null), wxInfo == null ? null : (String) wxInfo.getOrDefault("headimgurl", null), user.getGameToken(), DateUtil.getDateByDay(7));
             return result2;
         } else {
             //注册用户
@@ -503,6 +481,7 @@ public class LoginService extends BaseService {
         }
 
     }
+
     @Transactional
     public JSONObject register(String clientIp, String oldWisid, String versionId, String wxOpenId, String inviteCode, JSONObject wxInfo, int accessTokenVail, String deviceId, String os) {
         logger.info("新用户注册，注册使用邀请码：" + inviteCode);
@@ -524,12 +503,12 @@ public class LoginService extends BaseService {
         String cno = null;
         if (parentUser == null) {
             inviteCode = null;
-        }else{
+        } else {
             cno = parentUser.getCno();
         }
         String gameToken = generateToken();
 
-        User newPlayer = userService.insertUserInfo(clientIp, wxOpenId, inviteCode, getNo(), wxInfo, ipService.getCityName(clientIp), ipService.getRegionName(clientIp),gameToken,cno);
+        User newPlayer = userService.insertUserInfo(clientIp, wxOpenId, inviteCode, getNo(), wxInfo, ipService.getCityName(clientIp), ipService.getRegionName(clientIp), gameToken, cno);
         if ("android".equals(os)) {
             userService.addDeviceCount(1);
         } else if ("ios".equals(os)) {
@@ -544,17 +523,21 @@ public class LoginService extends BaseService {
         JSONObject result2 = JSONUtil.getReturnDate(1, result, "");
         userCacheService.addTodayRegister();
         JSONObject data = new JSONObject();
-        data.put("userId",newPlayer.getId());
-        data.put("userNo",newPlayer.getUserNo());
-        Push.push(PushCode.userLogin,null,data);
+        data.put("userId", newPlayer.getId());
+        data.put("userNo", newPlayer.getUserNo());
+        Push.push(PushCode.userLogin, null, data);
         //上级增加下级人数
-        if (parentUser == null) {
-            Push.push(PushCode.userRegist,null,data);
+        if (parentUser!=null){
+            if (newPlayer.getParentId() != null) {
+                userStatisticService.addOneCount(newPlayer.getParentId());
+                if (newPlayer.getGrandfaId()!=null){
+                    userStatisticService.addTwoCount(newPlayer.getGrandfaId());
+                }
+            }
         }
-        logger.info("账号注册返回："+result2);
+        logger.info("账号注册返回：" + result2);
         return result2;
     }
-
 
 
 }

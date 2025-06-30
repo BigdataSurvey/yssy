@@ -14,10 +14,13 @@ import com.zywl.app.base.bean.*;
 import com.zywl.app.base.constant.RedisKeyConstant;
 import com.zywl.app.base.service.BaseService;
 import com.zywl.app.base.util.*;
+import com.zywl.app.defaultx.annotation.KafkaProducer;
 import com.zywl.app.defaultx.cache.AppConfigCacheService;
 import com.zywl.app.defaultx.cache.UserCacheService;
 import com.zywl.app.defaultx.enmus.UserCapitalTypeEnum;
 import com.zywl.app.defaultx.service.*;
+import com.zywl.app.manager.context.KafkaEventContext;
+import com.zywl.app.manager.context.KafkaTopicContext;
 import com.zywl.app.manager.context.UserConfigContext;
 import com.zywl.app.manager.service.manager.ManagerConfigService;
 import com.zywl.app.manager.service.manager.ManagerGameBaseService;
@@ -598,6 +601,7 @@ public class LoginService extends BaseService {
     }
 
 
+
     @Transactional
     public JSONObject register(String clientIp, String oldWisid, String versionId, String wxOpenId, String inviteCode, JSONObject wxInfo, int accessTokenVail, String deviceId, String os) {
         logger.info("新用户注册，注册使用邀请码：" + inviteCode);
@@ -680,7 +684,7 @@ public class LoginService extends BaseService {
             }
 
             if (e.getValue() == UserCapitalTypeEnum.currency_2.getValue()) {
-                userCapital.setBalance(new BigDecimal("100000"));
+                userCapital.setBalance(BigDecimal.ZERO);
             } else {
                 userCapital.setBalance(BigDecimal.ZERO);
             }

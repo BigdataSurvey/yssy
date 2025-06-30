@@ -104,7 +104,7 @@ public class UserCacheService extends RedisService {
         User user = userService.findByUserNo(userNo);
         if (user != null) {
             set(RedisKeyConstant.APP_USER_CODE_ID + user.getUserNo() + "-", user.getId(), 6000L);
-            set(RedisKeyConstant.APP_USER_INFO + userId + "-", user, 600L);
+            set(RedisKeyConstant.APP_USER_INFO + user.getId() + "-", user, 600L);
         }
         return user;
     }

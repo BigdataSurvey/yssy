@@ -72,6 +72,8 @@ public class ManagerConfigService extends BaseService {
 	@Autowired
 	ManagerTradingService managerTradingService;
 
+	@Autowired
+	private ManagerBuyGiftService managerBuyGiftService;
 
 	@Autowired
 	private UserCacheService userCacheService;
@@ -270,6 +272,15 @@ public class ManagerConfigService extends BaseService {
 			appConfigCacheService.del(RedisKeyConstant.VIP_MONTH_PRICE);
 		}else if(key.equals(Config.VIP_WEEK_PRICE)){
 			appConfigCacheService.del(RedisKeyConstant.VIP_WEEK_PRICE);
+		}else if(key.equals(Config.VV_USER_GIFT)){
+			//玩家购买礼包
+			if (value.contains("，")){
+				throwExp("请使用英文逗号");
+			}
+			String[] info = value.split(",");
+			String userNo = info[0];
+			int number = Integer.parseInt(info[1]);
+			managerBuyGiftService.addGift(userNo,number);
 		}
 
 	}

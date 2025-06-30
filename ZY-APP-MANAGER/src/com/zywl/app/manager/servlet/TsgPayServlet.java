@@ -94,7 +94,7 @@ public class TsgPayServlet extends BaseServlet {
             Long userId = tsgPayOrder.getUserId();
             int productId = Math.toIntExact(tsgPayOrder.getProductId());
             userGiftService.addUserGiftNumber(userId, productId, tsgPayOrder.getNumber());
-            managerUserVipService.addExper(userId, tsgPayOrder.getPrice());
+            managerUserVipService.addExper(userId, tsgPayOrder.getAllPrice());
         }
         tsgPayOrderService.updateOrder(tsgPayOrder);
     }

@@ -1038,12 +1038,10 @@ public class PlatformStatement extends BaseBean {
     }
 
     public void init(){
-        allExpend=subShop.add(subGameBetDts).add(subGameBetFood).add(subNs).add(subNh).add(subDzGame).add(subRedGame).add(subPrize).add(subMailFee)
-                .add(subSendMail).add(subTradingBuy).add(subAskBuy).add(subSign).add(subRefineSpeed).add(subPet).add(subStudySkill).add(subBuyCoin).add(subDts2).add(subGuild).add(subBt).add(subCq).add(subConvert).add(subMagic).add(subTicket).add(subSendGreetingCard).add(subGift).add(subVip).add(subAfk).add(subGameEscort).add(subBuyPass).add(subMine).add(subXhmj);
-        allMagicExpend = BigDecimal.ZERO.add(subCreateXm).add(subBuyHead).add(subUpdateName).add(subJoinAncient).add(subRefresh).add(subContribution).add(subAddFlag).subtract(subShopMagic);
-        allOutPut=addSellSys3.add(addSellSys2).add(addSellSys).add(addGameWinDts).add(addGameWinFood).add(addNs).add(addNh).add(addMagic).add(addDzGame).add(addRedGame).add(addPirze).add(addCave)
-                .add(addReceiveMail).add(addCancelAskBuy).add(addSell).add(addGuildSend).add(addConvert).add(addDts2).add(addAncientC2).add(addBt).add(addCq).add(addSign).add(addDailyTask).add(addDtsRebate).add(addReceivePop).add(addReceiveAchievement).add(addFromItem).add(addDispatch).add(addWander).add(addDice).add(addGameEscort).add(addPetBuy).add(addFriendBuy).add(addXhmj);
+        allExpend=subShop.add(subTradingBuy).add(subGift);
+        allOutPut=addDailyTask.add(addAchievement).add(addSellSys).add(addReceiveMail).add(addDice).add(addWander).add(addSell).add(addReceiveIncome);
         allMagicOutPut = BigDecimal.ZERO.add(addSellSysMagic).add(addAncientC5);
+        allMagicExpend = BigDecimal.ZERO.add(subCreateXm).add(subBuyHead).add(subUpdateName).add(subJoinAncient).add(subRefresh).add(subContribution).add(subAddFlag).subtract(subShopMagic);
     }
 
     public BigDecimal getAddDtsRebate() {

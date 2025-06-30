@@ -19,7 +19,6 @@ import com.zywl.app.base.util.Response;
 import com.zywl.app.defaultx.cache.AppConfigCacheService;
 import com.zywl.app.defaultx.service.UserService;
 import com.zywl.app.defaultx.util.SpringUtil;
-import com.zywl.app.service.AliPayCashService;
 import com.zywl.app.service.LoginConfigService;
 import com.zywl.app.service.LoginService;
 import org.apache.commons.lang3.StringUtils;
@@ -91,34 +90,7 @@ public class LoginOauthServlet extends BaseServlet {
                         Response.doResponse(asyncContext, loginService.loginByGameToken(gameToken, oldWsid, versionId, clientIp).toJSONString());
                         return;
                     }
-                    if (StringUtils.isNotEmpty(authCode)) {
-                        AlipayClient alipayClient = AliPayCashService.alipayClient;
-                        AlipaySystemOauthTokenRequest request = new AlipaySystemOauthTokenRequest();
-                        request.setGrantType("authorization_code");
-                        request.setCode(authCode);
-                        AlipaySystemOauthTokenResponse returnInfo = alipayClient.certificateExecute(request);
-                        logger.info(returnInfo);
 
-                        if (!returnInfo.isSuccess()) {
-                            Response.doResponse(asyncContext, JSONUtil.getReturnDate(0, null, "获取支付宝用户信息失败，请稍后重试！").toJSONString());
-                        } else {
-                            String aliPayUserId = returnInfo.getOpenId();
-                            List<User> byAliUserId = userService.findByAliUserId(aliPayUserId);
-                            if (byAliUserId.size() >= 3) {
-                                Response.doResponse(asyncContext, JSONUtil.getReturnDate(0, null, "该支付宝已绑定其他账号！").toJSONString());
-                            }else{
-                                AlipayUserInfoShareRequest userInfoRequest = new AlipayUserInfoShareRequest();
-                                AlipayUserInfoShareResponse response = alipayClient.certificateExecute(userInfoRequest, returnInfo.getAccessToken());
-                                if (!response.isSuccess()) {
-                                    Response.doResponse(asyncContext, JSONUtil.getReturnDate(0, null, "获取支付宝用户信息失败，请稍后重试！").toJSONString());
-                                }else {
-                                    //支付宝登录
-                                    Response.doResponse(asyncContext, loginService.loginOrRegisterAlipay(byAliUserId,aliPayUserId,response,authCode, clientIp, versionId, oldWsid, inviteCode).toJSONString());
-                                }
-                            }
-                        }
-                        return;
-                    }
                     //throwExp("异常操作");
                     if (isNull(accessToken) || isNull(openId)) {
                         throwExp("accessToken或openId异常");

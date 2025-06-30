@@ -69,8 +69,8 @@ public class ServerDzService extends BaseService {
         //不走manager 直接拉缓存，处理
         JSONObject result = new JSONObject();
         UserDzPeriods userDzPeriods = dzCacheService.getDzInitInfo();
-        //当前期数，上一期不展示
-        result.put("periods",userDzPeriods.getPeriods()+1);
+            //当前期数，上一期不展示
+            result.put("periods",userDzPeriods.getPeriods()+1);
         //幸运儿userId
         result.put("luckUserId",userDzPeriods.getUserId());
         result.put("luckUserName",userDzPeriods.getUserName());

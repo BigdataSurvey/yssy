@@ -97,7 +97,7 @@
         <foreach collection="list" item="item" index="index" open="" close="" separator=";">
             update r_lhd_bet_record
             <set>
-                profit=#{item.winAmount},status=1,lottery_result=#{item.lotteryResult},win_or_lose=#{item.winOrLose}
+                profit=#{item.winAmount},`status`=1,lottery_result=#{item.lotteryResult},win_or_lose=#{item.winOrLose},bet_info=#{item.betInfo}
             </set>
             where order_no = #{item.orderNo}
         </foreach>

@@ -101,6 +101,10 @@ public class LhdService extends BaseService {
 
     public static final Map<String, LhdBetRecord> userOrders = new ConcurrentHashMap<>();
 
+    public static final Map<String,BigDecimal> ROOM_MONEY = new ConcurrentHashMap<>();
+
+    public static int KKK=0;
+
     public static final Set<String> users = new HashSet<>();
 
     public static final Set<String> BET_USERS = new HashSet<>();
@@ -168,8 +172,11 @@ public class LhdService extends BaseService {
         logger.info("加载人机完成，加载数量：" + BOT_USER.size());
         gameAddBot();
         BOT_MONEY.add(new BigDecimal("1"));
-        BOT_MONEY.add(new BigDecimal("10"));
-        BOT_MONEY.add(new BigDecimal("100"));
+        BOT_MONEY.add(new BigDecimal("2"));
+        BOT_MONEY.add(new BigDecimal("3"));
+        BOT_MONEY.add(new BigDecimal("4"));
+
+
     }
 
     public void init() {
@@ -474,6 +481,7 @@ public class LhdService extends BaseService {
                 jsonObject.put("betAmount", amount);
                 ROOM_LIST.get(betInfo).put(userId, jsonObject);
             }
+            ROOM_MONEY.put(betInfo,ROOM_MONEY.getOrDefault(betInfo,BigDecimal.ZERO).add(amount));
             pushArray.get(key2).add(pushResult(1, userId, betInfo, myAllAmount));
 
             synchronized (lock) {
@@ -520,7 +528,6 @@ public class LhdService extends BaseService {
             throwExp("异常操作");
         }
         synchronized (LockUtil.getlock(userId )) {
-
             if (ROOM_LIST.get(newRoomId).containsKey(userId)) {
                 throwExp("已经在该房间");
             }
@@ -538,10 +545,11 @@ public class LhdService extends BaseService {
             JSONObject userBetInfo = ROOM_LIST.get(oldRoomId).get(userId);
             ROOM_LIST.get(oldRoomId).remove(userId);
             BigDecimal amount = userBetInfo.getBigDecimal("betAmount");
-            LhdBetRecord lhdBetRecord = userOrders.get(userId);
-            lhdBetRecord.setBetInfo(newRoomId);
+            userOrders.get(userId).setBetInfo(newRoomId);
             ROOM_LIST.get(newRoomId).put(userId, userBetInfo);
             pushArray.get(key2).add(pushResult(1, userId, newRoomId, amount));
+            ROOM_MONEY.put(newRoomId,ROOM_MONEY.getOrDefault(newRoomId,BigDecimal.ZERO).add(amount));
+            ROOM_MONEY.put(oldRoomId,ROOM_MONEY.getOrDefault(oldRoomId,BigDecimal.ZERO).subtract(amount));
             JSONObject result = new JSONObject();
             return result;
         }
@@ -645,11 +653,27 @@ public class LhdService extends BaseService {
     }
 
 
+    public int getResult(){
+        int result = random.nextInt(2);
+        if (KKK>0){
+            KKK=KKK-1;
+            BigDecimal money0 = ROOM_MONEY.get("0");
+            BigDecimal money1 = ROOM_MONEY.get("1");
+            if (money0.compareTo(money1) > 0){
+                result=0;
+            }else {
+                result=1;
+            }
+        }
+        return result;
+    }
+
+
     @Transactional
     public int settle(Command lotteryCommand) {
 
         Random random = new Random();
-        int result = random.nextInt(2);
+        int result = getResult();
         JSONObject data = new JSONObject();
         JSONObject updateRecord = new JSONObject();
         String winRoom;
@@ -703,6 +727,7 @@ public class LhdService extends BaseService {
             map.put("isWin", BigDecimal.ZERO);
             settleInfo.put(uid, map);
         }
+        ROOM_MONEY.clear();
         gameLotteryResultService.drawLottery(5L, String.valueOf(PERIODS_NUM == 0 ? 1 : PERIODS_NUM),
                 String.valueOf(result), ALL_PRIZE, allWinAmount, ALL_PRIZE.subtract(allWinAmount), BET_USERS.size(), winMap.size(), loseMap.size(),
                 1);

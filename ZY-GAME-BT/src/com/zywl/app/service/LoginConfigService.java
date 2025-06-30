@@ -8,6 +8,7 @@ import com.zywl.app.defaultx.service.ConfigService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import javax.annotation.PostConstruct;
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
@@ -24,6 +25,11 @@ public class LoginConfigService extends BaseService {
 
 	@Autowired
 	private ConfigService configService;
+
+	@PostConstruct
+	public void _LoginConfigService(){
+		initCache();
+	}
 
 
 

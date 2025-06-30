@@ -20,13 +20,16 @@ if(!window.CtrlFn_${menuId}){
                     {data: "id", title: 'ID', render: datatableUtil.renderNormal,visible:false},
                     {data: "userId", title: '用户ID', render: datatableUtil.renderNormal},
                     {data: "userName", title: '用户昵称', render: datatableUtil.renderNormal},
+                    {data: "realName", title: '用户实名', render: datatableUtil.renderNormal},
+                    {data: "idCard", title: '身份证', render: datatableUtil.renderNormal},
                     {data: "orderNo", title: '订单号', render: datatableUtil.renderNormal},
-                    {data: "prepayId", title: 'prepayId', render: datatableUtil.renderNormal},
-                    {data: "productId", title: 'productId', render: datatableUtil.renderNormal},
+                    {data: "product", title: '产品名称', render: datatableUtil.renderNormal},
+                    {data: "number", title: '数量', render: datatableUtil.renderNormal},
                     {data: "price", title: '价格', render: datatableUtil.renderNormal},
-                    {data: "status", title: '状态', render: function(data, type, row, setting){
+                    {data: "statusInfo", title: '订单状态', render: datatableUtil.renderNormal},
+                    /*{data: "status", title: '状态', render: function(data, type, row, setting){
                         return '<span class="' + statusColorDic[data] + '">' + (statusDic[data] || '-') + '</span>';
-                    }},
+                    }},*/
                     {data: "createTime", title: '申请时间', render: datatableUtil.renderTime},
                     {data: "expireTime", title: '过期时间', render: datatableUtil.renderTime}
                     ],

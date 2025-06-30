@@ -61,7 +61,6 @@ if(!window.CtrlFn_${menuId}){
             TODAY_LUCKY:"优化线程数",
             VERSION_DAFUWENG:"大富翁表版本",
             LHD_STATUS:"2选1游戏状态",
-            USER_CARD_MAX_COUNT:"玩家最大卡牌上限",
             IP_USER_NUMBER:"同IP最多注册账号上限",
             IP_LOGIN_RISK:"同IP最多登录账号限制",
             CDM:"猜灯谜活动",
@@ -87,7 +86,13 @@ if(!window.CtrlFn_${menuId}){
             SIGN_REWARD:"签到奖励",
             PAY_CHANNEL:"支付通道 1  2汇付",
             PAY_NOTIFY_HF_URL:"汇付回调地址",
-            VERSION_SHOP:"商店表版本"
+            VERSION_SHOP:"商店表版本",
+            VV_USER_GIFT:"用户购买礼包，输入  用户id,数量",
+            TEST_USER_NO:"测试账号",
+            HF_SYS_ID:"汇付商户号",
+            HF_RSA_PRIVATE_KEY:"汇付商户私钥",
+            HF_RSA_PUBLIC_KEY:"汇付公钥"
+
 
 
         };

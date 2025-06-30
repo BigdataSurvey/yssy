@@ -60,13 +60,6 @@ public class LoginOauthServlet extends BaseServlet {
                     String accessToken = request.getParameter("accessToken");
                     String openId = request.getParameter("openId");
                     String baiIp = appConfigCacheService.getConfigByKey(RedisKeyConstant.APP_CONFIG_BAI_IP, Config.BAI_IP);
-                   /* if (!clientIp.equals(baiIp) && !openId.equals("zongyitest")) {
-                        String startStr = openId.substring(0, 6);
-                        if (!startStr.equals("orp1j6")) {
-                            Response.doResponse(asyncContext, JSONUtil.getReturnDate(0, result, "errorCode:A02080101").toJSONString());
-                            return;
-                        }
-                    }*/
                     String oldWsid = request.getParameter("oldWsid");
                     String versionId = request.getParameter("versionId");
                     String inviteCode = request.getParameter("inviteCode");
@@ -86,11 +79,6 @@ public class LoginOauthServlet extends BaseServlet {
                         Response.doResponse(asyncContext, loginService.loginOrRegisterTabtab(tabtabId, clientIp, versionId, oldWsid, inviteCode, userName, userHead).toJSONString());
                         return;
                     } else {
-                        if (StringUtils.isNotEmpty(authCode)) {
-                            //支付宝登录
-                            Response.doResponse(asyncContext, loginService.loginOrRegisterAlipay(authCode, clientIp, versionId, oldWsid, inviteCode).toJSONString());
-                            return;
-                        } else {
                             if (isNull(accessToken) || isNull(openId)) {
                                 throwExp("accessToken或openId异常");
                             }
@@ -123,8 +111,6 @@ public class LoginOauthServlet extends BaseServlet {
                             Response.doResponse(asyncContext, loginService.loginOrRegister(openId, clientIp, versionId, oldWsid, inviteCode, wxInfo, accessTokenVail, deviceId, os).toJSONString());
                             return;
                         }
-
-                    }
                 } catch (AppException e) {
                     logger().warn("执行异常：" + e);
                     Response.doResponse(asyncContext, e.getMessage());

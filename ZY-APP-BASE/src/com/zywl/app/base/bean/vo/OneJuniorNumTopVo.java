@@ -11,7 +11,6 @@ public class OneJuniorNumTopVo extends BaseBean {
 
     private String userName;
 
-    private int roleId;
 
     private String userHeadImg;
 
@@ -19,15 +18,10 @@ public class OneJuniorNumTopVo extends BaseBean {
 
     private int num2;
 
-    private int isPopular;
 
-    public int getIsPopular() {
-        return isPopular;
-    }
+    private int vipLv;
 
-    public void setIsPopular(int isPopular) {
-        this.isPopular = isPopular;
-    }
+
 
     public Long getUserId() {
         return userId;
@@ -61,13 +55,6 @@ public class OneJuniorNumTopVo extends BaseBean {
         this.num = num;
     }
 
-    public int getRoleId() {
-        return roleId;
-    }
-
-    public void setRoleId(int roleId) {
-        this.roleId = roleId;
-    }
 
     public int getNum2() {
         return num2;
@@ -75,5 +62,13 @@ public class OneJuniorNumTopVo extends BaseBean {
 
     public void setNum2(int num2) {
         this.num2 = num2;
+    }
+
+    public int getVipLv() {
+        return vipLv;
+    }
+
+    public void setVipLv(int vipLv) {
+        this.vipLv = vipLv;
     }
 }

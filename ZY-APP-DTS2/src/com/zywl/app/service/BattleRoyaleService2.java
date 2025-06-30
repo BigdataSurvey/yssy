@@ -155,8 +155,10 @@ public class BattleRoyaleService2 extends BaseService {
         logger.info("加载人机完成，加载数量：" + BOT_USER.size());
         gameAddBot();
         BOT_MONEY.add(new BigDecimal("1"));
-        BOT_MONEY.add(new BigDecimal("10"));
-        BOT_MONEY.add(new BigDecimal("100"));
+        BOT_MONEY.add(new BigDecimal("2"));
+        BOT_MONEY.add(new BigDecimal("3"));
+        BOT_MONEY.add(new BigDecimal("4"));
+        //BOT_MONEY.add(new BigDecimal("100"));
     }
 
     public static <K,V> V getRandomValue(Map<K,V> map) {

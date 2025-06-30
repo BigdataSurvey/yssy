@@ -78,12 +78,13 @@ var menuTree = [{id: 'Home', name: '总览', icon: 'ti-home'},
         {id: 'DrawExam', name: '提现审核'}
     ]},
     {id: 'Total', name:'统计信息', icon: 'ti-layers-alt', hasChild: true, children: [
-        {id: 'PetAnalysis', name:'矿产分布'},
+        {id: 'PetAnalysis', name:'书境分布'},
         /*{id: 'GodSeatAnalysis', name:'矿产分布'}*/
         /*{id: 'SkillAnalysis', name:'技能分布'}*/
     ]},
     {id: 'statement', name: '报表管理', icon: 'ti-layers-alt', hasChild: true, children: [
         {id: 'PlatformStatementManager', name: '游戏每日报表'},
+            {id: 'GiftStatementManager', name: '礼包每日报表'},
         /*{id: 'userStatement', name: '玩家每日报表'},
         {id: 'miJingStatement', name: '秘境每日报表'}*/
     ]},
@@ -127,12 +128,13 @@ var menuTree = [{id: 'Home', name: '总览', icon: 'ti-home'},
         {id: 'DrawHistory', name: '提现记录'}
     ]},
     {id: 'Total', name:'统计信息', icon: 'ti-layers-alt', hasChild: true, children: [
-        {id: 'PetAnalysis', name:'矿产分布'},
+        {id: 'PetAnalysis', name:'书境分布'},
        /* {id: 'GodSeatAnalysis', name:'神座分布'}*/
         /*{id: 'SkillAnalysis', name:'技能分布'}*/
     ]},
     {id: 'statement', name: '报表管理', icon: 'ti-layers-alt', hasChild: true, children: [
         {id: 'PlatformStatementManager', name: '游戏每日报表'},
+         {id: 'GiftStatementManager', name: '礼包每日报表'},
         /*{id: 'userStatement', name: '玩家每日报表'},
         {id: 'miJingStatement', name: '秘境每日报表'}*/
     ]},

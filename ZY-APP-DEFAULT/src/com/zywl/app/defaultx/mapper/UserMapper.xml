@@ -11,6 +11,7 @@
 		 		`is_channel`,
                `channel_no`,
                `invite_code`,
+		 		`old_invite_code`,
 		 	   `role_id`,
                `name`,
                `name_status`,
@@ -66,6 +67,7 @@
 		 		#{isChannel},
                #{channelNo},
                #{inviteCode},
+		 		#{oldInviteCode},
 		 	   #{roleId},
                #{name},
                #{nameStatus},
@@ -347,7 +349,11 @@
 			<include refid="conditions"></include>
 		</where>
 	</select>
-	
+
+	<select id="sonBuyGiftNumber" resultType="Long">
+		select count(1) from t_user
+		where parent_id =#{userId}  and vip2=1
+	</select>
 	<select id="countMySonNoAuthen" resultType="Long">
 		select count(1) from t_user
 		where (parent_id =#{parentId} or grandfa_id = #{grandfaId}) and vip2=0 and status=1
@@ -386,6 +392,13 @@
 	<select id="countNoAuthenticationJunior" resultType="Long">
 		select count(*) from t_user where (grandfa_id=#{parentId} or parent_id=#{parentId}) and vip2=0 and status=1
 	</select>
+
+
+	<select id="countAllSon" resultType="Long">
+		select count(*) from t_user where (grandfa_id=#{parentId} or parent_id=#{parentId})  and status=1
+	</select>
+
+
 	<select id="findByConditions" resultType="User">
 	    select * from t_user 
 	    <where>
@@ -415,6 +428,11 @@
 	<select id="findUserByInviteCode" resultType="User">
 		select * from t_user where invite_code = #{inviteCode} and status=1
 		
+	</select>
+
+	<select id="findUserByOldInviteCode" resultType="User">
+		select * from t_user where old_invite_code = #{inviteCode} and status=1
+
 	</select>
 
 	<select id="findUserByTabtabId" resultType="User">

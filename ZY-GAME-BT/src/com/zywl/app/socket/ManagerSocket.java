@@ -12,6 +12,7 @@ import com.live.app.ws.util.DefaultPushHandler;
 import com.live.app.ws.util.Executer;
 import com.live.app.ws.util.Push;
 import com.zywl.app.base.bean.Config;
+import com.zywl.app.defaultx.service.VersionService;
 import com.zywl.app.defaultx.util.SpringUtil;
 import com.zywl.app.service.LoginConfigService;
 import com.zywl.app.service.ServerStateService;
@@ -27,6 +28,8 @@ public class ManagerSocket extends BaseClientSocket {
 
 	
 	LoginConfigService loginConfigService ;
+
+	private VersionService versionService;
 	
 	
 	
@@ -56,6 +59,7 @@ public class ManagerSocket extends BaseClientSocket {
 			}
 		});
 		loginConfigService = SpringUtil.getService(LoginConfigService.class);
+		versionService = SpringUtil.getService(VersionService.class);
 	}
 
 	@Override
@@ -72,6 +76,9 @@ public class ManagerSocket extends BaseClientSocket {
 				JSONObject object = (JSONObject) data;
 				Config config = object.toJavaObject(Config.class);
 				loginConfigService.setConfigCache(config);
+				if (config.getKey().equals(Config.APP_VERSION)){
+					versionService.reloadCache();
+				}
 			}
 		}, this);
 

@@ -25,6 +25,8 @@ public class User extends BaseBean{
 	
 	private String inviteCode;
 
+	private String oldInviteCode;
+
 	private Integer roleId;
 
 	private String name;
@@ -565,5 +567,13 @@ public class User extends BaseBean{
 
 	public void setCno(String cno) {
 		this.cno = cno;
+	}
+
+	public String getOldInviteCode() {
+		return oldInviteCode;
+	}
+
+	public void setOldInviteCode(String oldInviteCode) {
+		this.oldInviteCode = oldInviteCode;
 	}
 }

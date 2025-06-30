@@ -47,9 +47,6 @@ public class UserAchievementService extends DaoService {
             for (Achievement achievement : achievements) {
                     AchievementVo vo = new AchievementVo();
                     BeanUtils.copy(achievement, vo);
-                    if (vo.getGroup()==1){
-                        vo.setStatus(2);
-                    }
                     vos.add(vo);
             }
             addUserAchievement(userId, vos);

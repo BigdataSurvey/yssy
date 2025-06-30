@@ -156,12 +156,10 @@ public class KafkaConsumerService extends BaseService {
             }
         } else if (KafkaEventContext.LOGIN.equals(eventType)) {
             loginCheck(data);
-            checkAchievement(data, AchievementGroupEnum.LOGIN.getValue());
+            //checkAchievement(data, AchievementGroupEnum.LOGIN.getValue());
         } else if (KafkaEventContext.DO_DAILY_TASK.equals(eventType)) {
             userReceiveDailyTask(data);
-        } else if (KafkaEventContext.PVE_WIN.equals(eventType)) {
-            checkAchievement(data, AchievementGroupEnum.CHECKPOINT_NUMBER.getValue());
-        } else if (KafkaEventContext.SHOP_BUY.equals(eventType)) {
+        }  else if (KafkaEventContext.SHOP_BUY.equals(eventType)) {
             checkAchievement(data, AchievementGroupEnum.SHOP_BUY.getValue());
             userBuyShop(data);
         } else if (KafkaEventContext.SYN.equals(eventType)) {
@@ -170,10 +168,8 @@ public class KafkaConsumerService extends BaseService {
             userDts(data);
         }else if (KafkaEventContext.LHD.equals(eventType)) {
             userLHD(data);
-        } else if (KafkaEventContext.RECEIVE_ACHIEVEMENT.equals(eventType)) {
-            checkRemoveRedAchievement(data, KafkaEventContext.ACHIEVEMENT);
-        } else if (KafkaEventContext.OPEN_MINE.equals(eventType)) {
-            checkOpenMineAchievement(data);
+        }else if (KafkaEventContext.REGIST.equals(eventType)) {
+            userRegist(data);
         }
     }
 
@@ -225,6 +221,15 @@ public class KafkaConsumerService extends BaseService {
     public void userLHD(JSONObject data) {
         Long userId = data.getLong("userId");
         checkDailyTaskIsOk(userId, TaskIdEnum.LHD.getValue());
+    }
+
+    public void userRegist(JSONObject data) {
+        Long userId = data.getLong("userId");
+        User user = userCacheService.getUserInfoById(userId);
+        User parent = userCacheService.getUserInfoById(user.getParentId());
+        checkDailyTaskIsOk(parent.getId(), TaskIdEnum.INVITE1.getValue());
+        checkDailyTaskIsOk(parent.getId(), TaskIdEnum.INVITE2.getValue());
+        checkDailyTaskIsOk(parent.getId(), TaskIdEnum.INVITE3.getValue());
     }
 
     public void checkRemoveRedAchievement(JSONObject data, String event) {
@@ -331,6 +336,9 @@ public class KafkaConsumerService extends BaseService {
             Map userTask = cardGameCacheService.getUserTask(userId);
             boolean push = false;
             UserDailyTaskVo task = (UserDailyTaskVo) userTask.get(taskId);
+            if (task==null){
+                return;
+            }
             if (task.getStatus() == 0) {
                 task.setSchedule(task.getSchedule() + 1);
                 if (task.getSchedule() == task.getCondition()) {
@@ -371,9 +379,6 @@ public class KafkaConsumerService extends BaseService {
         //登录检查
         //登录时的每日任务判断和红点推送
         userLoginCheckRedPoint(data);
-        Long userId = data.getLong("userId");
-        //checkDailyTaskIsOk(userId, TaskIdEnum.LOGIN.getValue());
-
     }
 
 
@@ -447,9 +452,7 @@ public class KafkaConsumerService extends BaseService {
             if (userRedPointInfo.containsKey(KafkaEventContext.DAILY_TASK)) {
                 pushRedPoint(userId, KafkaEventContext.DAILY_TASK, userRedPointInfo.get(KafkaEventContext.DAILY_TASK));
             }
-            if (userRedPointInfo.containsKey(KafkaEventContext.ACHIEVEMENT)) {
-                pushRedPoint(userId, KafkaEventContext.ACHIEVEMENT, userRedPointInfo.get(KafkaEventContext.ACHIEVEMENT));
-            }
+
 
         }
     }

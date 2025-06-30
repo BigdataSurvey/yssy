@@ -44,7 +44,8 @@ public enum LogUserBackpackTypeEnum {
 	addHp("补充体力", 1005),
 	jz("捐赠", 1005),
 	zsg("赠送给",1006),
-	zs("赠送",1007);
+	zs("赠送",1007),
+	syn("合成获得",1008);
 	
 	private String name;
 

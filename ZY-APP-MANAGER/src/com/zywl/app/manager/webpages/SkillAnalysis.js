@@ -81,7 +81,7 @@ if(!window.CtrlFn_${menuId}){
         };
         function initEchart() {
             let option = {
-                title:{text:"矿产分布图"},
+                title:{text:"书境分布图"},
                 xAxis: {
                     data: []
                 },

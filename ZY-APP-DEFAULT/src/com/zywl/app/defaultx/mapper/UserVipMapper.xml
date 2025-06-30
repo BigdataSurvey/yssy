@@ -8,11 +8,13 @@
         (user_id,
          vip_level,
          recharge_amount,
+         rank,
          create_time,
          update_time)
         values (#{userId},
                 #{vipLevel},
                 #{rechargeAmount},
+                #{rank},
                 #{createTime},
                 #{updateTime})
     </insert>
@@ -25,7 +27,9 @@
             <if test="rechargeAmount!=null">
                 recharge_amount = #{rechargeAmount},
             </if>
-
+            <if test="rank!=null">
+                rank = #{rank},
+            </if>
         </set>
         where id = #{id}
     </update>
@@ -42,11 +46,12 @@
             t1.`name` AS userName,
             t1.head_image_url AS userHeadImg,
             t2.vip_level as num,
-            t1.user_no AS userNo
+            t1.user_no AS userNo,
+            t1.vip1 as vipLv
         FROM
             t_user t1,t_user_vip t2
         WHERE
-            t1.id=t2.user_id   ORDER BY t2.vip_level desc,t2.recharge_amount desc limit 0, 50;
+            t1.id=t2.user_id   ORDER BY t2.vip_level desc,t2.recharge_amount desc limit 0, 30;
     </select>
 
 
@@ -65,6 +70,9 @@
 	<select id="countByConditions" resultType="Long">
 		select count(1) from t_user_vip
 	</select>
-
+    <select id="findCountByLv" resultType="Long">
+        select count(1) from t_user_vip
+        where  vip_level>=#{lv}
+    </select>
 
 </mapper>

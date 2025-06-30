@@ -1,4 +1,4 @@
-package com.zywl.app.manager.servlet;
+package com.zywl.app.servlet;
 
 import cn.hutool.http.HttpUtil;
 import com.alibaba.fastjson2.JSON;
@@ -15,8 +15,8 @@ import com.zywl.app.base.util.JSONUtil;
 import com.zywl.app.base.util.Response;
 import com.zywl.app.defaultx.cache.AppConfigCacheService;
 import com.zywl.app.defaultx.util.SpringUtil;
-import com.zywl.app.manager.service.LoginService;
-import com.zywl.app.manager.service.manager.ManagerConfigService;
+import com.zywl.app.service.LoginConfigService;
+import com.zywl.app.service.LoginService;
 
 import javax.servlet.annotation.WebServlet;
 import javax.servlet.http.HttpServletRequest;
@@ -35,7 +35,7 @@ public class WXLoginOauthServlet extends BaseServlet {
 
     private LoginService loginService;
 
-    private ManagerConfigService managerConfigService;
+    private LoginConfigService managerConfigService;
 
 
     private AppConfigCacheService appConfigCacheService;
@@ -43,7 +43,7 @@ public class WXLoginOauthServlet extends BaseServlet {
 
     public WXLoginOauthServlet() {
         loginService = SpringUtil.getService(LoginService.class);
-        managerConfigService = SpringUtil.getService(ManagerConfigService.class);
+        managerConfigService = SpringUtil.getService(LoginConfigService.class);
         appConfigCacheService = SpringUtil.getService(AppConfigCacheService.class);
     }
 
@@ -64,9 +64,16 @@ public class WXLoginOauthServlet extends BaseServlet {
                     String deviceId = request.getParameter("deviceId");
                     String os = request.getParameter("os");
                     String code = request.getParameter("code");
+                    logger.info("获取code:" + code);
                     String iosOpenId = request.getParameter("openId");
                     String iosAccessToken = request.getParameter("accessToken");
-                    logger.info("获取code:" + code);
+                    if (managerConfigService.getInteger(Config.SERVICE_STATUS) == 0) {
+                        String baiIp = appConfigCacheService.getConfigByKey(RedisKeyConstant.APP_CONFIG_BAI_IP, Config.BAI_IP);
+                        if (!clientIp.equals(baiIp)) {
+                            Response.doResponse(asyncContext, JSONUtil.getReturnDate(0, new Object(), "系统维护中").toJSONString());
+                            return;
+                        }
+                    }
                     if (os.equals("1")){
                         if (iosAccessToken != null && iosOpenId != null) {
                             String urlParameters = "?access_token=" + iosAccessToken + "&openid=" + iosOpenId;
@@ -94,13 +101,12 @@ public class WXLoginOauthServlet extends BaseServlet {
                             return;
                         }
                     }
-                    if (code == null) {
+                    if (code==null){
                         String gameToken = request.getParameter("gameToken");
                         if (gameToken != null) {
                             Response.doResponse(asyncContext, loginService.loginByGameToken(gameToken, oldWsid, versionId, clientIp).toJSONString());
                             return;
                         }
-
                     }
                     WeChatAccessToken accessToken = getAccessToken(code);
                     logger.info("accessToken:" + accessToken);
@@ -121,8 +127,7 @@ public class WXLoginOauthServlet extends BaseServlet {
 
 
                     String openId = accessToken.getOpenid();
-                    String wxLoginURL = WX_LOGIN_URL + "?access_token=" + accessToken.getAccess_token() + "&openid=" + openId;
-                    ;
+                    String wxLoginURL = WX_LOGIN_URL + "?access_token=" + accessToken.getAccess_token() + "&openid=" + openId;;
                     String getJSON;
                     JSONObject wxInfo = new JSONObject();
                     int accessTokenVail = 1;
@@ -171,6 +176,18 @@ public class WXLoginOauthServlet extends BaseServlet {
         return accessToken;
     }
 
+    private void checkAccessToken(String urlParameters) {
+        String checkURL = CHECK_ACCESS_TOKEN + urlParameters;
+        String getCheckResultJSON = HTTPUtil.get(checkURL);
+        if (isNull(getCheckResultJSON)) {
+            throwExp("获取微信信息失败，请稍后再试");
+        }
+        JSONObject checkResult = JSON.parseObject(getCheckResultJSON);
+        if (checkResult.getInteger("errcode") != 0) {
+            throwExp(checkResult.getString("errmsg"));
+        }
+    }
+
     /**
      * 获取用户信息
      */
@@ -198,21 +215,10 @@ public class WXLoginOauthServlet extends BaseServlet {
 //        return null;
 //
 //    }
-    private void checkAccessToken(String accessToken, String openId) {
+    private void checkAccessToken(String accessToken,String openId) {
         String checkURL = CHECK_ACCESS_TOKEN + "?access_token=" + accessToken + "&openid=" + openId;
         String getCheckResultJSON = HTTPUtil.get(checkURL);
         logger.info("getCheckResultJSON" + getCheckResultJSON);
-        if (isNull(getCheckResultJSON)) {
-            throwExp("获取微信信息失败，请稍后再试");
-        }
-        JSONObject checkResult = JSON.parseObject(getCheckResultJSON);
-        if (checkResult.getInteger("errcode") != 0) {
-            throwExp(checkResult.getString("errmsg"));
-        }
-    }
-    private void checkAccessToken(String urlParameters) {
-        String checkURL = CHECK_ACCESS_TOKEN + urlParameters;
-        String getCheckResultJSON = HTTPUtil.get(checkURL);
         if (isNull(getCheckResultJSON)) {
             throwExp("获取微信信息失败，请稍后再试");
         }

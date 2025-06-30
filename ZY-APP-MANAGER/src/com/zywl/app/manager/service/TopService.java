@@ -66,12 +66,6 @@ public class TopService extends BaseService {
         List<OneJuniorNumTopVo> toByJuniorNum = userStatisticService.findToByJuniorNum();
         for (OneJuniorNumTopVo oneJuniorNumTopVo : toByJuniorNum) {
             oneJuniorNumTopVo.setNum(oneJuniorNumTopVo.getNum()+oneJuniorNumTopVo.getNum2());
-            if (oneJuniorNumTopVo.getRoleId()==3){
-                oneJuniorNumTopVo.setIsPopular(1);
-            }
-            if (oneJuniorNumTopVo.getRoleId()==2){
-                oneJuniorNumTopVo.setIsPopular(2);
-            }
         }
         toByJuniorNum.sort(((o1,o2) -> {
             //从小到大

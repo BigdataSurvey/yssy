@@ -104,6 +104,7 @@ public class UserService extends DaoService {
         newPlayer.setVip2ExpireTime(new Date());
         newPlayer.setFirstCharge(0);
         newPlayer.setInviteCode(newPlayer.getUserNo());
+        newPlayer.setOldInviteCode(newPlayer.getUserNo());
         newPlayer.setLastLoginTime(new Date());
         newPlayer.setRegistTime(new Date());
         newPlayer.setRegistIp(clientIp);
@@ -187,6 +188,7 @@ public class UserService extends DaoService {
         newPlayer.setUserNo(random.nextInt(10000) + 1 + "");
         newPlayer.setGroup(1);
         newPlayer.setInviteCode(newPlayer.getUserNo());
+        newPlayer.setOldInviteCode(newPlayer.getUserNo());
         newPlayer.setLastLoginTime(new Date());
         newPlayer.setRegistTime(new Date());
         newPlayer.setRegistIp(clientIp);
@@ -211,6 +213,14 @@ public class UserService extends DaoService {
         params.put("userNo", userNo);
         return (User) findOne("findOneByUserNo", params);
     }
+
+
+    public long sonBuyGiftNumber(Long userId){
+        Map<String, Object> params = new HashedMap<>();
+        params.put("userId", userId);
+        return count("sonBuyGiftNumber",params);
+    }
+
 
     public User findByCno(String cno) {
         Map<String, Object> params = new HashedMap<>();
@@ -276,6 +286,12 @@ public class UserService extends DaoService {
         Map<String, Object> params = new HashedMap<>();
         params.put("parentId", parentId);
         return (Long) findOne("countNoAuthenticationJunior", params);
+    }
+
+    public Long countAllSon(Long parentId) {
+        Map<String, Object> params = new HashedMap<>();
+        params.put("parentId", parentId);
+        return (Long) findOne("countAllSon", params);
     }
 
     public List<User> findUsersByParentId(Long parentId, Integer start, Integer limit, int vip) {
@@ -386,8 +402,14 @@ public class UserService extends DaoService {
     public User findUserByInviteCode(String inviteCode) {
         Map<String, Object> params = new HashedMap<>();
         params.put("inviteCode", inviteCode);
-        return (User) findOne("findUserByInviteCode", params);
+        User user = (User) findOne("findUserByInviteCode", params);
+        if (user==null){
+            user = (User) findOne("findUserByOldInviteCode", params);
+        }
+        return user;
     }
+
+
 
     public User findUserByTabtabId(String tabtabId) {
         Map<String, Object> params = new HashedMap<>();

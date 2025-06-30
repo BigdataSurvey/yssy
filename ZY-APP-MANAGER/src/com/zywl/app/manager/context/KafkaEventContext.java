@@ -30,8 +30,8 @@ public class KafkaEventContext {
 
     public static final String DO_DAILY_TASK = "DO_DAILY_TASK";
 
+    public static final String REGIST = "REGIST";
 
-    public static final String PVE_WIN = "PVE_WIN";
 
     public static final String ACHIEVEMENT = "1402";
 

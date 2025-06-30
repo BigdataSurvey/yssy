@@ -29,7 +29,7 @@ public class UserRoleService extends DaoService {
         userRole.setUserId(userId);
         userRole.setRoleId(roleId);
         userRole.setEndTime(DateUtil.getDateByDay(days));
-        userRole.setHp(240);
+        userRole.setHp(300);
         userRole.setMaxHp(500);
         userRole.setUnReceive(new JSONArray());
         userRole.setLastLookTime(new Date());
