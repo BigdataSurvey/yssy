@@ -42,7 +42,7 @@ public class CashRecordService extends DaoService{
 	
 	
 	@Transactional
-	public Long addCashOrder(String openId,Long userId,String userNo,String userName,String realName,String orderNo,BigDecimal amount,int type,String tel) {
+	public Long addCashOrder(String openId,Long userId,String userNo,String userName,String realName,String orderNo,BigDecimal amount,int type,String tel,int isAutoPay) {
 		
 		BigDecimal cashRate=appConfigCacheService.getCashRate();
 		BigDecimal fee = amount.multiply(cashRate);
@@ -58,7 +58,7 @@ public class CashRecordService extends DaoService{
 		cashOrder.setReceivedAmount(BigDecimal.ZERO);
 		cashOrder.setType(type);
 		cashOrder.setTel(tel);
-		cashOrder.setStatus(CashStatusTypeEnum.NO_SUBMIT.getValue());
+		cashOrder.setStatus(isAutoPay);
 		cashOrder.setFee(BigDecimal.ZERO);
 		cashOrder.setReceivedAmount(amount.subtract(cashOrder.getFee()));
 		cashOrder.setCreateTime(new Date());

@@ -132,8 +132,9 @@ public class ManagerCapitalService extends BaseService {
             // 添加提现订单 扣除资产到冻结余额
             String orderNo = OrderUtil.getBatchOrder32Number();
             User user = userCacheService.getUserInfoById(userId);
+            int isAutoPay = managerConfigService.getInteger(Config.IS_AUTO_PAY);
             Long cashOrderId = cashRecordService.addCashOrder(openId, userId, userNo, userName, realName, orderNo,
-                    amount, type, user.getPhone());
+                    amount, type, user.getPhone(),1);
             if (type == 1) {
                 WXCashService.cashOrderNos.add(orderNo);
             }

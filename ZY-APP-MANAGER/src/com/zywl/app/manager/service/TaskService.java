@@ -10,6 +10,7 @@ import com.zywl.app.defaultx.cache.GameCacheService;
 import com.zywl.app.defaultx.cache.UserCacheService;
 import com.zywl.app.defaultx.cache.card.CardGameCacheService;
 import com.zywl.app.defaultx.service.*;
+import com.zywl.app.manager.service.manager.ManagerConfigService;
 import com.zywl.app.manager.service.manager.ManagerUserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -67,6 +68,9 @@ public class TaskService extends BaseService {
 
     @Autowired
     private ManagerUserService managerUserService;
+
+    @Autowired
+    private ManagerConfigService managerConfigService;
 
 
     @Autowired
@@ -279,8 +283,9 @@ public class TaskService extends BaseService {
                             User user = userCacheService.getUserInfoById(userId);
                             BigDecimal rewardAmount = info.getBigDecimal("rewardAmount");
                             String orderNo = OrderUtil.getOrder5Number();
+                            int isAutoPay = managerConfigService.getInteger(Config.IS_AUTO_PAY);
                             cashRecordService.addCashOrder(user.getOpenId(), userId, user.getUserNo(), user.getName(), user.getRealName(), orderNo,
-                                    rewardAmount, 2, user.getPhone());
+                                    rewardAmount, 2, user.getPhone(),isAutoPay);
                         }
                     }
 
@@ -297,8 +302,9 @@ public class TaskService extends BaseService {
                             User user = userCacheService.getUserInfoById(userId);
                             BigDecimal rewardAmount = info.getBigDecimal("rewardAmount");
                             String orderNo = OrderUtil.getOrder5Number();
+                            int isAutoPay = managerConfigService.getInteger(Config.IS_AUTO_PAY);
                             cashRecordService.addCashOrder(user.getOpenId(), userId, user.getUserNo(), user.getName(), user.getRealName(), orderNo,
-                                    rewardAmount, 2, user.getPhone());
+                                    rewardAmount, 2, user.getPhone(),isAutoPay);
                         }
                     }
 
