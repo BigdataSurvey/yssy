@@ -91,10 +91,8 @@ if(!window.CtrlFn_${menuId}){
             TEST_USER_NO:"测试账号",
             HF_SYS_ID:"汇付商户号",
             HF_RSA_PRIVATE_KEY:"汇付商户私钥",
-            HF_RSA_PUBLIC_KEY:"汇付公钥"
-
-
-
+            HF_RSA_PUBLIC_KEY:"汇付公钥",
+            IS_AUTO_PAY:"是否自动打款"
         };
         /*初始化表格*/
         function initTable() {
