@@ -12,23 +12,22 @@ import com.live.app.ws.interfacex.PushListener;
 import com.live.app.ws.socket.BaseServerSocket;
 import com.live.app.ws.socket.BaseSocket;
 import com.live.app.ws.util.Push;
-import com.zywl.app.service.DnsService;
 import com.zywl.app.base.util.PropertiesUtil;
 import com.zywl.app.defaultx.service.LotterySyncCapitalService;
 import com.zywl.app.defaultx.service.TaskOrderService;
 import com.zywl.app.defaultx.service.UserCapitalService;
 import com.zywl.app.defaultx.util.SpringUtil;
-import okhttp3.Dns;
+import com.zywl.app.service.DgsService;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
 import javax.websocket.server.ServerEndpoint;
 import java.util.Set;
 
-@ServerEndpoint(value = "/NSServer"
+@ServerEndpoint(value = "/DgsServer"
 		+ SocketConstants.SOCKET_CONNECT_SHAKE_HANDS, configurator = HttpSessionConfigurator.class)
-public class NSSocketServer extends BaseServerSocket {
-	private static final Log logger = LogFactory.getLog(NSSocketServer.class);
+public class DgsSocketServer extends BaseServerSocket {
+	private static final Log logger = LogFactory.getLog(DgsSocketServer.class);
 
 	private String address;
 
@@ -42,7 +41,7 @@ public class NSSocketServer extends BaseServerSocket {
 
 	private PropertiesUtil globalProperties;
 
-	private DnsService dnsService;
+	private DgsService lhdService;
 
 	private LotterySyncCapitalService lotterySyncCapitalService;
 
@@ -51,14 +50,14 @@ public class NSSocketServer extends BaseServerSocket {
 
 	private TaskOrderService taskOrderService;
 
-	public NSSocketServer() {
+	public DgsSocketServer() {
 		super(TargetSocketType.server, false, true);
 		staticProperties = new PropertiesUtil("static.properties");
 		globalProperties = new PropertiesUtil("global.properties");
 		lotterySyncCapitalService = SpringUtil.getService(LotterySyncCapitalService.class);
 		userCapitalService = SpringUtil.getService(UserCapitalService.class);
 		taskOrderService = SpringUtil.getService(TaskOrderService.class);
-		dnsService = SpringUtil.getService(DnsService.class);
+		lhdService = SpringUtil.getService(DgsService.class);
 
 	}
 
@@ -98,14 +97,14 @@ public class NSSocketServer extends BaseServerSocket {
 	private void initPush() {
 
 		// 注册加入房间推送
-		Push.registPush(new PushBean(PushCode.updateDnsInfo), new PushListener() {
+		Push.registPush(new PushBean(PushCode.updateNhInfo), new PushListener() {
 			public void onRegist(BaseSocket baseSocket, Object data) {
 			}
 
 			public void onReceive(BaseSocket baseSocket, Object data) {
 			}
 		}, this);
-		Push.registPush(new PushBean(PushCode.updateDnsStatus), new PushListener() {
+		Push.registPush(new PushBean(PushCode.updateNhStatus), new PushListener() {
 			public void onRegist(BaseSocket baseSocket, Object data) {
 			}
 
@@ -118,6 +117,11 @@ public class NSSocketServer extends BaseServerSocket {
 			public void onRegist(BaseSocket baseSocket, Object data) {
 			}
 			public void onReceive(BaseSocket baseSocket, Object data) {
+				JSONObject json = (JSONObject) data;
+				int gameId = json.getIntValue("gameId");
+				if (gameId == 5) {
+					lhdService.STATUS = json.getIntValue("status");
+				}
 			}
 		}, this);
 

@@ -38,6 +38,7 @@ public enum TargetSocketType {
 	dns,
 
 	nh,
+	dgs,
 	dts2,
 	//算卦
 	sg,
@@ -63,6 +64,8 @@ public enum TargetSocketType {
 			return sg;
 		}else if (gameId==9) {
 			return loginServer;
+		}else if (gameId==10) {
+			return dgs;
 		}
 		return null;
 	}

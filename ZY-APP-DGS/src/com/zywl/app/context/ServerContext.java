@@ -1,11 +1,10 @@
 package com.zywl.app.context;
 
-import javax.servlet.ServletContextEvent;
-import javax.servlet.ServletContextListener;
-
 import com.zywl.app.defaultx.APP;
 import com.zywl.app.defaultx.util.SpringUtil;
-import com.zywl.app.service.FoodManagerService;
+import com.zywl.app.service.DgsManagerService;
+import javax.servlet.ServletContextEvent;
+import javax.servlet.ServletContextListener;
 
 /**
  * 上下文监听
@@ -21,9 +20,8 @@ public class ServerContext implements ServletContextListener {
 	public void contextInitialized(ServletContextEvent contextEvent) {
 		APP.run();
 		Thread t = new Thread(() -> {
-			SpringUtil.getService(FoodManagerService.class).connectManager();
-		}, "connectManagerFoodServer");
+			SpringUtil.getService(DgsManagerService.class).connectManager();
+		}, "connectManagerDgsServer");
 		t.start();
-
 	}
 }

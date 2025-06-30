@@ -11,9 +11,8 @@ import com.live.app.ws.socket.BaseSocket;
 import com.live.app.ws.util.DefaultPushHandler;
 import com.live.app.ws.util.Executer;
 import com.live.app.ws.util.Push;
-import com.zywl.app.service.DnsService;
+import com.zywl.app.service.DgsService;
 import com.zywl.app.base.bean.Config;
-import com.zywl.app.defaultx.enmus.GameTypeEnum;
 import com.zywl.app.defaultx.service.GameService;
 import com.zywl.app.defaultx.service.IncomeRecordService;
 import com.zywl.app.defaultx.service.VersionService;
@@ -23,6 +22,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
 import javax.websocket.ClientEndpoint;
+import java.math.BigDecimal;
 
 @ClientEndpoint
 public class ManagerSocket extends BaseClientSocket {
@@ -31,7 +31,7 @@ public class ManagerSocket extends BaseClientSocket {
 	
 	private VersionService versionService;
 	
-	private DnsService dnsService;
+	private DgsService dgsService;
 
 	private GameService gameService;
 	
@@ -45,7 +45,7 @@ public class ManagerSocket extends BaseClientSocket {
 		super(socketType, false, reconnect, server, shakeHandsDatas);
 		versionService = SpringUtil.getService(VersionService.class);
 		incomeRecordService = SpringUtil.getService(IncomeRecordService.class);
-		dnsService = SpringUtil.getService(DnsService.class);
+		dgsService = SpringUtil.getService(DgsService.class);
 		gameService = SpringUtil.getService(GameService.class);
 		Push.addPushSuport(PushCode.cancelBet, new DefaultPushHandler() {
 			public void onRegist(BaseSocket baseSocket, PushBean pushBean) {
@@ -77,17 +77,16 @@ public class ManagerSocket extends BaseClientSocket {
 				logger.info("收到系统参数修改推送：" + data);
 				JSONObject object = (JSONObject) data;
 				Config config = object.toJavaObject(Config.class);
-				if (config.getKey().equals(Config.DNS_STATUS)){
+				if (config.getKey().equals(Config.LHD_STATUS)){
 					int status = Integer.parseInt(config.getValue());
-					logger.info("调整打年兽状态："+status);
-					dnsService.updateStatus(status);
-					//gameService.updateGameStatus(GameTypeEnum.battleRoyale.getValue(),status);
+					logger.info("调整游戏状态："+status);
+					dgsService.updateStatus(status);
 				}
-				if (config.getKey().equals(Config.BOX_ID)){
-					//解锁宝箱奖励
-					dnsService.unlockBox(config.getValue());
+				if (config.getKey().equals(Config.LHD_STATUS)){
+					BigDecimal rate = new BigDecimal(config.getValue());
+					logger.info("调整游戏手续费："+rate);
+					//dgsService.updateRate(rate);
 				}
-
 			}
 		}, this);
 

@@ -7,7 +7,7 @@ import com.zywl.app.socket.ManagerSocket;
 import org.springframework.stereotype.Service;
 
 @Service
-public class NSManagerService {
+public class DgsManagerService {
 
 	private ManagerSocket managerSocket;
 	
@@ -21,8 +21,8 @@ public class NSManagerService {
 			shakeHandsDatas.put("address", serverProperties.get("server.address"));
 			shakeHandsDatas.put("host", serverProperties.get("server.host"));
 			shakeHandsDatas.put("weight", serverProperties.get("server.weight"));
-			shakeHandsDatas.put("gameId", 4);
-			managerSocket = new ManagerSocket(TargetSocketType.dns, -1, managerProperties.get("manager.ws.address"), shakeHandsDatas);
+			shakeHandsDatas.put("gameId", 10);
+			managerSocket = new ManagerSocket(TargetSocketType.dgs, -1, managerProperties.get("manager.ws.address"), shakeHandsDatas);
 			managerSocket.connect();
 		}
 	}
