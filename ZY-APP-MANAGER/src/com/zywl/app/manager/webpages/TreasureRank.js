@@ -5,7 +5,7 @@ if(!window.CtrlFn_${menuId}){
         me.defaultTpl = {};
         let dataMap = {};
         let baseTable = null;
-        let capitalType = {'2':'灵石', '3': '仙晶', '4': '余额'};
+        let capitalType = {'2':'通宝', '3': '游园券', '4': '余额'};
         /*初始化表格*/
         function initTable() {
             baseTable = datatableUtil.init('#${menuId}_baseTable', {

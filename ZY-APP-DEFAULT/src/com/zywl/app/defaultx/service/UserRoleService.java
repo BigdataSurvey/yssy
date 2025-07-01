@@ -41,6 +41,24 @@ public class UserRoleService extends DaoService {
         return userRole;
     }
 
+    @Transactional
+    public UserRole addUserRoleFree(Long userId,Long roleId,int days) {
+        UserRole userRole = new UserRole();
+        userRole.setUserId(userId);
+        userRole.setRoleId(roleId);
+        userRole.setEndTime(DateUtil.getDateByDay(days));
+        userRole.setHp(0);
+        userRole.setMaxHp(20);
+        userRole.setUnReceive(new JSONArray());
+        userRole.setLastLookTime(new Date());
+        userRole.setLastReceiveTime(new Date());
+        userRole.setCreateTime(new Date());
+        //0 未使用   1 使用中   -1已到期
+        userRole.setStatus(0);
+        save(userRole);
+        return userRole;
+    }
+
 
     public UserRole findByUserIdAndRoleId(Long userId,int roleId){
         Map<String,Object> params = new HashMap<>();
@@ -86,7 +104,11 @@ public class UserRoleService extends DaoService {
     public List<UserRole> findNoWorkingRolesByIndex(Long userId,int index){
         Map<String,Object> params = new HashMap<>();
         int skill ;
-        if (index==1 || index==2){
+        if (index==6){
+            params.put("userId",userId);
+            return findList("findNoWorkingRolesByIndex2",params);
+        }
+        if (index==1 || index==2 ){
             skill=1;
         } else if (index==3 || index==4) {
             skill=2;
@@ -97,6 +119,8 @@ public class UserRoleService extends DaoService {
         params.put("skill",skill);
         return findList("findNoWorkingRolesByIndex",params);
     }
+
+
 
 
     @Transactional

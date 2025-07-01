@@ -118,4 +118,71 @@ public class ManagerUserRoleService extends BaseService {
             return result;
         }
     }
+
+    @Transactional
+    @ServiceMethod(code = "003", description = "免费角色角色体力")
+    public  JSONObject addHpFree(ManagerSocketServer adminSocketServer,  JSONObject data) {
+        checkNull(data);
+        checkNull(data.get("userId"));
+        Long userId = data.getLong("userId");
+        synchronized (LockUtil.getlock(userId)){
+            Long userRoleId = 6L;
+            int allHp = 1;
+            UserRole userRole = userRoleService.findByUserIdAndRoleId(userId,userRoleId);
+            if (userRole==null){
+                throwExp("未查询到角色信息");
+            }
+            if (userRole.getStatus()==0){
+                throwExp("角色尚未开始工作，无需补充体力");
+            }
+            if (userRole.getEndTime().getTime()<System.currentTimeMillis()){
+                throwExp("角色已到期，请重新领取角色");
+            }
+            if (userRole.getHp()==0){
+                userRole.setLastReceiveTime(new Date());
+            }
+            DicRole dicRole = PlayGameService.DIC_ROLE.get(userRole.getRoleId().toString());
+            int maxHp = dicRole.getHp();
+            if (allHp+userRole.getHp()>maxHp){
+                userRole.setHp(maxHp);
+            }else {
+                userRole.setHp(userRole.getHp()+allHp);
+            }
+            User user = userCacheService.getUserInfoById(userId);
+            if (user.getParentId()!=null){
+                gameService.addParentGetAnima(userId,user.getParentId().toString(),new BigDecimal("0.01"));
+            }
+            if (user.getGrandfaId()!=null){
+                gameService.addGrandfaGetAnima(userId,user.getGrandfaId().toString(),new BigDecimal("0.005"));
+            }
+            userRoleService.updateUserRole(userRole);
+            JSONObject result = new JSONObject();
+            result.put("userRole",userRole);
+            return result;
+        }
+    }
+
+    @Transactional
+    @ServiceMethod(code = "004", description = "领取免费角色")
+    @KafkaProducer(topic = KafkaTopicContext.RED_POINT, event = KafkaEventContext.ADD_HP, sendParams = true)
+    public  JSONObject receiveFreeRole(ManagerSocketServer adminSocketServer,  JSONObject data) {
+        Long userId = data.getLong("userId");
+        User user = userCacheService.getUserInfoById(userId);
+        synchronized (LockUtil.getlock(userId)){
+            UserRole freeUserRole = userRoleService.findByUserIdAndRoleId(userId, 6L);
+            if (freeUserRole!=null){
+                throwExp("已经领取过该角色了");
+            }
+            userRoleService.addUserRoleFree(userId,6L,30);
+        }
+        if (user.getParentId()!=null){
+            gameService.addParentGetAnima(userId,user.getParentId().toString(),BigDecimal.ONE);
+        }
+        if (user.getGrandfaId()!=null){
+            gameService.addGrandfaGetAnima(userId,user.getGrandfaId().toString(),new BigDecimal("0.5"));
+        }
+        return data;
+    }
+
+
 }

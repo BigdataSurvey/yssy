@@ -9,7 +9,7 @@ public class Config extends BaseBean {
 
 
 
-
+	public static final String UPDATE_ACH = "UPDATE_ACH";
 	public static final String IS_AUTO_PAY = "IS_AUTO_PAY";
 	public static final String MAX_BUY_GIFT_NUMBER = "MAX_BUY_GIFT_NUMBER";
 	public static final String VV_USER_GIFT = "VV_USER_GIFT";

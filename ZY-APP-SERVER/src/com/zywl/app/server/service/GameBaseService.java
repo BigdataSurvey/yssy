@@ -392,7 +392,7 @@ public class GameBaseService extends BaseService {
         Collection values = userTask.values();
         for (Object value : values) {
             UserDailyTaskVo vo = (UserDailyTaskVo) value;
-            if (vo.getStatus() != 2) {
+            if (vo.getId()<=5 && vo.getStatus() != 2) {
                 throwExp("请完成全部每日任务并领取奖励后进行签到");
             }
         }

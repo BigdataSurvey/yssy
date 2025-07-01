@@ -499,7 +499,7 @@ public class ServerUserRoleService extends BaseService {
         checkNull(params);
         checkNull(params.get("index"));
         int index = params.getIntValue("index");
-        if (index < 1 || index > 5) {
+        if (index < 1 || index > 6) {
             throwExp("参数异常");
         }
         Long userId = appSocket.getWsidBean().getUserId();
@@ -627,15 +627,39 @@ public class ServerUserRoleService extends BaseService {
 
     @ServiceMethod(code = "013", description = "看广告领取角色")
     public Object receiveFreeRole(final AppSocket appSocket, Command appCommand, JSONObject params) {
-        checkNull(params.get("page"),params.get("num"));
+        checkNull(params);
         Long userId = appSocket.getWsidBean().getUserId();
-        List<SendGiftRecordVo> list  = sendGiftRecordService.findByToUserId(userId,params.getIntValue("page"), params.getIntValue("num"));
-        for (SendGiftRecordVo sendGiftRecordVo : list) {
-            User user =userCacheService.getUserInfoById( sendGiftRecordVo.getUserId());
-            sendGiftRecordVo.setFromUserNo(user.getUserNo());
-        }
-        return list;
+        params.put("userId",userId);
+        Executer.request(TargetSocketType.manager, CommandBuilder.builder().request("400004", params).build(), new RequestManagerListener(appCommand));
+        return async();
     }
 
+    @ServiceMethod(code = "014", description = "看广告加角色体力")
+    public Object lookAddHp(final AppSocket appSocket, Command appCommand, JSONObject params) {
+        checkNull(params);
+        Long userId = appSocket.getWsidBean().getUserId();
+        UserRole freeUserRole = userRoleService.findByUserIdAndRoleId(userId, 6L);
+        if (freeUserRole!=null){
+            throwExp("您还没有拥有该角色");
+        }
+        params.put("userId", userId);
+        Executer.request(TargetSocketType.manager, CommandBuilder.builder().request("400003", params).build(), new RequestManagerListener(appCommand));
+        return async();
+    }
+
+
+    @ServiceMethod(code = "015", description = "是否领取第六个角色")
+    public Object canReceiveFree(final AppSocket appSocket, Command appCommand, JSONObject params) {
+        checkNull(params);
+        Long userId = appSocket.getWsidBean().getUserId();
+        UserRole freeUserRole = userRoleService.findByUserIdAndRoleId(userId, 6L);
+        JSONObject result = new JSONObject();
+        if (freeUserRole==null){
+            result.put("canReceive",1);
+        }else {
+            result.put("canReceive",0);
+        }
+        return result;
+    }
 
 }

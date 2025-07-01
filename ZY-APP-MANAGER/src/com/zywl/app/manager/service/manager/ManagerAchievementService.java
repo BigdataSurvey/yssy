@@ -2,10 +2,7 @@ package com.zywl.app.manager.service.manager;
 
 import com.alibaba.fastjson2.JSONArray;
 import com.alibaba.fastjson2.JSONObject;
-import com.zywl.app.base.bean.ActiveGiftRecord;
-import com.zywl.app.base.bean.CompleteAchievementRecord;
-import com.zywl.app.base.bean.UserAchievement;
-import com.zywl.app.base.bean.UserStatistic;
+import com.zywl.app.base.bean.*;
 import com.zywl.app.base.service.BaseService;
 import com.zywl.app.base.util.LockUtil;
 import com.zywl.app.base.util.OrderUtil;
@@ -26,6 +23,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.HashSet;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 
 @Service
@@ -35,6 +33,9 @@ public class ManagerAchievementService extends BaseService {
 
     @Autowired
     private UserAchievementService userAchievementService;
+    
+    @Autowired
+    private AchievementService achievementService;
 
     @Autowired
     private PlayGameService gameService;
@@ -47,6 +48,9 @@ public class ManagerAchievementService extends BaseService {
 
     @Autowired
     private ActiveGiftRecordService activeGiftRecordService;
+
+    @Autowired
+    private ManagerConfigService managerConfigService;
 
 
 
@@ -104,7 +108,37 @@ public class ManagerAchievementService extends BaseService {
         String userId = data.getString("userId");
         UserAchievement userAchievement = gameService.getUserAchievement(userId);
         JSONArray achievementList = userAchievement.getAchievementList();
-        UserStatistic userStatistic = userStatisticService.findByUserId(Long.valueOf(userId));
+        JSONArray array = new JSONArray();
+        if (managerConfigService.getInteger(Config.UPDATE_ACH)==1){
+            //需要更新成就信息 判断玩家的成就跟数据库一致不
+            List<Achievement> achievements = achievementService.findAll();
+            if (achievements.size()!=achievementList.size()){
+                for (Achievement achievement : achievements) {
+                    boolean b = false;
+                    for (Object o : achievementList) {
+                        JSONObject userAch = (JSONObject) o;
+                        if (Objects.equals(userAch.getLong("id"), achievement.getId())){
+                            b=true;
+                            break;
+                        }
+                    }
+                    if (!b){
+                        //需要添加成就
+                        JSONObject newAch = new JSONObject();
+                        newAch.put("id",achievement.getId());
+                        newAch.put("group",achievement.getGroup());
+                        newAch.put("groupId",achievement.getGroupId());
+                        newAch.put("condition",achievement.getCondition());
+                        newAch.put("context",achievement.getContext());
+                        newAch.put("expand",achievement.getExpand());
+                        newAch.put("reward",achievement.getReward());
+                        newAch.put("schedule",0);
+                        newAch.put("status",0);
+                        achievementList.add(newAch);
+                    }
+                }
+            }
+        }
         boolean b = false;
         long oneJuniorCount = userService.getOneJuniorCount(Long.valueOf(userId));
         for (Object o : achievementList) {
@@ -115,7 +149,6 @@ public class ManagerAchievementService extends BaseService {
                     b= true;
                }
             }
-
             if (info.getInteger("group")==1){
                 List<ActiveGiftRecord> byUserId = activeGiftRecordService.findByUserId(Long.valueOf(userId), 2);
                 boolean c;
