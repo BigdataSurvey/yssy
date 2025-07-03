@@ -123,7 +123,7 @@ public class ServerManagerService {
 			shakeHandsDatas.put("address", serverProperties.get("template.server"));
 			shakeHandsDatas.put("host", serverProperties.get("template.server"));
 			shakeHandsDatas.put("weight", serverProperties.get("server.weight"));
-			dgsSocket = new DgsSocket(TargetSocketType.dgs, -1, managerProperties.get("dgserver.ws.address"), shakeHandsDatas);
+			dgsSocket = new DgsSocket(TargetSocketType.dgs, -1, managerProperties.get("dgsServer.ws.address"), shakeHandsDatas);
 			dgsSocket.connect();
 		}
 	}
