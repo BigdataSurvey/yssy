@@ -192,7 +192,7 @@ public class ManagerMailService extends BaseService {
                 detail1.put("id", smallItemId);
                 detail1.put("number", number);
                 detail1.put("channel", MailGoldTypeEnum.FRIEND.getValue());
-                detail1.put("fromUserId",toUserNo);
+                detail1.put("fromUserId",user.getUserNo());
                 array.add(detail1);
             }else if(uservip.getVipLevel()<4 && toUservip.getVipLevel() > 4){
                 //gameService.updateUserBackpack(toUserId, bigItemId,number, LogUserBackpackTypeEnum.use);
@@ -201,7 +201,7 @@ public class ManagerMailService extends BaseService {
                 detail1.put("id", bigItemId);
                 detail1.put("number", number);
                 detail1.put("channel", MailGoldTypeEnum.FRIEND.getValue());
-                detail1.put("fromUserId",toUserNo);
+                detail1.put("fromUserId",user.getUserNo());
                 array.add(detail1);
             }
             if (title == null) {
@@ -216,7 +216,7 @@ public class ManagerMailService extends BaseService {
             detail.put("id", itemId);
             detail.put("number", number);
             detail.put("channel", MailGoldTypeEnum.FRIEND.getValue());
-            detail.put("fromUserId",toUserNo);
+            detail.put("fromUserId",user.getUserNo());
             //添加邮件记录
             int isAttachments = 1;
             array.add(detail);

@@ -37,7 +37,7 @@ public class HfScanPay extends BaseCommon {
         // 请求流水号
         request.setReqSeqId(orderNo);
         // 商户号
-        request.setHuifuId(HFPayContext.SYS_ID);
+        request.setHuifuId(sysId);
         // 交易类型
         request.setTradeType("A_NATIVE");
         // 交易金额

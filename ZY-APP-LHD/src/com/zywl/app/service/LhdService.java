@@ -154,7 +154,6 @@ public class LhdService extends BaseService {
         addPushSuport();
         initGameSetting();
         initHistoryResult();
-        addPushSuport();
         init();
         periodsNum();
         requestManagerUpdateCapital();

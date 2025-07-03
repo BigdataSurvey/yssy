@@ -58,6 +58,9 @@ public class ServerUserRoleService extends BaseService {
     private UserRoleService userRoleService;
 
     @Autowired
+    private UserRoleAdService userRoleAdService;
+
+    @Autowired
     private DicRoleService dicRoleService;
 
     @Autowired
@@ -155,7 +158,7 @@ public class ServerUserRoleService extends BaseService {
             String sysId = serverConfigService.getString(Config.HF_SYS_ID);
             String privateKey = serverConfigService.getString(Config.HF_RSA_PRIVATE_KEY);
             String publicKey = serverConfigService.getString(Config.HF_RSA_PUBLIC_KEY);
-            payUrl = HfScanPay.scanPay(allPrice, serverConfigService.getString(Config.PAY_NOTIFY_HF_URL), orderNo,privateKey,publicKey,sysId);
+            payUrl = HfScanPay.scanPay(allPrice, serverConfigService.getString(Config.PAY_NOTIFY_HF_URL), orderNo, privateKey, publicKey, sysId);
         } catch (Exception e) {
             e.printStackTrace();
             throwExp("当前没有可用的支付地址，请联系客服或稍后再试");
@@ -175,7 +178,7 @@ public class ServerUserRoleService extends BaseService {
             String sysId = serverConfigService.getString(Config.HF_SYS_ID);
             String privateKey = serverConfigService.getString(Config.HF_RSA_PRIVATE_KEY);
             String publicKey = serverConfigService.getString(Config.HF_RSA_PUBLIC_KEY);
-            payUrl = HfScanPay.scanPay(allPrice, serverConfigService.getString(Config.PAY_NOTIFY_HF_URL), orderNo,privateKey,publicKey,sysId);
+            payUrl = HfScanPay.scanPay(allPrice, serverConfigService.getString(Config.PAY_NOTIFY_HF_URL), orderNo, privateKey, publicKey, sysId);
         } catch (Exception e) {
             e.printStackTrace();
             throwExp("当前没有可用的支付地址，请联系客服或稍后再试");
@@ -190,7 +193,7 @@ public class ServerUserRoleService extends BaseService {
         checkNull(params.get("giftType"), params.get("number"));
         Long giftType = params.getLong("giftType");
         Long userId = appSocket.getWsidBean().getUserId();
-        synchronized (LockUtil.getlock(userId)){
+        synchronized (LockUtil.getlock(userId)) {
             if (userCacheService.canPay(userId.toString())) {
                 throwExp("请勿频繁发起支付");
             }
@@ -206,10 +209,10 @@ public class ServerUserRoleService extends BaseService {
             }
             Random random = new Random();
             int i = random.nextInt(200) + 1;
-            BigDecimal subMoney =BigDecimal.valueOf(i).divide(new BigDecimal("100"));
+            BigDecimal subMoney = BigDecimal.valueOf(i).divide(new BigDecimal("100"));
             price = price.subtract(subMoney);
             UserVip userVipByUserId = userVipService.findUserVipByUserId(userId);
-            if (isTestUserNo(userId.toString())){
+            if (isTestUserNo(userId.toString())) {
                 if (userVipByUserId.getVipLevel() == 5L) {
                     price = price.multiply(new BigDecimal("0.95")).setScale(0, RoundingMode.HALF_UP);
                 }
@@ -218,8 +221,8 @@ public class ServerUserRoleService extends BaseService {
                 }
             }
             int number = params.getIntValue("number");
-            if (number>serverConfigService.getInteger(Config.MAX_BUY_GIFT_NUMBER)){
-                throwExp("当前最多可购买"+serverConfigService.getInteger(Config.MAX_BUY_GIFT_NUMBER)+"套体验卡");
+            if (number > serverConfigService.getInteger(Config.MAX_BUY_GIFT_NUMBER)) {
+                throwExp("当前最多可购买" + serverConfigService.getInteger(Config.MAX_BUY_GIFT_NUMBER) + "套体验卡");
             }
             BigDecimal allPrice = price.multiply(BigDecimal.valueOf(number));
             pushOrder(giftType);
@@ -231,22 +234,22 @@ public class ServerUserRoleService extends BaseService {
                 url = getPayAddress(userId, giftType, price, appSocket.getIp(), allPrice, number);
             } else if (channel == 2) {
                 url = getHfPayAddress(userId, giftType, price, allPrice, number);
-            }else if (channel == 3) {
+            } else if (channel == 3) {
                 url = getHfWechatPayAddress(userId, giftType, price, allPrice, number);
             }
             result.put("payUrl", url);
             pushOrder(giftType);
             userCacheService.endPay(userId.toString());
-            result.put("payType",channel);
+            result.put("payType", channel);
             return result;
         }
     }
 
-    public boolean isTestUserNo(String userNo){
+    public boolean isTestUserNo(String userNo) {
         String string = serverConfigService.getString(Config.TEST_USER_NO);
         String[] split = string.split(",");
         for (String s : split) {
-            if (s.equals(userNo)){
+            if (s.equals(userNo)) {
                 return true;
             }
         }
@@ -293,7 +296,7 @@ public class ServerUserRoleService extends BaseService {
         if (userGift != null) {
             params.put("number", userGift.getGiftNum());
         }
-        List<ActiveGiftRecord> userActiveRecords = activeGiftRecordService.findByUserId(userId,type);
+        List<ActiveGiftRecord> userActiveRecords = activeGiftRecordService.findByUserId(userId, type);
         if (userActiveRecords.size() == 0) {
             params.put("status", 0);
         } else {
@@ -308,7 +311,7 @@ public class ServerUserRoleService extends BaseService {
         checkNull(params);
         checkNull(params.get("type"));
         Long myId = appSocket.getWsidBean().getUserId();
-        synchronized (LockUtil.getlock(myId)){
+        synchronized (LockUtil.getlock(myId)) {
             User user = userCacheService.getUserInfoById(myId);
             int type = params.getIntValue("type");
             if (type != 1 && type != 2) {
@@ -386,7 +389,7 @@ public class ServerUserRoleService extends BaseService {
     @ServiceMethod(code = "003", description = "进入场景查看角色工作信息")
     public Object findWorkingRoles(final AppSocket appSocket, Command appCommand, JSONObject params) {
         Long userId = appSocket.getWsidBean().getUserId();
-        synchronized (LockUtil.getlock(userId)){
+        synchronized (LockUtil.getlock(userId)) {
             List<UserRole> roles = userRoleService.findWorkingRoles(userId);
             return settleRoleReceive(roles);
         }
@@ -397,7 +400,7 @@ public class ServerUserRoleService extends BaseService {
     @ServiceMethod(code = "004", description = "查看我的角色")
     public Object myRoles(final AppSocket appSocket, Command appCommand, JSONObject params) {
         Long userId = appSocket.getWsidBean().getUserId();
-        synchronized (LockUtil.getlock(userId)){
+        synchronized (LockUtil.getlock(userId)) {
             List<UserRole> roles = userRoleService.findByUserId(userId);
             return settleRoleReceive(roles);
         }
@@ -450,15 +453,6 @@ public class ServerUserRoleService extends BaseService {
         return roles;
     }
 
-    public static void main(String[] args) {
-        for (int i = 0; i <100  ; i++) {
-            Random random = new Random();
-            int k = random.nextInt(200) + 1;
-            BigDecimal subMoney =BigDecimal.valueOf(k).divide(new BigDecimal("100"));
-            System.out.println(subMoney);
-        }
-
-    }
 
 
     @Transactional
@@ -467,7 +461,7 @@ public class ServerUserRoleService extends BaseService {
         checkNull(params);
         checkNull(params.get("index"), params.get("userRoleId"));
         Long userId = appSocket.getWsidBean().getUserId();
-        synchronized (LockUtil.getlock(userId)){
+        synchronized (LockUtil.getlock(userId)) {
             int index = params.getIntValue("index");
             Long userRoleId = params.getLong("userRoleId");
             UserRole userRole = userRoleService.findByUserIdAndRoleId(userId, userRoleId);
@@ -542,7 +536,7 @@ public class ServerUserRoleService extends BaseService {
         UserVip userVipByUserId = userVipService.findUserVipByUserId(userId);
         BigDecimal rmb1 = serverConfigService.getBigDecimal(Config.GIFT_PRICE_1);
         BigDecimal rmb2 = serverConfigService.getBigDecimal(Config.GIFT_PRICE_2);
-        if (isTestUserNo(user.getUserNo())){
+        if (isTestUserNo(user.getUserNo())) {
             if (userVipByUserId.getVipLevel() == 5L) {
                 rmb1 = rmb1.multiply(new BigDecimal("0.95")).setScale(0, RoundingMode.HALF_UP);
                 rmb2 = rmb2.multiply(new BigDecimal("0.95")).setScale(0, RoundingMode.HALF_UP);
@@ -575,8 +569,8 @@ public class ServerUserRoleService extends BaseService {
             throwExp("用户不存在");
         }
         Long myId = appSocket.getWsidBean().getUserId();
-        synchronized (LockUtil.getlock(myId)){
-            if (Objects.equals(myId, toUser.getId())){
+        synchronized (LockUtil.getlock(myId)) {
+            if (Objects.equals(myId, toUser.getId())) {
                 throwExp("不能赠送给自己");
             }
             int type = params.getIntValue("type");
@@ -591,7 +585,7 @@ public class ServerUserRoleService extends BaseService {
             if (userGift == null || userGift.getGiftNum() < number) {
                 throwExp("礼包数量不足");
             }
-            sendGiftRecordService.addRecord(myId,toUser.getUserNo(),toUser.getId(),type,number);
+            sendGiftRecordService.addRecord(myId, toUser.getUserNo(), toUser.getId(), type, number);
             userGiftService.sendGift(myId, number, type);
             userGiftService.addGiftNumber(toUser.getId(), number, type);
             JSONObject result = new JSONObject();
@@ -604,10 +598,10 @@ public class ServerUserRoleService extends BaseService {
     public Object GiftRecord(final AppSocket appSocket, Command appCommand, JSONObject params) {
         Long userId = appSocket.getWsidBean().getUserId();
         String toUserNo = params.getString("toUserNo");
-        List<SendGiftRecord> list ;
-        if (toUserNo!=null && !toUserNo.equals("")){
-            list = sendGiftRecordService.findByUserIdAndSendNo(userId,toUserNo,params.getIntValue("page"), params.getIntValue("num"));
-        }else{
+        List<SendGiftRecord> list;
+        if (toUserNo != null && !toUserNo.equals("")) {
+            list = sendGiftRecordService.findByUserIdAndSendNo(userId, toUserNo, params.getIntValue("page"), params.getIntValue("num"));
+        } else {
             list = sendGiftRecordService.findByUserId(userId, params.getIntValue("page"), params.getIntValue("num"));
         }
         return list;
@@ -615,11 +609,11 @@ public class ServerUserRoleService extends BaseService {
 
     @ServiceMethod(code = "012", description = "接收记录")
     public Object getGiftRecord(final AppSocket appSocket, Command appCommand, JSONObject params) {
-        checkNull(params.get("page"),params.get("num"));
+        checkNull(params.get("page"), params.get("num"));
         Long userId = appSocket.getWsidBean().getUserId();
-        List<SendGiftRecordVo> list  = sendGiftRecordService.findByToUserId(userId,params.getIntValue("page"), params.getIntValue("num"));
+        List<SendGiftRecordVo> list = sendGiftRecordService.findByToUserId(userId, params.getIntValue("page"), params.getIntValue("num"));
         for (SendGiftRecordVo sendGiftRecordVo : list) {
-            User user =userCacheService.getUserInfoById( sendGiftRecordVo.getUserId());
+            User user = userCacheService.getUserInfoById(sendGiftRecordVo.getUserId());
             sendGiftRecordVo.setFromUserNo(user.getUserNo());
         }
         return list;
@@ -629,7 +623,7 @@ public class ServerUserRoleService extends BaseService {
     public Object receiveFreeRole(final AppSocket appSocket, Command appCommand, JSONObject params) {
         checkNull(params);
         Long userId = appSocket.getWsidBean().getUserId();
-        params.put("userId",userId);
+        params.put("userId", userId);
         Executer.request(TargetSocketType.manager, CommandBuilder.builder().request("400004", params).build(), new RequestManagerListener(appCommand));
         return async();
     }
@@ -639,8 +633,8 @@ public class ServerUserRoleService extends BaseService {
         checkNull(params);
         Long userId = appSocket.getWsidBean().getUserId();
         UserRole freeUserRole = userRoleService.findByUserIdAndRoleId(userId, 6L);
-        if (freeUserRole!=null){
-            throwExp("您还没有拥有该角色");
+        if (freeUserRole == null) {
+            throwExp("未拥有该角色");
         }
         params.put("userId", userId);
         Executer.request(TargetSocketType.manager, CommandBuilder.builder().request("400003", params).build(), new RequestManagerListener(appCommand));
@@ -654,12 +648,46 @@ public class ServerUserRoleService extends BaseService {
         Long userId = appSocket.getWsidBean().getUserId();
         UserRole freeUserRole = userRoleService.findByUserIdAndRoleId(userId, 6L);
         JSONObject result = new JSONObject();
-        if (freeUserRole==null){
-            result.put("canReceive",1);
-        }else {
-            result.put("canReceive",0);
+        if (freeUserRole == null) {
+            result.put("canReceive", 1);
+        } else {
+            result.put("canReceive", 0);
         }
         return result;
+    }
+
+    @ServiceMethod(code = "016", description = "查看角色广告信息")
+    public Object adInfo(final AppSocket appSocket, Command appCommand, JSONObject params) {
+        checkNull(params);
+        Long userId = appSocket.getWsidBean().getUserId();
+        UserRoleAd userRoleAd = userRoleAdService.findByUserIdAndYmd(userId);
+        if (userRoleAd.getCanLook() < 4) {
+            //小于4证明可以倒计时累计广告 判断本次请求时是否已经累计了新的广告数量
+            Date lastLookTime = userRoleAd.getLastTime();
+            if ((System.currentTimeMillis() - lastLookTime.getTime()) / 1000 > 90 * 60) {
+                //如果当前时间 比上次请求时间超过了1个半小时 并且之前的次数也不够4次 那么这会要加次数
+                long count =( (System.currentTimeMillis() - lastLookTime.getTime()) / 1000) / (90 * 60);
+                userRoleAd.setCanLook((int) (userRoleAd.getCanLook() + count));
+                if (userRoleAd.getCanLook() == 4) {
+                    userRoleAd.setLastTime(new Date());
+                } else {
+                    userRoleAd.setLastTime(DateUtil.getDateByM(userRoleAd.getLastTime(), (int) (90 * count*60)));
+                }
+            }
+        } else {
+            userRoleAd.setLastTime(new Date());
+        }
+        userRoleAdService.update(userRoleAd);
+        JSONObject result = new JSONObject();
+        result.put("canLook",userRoleAd.getCanLook());
+        result.put("todayRemaining",10-userRoleAd.getLook());
+        result.put("nextAdTime",DateUtil.getDateByM(userRoleAd.getLastTime(),90*60).getTime());
+        return result;
+    }
+
+    public static void main(String[] args) {
+        long a = 15560/5400;
+        System.out.println(a);
     }
 
 }

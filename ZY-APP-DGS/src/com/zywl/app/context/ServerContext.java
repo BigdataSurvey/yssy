@@ -19,6 +19,7 @@ public class ServerContext implements ServletContextListener {
 	
 	public void contextInitialized(ServletContextEvent contextEvent) {
 		APP.run();
+		System.out.println(11111111);
 		Thread t = new Thread(() -> {
 			SpringUtil.getService(DgsManagerService.class).connectManager();
 		}, "connectManagerDgsServer");

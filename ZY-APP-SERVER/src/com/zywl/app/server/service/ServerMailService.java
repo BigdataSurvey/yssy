@@ -8,6 +8,7 @@ import com.live.app.ws.interfacex.Listener;
 import com.live.app.ws.socket.BaseClientSocket;
 import com.live.app.ws.util.CommandBuilder;
 import com.live.app.ws.util.Executer;
+import com.zywl.app.base.bean.ActiveGiftRecord;
 import com.zywl.app.base.bean.Mail;
 import com.zywl.app.base.bean.User;
 import com.zywl.app.base.bean.UserMail;
@@ -17,6 +18,7 @@ import com.zywl.app.defaultx.annotation.ServiceClass;
 import com.zywl.app.defaultx.annotation.ServiceMethod;
 import com.zywl.app.defaultx.cache.UserCacheService;
 import com.zywl.app.defaultx.enmus.UserGroupEnum;
+import com.zywl.app.defaultx.service.ActiveGiftRecordService;
 import com.zywl.app.defaultx.service.MailService;
 import com.zywl.app.defaultx.service.UserMailService;
 import com.zywl.app.server.context.MessageCodeContext;
@@ -43,6 +45,9 @@ public class ServerMailService extends BaseService{
 	
 	@Autowired
 	private MailService mailService;
+
+	@Autowired
+	private ActiveGiftRecordService activeGiftRecordService;
 
 
 
@@ -72,6 +77,12 @@ public class ServerMailService extends BaseService{
 		}
 		params.put("toUserId", toUser.getId());
 		User user = userCacheService.getUserInfoById(userId);
+		if ((System.currentTimeMillis() - user.getRegistTime().getTime())/1000<86400){
+			List<ActiveGiftRecord> byUserId = activeGiftRecordService.findByUserId(userId, 2);
+			if (byUserId==null||byUserId.size()==0){
+				throwExp("注册24小时后解锁赠送道具功能。");
+			}
+		}
 		UserMail userMail = userMailService.findUserReadMailInfo(userId);
 		if (userMail == null || user==null ) {
 			throwExp("玩家信息有误");
@@ -88,7 +99,7 @@ public class ServerMailService extends BaseService{
 		UserMail userMail = userMailService.findUserReadMailInfo(userId);
 		JSONArray userReadMails = userMail.getReadMailList();
 		int type = 1;
-		if (userMail == null||user==null) {
+		if (user == null) {
 			throwExp("未查询到邮件信息！");
 		}
 		List<Mail> myMail = mailService.findMyEmail(userId,type,page,num);

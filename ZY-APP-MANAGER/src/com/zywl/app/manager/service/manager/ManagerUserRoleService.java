@@ -2,10 +2,7 @@ package com.zywl.app.manager.service.manager;
 
 import com.alibaba.fastjson2.JSONArray;
 import com.alibaba.fastjson2.JSONObject;
-import com.zywl.app.base.bean.Config;
-import com.zywl.app.base.bean.DicRole;
-import com.zywl.app.base.bean.User;
-import com.zywl.app.base.bean.UserRole;
+import com.zywl.app.base.bean.*;
 import com.zywl.app.base.service.BaseService;
 import com.zywl.app.base.util.LockUtil;
 import com.zywl.app.defaultx.annotation.KafkaProducer;
@@ -13,6 +10,7 @@ import com.zywl.app.defaultx.annotation.ServiceClass;
 import com.zywl.app.defaultx.annotation.ServiceMethod;
 import com.zywl.app.defaultx.cache.UserCacheService;
 import com.zywl.app.defaultx.enmus.LogUserBackpackTypeEnum;
+import com.zywl.app.defaultx.service.UserRoleAdService;
 import com.zywl.app.defaultx.service.UserRoleService;
 import com.zywl.app.manager.context.KafkaEventContext;
 import com.zywl.app.manager.context.KafkaTopicContext;
@@ -26,6 +24,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.util.Date;
+import java.util.List;
 import java.util.Objects;
 
 
@@ -35,6 +34,9 @@ public class ManagerUserRoleService extends BaseService {
 
     @Autowired
     private UserRoleService userRoleService;
+
+    @Autowired
+    private UserRoleAdService userRoleAdService;
 
     @Autowired
     private PlayGameService gameService;
@@ -129,6 +131,14 @@ public class ManagerUserRoleService extends BaseService {
             Long userRoleId = 6L;
             int allHp = 1;
             UserRole userRole = userRoleService.findByUserIdAndRoleId(userId,userRoleId);
+            UserRoleAd byUserIdAndYmd = userRoleAdService.findByUserIdAndYmd(userId);
+            User user = userCacheService.getUserInfoById(userId);
+            if (byUserIdAndYmd.getCanLook()<1){
+                throwExp("请等待广告刷新");
+            }
+            if (byUserIdAndYmd.getLook()==10){
+                throwExp("今日次数已用完。");
+            }
             if (userRole==null){
                 throwExp("未查询到角色信息");
             }
@@ -148,12 +158,29 @@ public class ManagerUserRoleService extends BaseService {
             }else {
                 userRole.setHp(userRole.getHp()+allHp);
             }
-            User user = userCacheService.getUserInfoById(userId);
-            if (user.getParentId()!=null){
-                gameService.addParentGetAnima(userId,user.getParentId().toString(),new BigDecimal("0.01"));
+            if (user.getVip2()==0){
+                if (user.getParentId()!=null){
+                    gameService.addParentGetAnima(userId,user.getParentId().toString(),new BigDecimal("0.01"));
+                }
+                if (user.getGrandfaId()!=null){
+                    gameService.addGrandfaGetAnima(userId,user.getGrandfaId().toString(),new BigDecimal("0.005"));
+                }
             }
-            if (user.getGrandfaId()!=null){
-                gameService.addGrandfaGetAnima(userId,user.getGrandfaId().toString(),new BigDecimal("0.005"));
+
+            byUserIdAndYmd.setCanLook(byUserIdAndYmd.getCanLook()-1);
+            byUserIdAndYmd.setLook(byUserIdAndYmd.getLook()+1);
+            userRoleAdService.update(byUserIdAndYmd);
+            if (byUserIdAndYmd.getLook()==10 && user.getVip2()==0){
+                //看到第10次的时候 判断  玩家是不是第一天  如果是 并且没激活礼包的给上级返1个通宝
+                List<UserRoleAd> byUserId = userRoleAdService.findByUserId(userId);
+                if (byUserId.size()==1){
+                    if (user.getParentId()!=null){
+                        gameService.addParentGetAnima(userId,user.getParentId().toString(),BigDecimal.ONE);
+                    }
+                    if (user.getGrandfaId()!=null){
+                        gameService.addGrandfaGetAnima(userId,user.getGrandfaId().toString(),new BigDecimal("0.5"));
+                    }
+                }
             }
             userRoleService.updateUserRole(userRole);
             JSONObject result = new JSONObject();
@@ -175,12 +202,7 @@ public class ManagerUserRoleService extends BaseService {
             }
             userRoleService.addUserRoleFree(userId,6L,30);
         }
-        if (user.getParentId()!=null){
-            gameService.addParentGetAnima(userId,user.getParentId().toString(),BigDecimal.ONE);
-        }
-        if (user.getGrandfaId()!=null){
-            gameService.addGrandfaGetAnima(userId,user.getGrandfaId().toString(),new BigDecimal("0.5"));
-        }
+
         return data;
     }
 
