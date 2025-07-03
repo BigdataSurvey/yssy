@@ -14,12 +14,21 @@ public class Monster {
     private long currBlood;
 
     private BigDecimal profit;
+    private BigDecimal betAmount;
 
     private long dieStatus;
 
     private Date createTime;
 
     private Date updateTime;
+
+    public BigDecimal getBetAmount() {
+        return betAmount;
+    }
+
+    public void setBetAmount(BigDecimal betAmount) {
+        this.betAmount = betAmount;
+    }
 
     public long getId() {
         return id;
@@ -88,12 +97,13 @@ public class Monster {
     public Monster() {
     }
 
-    public Monster(long id, long userId, long monsterType, long currBlood, BigDecimal profit, long dieStatus, Date createTime, Date updateTime) {
+    public Monster(long id, long userId, long monsterType, long currBlood, BigDecimal profit, BigDecimal betAmount, long dieStatus, Date createTime, Date updateTime) {
         this.id = id;
         this.userId = userId;
         this.monsterType = monsterType;
         this.currBlood = currBlood;
         this.profit = profit;
+        this.betAmount = betAmount;
         this.dieStatus = dieStatus;
         this.createTime = createTime;
         this.updateTime = updateTime;

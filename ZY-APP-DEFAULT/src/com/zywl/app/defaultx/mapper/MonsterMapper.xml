@@ -7,8 +7,10 @@
         (
             `monster_type`,
             `user_id`,
-            `die_staus`,
+            `die_status`,
             `curr_blood`,
+            `profit`,
+            `bet_amount`,
             `create_time`,
             `update_time`
         )
@@ -16,8 +18,10 @@
             (
                 #{monsterType},
                 #{userId},
-                #{dieStaus},
+                #{dieStatus},
                 #{currBlood},
+                #{profit},
+                #{betAmount},
                 #{createTime},
                 #{updateTime}
             )
@@ -26,19 +30,56 @@
     <update id="update" parameterType="Monster">
         update t_monster
         <set >
-            <if test="die_staus != null">
-                die_staus= #{dieStaus},
+            <if test="dieStatus != null">
+                die_status= #{dieStatus},
+            </if>
+            <if test="currBlood != null">
+                curr_blood= #{currBlood},
+            </if>
+            <if test="profit != null">
+                profit= #{profit},
+            </if>
+            <if test="betAmount != null">
+                bet_amount= #{betAmount},
+            </if>
+            <if test="createTime != null">
+                create_time= #{createTime},
             </if>
             <if test="updateTime != null">
                 update_time= #{updateTime}
             </if>
         </set>
-        where  monster_type= #{monsterType}
+        where  monster_type= #{monsterType} and user_id = #{userId}
+    </update>
+
+    <update id="updateMonsterByUserId" parameterType="Monster">
+        update t_monster
+        <set >
+            <if test="die_status != null">
+                die_staus= #{dieStatus},
+            </if>
+            <if test="currBlood != null">
+                curr_blood= #{currBlood},
+            </if>
+            <if test="profit != null">
+                profit= #{profit},
+            </if>
+            <if test="betAmount != null">
+                bet_amount= #{betAmount},
+            </if>
+            <if test="createTime != null">
+                create_time= #{createTime},
+            </if>
+            <if test="updateTime != null">
+                update_time= #{updateTime}
+            </if>
+        </set>
+        where  monster_type= #{monsterType} and user_id = #{UserId}
     </update>
 
 
     <select id="findMonsterByStatus" resultType="Monster">
-        select * from t_monster where die_staus = #{dieStatus} and monster_type = #{monsterType} order by curr_blood ASC
+        select * from t_monster where die_status = #{dieStatus} and monster_type = #{monsterType} order by curr_blood ASC
     </select>
 
 

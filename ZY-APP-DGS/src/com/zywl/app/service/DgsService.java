@@ -21,6 +21,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import javax.annotation.PostConstruct;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.*;
@@ -79,8 +80,7 @@ public class DgsService extends BaseService {
     public static BigDecimal ALL_PRIZE = BigDecimal.ZERO;
 
     private static final String RedPacketKey = "SpringRedis:RedPacket:%s:%s";
-
-    private static final Snowflake SNOWFLAKE = new Snowflake(3, 2);
+    private BigDecimal PERIOD;
 
 
     public static final Map<String, DgsBetRecord> userOrders = new ConcurrentHashMap<>();
@@ -105,6 +105,12 @@ public class DgsService extends BaseService {
 
     public static final Map<String, JSONArray> pushArray = new ConcurrentHashMap<>();
 
+
+    @PostConstruct
+    public void _construct() {
+        init();
+        initPeriod();
+    }
     public void init() {
         userOrders.clear();
         settleInfo.clear();
@@ -115,9 +121,15 @@ public class DgsService extends BaseService {
         ROOM_LIST.put("0", new ConcurrentHashMap<>());
         ROOM_LIST.put("1", new ConcurrentHashMap<>());
     }
+    public void initPeriod() {
+        PERIOD = new BigDecimal("1");
+    }
 
     public void updateStatus(int status) {
         STATUS = status;
+    }
+    public void updatePeriod(BigDecimal period) {
+        PERIOD = period;
     }
 
     public Map<String, String> updateCapital(String userId, BigDecimal amount, String orderNo, Long dataId) {
@@ -132,8 +144,7 @@ public class DgsService extends BaseService {
         return myOrder;
     }
 
-    @Transactional
-    @ServiceMethod(code = "103", description = "击杀")
+
     public Object play(DgsService adminSocketServer, Command lotteryCommand, JSONObject data) {
         String betInfo = data.getString("bet");
         BigDecimal amount = data.getBigDecimal("betAmount");
@@ -198,24 +209,35 @@ public class DgsService extends BaseService {
         }
 
     /**
-     * @param monsterType
+     * @param
      */
-    private void attackBoss(Long monsterType,long userId){
+    @Transactional
+    @ServiceMethod(code = "103", description = "击杀")
+    public void attackBoss(DgsService adminSocketServer, Command lotteryCommand, JSONObject data){
+        Long monsterType = data.getLong("bet");
+        BigDecimal betAmount = data.getBigDecimal("betAmount");
+        Long userId = data.getLong("userId");
             Monster monster = new Monster();
             //定义怪兽的血量
-            int monsterBlood = 2000;
             int dieStatus = 0 ;
+            List<Object> list = new ArrayList<>();
             synchronized (lock) {
+                //没有死亡的以及当前类型的怪兽
                 List<Monster> monsterList = monsterService.findMonsterByStatus(monsterType, dieStatus);
+                monsterList.stream().forEach(item->list.add(item.getUserId()));
                 monster.setCreateTime(new Date());
                 monster.setUpdateTime(new Date());
+                monster.setUserId(userId);
                 monster.setMonsterType(monsterType);
                 monster.setDieStatus(dieStatus);
                 //判断当前怪兽的血量（查询当前类型下的最低血量 是否为0 如果为0 修改当前类型下的怪兽所有类型下的死亡状态为已死亡，如果不为0的话，继续击杀）
+                if(list.contains(userId)){
+                    throwExp("当前用户已经参加过本次击打活动");
+                }
                 if(monsterList != null && monsterList.size()>0){
-                    if(monsterList.get(0).getCurrBlood() == 0 ){
-                        monster.setDieStatus(1);
-                        monster.setUpdateTime(new Date());
+                    if(monsterList.get(0).getCurrBlood() == 100){
+                        monster.setCurrBlood(monsterList.get(0).getCurrBlood()-100);
+                        monsterService.insert(monster);
                         //开始瓜分红包
                         Random random = new Random();
                         int randomIndex = random.nextInt(monsterList.size()); // 生成一个[0, list.size())范围内的随机索引
@@ -225,35 +247,38 @@ public class DgsService extends BaseService {
                         Integer monsterType1 = Math.toIntExact(monster1.getMonsterType());
                         //扣除10%的手续费，剩余的为奖励金额
                         double rewardAmount = (monsterType1 - monsterType1 * 0.1) * 1000;
-                        List<BigDecimal> bigDecimals = divideRedPacket(rewardAmount, 19);
+                        List<BigDecimal> bigDecimals = divideRedPacket(rewardAmount, 3);
                         JSONObject jsonObject = new JSONObject();
                         for (BigDecimal profit : bigDecimals) {
                             for (Monster monster2 : monsterList) {
                                 JSONObject monsterObject = new JSONObject();
                                 String orderNo = OrderUtil.getBatchOrder32Number();
+                                BigDecimal amount = BigDecimal.valueOf(monsterType).add(profit);
                                 monster2.setProfit(profit);
+                                monster2.setBetAmount(amount);
+                                monster2.setDieStatus(1);
                                 monsterObject.put("orderNo",orderNo);
                                 monsterObject.put("profit",profit);
-                                monsterObject.put("betAmount",BigDecimal.valueOf(monsterType));
+                                monsterObject.put("betAmount",betAmount);
                                 monsterObject.put("userId",userId);
                                 jsonObject.put("monsterObject",monsterObject);
-                                //加资产
-                                userCapitalService.addUserBalanceByAddReward(BigDecimal.valueOf(monsterType).add(profit),userId, UserCapitalTypeEnum.currency_2.getValue(), LogCapitalTypeEnum.yyb_winning);
+                                monsterService.updateMonSterStatus(monster2);
+                                userCapitalService.addUserBalanceByAddReward(amount,userId, UserCapitalTypeEnum.currency_2.getValue(), LogCapitalTypeEnum.yyb_winning);
                             }
                         }
                         jsonObject.put("orderNo",jsonObject);
                         //批量新增怪兽订单
                         dgsBetRecordService.batchAddBetAmount(jsonObject);
-                        //修改怪兽状态为已死亡
-                        monsterService.updateMonSterStatus(monster);
                     }else{
                         monster.setCurrBlood(monsterList.get(0).getCurrBlood()-100);
                         monsterService.insert(monster);
                     }
                 }else{
-                    monster.setCurrBlood(monsterBlood-100);
+                    monster.setCurrBlood(2000 - 100);
                     monsterService.insert(monster);
                 }
+
+
             }
         }
     /**
