@@ -37,8 +37,10 @@ public enum PushCode {
 	updateSgInfo,
 
 	updateBtStatus,
+	updateDgsStatus,
 
 	updateBtInfo,
+	updateDgsInfo,
 	updateDnsStatus,
 	updateDnsInfo,
 	updatePlayer,

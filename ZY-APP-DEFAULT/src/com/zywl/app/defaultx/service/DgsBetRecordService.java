@@ -31,16 +31,15 @@ public class DgsBetRecordService extends DaoService {
 	 * @param userId
 	 */
 	@Transactional
-	public DgsBetRecord addRecord(Long userId, String orderNo, BigDecimal amount) {
+	public int addRecord(Long userId, String orderNo,Integer monsterType) {
 		DgsBetRecord record = new DgsBetRecord();
 		record.setUserId(userId);
+		record.setMonsterId(monsterType);
 		record.setOrderNo(orderNo);
-		record.setBetAmount(amount);
 		record.setStatus(0);
 		record.setCreateTime(new Date());
 		record.setUpdateTime(new Date());
-		save(record);
-		return record;
+		return execute("insert",record);
 	}
 	
 	
@@ -52,6 +51,12 @@ public class DgsBetRecordService extends DaoService {
 		params.put("start",0);
 		params.put("limit",10);
 		return  findList("findByUserId", params);
+	}
+	public List<DgsBetRecord> findByStatus(Long monsterId) {
+		Map<String, Object> params = new HashedMap<String, Object>();
+		params.put("status", 0);
+		params.put("monsterId",monsterId);
+		return  findList("findByStatus", params);
 	}
 
 	@Transactional
@@ -69,16 +74,8 @@ public class DgsBetRecordService extends DaoService {
 		return (LhdBetRecord) findOne("findPeriodsNum", null);
 	}
 	@Transactional
-	public void batchUpdateRecord(JSONObject obj) {
-		List<Map<String, Object>> list = new ArrayList<Map<String,Object>>();
-		Set<String> set = obj.keySet();
-		for (String key : set) {
-			Map<String, Object> map = new HashedMap<String, Object>();
-			map.put("orderNo", key);
-			JSONObject o = (JSONObject) obj.get(key);
-			list.add(map);
-		}
-		 execute("batchUpdateRecord", list);
+	public void batchUpdateRecord(List<DgsBetRecord> dgsBetRecords) {
+		 execute("batchUpdateRecord", dgsBetRecords);
 	}
 	@Transactional
 	public void addBetAmount(BigDecimal betAmount,BigDecimal profit,String orderNo) {
@@ -122,4 +119,5 @@ public class DgsBetRecordService extends DaoService {
 		}
 		execute("batchUpdateRecord", list);
 	}
+
 }

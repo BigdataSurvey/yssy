@@ -5,13 +5,13 @@ import java.util.Date;
 
 public class Monster {
 
-    private long id;
+    private Integer id;
 
-    private long userId;
+    private Integer userId;
 
-    private long monsterType;
+    private Integer monsterType;
 
-    private long currBlood;
+    private Integer currBlood;
 
     private BigDecimal profit;
     private BigDecimal betAmount;
@@ -22,43 +22,35 @@ public class Monster {
 
     private Date updateTime;
 
-    public BigDecimal getBetAmount() {
-        return betAmount;
-    }
-
-    public void setBetAmount(BigDecimal betAmount) {
-        this.betAmount = betAmount;
-    }
-
-    public long getId() {
+    public Integer getId() {
         return id;
     }
 
-    public void setId(long id) {
+    public void setId(Integer id) {
         this.id = id;
     }
 
-    public long getUserId() {
+    public Integer getUserId() {
         return userId;
     }
 
-    public void setUserId(long userId) {
+    public void setUserId(Integer userId) {
         this.userId = userId;
     }
 
-    public long getMonsterType() {
+    public Integer getMonsterType() {
         return monsterType;
     }
 
-    public void setMonsterType(long monsterType) {
+    public void setMonsterType(Integer monsterType) {
         this.monsterType = monsterType;
     }
 
-    public long getCurrBlood() {
+    public Integer getCurrBlood() {
         return currBlood;
     }
 
-    public void setCurrBlood(long currBlood) {
+    public void setCurrBlood(Integer currBlood) {
         this.currBlood = currBlood;
     }
 
@@ -68,6 +60,14 @@ public class Monster {
 
     public void setProfit(BigDecimal profit) {
         this.profit = profit;
+    }
+
+    public BigDecimal getBetAmount() {
+        return betAmount;
+    }
+
+    public void setBetAmount(BigDecimal betAmount) {
+        this.betAmount = betAmount;
     }
 
     public long getDieStatus() {
@@ -97,7 +97,7 @@ public class Monster {
     public Monster() {
     }
 
-    public Monster(long id, long userId, long monsterType, long currBlood, BigDecimal profit, BigDecimal betAmount, long dieStatus, Date createTime, Date updateTime) {
+    public Monster(Integer id, Integer userId, Integer monsterType, Integer currBlood, BigDecimal profit, BigDecimal betAmount, long dieStatus, Date createTime, Date updateTime) {
         this.id = id;
         this.userId = userId;
         this.monsterType = monsterType;

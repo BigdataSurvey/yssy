@@ -5,12 +5,14 @@
     <insert id="insert" parameterType="DgsBetRecord" useGeneratedKeys="true" keyProperty="id" keyColumn="id">
         insert into r_dgs_bet_record
         (`user_id`,
+         `monster_id`,
          `order_no`,
          `bet_amount`,
          `status`,
          `create_time`,
          `update_time`)
         values (#{userId},
+                #{monsterId},
                 #{orderNo},
                 #{betAmount},
                 #{status},
@@ -32,9 +34,9 @@
         </if>
     </select>
 
-    <select id="findAll" resultType="DgsBetRecord">
+    <select id="findByStatus" resultType="DgsBetRecord">
         select *
-        from r_dgs_bet_record
+        from r_dgs_bet_record where status = #{status} and monster_id = #{monsterId}
     </select>
 
     <sql id="conditions">
@@ -84,12 +86,20 @@
     </select>
 
     <update id="batchUpdateRecord" parameterType="java.util.List">
-        <foreach collection="list" item="item" index="index" open="" close="" separator=";">
+      <!--  <foreach collection="list" item="item" index="index" open="" close="" separator=";">
             update r_dgs_bet_record
             <set>
               status=1
             </set>
             where order_no = #{item.orderNo}
+        </foreach>-->
+
+        <foreach collection="list" item="item" index="index" open="" close="" separator=";">
+            update r_dgs_bet_record
+            <set>
+                monster_id=#{item.monsterId}, profit=#{item.profit},bet_amount=#{item.betAmount},status = #{item.status},create_time=#{item.createTime},update_time=#{item.updateTime}
+            </set>
+            where user_id= #{item.userId} and status = 0
         </foreach>
     </update>
 
