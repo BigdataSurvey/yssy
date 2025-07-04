@@ -347,7 +347,7 @@ public class ServerUserRoleService extends BaseService {
                     if (activity.getAddPointEvent() == ActivityAddPointEventEnum.RMB_BUY_GIFT.getValue()) {
                         //已经激活大礼包的用户 给他上级加积分并存入redis
                         //用户父id的积分
-                        gameCacheService.addPoint(myId);
+                        gameCacheService.addPoint(myId,5);
                     }
                 }
                 Activity activity2 = gameCacheService.getActivity2();

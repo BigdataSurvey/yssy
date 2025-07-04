@@ -9,6 +9,7 @@ import com.zywl.app.base.util.LockUtil;
 import com.zywl.app.defaultx.annotation.KafkaProducer;
 import com.zywl.app.defaultx.annotation.ServiceClass;
 import com.zywl.app.defaultx.annotation.ServiceMethod;
+import com.zywl.app.defaultx.cache.GameCacheService;
 import com.zywl.app.defaultx.cache.UserCacheService;
 import com.zywl.app.defaultx.enmus.LogUserBackpackTypeEnum;
 import com.zywl.app.defaultx.enmus.UserCapitalTypeEnum;
@@ -54,6 +55,9 @@ public class ManagerUserRoleService extends BaseService {
 
     @Autowired
     private UserCapitalService userCapitalService;
+
+    @Autowired
+    private GameCacheService gameCacheService;
 
     @Autowired
     private CashRecordService cashRecordService;
@@ -217,7 +221,6 @@ public class ManagerUserRoleService extends BaseService {
     @ServiceMethod(code = "005", description = "购买角色")
     public  JSONObject buyRole(ManagerSocketServer adminSocketServer,  JSONObject data) {
         Long userId = data.getLong("userId");
-        User user = userCacheService.getUserInfoById(userId);
         synchronized (LockUtil.getlock(userId)){
             Long roleId = data.getLong("roleId");
             BigDecimal price = managerConfigService.getBigDecimal(Config.GIFT_PRICE_1_GAME);
@@ -236,6 +239,7 @@ public class ManagerUserRoleService extends BaseService {
             }
             userCapitalService.subBalanceByGift(price, userId, null, null);
             managerGameBaseService.pushCapitalUpdate(userId,UserCapitalTypeEnum.currency_2.getValue());
+            gameCacheService.addPoint(userId,1);
         }
         return data;
     }
