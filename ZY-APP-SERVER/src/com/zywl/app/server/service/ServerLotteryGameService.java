@@ -86,6 +86,8 @@ public class ServerLotteryGameService extends BaseService {
         Push.addPushSuport(PushCode.updateSgStatus, new DefaultPushHandler());
         Push.addPushSuport(PushCode.updateBtInfo, new DefaultPushHandler());
         Push.addPushSuport(PushCode.updateBtStatus, new DefaultPushHandler());
+        Push.addPushSuport(PushCode.updateDgsInfo, new DefaultPushHandler());
+        Push.addPushSuport(PushCode.updateDgsStatus, new DefaultPushHandler());
     }
 
     public void registPush(AppSocket appSocket, String userId, String gameId) {
@@ -109,6 +111,10 @@ public class ServerLotteryGameService extends BaseService {
             Push.doAddPush(appSocket, new PushBean(PushCode.updateBtInfo, gameId));
             Push.doAddPush(appSocket, new PushBean(PushCode.updateBtStatus, userId));
         }
+        else if (gameId.equals("10")) {
+            Push.doAddPush(appSocket, new PushBean(PushCode.updateDgsInfo, gameId));
+            Push.doAddPush(appSocket, new PushBean(PushCode.updateDgsStatus, userId));
+        }
     }
 
     public void removePush(AppSocket appSocket, String userId, String gameId) {
@@ -130,6 +136,10 @@ public class ServerLotteryGameService extends BaseService {
         } else if (gameId.equals("9")) {
             Push.doRemovePush(appSocket, new PushBean(PushCode.updateBtInfo, gameId));
             Push.doRemovePush(appSocket, new PushBean(PushCode.updateBtStatus, userId));
+        }
+        else if (gameId.equals("10")) {
+            Push.doRemovePush(appSocket, new PushBean(PushCode.updateDgsInfo, gameId));
+            Push.doRemovePush(appSocket, new PushBean(PushCode.updateDgsStatus, userId));
         }
     }
 

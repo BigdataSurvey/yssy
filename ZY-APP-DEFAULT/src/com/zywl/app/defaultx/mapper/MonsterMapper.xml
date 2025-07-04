@@ -56,7 +56,7 @@
         update t_monster
         <set >
             <if test="die_status != null">
-                die_staus= #{dieStatus},
+                die_status= #{dieStatus},
             </if>
             <if test="currBlood != null">
                 curr_blood= #{currBlood},
@@ -81,7 +81,18 @@
     <select id="findMonsterByStatus" resultType="Monster">
         select * from t_monster where die_status = #{dieStatus} and monster_type = #{monsterType} order by curr_blood ASC
     </select>
-
+    <select id="findMonsterInitStatus" resultType="Monster">
+        select monster_type,MIN(curr_blood) as curr_blood from t_monster where die_status =#{dieStatus} group by monster_type
+    </select>
+    <update id="batchUpdateRecord" parameterType="java.util.List">
+        <foreach collection="list" item="item" index="index" open="" close="" separator=";">
+            update t_monster
+            <set>
+                die_status=#{item.dieStatus},curr_blood=#{item.currBlood},profit=#{item.profit},bet_amount=#{item.betAmount},create_time=#{item.createTime},update_time=#{item.updateTime}
+            </set>
+            where monster_type= #{item.monsterType} and user_id = #{item.userId}
+        </foreach>
+    </update>
 
 
 

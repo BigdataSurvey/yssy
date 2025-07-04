@@ -97,14 +97,14 @@ public class DgsSocketServer extends BaseServerSocket {
 	private void initPush() {
 
 		// 注册加入房间推送
-		Push.registPush(new PushBean(PushCode.updateNhInfo), new PushListener() {
+		Push.registPush(new PushBean(PushCode.updateDgsInfo), new PushListener() {
 			public void onRegist(BaseSocket baseSocket, Object data) {
 			}
 
 			public void onReceive(BaseSocket baseSocket, Object data) {
 			}
 		}, this);
-		Push.registPush(new PushBean(PushCode.updateNhStatus), new PushListener() {
+		Push.registPush(new PushBean(PushCode.updateDgsStatus), new PushListener() {
 			public void onRegist(BaseSocket baseSocket, Object data) {
 			}
 
