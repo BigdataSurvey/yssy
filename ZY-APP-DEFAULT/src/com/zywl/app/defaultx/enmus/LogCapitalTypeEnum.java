@@ -135,7 +135,7 @@ public enum LogCapitalTypeEnum {
 
     game_cards_win("虚妄迷局获得",1021),
 
-    bug_role_gift("购买角色礼包",1022),
+    bug_role_gift("购买角色",1022),
     donate_item("捐赠道具",1023),
     VIP_RECEIVE("vip领取",1024),
     yyb_winning("打怪中奖",1026),

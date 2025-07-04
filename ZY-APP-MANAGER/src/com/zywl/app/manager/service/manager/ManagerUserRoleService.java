@@ -4,13 +4,16 @@ import com.alibaba.fastjson2.JSONArray;
 import com.alibaba.fastjson2.JSONObject;
 import com.zywl.app.base.bean.*;
 import com.zywl.app.base.service.BaseService;
+import com.zywl.app.base.util.DateUtil;
 import com.zywl.app.base.util.LockUtil;
 import com.zywl.app.defaultx.annotation.KafkaProducer;
 import com.zywl.app.defaultx.annotation.ServiceClass;
 import com.zywl.app.defaultx.annotation.ServiceMethod;
 import com.zywl.app.defaultx.cache.UserCacheService;
 import com.zywl.app.defaultx.enmus.LogUserBackpackTypeEnum;
+import com.zywl.app.defaultx.enmus.UserCapitalTypeEnum;
 import com.zywl.app.defaultx.service.CashRecordService;
+import com.zywl.app.defaultx.service.UserCapitalService;
 import com.zywl.app.defaultx.service.UserRoleAdService;
 import com.zywl.app.defaultx.service.UserRoleService;
 import com.zywl.app.manager.context.KafkaEventContext;
@@ -48,6 +51,9 @@ public class ManagerUserRoleService extends BaseService {
 
     @Autowired
     private ManagerConfigService managerConfigService;
+
+    @Autowired
+    private UserCapitalService userCapitalService;
 
     @Autowired
     private CashRecordService cashRecordService;
@@ -193,7 +199,6 @@ public class ManagerUserRoleService extends BaseService {
 
     @Transactional
     @ServiceMethod(code = "004", description = "领取免费角色")
-    @KafkaProducer(topic = KafkaTopicContext.RED_POINT, event = KafkaEventContext.ADD_HP, sendParams = true)
     public  JSONObject receiveFreeRole(ManagerSocketServer adminSocketServer,  JSONObject data) {
         Long userId = data.getLong("userId");
         User user = userCacheService.getUserInfoById(userId);
@@ -208,5 +213,30 @@ public class ManagerUserRoleService extends BaseService {
         return data;
     }
 
-
+    @Transactional
+    @ServiceMethod(code = "005", description = "购买角色")
+    public  JSONObject buyRole(ManagerSocketServer adminSocketServer,  JSONObject data) {
+        Long userId = data.getLong("userId");
+        User user = userCacheService.getUserInfoById(userId);
+        synchronized (LockUtil.getlock(userId)){
+            Long roleId = data.getLong("roleId");
+            BigDecimal price = managerConfigService.getBigDecimal(Config.GIFT_PRICE_1_GAME);
+            managerGameBaseService.checkBalance(userId,price, UserCapitalTypeEnum.currency_2);
+            UserRole byUserIdAndRoleId = userRoleService.findByUserIdAndRoleId(userId, roleId);
+            if (byUserIdAndRoleId!=null){
+                if (byUserIdAndRoleId.getEndTime().getTime()<System.currentTimeMillis()){
+                    //早就结束了 直接从现在 猛续一个月
+                    byUserIdAndRoleId.setEndTime(DateUtil.getDateByDay(30));
+                    byUserIdAndRoleId.setStatus(1);
+                }else {
+                    byUserIdAndRoleId.setEndTime(DateUtil.getDateByDay(byUserIdAndRoleId.getEndTime(),30));
+                }
+            }else{
+                UserRole userRole = userRoleService.addUserRole(userId, roleId, 30);
+            }
+            userCapitalService.subBalanceByGift(price, userId, null, null);
+            managerGameBaseService.pushCapitalUpdate(userId,UserCapitalTypeEnum.currency_2.getValue());
+        }
+        return data;
+    }
 }

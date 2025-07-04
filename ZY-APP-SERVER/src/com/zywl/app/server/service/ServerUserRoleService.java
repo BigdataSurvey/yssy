@@ -697,6 +697,36 @@ public class ServerUserRoleService extends BaseService {
         return result;
     }
 
+    @ServiceMethod(code = "017", description = "角色商城信息")
+    public Object roleShopInfo(final AppSocket appSocket, Command appCommand, JSONObject params) {
+        checkNull(params);
+        Long userId = appSocket.getWsidBean().getUserId();
+        List<DicRole> allRole = dicRoleService.findAllRole();
+        JSONArray array = new JSONArray();
+        for (DicRole dicRole : allRole) {
+            JSONObject info = new JSONObject();
+            info.put("roleId",dicRole.getId());
+            info.put("price",serverConfigService.getBigDecimal(Config.GIFT_PRICE_1_GAME));
+            array.add(info);
+        }
+        return array;
+    }
+
+
+    @ServiceMethod(code = "018", description = "购买角色")
+    public Object buyRole(final AppSocket appSocket, Command appCommand, JSONObject params) {
+        checkNull(params);
+        checkNull(params.get("roleId"));
+        Long userId = appSocket.getWsidBean().getUserId();
+        params.put("userId",userId);
+        Long roleId = params.getLong("roleId");
+        if (roleId<1 || roleId>5){
+            throwExp("非法请求");
+        }
+        Executer.request(TargetSocketType.manager, CommandBuilder.builder().request("400005", params).build(), new RequestManagerListener(appCommand));
+        return async();
+    }
+
     public static void main(String[] args) {
         long a = 15560/5400;
         System.out.println(a);
