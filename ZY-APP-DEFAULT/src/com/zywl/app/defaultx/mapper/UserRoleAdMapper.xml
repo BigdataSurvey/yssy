@@ -3,7 +3,7 @@
 <mapper namespace="com.zywl.app.defaultx.mapper.UserRoleAdMapper">
 
 
-   <insert id="insert" parameterType="UserRoleAd">
+   <insert id="insert" parameterType="UserRoleAd" useGeneratedKeys="true" keyProperty="id" keyColumn="id">
 		insert into t_user_role_ad
 		(
                id,

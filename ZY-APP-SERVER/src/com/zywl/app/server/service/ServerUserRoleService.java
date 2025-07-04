@@ -58,6 +58,9 @@ public class ServerUserRoleService extends BaseService {
     private UserRoleService userRoleService;
 
     @Autowired
+    private CashRecordService cashRecordService;
+
+    @Autowired
     private UserRoleAdService userRoleAdService;
 
     @Autowired
@@ -624,6 +627,10 @@ public class ServerUserRoleService extends BaseService {
         checkNull(params);
         Long userId = appSocket.getWsidBean().getUserId();
         params.put("userId", userId);
+        long freeRoleNumber = userRoleService.findFreeRoleNumber();
+        if (freeRoleNumber>=serverConfigService.getInteger(Config.FREE_ROLE_NUM)){
+            throwExp("角色已经领取完啦");
+        }
         Executer.request(TargetSocketType.manager, CommandBuilder.builder().request("400004", params).build(), new RequestManagerListener(appCommand));
         return async();
     }
@@ -676,6 +683,11 @@ public class ServerUserRoleService extends BaseService {
             }
         } else {
             userRoleAd.setLastTime(new Date());
+        }
+        System.out.println(userRoleAd.getLook());
+        System.out.println(userRoleAd.getCanLook());
+        if ((userRoleAd.getLook()+userRoleAd.getCanLook())>10){
+            userRoleAd.setCanLook(10-userRoleAd.getLook());
         }
         userRoleAdService.update(userRoleAd);
         JSONObject result = new JSONObject();

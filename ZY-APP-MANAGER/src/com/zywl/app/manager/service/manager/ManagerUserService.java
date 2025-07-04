@@ -413,9 +413,9 @@ public class ManagerUserService extends BaseService {
                     userCacheService.subSonCount(userInfo.getGrandfaId(), 3);
                     userCacheService.addSonCount(userInfo.getGrandfaId(), 2);
                 }
-                if (userInfo.getAlipayId() != null) {
+                /*if (userInfo.getAlipayId() != null) {
                     managerCapitalService.cash(userId, 2, new BigDecimal("0.3"), userInfo.getUserNo(), userInfo.getName(), realName, userInfo.getOpenId());
-                }
+                }*/
                 return data;
             } else if (status == -1) {
                 throwExp("网络拥挤，请稍后重试！");
@@ -529,6 +529,7 @@ public class ManagerUserService extends BaseService {
                     //工作室
                     User my = userCacheService.getUserInfoById(userId);
                     userService.updateUserRisk(1, userId);
+                    userService.updateUserRisk(1, parentId);
                     userCacheService.addRiskTime(parentId);
                 } else {
                     userCacheService.setUserInviteRisk(parentId);

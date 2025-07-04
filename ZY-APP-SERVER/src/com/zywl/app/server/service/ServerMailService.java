@@ -83,6 +83,9 @@ public class ServerMailService extends BaseService{
 				throwExp("注册24小时后解锁赠送道具功能。");
 			}
 		}
+		if (user.getRisk()==1){
+			throwExp("账号存在风险，请联系客服进行核实。");
+		}
 		UserMail userMail = userMailService.findUserReadMailInfo(userId);
 		if (userMail == null || user==null ) {
 			throwExp("玩家信息有误");

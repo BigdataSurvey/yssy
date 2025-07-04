@@ -92,7 +92,9 @@ if(!window.CtrlFn_${menuId}){
             HF_SYS_ID:"汇付商户号",
             HF_RSA_PRIVATE_KEY:"汇付商户私钥",
             HF_RSA_PUBLIC_KEY:"汇付公钥",
-            IS_AUTO_PAY:"是否自动打款"
+            IS_AUTO_PAY:"是否自动打款",
+            FREE_ROLE_NUM:"免费角色数量",
+            ALIPAY_ONE_MONEY:"支付宝单笔转出金额"
         };
         /*初始化表格*/
         function initTable() {

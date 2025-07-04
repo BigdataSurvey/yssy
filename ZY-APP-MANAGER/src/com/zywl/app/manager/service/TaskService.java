@@ -282,14 +282,21 @@ public class TaskService extends BaseService {
                             Long userId = info.getLong("userId");
                             User user = userCacheService.getUserInfoById(userId);
                             BigDecimal rewardAmount = info.getBigDecimal("rewardAmount");
-                            String orderNo = OrderUtil.getOrder5Number();
                             int isAutoPay = managerConfigService.getInteger(Config.IS_AUTO_PAY);
-                            cashRecordService.addCashOrder(user.getOpenId(), userId, user.getUserNo(), user.getName(), user.getRealName(), orderNo,
-                                    rewardAmount, 2, user.getPhone(),isAutoPay);
+                            BigDecimal chunk = managerConfigService.getBigDecimal(Config.ALIPAY_ONE_MONEY);
+                            BigDecimal remaining = rewardAmount;
+                            while (remaining.compareTo(BigDecimal.ZERO) > 0) {
+                                String orderNo = OrderUtil.getOrder5Number();
+                                BigDecimal current = remaining.min(chunk);
+                                cashRecordService.addCashOrder(user.getOpenId(), userId, user.getUserNo(), user.getName(), user.getRealName(), orderNo,
+                                        current, 2, user.getPhone(),isAutoPay);
+                                System.out.println("取出: " + current);
+                                remaining = remaining.subtract(current);
+
+                            }
+
                         }
                     }
-
-
                     Activity activityByTime2 = activityService2.findActivity2ByTime();
                     Activity lastActive2 = activityService2.findById(activityByTime.getId() - 1);
                     long activeTime2 = activityByTime2.getBeginTime().getTime();
@@ -301,10 +308,18 @@ public class TaskService extends BaseService {
                             Long userId = info.getLong("userId");
                             User user = userCacheService.getUserInfoById(userId);
                             BigDecimal rewardAmount = info.getBigDecimal("rewardAmount");
-                            String orderNo = OrderUtil.getOrder5Number();
                             int isAutoPay = managerConfigService.getInteger(Config.IS_AUTO_PAY);
-                            cashRecordService.addCashOrder(user.getOpenId(), userId, user.getUserNo(), user.getName(), user.getRealName(), orderNo,
-                                    rewardAmount, 2, user.getPhone(),isAutoPay);
+                            BigDecimal chunk = managerConfigService.getBigDecimal(Config.ALIPAY_ONE_MONEY);
+                            BigDecimal remaining = rewardAmount;
+                            while (remaining.compareTo(BigDecimal.ZERO) > 0) {
+                                String orderNo = OrderUtil.getOrder5Number();
+                                BigDecimal current = remaining.min(chunk);
+                                cashRecordService.addCashOrder(user.getOpenId(), userId, user.getUserNo(), user.getName(), user.getRealName(), orderNo,
+                                        current, 2, user.getPhone(),isAutoPay);
+                                System.out.println("取出: " + current);
+                                remaining = remaining.subtract(current);
+
+                            }
                         }
                     }
 
@@ -352,4 +367,16 @@ public class TaskService extends BaseService {
         }
     }
 
+    public static void main(String[] args) {
+        BigDecimal total = new BigDecimal("888");
+        BigDecimal chunk = new BigDecimal("200");
+        BigDecimal remaining = total;
+
+        while (remaining.compareTo(BigDecimal.ZERO) > 0) {
+            BigDecimal current = remaining.min(chunk);
+            System.out.println("取出: " + current);
+            remaining = remaining.subtract(current);
+        }
+    }
 }
+

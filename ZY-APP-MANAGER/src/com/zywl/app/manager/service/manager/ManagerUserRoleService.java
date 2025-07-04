@@ -10,13 +10,13 @@ import com.zywl.app.defaultx.annotation.ServiceClass;
 import com.zywl.app.defaultx.annotation.ServiceMethod;
 import com.zywl.app.defaultx.cache.UserCacheService;
 import com.zywl.app.defaultx.enmus.LogUserBackpackTypeEnum;
+import com.zywl.app.defaultx.service.CashRecordService;
 import com.zywl.app.defaultx.service.UserRoleAdService;
 import com.zywl.app.defaultx.service.UserRoleService;
 import com.zywl.app.manager.context.KafkaEventContext;
 import com.zywl.app.manager.context.KafkaTopicContext;
 import com.zywl.app.manager.context.MessageCodeContext;
 import com.zywl.app.manager.service.PlayGameService;
-import com.zywl.app.manager.socket.AdminSocketServer;
 import com.zywl.app.manager.socket.ManagerSocketServer;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -25,7 +25,6 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.util.Date;
 import java.util.List;
-import java.util.Objects;
 
 
 @Service
@@ -49,6 +48,9 @@ public class ManagerUserRoleService extends BaseService {
 
     @Autowired
     private ManagerConfigService managerConfigService;
+
+    @Autowired
+    private CashRecordService cashRecordService;
 
     @Transactional
     @ServiceMethod(code = "001", description = "恢复角色体力")
@@ -148,7 +150,7 @@ public class ManagerUserRoleService extends BaseService {
             if (userRole.getEndTime().getTime()<System.currentTimeMillis()){
                 throwExp("角色已到期，请重新领取角色");
             }
-            if (userRole.getHp()==0){
+            if (userRole.getHp()<10){
                 userRole.setLastReceiveTime(new Date());
             }
             DicRole dicRole = PlayGameService.DIC_ROLE.get(userRole.getRoleId().toString());

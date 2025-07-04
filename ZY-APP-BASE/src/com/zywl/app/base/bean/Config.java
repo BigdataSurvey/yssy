@@ -8,7 +8,8 @@ import java.util.List;
 public class Config extends BaseBean {
 
 
-
+	public static final String ALIPAY_ONE_MONEY = "ALIPAY_ONE_MONEY";
+	public static final String FREE_ROLE_NUM = "FREE_ROLE_NUM";
 	public static final String UPDATE_ACH = "UPDATE_ACH";
 	public static final String IS_AUTO_PAY = "IS_AUTO_PAY";
 	public static final String MAX_BUY_GIFT_NUMBER = "MAX_BUY_GIFT_NUMBER";

@@ -1,16 +1,15 @@
 package com.zywl.app.defaultx.cache;
 
 
-import com.alibaba.fastjson2.JSONArray;
 import com.alibaba.fastjson2.JSONObject;
 import com.zywl.app.base.bean.Activity;
 import com.zywl.app.base.bean.User;
-import com.zywl.app.base.bean.vo.KillNsRecordRandVo;
+import com.zywl.app.base.bean.UserCapital;
 import com.zywl.app.base.constant.RedisKeyConstant;
 import com.zywl.app.base.util.DateUtil;
-import com.zywl.app.base.util.OrderUtil;
 import com.zywl.app.defaultx.cache.impl.RedisService;
 import com.zywl.app.defaultx.enmus.GameTypeEnum;
+import com.zywl.app.defaultx.enmus.UserCapitalTypeEnum;
 import com.zywl.app.defaultx.service.Activity2Service;
 import com.zywl.app.defaultx.service.ActivityService;
 import com.zywl.app.defaultx.service.CashRecordService;
@@ -30,6 +29,9 @@ public class GameCacheService extends RedisService {
     public static final double DOUBLE = 20.5;
     @Autowired
     private UserCacheService userCacheService;
+
+    @Autowired
+    private UserCapitalCacheService userCapitalCacheService;
     @Autowired
     private CashRecordService cashRecordService;
 
@@ -349,7 +351,7 @@ public class GameCacheService extends RedisService {
             double allScore = 0.0;
             for (String id : ids) {
                 Double score = thisTopList.get(id);
-                long rank = getTopRankByKey(pointKey, id) + 1;
+                //long rank = getTopRankByKey(pointKey, id) + 1;
                 User userInfoById = userCacheService.getUserInfoById(id);
                 JSONObject info = new JSONObject();
                 info.put("userHeadImg", userInfoById.getHeadImageUrl());
@@ -358,7 +360,9 @@ public class GameCacheService extends RedisService {
                 info.put("userNo", userInfoById.getUserNo());
                 BigDecimal bd = new BigDecimal(score).setScale(2, RoundingMode.HALF_UP);
                 info.put("score", bd.doubleValue());
-                info.put("rank",rank);
+                UserCapital userCapital = userCapitalCacheService.getUserCapitalCacheByType(Long.valueOf(id), UserCapitalTypeEnum.currency_2.getValue());
+                info.put("money",userCapital.getBalance());
+                //info.put("rank",rank);
                 list.add(info);
                 allScore += score;
             }
