@@ -23,6 +23,8 @@ public class Activity extends BaseBean {
 
     private BigDecimal allMoney;
 
+    private String topMoney;
+
     private int addPointEvent;
 
     private BigDecimal onePointMoney;
@@ -135,5 +137,13 @@ public class Activity extends BaseBean {
 
     public void setOnePointMoney(BigDecimal onePointMoney) {
         this.onePointMoney = onePointMoney;
+    }
+
+    public String getTopMoney() {
+        return topMoney;
+    }
+
+    public void setTopMoney(String topMoney) {
+        this.topMoney = topMoney;
     }
 }

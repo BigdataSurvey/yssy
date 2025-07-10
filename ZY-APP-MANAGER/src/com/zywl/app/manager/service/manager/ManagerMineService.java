@@ -2,6 +2,7 @@ package com.zywl.app.manager.service.manager;
 
 import com.alibaba.fastjson2.JSONArray;
 import com.alibaba.fastjson2.JSONObject;
+import com.zywl.app.base.bean.Activity;
 import com.zywl.app.base.bean.Backpack;
 import com.zywl.app.base.bean.User;
 import com.zywl.app.base.bean.UserCapital;
@@ -16,6 +17,7 @@ import com.zywl.app.base.util.OrderUtil;
 import com.zywl.app.defaultx.annotation.KafkaProducer;
 import com.zywl.app.defaultx.annotation.ServiceClass;
 import com.zywl.app.defaultx.annotation.ServiceMethod;
+import com.zywl.app.defaultx.cache.GameCacheService;
 import com.zywl.app.defaultx.cache.UserCacheService;
 import com.zywl.app.defaultx.cache.UserCapitalCacheService;
 import com.zywl.app.defaultx.enmus.LogUserBackpackTypeEnum;
@@ -65,6 +67,9 @@ public class ManagerMineService extends BaseService {
 
     @Autowired
     private UserOpenMineRecordService userOpenMineRecordService;
+
+    @Autowired
+    private GameCacheService gameCacheService;
 
     @Transactional
     @ServiceMethod(code = "001", description = "开通书境")
@@ -117,9 +122,37 @@ public class ManagerMineService extends BaseService {
             vo.setUseNumber(useNumber);
             BigDecimal anima = dicMine.getCostMoney();
             managerUserService.addAnimaToInviter(userId,anima,new BigDecimal("0.1"));
+            addActiveScore(userId,dicMine);
             return vo;
         }
     }
+
+    public void addActiveScore(Long userId,DicMine dicMine){
+        Activity activity = gameCacheService.getActivity();
+        if (activity.getAddPointEvent()==2){
+            User user = userCacheService.getUserInfoById(userId);
+            gameCacheService.addPoint(userId,getScore(dicMine));
+            if (user.getParentId()!=null){
+                gameCacheService.addPoint(user.getParentId(),getScore(dicMine)*10);
+            }
+        }
+    }
+
+    public double getScore(DicMine dicMine){
+        if (dicMine.getId()==1){
+            return 1;
+        } else if (dicMine.getId()==2) {
+            return 2;
+        } else if (dicMine.getId()==3) {
+            return 6;
+        } else if (dicMine.getId()==4) {
+            return 10;
+        } else if (dicMine.getId()==5) {
+            return 20;
+        }
+        return 0;
+    }
+
 
     @Transactional
     @ServiceMethod(code = "002", description = "探索书境")

@@ -297,7 +297,7 @@ public class TaskService extends BaseService {
 
                         }
                     }
-                    Activity activityByTime2 = activityService2.findActivity2ByTime();
+                    /*Activity activityByTime2 = activityService2.findActivity2ByTime();
                     Activity lastActive2 = activityService2.findById(activityByTime.getId() - 1);
                     long activeTime2 = activityByTime2.getBeginTime().getTime();
                     logger.info("本期活动2开启时间"+activeTime2);
@@ -321,7 +321,7 @@ public class TaskService extends BaseService {
 
                             }
                         }
-                    }
+                    }*/
 
                     logger.info("判断限时活动用时【" + (System.currentTimeMillis() - time) + "】ms");
                 } catch (Exception e) {

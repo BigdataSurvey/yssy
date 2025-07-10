@@ -360,7 +360,6 @@ public class ServerUserRoleService extends BaseService {
             activeGiftRecordService.addRecord(myId, user.getId(), type);
             return params;
         }
-
     }
 
 
@@ -405,9 +404,15 @@ public class ServerUserRoleService extends BaseService {
         Long userId = appSocket.getWsidBean().getUserId();
         synchronized (LockUtil.getlock(userId)) {
             List<UserRole> roles = userRoleService.findByUserId(userId);
+            if (roles.size()>=5){
+                User user = userCacheService.getUserInfoById(userId);
+                if (user.getVip2()!=1){
+                    user.setVip2(1);
+                    userService.updateUserVip2(userId);
+                }
+            }
             return settleRoleReceive(roles);
         }
-
     }
 
     public List<UserRole> settleRoleReceive(List<UserRole> roles) {

@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.zywl.app.defaultx.mapper.DicMzItemMapper">
+
+
+
+    <select id="findAll" resultType="DicMzItem">
+        select *
+        from dic_mz_item
+    </select>
+
+    <select id="findCanBuy" resultType="DicMzItem">
+        select *
+        from dic_mz_item where is_shop=1
+    </select>
+
+    <select id="findById" resultType="DicMzItem">
+        select *
+        from dic_mz_item where id=#{id}
+    </select>
+
+    <update id="updateNumber" parameterType="DicMzItem">
+        update dic_mz_item set shop_number = shop_number-1 where id=#{id} and shop_number-1>=0
+    </update>
+
+
+</mapper>

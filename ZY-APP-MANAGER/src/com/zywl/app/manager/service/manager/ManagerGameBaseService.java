@@ -1102,6 +1102,14 @@ public class ManagerGameBaseService extends BaseService {
             obj.put("type", type);
             obj.put("lv", user.getVip1());
             addChat(obj);
+            if (type!=1){
+                SERVER_CHAT.put("name", user.getName());
+                SERVER_CHAT.put("headImg", user.getHeadImageUrl());
+                SERVER_CHAT.put("userNo", user.getUserNo());
+                SERVER_CHAT.put("text", text);
+                SERVER_CHAT.put("type", type);
+                SERVER_CHAT.put("lv",  user.getVip1());
+            }
             Push.push(PushCode.chat, null, obj);
             return new JSONObject();
         }

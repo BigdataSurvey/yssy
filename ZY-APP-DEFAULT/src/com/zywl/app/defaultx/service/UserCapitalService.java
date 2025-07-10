@@ -499,6 +499,20 @@ public class UserCapitalService extends DaoService {
     }
 
     @Transactional
+    public void subUserBalanceByBuyMz(Long userId, BigDecimal amount, String orderNo, Long sourceDataId) {
+        UserCapital userCapital = userCapitalCacheService.getUserCapitalCacheByType(userId, UserCapitalTypeEnum.currency_2.getValue());
+        int a = subUserBalance(amount, userId, UserCapitalTypeEnum.currency_2.getValue(), userCapital.getBalance(), userCapital.getOccupyBalance(), orderNo, sourceDataId, LogCapitalTypeEnum.open_mine, TableNameConstant.USER_OPEN_MINE_RECORD);
+        if (a < 1) {
+            userCapitalCacheService.deltedUserCapitalCache(userId, UserCapitalTypeEnum.currency_2.getValue());
+            userCapital = userCapitalCacheService.getUserCapitalCacheByType(userId, UserCapitalTypeEnum.currency_2.getValue());
+            int b = subUserBalance(amount, userId, UserCapitalTypeEnum.currency_2.getValue(), userCapital.getBalance(), userCapital.getOccupyBalance(), orderNo, sourceDataId, LogCapitalTypeEnum.open_mine, TableNameConstant.USER_OPEN_MINE_RECORD);
+            if (b < 1) {
+                throwExp("开通矿场失败");
+            }
+        }
+    }
+
+    @Transactional
     public void subUserBalanceByBuyGift(Long userId, BigDecimal amount, String orderNo, Long sourceDataId) {
         UserCapital userCapital = userCapitalCacheService.getUserCapitalCacheByType(userId, UserCapitalTypeEnum.currency_2.getValue());
         int a = subUserBalance(amount, userId, UserCapitalTypeEnum.currency_2.getValue(), userCapital.getBalance(), userCapital.getOccupyBalance(), orderNo, sourceDataId, LogCapitalTypeEnum.buy_gift, TableNameConstant.BUY_GIFT);

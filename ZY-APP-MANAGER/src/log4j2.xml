@@ -4,7 +4,7 @@
 
 	<properties>
         <!-- File base path -->
-        <property name="LOG_HOME">/data/logs/manager8001</property>
+        <property name="LOG_HOME">/data/loggs/manager8001</property>
         <!-- App server name -->
         <property name="SERVER_NAME">manager</property>
     </properties>

@@ -222,9 +222,6 @@ public class ServerLotteryGameService extends BaseService {
         if (user == null) {
             throwExp("用户信息异常");
         }
-        if (user.getRisk()==1){
-            throwExp("账号存在风险，请联系客服进行核实。");
-        }
         BigDecimal amount = params.getBigDecimal("betAmount");
         if (gameId != 5) {
             if (!betList.contains(amount)) {

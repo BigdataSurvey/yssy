@@ -234,6 +234,7 @@ public class ManagerUserRoleService extends BaseService {
                 }else {
                     byUserIdAndRoleId.setEndTime(DateUtil.getDateByDay(byUserIdAndRoleId.getEndTime(),30));
                 }
+                userRoleService.updateUserRole(byUserIdAndRoleId);
             }else{
                 UserRole userRole = userRoleService.addUserRole(userId, roleId, 30);
             }

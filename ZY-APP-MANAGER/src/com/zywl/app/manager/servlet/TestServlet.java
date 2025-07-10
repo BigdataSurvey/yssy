@@ -1,5 +1,6 @@
 package com.zywl.app.manager.servlet;
 
+import com.zywl.app.base.bean.User;
 import com.zywl.app.base.bean.UserStatistic;
 import com.zywl.app.base.servlet.BaseServlet;
 import com.zywl.app.defaultx.cache.UserCacheService;
@@ -48,9 +49,16 @@ public class TestServlet extends BaseServlet {
 			if (list.size()==0){
 				break;
 			}
+			int k = 0;
 			List<Long> idByParentId = userService.findIdByParentId(list);
+			for (int j = 0; j < idByParentId.size(); j++) {
+				User byId = userService.findById(idByParentId.get(j));
+				if (byId!=null && byId.getVip2()==1){
+					k++;
+				}
+			}
 			list.clear();
-			stringBuffer.append("第"+(i+1)+"代人数："+idByParentId.size());
+			stringBuffer.append("第"+(i+1)+"代人数："+idByParentId.size()+"，开卡人数："+k);
 			ids.addAll(idByParentId);
 			list.addAll(idByParentId);
 		}
@@ -60,7 +68,6 @@ public class TestServlet extends BaseServlet {
 		for (UserStatistic byId : byIds) {
 			all = all.add(byId.getCreateAnima());
 		}
-		stringBuffer.append("团队总创建友情值"+all);
 		return stringBuffer;
 	}
 

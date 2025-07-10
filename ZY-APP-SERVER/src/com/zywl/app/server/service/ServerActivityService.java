@@ -64,8 +64,8 @@ public class ServerActivityService extends BaseService {
         result.put("rankList", topList);
         Double userRankScore = gameCacheService.getUserTopScore(String.valueOf(userId),activity.getId());
         result.put("myScore", userRankScore == null ? 0.0 : userRankScore);
-        Long myRank = gameCacheService.getTopRankByKey(key, String.valueOf(userId));
-        result.put("myRank", myRank == null ? "未上榜" : myRank + 1);
+        Long myRank = gameCacheService.getTopRankByKey(topList, String.valueOf(userId));
+        result.put("myRank", myRank == null ? "未上榜" : myRank);
 
         if (myRank == null || userRankScore == null) {
             result.put("myMoney", BigDecimal.ZERO);
@@ -124,8 +124,8 @@ public class ServerActivityService extends BaseService {
         result.put("rankList", lastTopList);
         Double userRankScore = gameCacheService.getLastUserTopScore(String.valueOf(userId), key);
         result.put("myScore", userRankScore == null ? 0.0 : userRankScore);
-        Long lastRank = gameCacheService.getTopRankByKey(key, String.valueOf(userId));
-        result.put("myRank", lastRank == null ? "未上榜" : lastRank + 1);
+        Long lastRank = gameCacheService.getTopRankByKey(lastTopList, String.valueOf(userId));
+        result.put("myRank", lastRank == null ? "未上榜" : lastRank );
         if (lastRank == null || userRankScore == null) {
             result.put("myMoney", BigDecimal.ZERO);
         } else {
