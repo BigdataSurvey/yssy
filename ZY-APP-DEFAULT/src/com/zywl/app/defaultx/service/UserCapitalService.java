@@ -15,6 +15,7 @@ import com.zywl.app.defaultx.cache.UserCacheService;
 import com.zywl.app.defaultx.cache.UserCapitalCacheService;
 import com.zywl.app.defaultx.dbutil.DaoService;
 import com.zywl.app.defaultx.enmus.LogCapitalTypeEnum;
+import com.zywl.app.defaultx.enmus.LogUserBackpackTypeEnum;
 import com.zywl.app.defaultx.enmus.TradingRecordTypeEnum;
 import com.zywl.app.defaultx.enmus.UserCapitalTypeEnum;
 import org.apache.commons.collections4.map.HashedMap;
@@ -47,8 +48,10 @@ public class UserCapitalService extends DaoService {
     @Autowired
     private DzService dzService;
 
+
     @Autowired
     private DzInfoService dzInfoService;
+
 
     public UserCapitalService() {
         super("UserCapitalMapper");
@@ -59,6 +62,10 @@ public class UserCapitalService extends DaoService {
         userCapital.setCreateTime(new Date());
         userCapital.setUpdateTime(new Date());
         save(userCapital);
+    }
+    @Transactional
+    public int updateUserCapital( List<Map<String, Object>> list) {
+         return execute("betUpdateBalance2", list);
     }
 
     public List<UserCapital> findUserCapitalByUserId(Long userId) {
@@ -209,6 +216,8 @@ public class UserCapitalService extends DaoService {
             }
         }
     }
+
+
 
 
 

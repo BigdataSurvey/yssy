@@ -24,6 +24,7 @@ import com.zywl.app.defaultx.cache.UserCacheService;
 import com.zywl.app.defaultx.cache.UserCapitalCacheService;
 import com.zywl.app.defaultx.enmus.GameTypeEnum;
 import com.zywl.app.defaultx.enmus.LogCapitalTypeEnum;
+import com.zywl.app.defaultx.enmus.LogUserBackpackTypeEnum;
 import com.zywl.app.defaultx.enmus.UserCapitalTypeEnum;
 import com.zywl.app.defaultx.service.*;
 import com.zywl.app.manager.context.KafkaEventContext;
@@ -34,18 +35,24 @@ import com.zywl.app.manager.service.CheckAchievementService;
 import com.zywl.app.manager.service.PlayGameService;
 import com.zywl.app.manager.service.WXCashService;
 import com.zywl.app.manager.socket.*;
+import org.apache.commons.collections4.map.HashedMap;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import javax.annotation.PostConstruct;
 import java.math.BigDecimal;
-import java.util.Set;
+import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 
 @Service
 @ServiceClass(code = MessageCodeContext.CAPITAL_SERVER)
 public class ManagerCapitalService extends BaseService {
 
+
+    public static JSONObject itemResult =new JSONObject();
+
+    public static JSONObject yybResult =new JSONObject();
 
     @Autowired
     private UserCapitalService userCapitalService;
@@ -373,6 +380,23 @@ public class ManagerCapitalService extends BaseService {
         }
         return new JSONObject();
     }
+    @Transactional
+    @ServiceMethod(code = "808", description = "打怪兽修改内存")
+    public JSONObject updateCacheByDgs(ManagerDTS2SocketServer adminSocketServer, JSONObject data) throws InterruptedException {
+        checkNull(data);
+        checkNull(data.get("betArray"));
+        JSONArray betArray = data.getJSONArray("betArray");
+        for (Object o : betArray) {
+            try {
+                JSONObject orderInfo = (JSONObject) o;
+                gameService.updateDgsData(null,orderInfo);
+            } catch (Exception e) {
+                logger.error(e);
+                e.printStackTrace();
+            }
+        }
+        return new JSONObject();
+    }
 
     @KafkaProducer(topic = KafkaTopicContext.RED_POINT, event = KafkaEventContext.DTS, sendParams = true)
     public void updateDtsData(String a,JSONObject orderInfo){
@@ -531,7 +555,6 @@ public class ManagerCapitalService extends BaseService {
             }
             pushData.put("capitalType", UserCapitalTypeEnum.yyb.getValue());
             pushData.put("balance", userCapital.getBalance());
-
             Push.push(PushCode.updateUserCapital, managerSocketService.getServerIdByUserId(userId), pushData);
         }
 
@@ -568,4 +591,105 @@ public class ManagerCapitalService extends BaseService {
 
         return new JSONObject();
     }
+
+    @Transactional
+    @ServiceMethod(code = "713", description = "打怪兽结算")
+    public JSONObject DgsSettle(ManagerDgsSocketServer adminSocketServer, JSONObject data) {
+        checkNull(data);
+        Set<String> set = data.keySet();
+        Long userId = null;
+        if (data.size()==0){
+            return new JSONObject();
+        }
+        betUpdateBalanceOrItem(data);
+
+        for (String key : set) {
+            JSONObject o = JSONObject.parse(data.getString(key));
+            userId = Long.parseLong(key);
+            UserCapital userCapital = userCapitalCacheService.getUserCapitalCacheByType(userId, UserCapitalTypeEnum.yyb.getValue());
+            JSONObject pushData = new JSONObject();
+            pushData.put("userId", userId);
+            pushData.put("capitalType", UserCapitalTypeEnum.yyb.getValue());
+            pushData.put("balance", userCapital.getBalance());
+            pushData.put("type", o.getIntValue("type"));
+            if(1==o.getIntValue("type")){
+                pushData.put("amount", o.get("amount"));
+                pushData.put("id", userCapital.getId());
+                Push.push(PushCode.updateUserCapital, managerSocketService.getServerIdByUserId(userId), pushData);
+
+            }
+        }
+        return new JSONObject();
+    }
+
+    @Transactional
+    public void betUpdateBalanceOrItem(JSONObject obj) {
+        int capitalType = UserCapitalTypeEnum.yyb.getValue();
+        List<Map<String, Object>> list = new ArrayList<>();
+        Set<String> set = obj.keySet();
+        LogCapitalTypeEnum em = null;
+        Map<String, BigDecimal> beforeMoney = new HashMap<>();
+        for (String key : set) {
+            Map<String, Object> map = new HashedMap<>();
+            map.put("userId", key);
+            UserCapital userCapital = userCapitalCacheService.getUserCapitalCacheByType(Long.parseLong(key), UserCapitalTypeEnum.yyb.getValue());
+            beforeMoney.put(key, userCapital.getBalance());
+            JSONObject o = JSONObject.parse(obj.getString(key));
+            if(1==o.getIntValue("type")){
+                map.put("amount", o.get("amount"));
+                map.put("id",userCapital.getId());
+                em = LogCapitalTypeEnum.getEm(o.getIntValue("em"));
+                map.put("capitalType", capitalType);
+                list.add(map);
+
+            } else if(2==o.getIntValue("type")){
+                gameService.updateUserBackpack(o.getLong("userId"), "42", +1, LogUserBackpackTypeEnum.zs);
+            }
+        }
+
+        int a = userCapitalService.updateUserCapital(list);
+        if (a < 1) {
+            for (String key : set) {
+                userCapitalCacheService.deltedUserCapitalCache(Long.parseLong(key), UserCapitalTypeEnum.yyb.getValue());
+            }
+            if (em.getValue() == LogCapitalTypeEnum.game_bet.getValue()) {
+                throwExp("失败！");
+            } else {
+                throwExp("结算失败！");
+            }
+        }
+        if (a > 0) {
+            for (String userId : set) {
+                BigDecimal before;
+                if (!beforeMoney.containsKey(userId)) {
+                    before = userCapitalCacheService.getUserCapitalCacheByType(Long.parseLong(userId), UserCapitalTypeEnum.yyb.getValue()).getBalance();
+                } else {
+                    before = beforeMoney.get(userId);
+                }
+                BigDecimal occupyBefore = BigDecimal.ZERO;
+                JSONObject o = (JSONObject) obj.get(userId);
+                if(null != o.getBigDecimal("amount")){
+                    userCapitalCacheService.add(Long.parseLong(userId), capitalType, o.getBigDecimal("amount"), BigDecimal.ZERO);
+                }
+                pushLog(1, Long.parseLong(userId), capitalType, before, occupyBefore, o.getBigDecimal("amount"), em, (String) o.getOrDefault("orderNo", null), null, (String) o.getOrDefault("tableName", null));
+            }
+        }
+    }
+
+    public void pushLog(int type, Long userId, Integer capitalType, BigDecimal balanceBefore, BigDecimal occupyBalanceBefore, BigDecimal amount, LogCapitalTypeEnum em, String orderNo, Long sourceDataId, String tableName) {
+        Map<String,Object> a = new HashedMap<>();
+        a.put("logType", 1);
+        a.put("type", type);
+        a.put("userId", userId);
+        a.put("capitalType", capitalType);
+        a.put("balanceBefore", balanceBefore);
+        a.put("occupyBalanceBefore", occupyBalanceBefore);
+        a.put("amount", amount);
+        a.put("em", em);
+        a.put("orderNo", orderNo);
+        a.put("sourceDataId", sourceDataId);
+        a.put("tableName", tableName);
+        Push.push(PushCode.insertLog, null, a);
+    }
+
 }

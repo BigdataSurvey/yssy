@@ -12,9 +12,11 @@ public class DgsRequestMangerService {
 
 	
 	public void requestManagerBet(JSONObject data, Listener listener) {
-		Executer.request(TargetSocketType.dgs, CommandBuilder.builder().request("200711", data).build(), listener);
+		Executer.request(TargetSocketType.dgs, CommandBuilder.builder().request("200713", data).build(), listener);
 	}
 	public void requestManagerGameBet(JSONObject data, Listener listener) {
 		Executer.request(TargetSocketType.dgs, CommandBuilder.builder().request("200810", data).build(), listener);
 	}
+
+
 }

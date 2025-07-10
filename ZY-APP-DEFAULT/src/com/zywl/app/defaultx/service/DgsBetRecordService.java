@@ -31,15 +31,18 @@ public class DgsBetRecordService extends DaoService {
 	 * @param userId
 	 */
 	@Transactional
-	public int addRecord(Long userId, String orderNo,Integer monsterType) {
+	public DgsBetRecord addRecord(Long userId, String orderNo,Integer monsterType,Long monsterNo) {
 		DgsBetRecord record = new DgsBetRecord();
 		record.setUserId(userId);
 		record.setMonsterId(monsterType);
 		record.setOrderNo(orderNo);
+		record.setBetAmount(BigDecimal.valueOf(monsterType));
 		record.setStatus(0);
+		record.setMonsterNo(Math.toIntExact(monsterNo));
 		record.setCreateTime(new Date());
 		record.setUpdateTime(new Date());
-		return execute("insert",record);
+		execute("insert",record);
+		return record;
 	}
 	
 	
@@ -52,10 +55,26 @@ public class DgsBetRecordService extends DaoService {
 		params.put("limit",10);
 		return  findList("findByUserId", params);
 	}
-	public List<DgsBetRecord> findByStatus(Long monsterId) {
+
+	public List<DgsBetRecord> findUnSettleByMonsterNo(Long monsterNo) {
+		Map<String, Object> params = new HashedMap<>();
+		params.put("monsterNo", monsterNo);
+		params.put("status",0);
+		return  findList("findUnSettleByMonsterNo", params);
+	}
+	public List<DgsBetRecord> findByStatus(Long monsterId,Integer status) {
 		Map<String, Object> params = new HashedMap<String, Object>();
-		params.put("status", 0);
+		params.put("status", status);
 		params.put("monsterId",monsterId);
+		return  findList("findByStatus", params);
+	}
+	public List<DgsBetRecord> findByStatusLimit(Long monsterId,Long userId,Integer status,Integer page,Integer num) {
+		Map<String, Object> params = new HashedMap<String, Object>();
+		params.put("status", status);
+		params.put("monsterId",monsterId);
+		params.put("userId",userId);
+		params.put("start", page*num);
+		params.put("limit", num);
 		return  findList("findByStatus", params);
 	}
 
