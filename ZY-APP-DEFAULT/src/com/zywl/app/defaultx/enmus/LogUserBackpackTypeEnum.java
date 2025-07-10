@@ -45,7 +45,11 @@ public enum LogUserBackpackTypeEnum {
 	jz("捐赠", 1005),
 	zsg("赠送给",1006),
 	zs("赠送",1007),
-	syn("合成获得",1008);
+
+	syn("合成获得",1008),
+
+
+	;
 	
 	private String name;
 

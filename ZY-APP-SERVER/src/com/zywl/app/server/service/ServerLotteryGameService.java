@@ -187,6 +187,7 @@ public class ServerLotteryGameService extends BaseService {
         data.put("userNo", userNo);
         data.put("headImgUrl", headImgUrl);
         data.put("userName", UserName);
+        data.put("bet",params.get("bet"));
         requestLotteryService.requestBattleRoyaleJoinRoom(data, new Listener() {
             public void handle(BaseClientSocket clientSocket, Command command) {
                 if (command.isSuccess()) {
@@ -426,10 +427,11 @@ public class ServerLotteryGameService extends BaseService {
         return result;
     }
 
+
     @ServiceMethod(code = "020", description = "击打怪兽")
     public Async Jdgs(final AppSocket appSocket, Command appCommand, JSONObject params) {
         checkNull(params);
-        checkNull(params.get("betAmount"), params.get("bet"));
+        checkNull( params.get("bet"));
         int gameId = params.getIntValue("gameId");
         if (!isOnline(gameId)) {
             throwExp("小游戏正在维护");
@@ -439,19 +441,35 @@ public class ServerLotteryGameService extends BaseService {
         if (user == null) {
             throwExp("用户信息异常");
         }
-        BigDecimal amount = params.getBigDecimal("betAmount");
+      /*  BigDecimal amount = params.getBigDecimal("betAmount");
         if (gameId != 5) {
             if (!betList.contains(amount)) {
                 throwExp("非法请求");
             }
-        }
+        }*/
         params.put("userId", userId);
         params.put("headImgUrl",user.getHeadImageUrl());
         params.put("name",user.getName());
-        Executer.request(TargetSocketType.getServerEnum(gameId), CommandBuilder.builder().request("111103", params).build(),
+        Executer.request(TargetSocketType.getServerEnum(gameId), CommandBuilder.builder().request("101103", params).build(),
                 new RequestManagerListener(appCommand));
         return async();
     }
+
+    @ServiceMethod(code = "021", description = "记录")
+    public Async findRecord(final AppSocket appSocket, Command appCommand, JSONObject params) {
+        checkNull(params);
+        checkNull(params.get("page"), params.get("num"));
+        long userId = appSocket.getWsidBean().getUserId();
+        params.put("userId", userId);
+        User user = userCacheService.getUserInfoById(userId);
+        if (user == null) {
+            throwExp("用户信息异常");
+        }
+        Executer.request(TargetSocketType.getServerEnum(params.getIntValue("gameId")), CommandBuilder.builder().request("101004", params).build(), new RequestManagerListener(appCommand));
+        return async();
+    }
+
+
 
 
 

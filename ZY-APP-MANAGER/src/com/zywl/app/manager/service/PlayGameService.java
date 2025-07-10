@@ -743,6 +743,19 @@ public class PlayGameService extends BaseService {
         addRankCache(id, Integer.parseInt(amount.setScale(0).toString()),GameTypeEnum.battleRoyale.getValue());
     }
 
+    public void updateDgsData(String a,JSONObject orderInfo){
+        String id = orderInfo.getString("userId");
+        String orderNo = orderInfo.getString("orderNo");
+        Long dataId = orderInfo.getLong("dataId");
+        BigDecimal amount = orderInfo.getBigDecimal("betAmount");
+        UserCapital userCapital = userCapitalCacheService.getUserCapitalCacheByType(Long.parseLong(id), UserCapitalTypeEnum.currency_2.getValue());
+        userCacheService.addTodayUserPlayCount(Long.valueOf(id));
+        userCapitalCacheService.sub(Long.parseLong(id), UserCapitalTypeEnum.yyb.getValue(), amount, BigDecimal.ZERO);
+        userCapital = userCapitalCacheService.getUserCapitalCacheByType(Long.parseLong(id), UserCapitalTypeEnum.yyb.getValue());
+        userCapitalService.pushLog(1, Long.parseLong(id), UserCapitalTypeEnum.yyb.getValue(), userCapital.getBalance(), userCapital.getOccupyBalance(), amount.negate(), LogCapitalTypeEnum.dgs_bet, orderNo, dataId, null);
+        managerGameBaseService.pushCapitalUpdate(Long.valueOf(id),UserCapitalTypeEnum.yyb.getValue());
+        addRankCache(id, Integer.parseInt(amount.setScale(0).toString()),GameTypeEnum.battleRoyale.getValue());
+    }
 
     @KafkaProducer(topic = KafkaTopicContext.RED_POINT, event = KafkaEventContext.LHD, sendParams = true)
     public  void updateLhdData(String a,JSONObject orderInfo){

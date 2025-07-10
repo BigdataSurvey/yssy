@@ -6,6 +6,7 @@
         insert into r_dgs_bet_record
         (`user_id`,
          `monster_id`,
+         `monster_no`,
          `order_no`,
          `bet_amount`,
          `status`,
@@ -13,6 +14,7 @@
          `update_time`)
         values (#{userId},
                 #{monsterId},
+                #{monsterNo},
                 #{orderNo},
                 #{betAmount},
                 #{status},
@@ -36,7 +38,22 @@
 
     <select id="findByStatus" resultType="DgsBetRecord">
         select *
-        from r_dgs_bet_record where status = #{status} and monster_id = #{monsterId}
+        from r_dgs_bet_record where status = #{status}
+
+        <if test="monsterId != null">
+            and monster_id = #{monsterId}
+        </if>
+        <if test="userId != null">
+            and user_id = #{userId}
+        </if>
+        <if test="start != null and limit != null">
+            limit #{start}, #{limit}
+        </if>
+    </select>
+
+    <select id="findUnSettleByMonsterNo" resultType="DgsBetRecord">
+        select * from r_dgs_bet_record where status = #{status} and monster_no = #{monsterNo}
+
     </select>
 
     <sql id="conditions">
@@ -86,13 +103,6 @@
     </select>
 
     <update id="batchUpdateRecord" parameterType="java.util.List">
-      <!--  <foreach collection="list" item="item" index="index" open="" close="" separator=";">
-            update r_dgs_bet_record
-            <set>
-              status=1
-            </set>
-            where order_no = #{item.orderNo}
-        </foreach>-->
 
         <foreach collection="list" item="item" index="index" open="" close="" separator=";">
             update r_dgs_bet_record

@@ -61,70 +61,48 @@ public class DgsSocket extends BaseClientSocket {
             }
         });
 
-        Push.addPushSuport(PushCode.updateNhInfo, new DefaultPushHandler());
-        Push.addPushSuport(PushCode.updateNhStatus, new DefaultPushHandler());
+        Push.addPushSuport(PushCode.updateDgsInfo, new DefaultPushHandler());
+        Push.addPushSuport(PushCode.updateDgsStatus, new DefaultPushHandler());
         Push.addPushSuport(PushCode.updateGameStatus, new DefaultPushHandler());
     }
 
     @Override
     public void onConnect(Object data) {
 
-        Push.registPush(new PushBean(PushCode.updateNhInfo), new PushListener() {
+        Push.registPush(new PushBean(PushCode.updateDgsInfo), new PushListener() {
             public void onRegist(BaseSocket baseSocket, Object data) {
 
             }
 
             public void onReceive(BaseSocket baseSocket, Object data) {
-                logger.info("收到2选1房间信息变更" + data);
-                JSONArray array = JSONArray.from(data);
-                for (Object o : array) {
-                    JSONObject obj = JSONObject.from(o);
+                logger.info("收到打怪兽信息变更" + data);
+                    JSONObject obj = (JSONObject) data;
                     String gameId = obj.getString("gameId");
-                    if ("5".equals(gameId)) {
-                        Push.push(PushCode.updateNhInfo, gameId, obj);
+                    if ("10".equals(gameId)) {
+                        Push.push(PushCode.updateDgsInfo, gameId, obj);
                     }
-                }
 
             }
         }, this);
-        Push.registPush(new PushBean(PushCode.updateNhStatus), new PushListener() {
+        Push.registPush(new PushBean(PushCode.updateDgsStatus), new PushListener() {
             public void onRegist(BaseSocket baseSocket, Object data) {
 
             }
 
             public void onReceive(BaseSocket baseSocket, Object data) {
-                logger.info("收到2选1房间状态变更" + data);
+                logger.info("收到打怪兽状态变更" + data);
                 JSONObject obj = JSONObject.from(data);
                 String gameId = obj.getString("gameId");
                 JSONArray ids = obj.getJSONArray("userIds");
-                if ("5".equals(gameId)) {
+                if ("10".equals(gameId)) {
                     for (Object id : ids) {
                         JSONObject result = new JSONObject();
                         String userId = (String) id;
-                        if (LotteryGameStatusEnum.settle.getValue()== obj.getIntValue("status")) {
-                            Map<String, Map<String, String>> map = (Map<String, Map<String, String>>) obj.get("userSettleInfo");
-                            if (map.containsKey(userId) ) {
-                                //有该玩家的下注信息
-                                result.put("winAmount", map.get(userId).get("winAmount"));
-                                result.put("betAmount",map.get(userId).get("betAmount"));
-                                //0 输  1 赢
-                                result.put("roomResult", map.get(userId).get("isWin"));
-                            }else {
-                                result.put("roomResult", 2);
-                            }
-                        }else if(LotteryGameStatusEnum.gaming.getValue()== obj.getIntValue("status")) {
-                            result.put("endTime", obj.get("endTime"));
-                        }else if(LotteryGameStatusEnum.ready.getValue()==obj.getIntValue("status")) {
-                            result.put("lookList", obj.get("lookList"));
-                            result.put("roomList", obj.get("roomList"));
-                            result.put("lastResult",obj.get("lastResult"));
-                            result.put("periods",obj.get("periods"));
-                        }
-                        result.put("allLoseAmount", obj.get("allLoseAmount"));
-                        result.put("roomIds", obj.get("roomIds"));
-                        result.put("status", obj.get("status"));
-                        result.put("userId", userId);
-                        Push.push(PushCode.updateNhStatus, userId, result);
+                        result.put("userId",userId);
+                        result.put("gameStatus", obj.get("status"));
+                        result.put("userSettleInfo",obj.getString("userSettleInfo"));
+                        result.put("userId",userId);
+                        Push.push(PushCode.updateDgsStatus, userId, result);
                     }
 
                 }

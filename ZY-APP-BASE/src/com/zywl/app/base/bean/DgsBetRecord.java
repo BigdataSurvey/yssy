@@ -13,6 +13,8 @@ public class DgsBetRecord {
 
     private Integer monsterId;
 
+    private Integer monsterNo;
+
     private String orderNo;
 
     private BigDecimal betAmount;
@@ -25,6 +27,14 @@ public class DgsBetRecord {
 
     private Date updateTime;
 
+    public Integer getMonsterNo() {
+        return monsterNo;
+    }
+
+    public void setMonsterNo(Integer monsterNo) {
+        this.monsterNo = monsterNo;
+    }
+
     public Integer getMonsterId() {
         return monsterId;
     }
@@ -33,8 +43,7 @@ public class DgsBetRecord {
         this.monsterId = monsterId;
     }
 
-    public DgsBetRecord() {
-    }
+
 
     public long getId() {
         return id;
@@ -100,15 +109,5 @@ public class DgsBetRecord {
         this.updateTime = updateTime;
     }
 
-    public DgsBetRecord(long id, long userId, Integer monsterId, String orderNo, BigDecimal betAmount, BigDecimal profit, long status, Date createTime, Date updateTime) {
-        this.id = id;
-        this.userId = userId;
-        this.monsterId = monsterId;
-        this.orderNo = orderNo;
-        this.betAmount = betAmount;
-        this.profit = profit;
-        this.status = status;
-        this.createTime = createTime;
-        this.updateTime = updateTime;
-    }
+
 }

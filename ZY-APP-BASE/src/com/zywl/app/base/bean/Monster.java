@@ -7,14 +7,13 @@ public class Monster {
 
     private Integer id;
 
-    private Integer userId;
+
+    private Long monsterNo;
 
     private Integer monsterType;
 
     private Integer currBlood;
 
-    private BigDecimal profit;
-    private BigDecimal betAmount;
 
     private long dieStatus;
 
@@ -30,12 +29,12 @@ public class Monster {
         this.id = id;
     }
 
-    public Integer getUserId() {
-        return userId;
+    public Long getMonsterNo() {
+        return monsterNo;
     }
 
-    public void setUserId(Integer userId) {
-        this.userId = userId;
+    public void setMonsterNo(Long monsterNo) {
+        this.monsterNo = monsterNo;
     }
 
     public Integer getMonsterType() {
@@ -52,22 +51,6 @@ public class Monster {
 
     public void setCurrBlood(Integer currBlood) {
         this.currBlood = currBlood;
-    }
-
-    public BigDecimal getProfit() {
-        return profit;
-    }
-
-    public void setProfit(BigDecimal profit) {
-        this.profit = profit;
-    }
-
-    public BigDecimal getBetAmount() {
-        return betAmount;
-    }
-
-    public void setBetAmount(BigDecimal betAmount) {
-        this.betAmount = betAmount;
     }
 
     public long getDieStatus() {
@@ -91,21 +74,6 @@ public class Monster {
     }
 
     public void setUpdateTime(Date updateTime) {
-        this.updateTime = updateTime;
-    }
-
-    public Monster() {
-    }
-
-    public Monster(Integer id, Integer userId, Integer monsterType, Integer currBlood, BigDecimal profit, BigDecimal betAmount, long dieStatus, Date createTime, Date updateTime) {
-        this.id = id;
-        this.userId = userId;
-        this.monsterType = monsterType;
-        this.currBlood = currBlood;
-        this.profit = profit;
-        this.betAmount = betAmount;
-        this.dieStatus = dieStatus;
-        this.createTime = createTime;
         this.updateTime = updateTime;
     }
 }

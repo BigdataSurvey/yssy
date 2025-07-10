@@ -138,8 +138,10 @@ public enum LogCapitalTypeEnum {
     bug_role_gift("购买角色",1022),
     donate_item("捐赠道具",1023),
     VIP_RECEIVE("vip领取",1024),
+    SHOPPING_GET("商城获得",1025),
     yyb_winning("打怪中奖",1026),
-    SHOPPING_GET("商城获得",1025)
+    dgs_bet("参与打怪",1027)
+
     ;
 
     private String name;

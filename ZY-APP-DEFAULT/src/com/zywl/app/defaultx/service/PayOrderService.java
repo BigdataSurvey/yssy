@@ -19,6 +19,7 @@ public class PayOrderService extends DaoService{
 		super("PayOrderMapper");
 	}
 
+	@Transactional
 	public PayOrder addOrder(Long userId,String orderNo,Long productId,int channelId,int price) {
 		PayOrder order = new PayOrder();
 		order.setOrderNo(orderNo);

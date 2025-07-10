@@ -119,8 +119,8 @@ public class DgsSocketServer extends BaseServerSocket {
 			public void onReceive(BaseSocket baseSocket, Object data) {
 				JSONObject json = (JSONObject) data;
 				int gameId = json.getIntValue("gameId");
-				if (gameId == 5) {
-					lhdService.STATUS = json.getIntValue("status");
+				if (gameId == 10) {
+					DgsService.STATUS = json.getIntValue("status");
 				}
 			}
 		}, this);
