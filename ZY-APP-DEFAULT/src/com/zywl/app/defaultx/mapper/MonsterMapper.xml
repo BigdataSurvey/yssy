@@ -65,7 +65,7 @@
                 update_time= #{updateTime}
             </if>
         </set>
-        where  monster_type= #{monsterType}
+        where  id= #{id}
     </update>
 
 
