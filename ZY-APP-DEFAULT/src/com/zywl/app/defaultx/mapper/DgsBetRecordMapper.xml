@@ -39,16 +39,19 @@
     <select id="findByStatus" resultType="DgsBetRecord">
         select *
         from r_dgs_bet_record where status = #{status}
-
-        <if test="monsterId != null">
-            and monster_id = #{monsterId}
-        </if>
         <if test="userId != null">
             and user_id = #{userId}
         </if>
+        ORDER BY id desc
         <if test="start != null and limit != null">
             limit #{start}, #{limit}
         </if>
+
+    </select>
+    <select id="findYybNum" resultType="DgsBetRecord">
+        select sum(bet_amount) betAmount,sum(profit) profit
+        from r_dgs_bet_record where status = #{status}  and user_id = #{userId}
+        GROUP BY user_id
     </select>
 
     <select id="findUnSettleByMonsterNo" resultType="DgsBetRecord">

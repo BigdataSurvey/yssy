@@ -100,7 +100,7 @@ public class DgsSocket extends BaseClientSocket {
                         String userId = (String) id;
                         result.put("userId",userId);
                         result.put("gameStatus", obj.get("status"));
-                        result.put("userSettleInfo",obj.getString("userSettleInfo"));
+                        result.put("userSettleInfo",obj.get("userSettleInfo"));
                         result.put("userId",userId);
                         Push.push(PushCode.updateDgsStatus, userId, result);
                     }

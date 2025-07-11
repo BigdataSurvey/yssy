@@ -68,14 +68,26 @@ public class DgsBetRecordService extends DaoService {
 		params.put("monsterId",monsterId);
 		return  findList("findByStatus", params);
 	}
-	public List<DgsBetRecord> findByStatusLimit(Long monsterId,Long userId,Integer status,Integer page,Integer num) {
+	public List<DgsBetRecord> findByStatusLimit(Long userId,Integer page,Integer num) {
 		Map<String, Object> params = new HashedMap<String, Object>();
-		params.put("status", status);
-		params.put("monsterId",monsterId);
+		params.put("status", 1);
 		params.put("userId",userId);
 		params.put("start", page*num);
 		params.put("limit", num);
 		return  findList("findByStatus", params);
+	}
+
+	public HashMap<String,BigDecimal> findYybNum(Long userId) {
+		HashMap<String, BigDecimal> map = new HashMap<>();
+		Map<String, Object> params = new HashMap<>();
+		params.put("status", 1);
+		params.put("userId",userId);
+		List<DgsBetRecord> findYybNum = findList("findYybNum", params);
+		for (DgsBetRecord dgsBetRecord : findYybNum) {
+			map.put("betAmount",dgsBetRecord.getBetAmount());
+			map.put("profit",dgsBetRecord.getProfit());
+		}
+		return map;
 	}
 
 	@Transactional

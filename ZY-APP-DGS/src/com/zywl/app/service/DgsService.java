@@ -314,6 +314,7 @@ public class DgsService extends BaseService {
             result.put("gameStatus", gameStatus3);
         }
         result.put("monsterInfo",atkMonsterMap.get(monsterType));
+        result.put("isUpdate",-1);
         return result;
     }
 
@@ -354,6 +355,7 @@ public class DgsService extends BaseService {
         pushResult.put("monsterInfo",atkMonsterMap.get(String.valueOf(monsterType)));
         pushResult.put("gameStatus",getGameStatus(monsterType));
         pushResult.put("gameId","10");
+        pushResult.put("isUpdate",0);
         return pushResult;
     }
 
@@ -382,18 +384,21 @@ public class DgsService extends BaseService {
             atkMonsterMap.get(monsterType.toString()).setCurrBlood(atkMonsterMap.get(monsterType.toString()).getCurrBlood()-100);
             monsterService.updateMonster(atkMonsterMap.get(monsterType.toString()));
             //推送怪兽数据+用户信息
-            Push.push(PushCode.updateDgsInfo, null, pushResult(monsterType, userId.toString()));
+            JSONObject jsonObject = pushResult(monsterType, userId.toString());
             //判断是否需要结算
             if(atkMonsterMap.get(monsterType.toString()).getCurrBlood() == 0 ){
                 Thread.sleep(300);
-                settle(lotteryCommand,monsterType);
+                Map<String, Map<String, Object>> settle = settle(lotteryCommand, monsterType);
+                jsonObject = pushResult(monsterType, userId.toString());
+                jsonObject.put("settleInfo",settle);
+                jsonObject.put("isUpdate",1);
             }
-
+            Push.push(PushCode.updateDgsInfo, null, jsonObject);
         }
         return  new JSONObject();
     }
 
-    private void settle(Command lotteryCommand,Integer monsterType) {
+    private Map<String, Map<String, Object>> settle(Command lotteryCommand,Integer monsterType) {
         Map<String, Map<String, Object>> settleInfo = new ConcurrentHashMap<>();
         JSONObject result = new JSONObject();
         //怪兽最后一击时返回游戏状态为结算中
@@ -422,7 +427,7 @@ public class DgsService extends BaseService {
             JSONObject data = new JSONObject();
             if(i!= 9){
                 //赢的人
-                newList.get(i).setProfit(redPacketList.get(i));
+                newList.get(i).setProfit(newList.get(i).getBetAmount().add(redPacketList.get(i)));
                 newList.get(i).setStatus(1);
                 //server用来推送的用户的
                 map.put("winAmount", redPacketList.get(i).add(newList.get(i).getBetAmount()));
@@ -481,13 +486,13 @@ public class DgsService extends BaseService {
 
         //推送结算状态为结算中
         logger().info("第一次结算推送pushdata"+pushData);
-        Push.push(PushCode.updateDgsStatus,null,pushData);
+       // Push.push(PushCode.updateDgsStatus,null,pushData);
 
         //初始化数据 （新怪兽、clear map、）map
 
         beginGame(monsterType);
 
-
+        return settleInfo;
         //更改状态为游戏中 推送
 
 
@@ -510,7 +515,7 @@ public class DgsService extends BaseService {
         if(monsterType == 100){
             gameStatus3 = 1;
         }
-        JSONObject pushData = new JSONObject();
+        /*JSONObject pushData = new JSONObject();
         pushData.put("gameId",10);
         pushData.put("userIds",userMap.get(monsterType.toString()));
         pushData.put("status",getGameStatus(monsterType));
@@ -521,7 +526,7 @@ public class DgsService extends BaseService {
         } catch (InterruptedException e) {
             logger.info(e);
         }
-        Push.push(PushCode.updateDgsStatus,null,pushData);
+        Push.push(PushCode.updateDgsStatus,null,pushData);*/
     }
     public  Integer getGameStatus(Integer monsterType){
         if(monsterType == 1){
@@ -588,7 +593,10 @@ public class DgsService extends BaseService {
         int page = data.getIntValue("page");
         int num = data.getIntValue("num");
         Long monsterId = data.getLong("bet");
-        List<DgsBetRecord> dgsBetRecords = dgsBetRecordService.findByStatusLimit(monsterId, userId, 0, page, num);
+        //获取我投入的以及我获得的游园券总值
+        HashMap<String,BigDecimal> yybNum = dgsBetRecordService.findYybNum(userId);
+        //获取所有记录
+        List<DgsBetRecord> dgsBetRecords = dgsBetRecordService.findByStatusLimit( userId, page, num);
 
         JSONArray resultArray = new JSONArray();
         for (DgsBetRecord record : dgsBetRecords) {
@@ -604,6 +612,7 @@ public class DgsService extends BaseService {
         }
         JSONObject result = new JSONObject();
         result.put("myRecord", resultArray);
+        result.put("yybNum",yybNum);
         return result;
     }
 
