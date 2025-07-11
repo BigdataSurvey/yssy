@@ -52,7 +52,7 @@ public class MessageCodeContext {
 
 	public final static String DISPATCH= "4001";
 
-	public final static String PVP= "5001";
+	public final static String MZ= "5001";
 	public final static String INSTANCE= "6001";
 
 	public final static String MINE= "7001";
