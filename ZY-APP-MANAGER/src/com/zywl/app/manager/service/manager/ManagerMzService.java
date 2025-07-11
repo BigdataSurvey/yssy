@@ -27,7 +27,7 @@ import java.util.List;
 
 
 @Service
-@ServiceClass(code = MessageCodeContext.MINE)
+@ServiceClass(code = MessageCodeContext.MZ)
 public class ManagerMzService extends BaseService {
 
     @Autowired

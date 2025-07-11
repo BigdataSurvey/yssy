@@ -27,7 +27,7 @@ import java.util.Objects;
 import java.util.Set;
 
 @Service
-@ServiceClass(code = MessageCodeContext.MZ)
+@ServiceClass(code = MessageCodeContext.ACHIEVEMENT_SETVER)
 public class ManagerAchievementService extends BaseService {
 
 
