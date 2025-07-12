@@ -596,7 +596,7 @@ public class DgsService extends BaseService {
                 restPeople--;
             }
             //最后的剩余金额
-            list.add(new BigDecimal(restAmount).divide(new BigDecimal(1000)));
+            list.add(new BigDecimal(restAmount).divide(new BigDecimal(1000)).setScale(2,RoundingMode.HALF_UP));
         }
         return list;
     }

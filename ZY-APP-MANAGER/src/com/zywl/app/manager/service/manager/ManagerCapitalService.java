@@ -653,8 +653,8 @@ public class ManagerCapitalService extends BaseService {
                 JSONObject o = (JSONObject) obj.get(userId);
                 if(null != o.getBigDecimal("amount")){
                     userCapitalCacheService.add(Long.parseLong(userId), capitalType, o.getBigDecimal("amount"), BigDecimal.ZERO);
+                    pushLog(1, Long.parseLong(userId), capitalType, before, occupyBefore, o.getBigDecimal("amount"), em, (String) o.getOrDefault("orderNo", null), null, (String) o.getOrDefault("tableName", null));
                 }
-                pushLog(1, Long.parseLong(userId), capitalType, before, occupyBefore, o.getBigDecimal("amount"), em, (String) o.getOrDefault("orderNo", null), null, (String) o.getOrDefault("tableName", null));
             }
         }
     }
