@@ -586,7 +586,7 @@ public class DgsService extends BaseService {
             Random random = new Random();
             Double amount;
             for (int i = 0; i < totalPeople - 1; i++) {
-                //左闭右开 [1,剩余金额/剩余人数 的除数 的两倍 )
+                //左闭右开 [1,剩余金额/剩余人数 的除数 的两倍  )
                 double v = restAmount / restPeople * 2.0 - 1.0;
                 amount = 0 + (v - 0) * random.nextDouble() + 1;
                 realAmount = new BigDecimal(amount).divide(new BigDecimal(1000)).setScale(2, RoundingMode.HALF_UP);
@@ -596,7 +596,7 @@ public class DgsService extends BaseService {
                 restPeople--;
             }
             //最后的剩余金额
-            list.add(new BigDecimal(restAmount).divide(new BigDecimal(1000)));
+            list.add(new BigDecimal(restAmount).divide(new BigDecimal(1000)).setScale(2,RoundingMode.HALF_UP));
         }
         return list;
     }

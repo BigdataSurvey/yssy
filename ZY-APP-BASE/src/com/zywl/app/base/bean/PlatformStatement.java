@@ -185,6 +185,26 @@ public class PlatformStatement extends BaseBean {
 
     private BigDecimal addXhmj= BigDecimal.ZERO;
 
+    private BigDecimal subDgs= BigDecimal.ZERO;
+
+    private BigDecimal addDgs= BigDecimal.ZERO;
+
+    public BigDecimal getSubDgs() {
+        return subDgs;
+    }
+
+    public void setSubDgs(BigDecimal subDgs) {
+        this.subDgs = subDgs;
+    }
+
+    public BigDecimal getAddDgs() {
+        return addDgs;
+    }
+
+    public void setAddDgs(BigDecimal addDgs) {
+        this.addDgs = addDgs;
+    }
+
     public BigDecimal getSubMine() {
         return subMine;
     }
