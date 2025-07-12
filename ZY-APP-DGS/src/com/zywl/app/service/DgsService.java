@@ -1,5 +1,6 @@
 package com.zywl.app.service;
 
+import com.alibaba.fastjson2.JSON;
 import com.alibaba.fastjson2.JSONArray;
 import com.alibaba.fastjson2.JSONObject;
 import com.google.common.collect.Lists;
@@ -61,6 +62,8 @@ public class DgsService extends BaseService {
     private MonsterService monsterService;
     @Autowired
     private UserCapitalCacheService userCapitalCacheService;
+    @Autowired
+    private GameService gameService;
 
     private static Object lock = new Object();
     public static int STATUS;
@@ -76,7 +79,6 @@ public class DgsService extends BaseService {
 
     public static BigDecimal ALL_PRIZE = BigDecimal.ZERO;
     private BigDecimal PERIOD;
-    private BigDecimal BLOOD;
     private Integer gameStatus1;
     private Integer gameStatus2;
     private Integer gameStatus3;
@@ -86,6 +88,10 @@ public class DgsService extends BaseService {
 
 
     public static final Set<String> BET_USERS = new HashSet<>();
+
+    public static Integer people_num = 0;
+
+    public static  Integer blood = 0;
 
     public static final Map<String, JSONObject> USER_MAP = new ConcurrentHashMap<>();
     public static final Set<String> users = new HashSet<>();
@@ -122,6 +128,8 @@ public class DgsService extends BaseService {
     private static final Map<String, Map<String, BigDecimal>> settleInfo = new ConcurrentHashMap<>();
 
 
+
+
     public void pushRoomDate() {
         new Timer("定时推送SERVER").schedule(new TimerTask() {
             public void run() {
@@ -147,6 +155,7 @@ public class DgsService extends BaseService {
 
     @PostConstruct
     public void _construct() {
+        initGameSetting();
         initUserMap();
         initMonster();
         initOrder();
@@ -164,17 +173,32 @@ public class DgsService extends BaseService {
         BET_USERS.clear();
     }
 
+    public void initGameSetting() {
+        logger.info("初始化2选1游戏配置");
+        Game game = gameService.findGameById(10L);
+        if (game != null) {
+            JSONObject gameSetting = JSON.parseObject(game.getGameSetting());
+            people_num = gameSetting.getIntValue("people");
+            STATUS = game.getStatus();
+            blood = gameSetting.getIntValue("blood");
+        }
+        logger.info("初始化2选1游戏配置完成");
+    }
+
+
     public void addPushSuport() {
         Push.addPushSuport(PushCode.updateDgsInfo, new DefaultPushHandler());
         Push.addPushSuport(PushCode.updateDgsStatus, new DefaultPushHandler());
         Push.addPushSuport(PushCode.updateGameStatus, new DefaultPushHandler());
     }
 
+
+
     public void  initMonster(){
         //查询dieStatus为未死亡的怪兽
-        Monster monster1 = monsterService.findMonsterByStatus(1, 0);
-        Monster monster2 =monsterService.findMonsterByStatus(10,0);
-        Monster monster3 =monsterService.findMonsterByStatus(100,0);
+        Monster monster1 = monsterService.findMonsterByStatus(1, 0,blood);
+        Monster monster2 =monsterService.findMonsterByStatus(10,0,blood);
+        Monster monster3 =monsterService.findMonsterByStatus(100,0,blood);
         atkMonsterMap.put("1",monster1);
         atkMonsterMap.put("10",monster2);
         atkMonsterMap.put("100",monster3);
@@ -420,12 +444,12 @@ public class DgsService extends BaseService {
         Collections.shuffle(newList);
         //扣除10%的手续费，剩余的为奖励金额
         double rewardAmount = (monsterType - monsterType * 0.1) * 1000;
-        List<BigDecimal> redPacketList = divideRedPacket(rewardAmount, 9);
+        List<BigDecimal> redPacketList = divideRedPacket(rewardAmount, people_num-1);
         JSONObject jsonObject = new JSONObject();
         for (int i = 0; i < newList.size(); i++) {
             Map<String , Object> map = new HashMap<>();
             JSONObject data = new JSONObject();
-            if(i!= 9){
+            if(i!= people_num-1){
                 //赢的人
                 newList.get(i).setProfit(newList.get(i).getBetAmount().add(redPacketList.get(i)));
                 newList.get(i).setStatus(1);
@@ -487,24 +511,17 @@ public class DgsService extends BaseService {
         //推送结算状态为结算中
         logger().info("第一次结算推送pushdata"+pushData);
        // Push.push(PushCode.updateDgsStatus,null,pushData);
-
         //初始化数据 （新怪兽、clear map、）map
-
         beginGame(monsterType);
-
         return settleInfo;
         //更改状态为游戏中 推送
-
-
-
     }
 
     public void beginGame(Integer monsterType){
-
         atkMap.get(monsterType.toString()).clear();
         atkRecordMap.get(monsterType.toString()).clear();
         Long newMonsterNo =  (atkMonsterMap.get(monsterType.toString()).getMonsterNo()+1);
-        Monster monster = monsterService.addMonster(monsterType, 0, newMonsterNo);
+        Monster monster = monsterService.addMonster(monsterType, 0, newMonsterNo,blood);
         atkMonsterMap.put(monsterType.toString(),monster);
         if(monsterType == 1){
             gameStatus1 = 1;
@@ -617,10 +634,6 @@ public class DgsService extends BaseService {
     }
 
 
-    public static void main(String[] args) {
-        List<BigDecimal> bigDecimals = divideRedPacket(200000.0, 19);
-        System.out.println(bigDecimals);
-    }
 
 
 }

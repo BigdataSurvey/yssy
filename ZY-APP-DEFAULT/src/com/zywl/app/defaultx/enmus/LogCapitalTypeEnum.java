@@ -140,7 +140,8 @@ public enum LogCapitalTypeEnum {
     VIP_RECEIVE("vip领取",1024),
     SHOPPING_GET("商城获得",1025),
     yyb_winning("打怪中奖",1026),
-    dgs_bet("参与打怪",1027)
+    dgs_join("参与打怪",1027),
+    dgs_bet("打怪获得",1028),
 
     ;
 

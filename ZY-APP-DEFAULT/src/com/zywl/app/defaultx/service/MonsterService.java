@@ -22,19 +22,19 @@ public class MonsterService extends DaoService {
 
 
     @Transactional
-    public Monster addMonster(Integer monsterType,Integer dieStatus,Long monsterNo) {
+    public Monster addMonster(Integer monsterType,Integer dieStatus,Long monsterNo,Integer blood) {
         Monster monster = new Monster();
         monster.setCreateTime(new Date());
         monster.setUpdateTime(new Date());
         monster.setMonsterType(monsterType);
         monster.setDieStatus(dieStatus);
         monster.setMonsterNo(monsterNo);
-        monster.setCurrBlood(1000);
+        monster.setCurrBlood(blood);
         save(monster);
         return monster;
     }
 
-    public Monster findMonsterByStatus(Integer monsterType, Integer dieStatus) {
+    public Monster findMonsterByStatus(Integer monsterType, Integer dieStatus,Integer blood) {
         Map<String, Object> params = new HashedMap<>();
         params.put("monsterType", monsterType);
         params.put("dieStatus", dieStatus);
@@ -50,7 +50,7 @@ public class MonsterService extends DaoService {
                 newMonsterByType.setMonsterType(monsterType);
                 newMonsterByType.setMonsterNo(monsterNo);
             }
-            return addMonster(monsterType,0,monsterNo);
+            return addMonster(monsterType,0,monsterNo,blood);
         }
     }
 

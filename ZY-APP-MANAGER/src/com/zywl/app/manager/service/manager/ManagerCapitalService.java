@@ -610,7 +610,7 @@ public class ManagerCapitalService extends BaseService {
         int capitalType = UserCapitalTypeEnum.yyb.getValue();
         List<Map<String, Object>> list = new ArrayList<>();
         Set<String> set = obj.keySet();
-        LogCapitalTypeEnum em = null;
+        LogCapitalTypeEnum em = LogCapitalTypeEnum.dgs_bet;
         Map<String, BigDecimal> beforeMoney = new HashMap<>();
         for (String key : set) {
             Map<String, Object> map = new HashedMap<>();

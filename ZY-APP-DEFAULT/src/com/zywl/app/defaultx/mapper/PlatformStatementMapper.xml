@@ -130,6 +130,8 @@
             <if test="subMine != null">`sub_mine` =sub_mine+ #{subMine},</if>
             <if test="subXhmj != null">`sub_xhmj` =sub_xhmj+ #{subXhmj},</if>
             <if test="addXhmj != null">`add_xhmj` =add_xhmj+ #{addXhmj},</if>
+            <if test="subDgs != null">`sub_` =sub_dgs+ #{subDgs},</if>
+            <if test="addDgs != null">`add_dgs` =add_dgs+ #{addDgs},</if>
         </set>
         where ymd = #{ymd}
     </update>
