@@ -57,7 +57,9 @@ if(!window.CtrlFn_${menuId}){
                     {data: "subNh", title: '躲雨参与', render: datatableUtil.renderNormal},
                     {data: "addNh", title: '躲雨获得', render: datatableUtil.renderNormal},
                     {data:"subDzGame",title: '报名打坐',render: datatableUtil.renderNormal},
-                    {data:"addDzGame",title: '领取打坐',render: datatableUtil.renderNormal}
+                    {data:"addDzGame",title: '领取打坐',render: datatableUtil.renderNormal},
+                    {data:"subDgs",title: '打怪参与',render: datatableUtil.renderNormal},
+                    {data:"addDgs",title: '打怪获得',render: datatableUtil.renderNormal}
 
 
 
