@@ -461,7 +461,7 @@ public class DgsService extends BaseService {
                 data.put("amount", redPacketList.get(i).add(newList.get(i).getBetAmount()));
                 data.put("capitalType", UserCapitalTypeEnum.yyb.getValue());
                 data.put("orderNo",newList.get(i).getOrderNo());
-                data.put("em", LogCapitalTypeEnum.yyb_winning.getValue());
+                data.put("em", LogCapitalTypeEnum.dgs_bet.getValue());
                 data.put("type", 1);
 
             }else{
