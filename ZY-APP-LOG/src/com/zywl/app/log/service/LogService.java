@@ -392,6 +392,10 @@ public class LogService extends BaseService {
             params.put("subXhmj", amount);
         } else if (type == LogCapitalTypeEnum.game_cards_win.getValue()) {
             params.put("addXhmj", amount);
+        } else if (type == LogCapitalTypeEnum.dgs_bet.getValue()) {
+            params.put("addDgs", amount);
+        } else if (type == LogCapitalTypeEnum.dgs_join.getValue()) {
+            params.put("subDgs", amount);
         }
         platformStatementService.updateStatement(params);
     }

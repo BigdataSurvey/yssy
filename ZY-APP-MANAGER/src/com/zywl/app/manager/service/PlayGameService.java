@@ -752,7 +752,7 @@ public class PlayGameService extends BaseService {
         userCacheService.addTodayUserPlayCount(Long.valueOf(id));
         userCapitalCacheService.sub(Long.parseLong(id), UserCapitalTypeEnum.yyb.getValue(), amount, BigDecimal.ZERO);
         userCapital = userCapitalCacheService.getUserCapitalCacheByType(Long.parseLong(id), UserCapitalTypeEnum.yyb.getValue());
-        userCapitalService.pushLog(1, Long.parseLong(id), UserCapitalTypeEnum.yyb.getValue(), userCapital.getBalance(), userCapital.getOccupyBalance(), amount.negate(), LogCapitalTypeEnum.dgs_bet, orderNo, dataId, null);
+        userCapitalService.pushLog(1, Long.parseLong(id), UserCapitalTypeEnum.yyb.getValue(), userCapital.getBalance(), userCapital.getOccupyBalance(), amount.negate(), LogCapitalTypeEnum.dgs_join, orderNo, dataId, null);
         managerGameBaseService.pushCapitalUpdate(Long.valueOf(id),UserCapitalTypeEnum.yyb.getValue());
         addRankCache(id, Integer.parseInt(amount.setScale(0).toString()),GameTypeEnum.battleRoyale.getValue());
     }
