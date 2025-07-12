@@ -382,7 +382,7 @@ public class ManagerCapitalService extends BaseService {
     }
     @Transactional
     @ServiceMethod(code = "808", description = "打怪兽修改内存")
-    public JSONObject updateCacheByDgs(ManagerDTS2SocketServer adminSocketServer, JSONObject data) throws InterruptedException {
+    public JSONObject updateCacheByDgs( JSONObject data) throws InterruptedException {
         checkNull(data);
         checkNull(data.get("betArray"));
         JSONArray betArray = data.getJSONArray("betArray");

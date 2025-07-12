@@ -46,7 +46,13 @@ public class MzUserItemService extends DaoService{
 	public List<MzUserItem> findByUserId(Long userId){
 		Map<String,Object> map = new HashMap<>();
 		map.put("userId",userId);
-		return findList("findByUserId",map);
+		return findList("findByConditions",map);
+	}
+
+	public MzUserItem findById(Long id){
+		Map<String,Object> map = new HashMap<>();
+		map.put("id",id);
+		return (MzUserItem) findOne("findByConditions",map);
 	}
 
 	@Transactional

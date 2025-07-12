@@ -131,9 +131,9 @@ public class ManagerMineService extends BaseService {
         Activity activity = gameCacheService.getActivity();
         if (activity.getAddPointEvent()==2){
             User user = userCacheService.getUserInfoById(userId);
-            gameCacheService.addPoint(userId,getScore(dicMine));
+            gameCacheService.addPointMySelf(userId,getScore(dicMine));
             if (user.getParentId()!=null){
-                gameCacheService.addPoint(user.getParentId(),getScore(dicMine)*10);
+                gameCacheService.addPointMySelf(user.getParentId(),getScore(dicMine)*10);
             }
         }
     }

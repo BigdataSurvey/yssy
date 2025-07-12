@@ -754,6 +754,16 @@ public class GameCacheService extends RedisService {
         }
     }
 
+    public void addPointMySelf(Long userId, double addPoint) {
+        getActivity();
+        String key = RedisKeyConstant.APP_TOP_lIST + activity.getId();
+        Double oldPoint = getZsetScore(key, String.valueOf(userId));
+        if (oldPoint == null) {
+            oldPoint = 0.0;
+        }
+        Double point = oldPoint + addPoint;
+        addForZset(key, String.valueOf(userId), point);
+    }
 
     public void addPoint2(Long userId) {
         User user = userCacheService.getUserInfoById(userId);

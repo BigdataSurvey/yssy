@@ -276,6 +276,22 @@ public class UserCapitalService extends DaoService {
 
         }
     }
+
+    @Transactional
+    public void subUserBalanceByMzTradingBuy(Long userId,  BigDecimal amount,Long dataId) {
+        UserCapital userCapital = userCapitalCacheService.getUserCapitalCacheByType(userId, UserCapitalTypeEnum.currency_2.getValue());
+        // 扣除资产
+        int a = subUserBalance(amount, userId, UserCapitalTypeEnum.currency_2.getValue(), userCapital.getBalance(), userCapital.getOccupyBalance(), null, dataId, LogCapitalTypeEnum.buy, TableNameConstant.TRADING_RECORD);
+        if (a < 1) {
+            userCapitalCacheService.deltedUserCapitalCache(userId, UserCapitalTypeEnum.currency_2.getValue());
+            userCapital = userCapitalCacheService.getUserCapitalCacheByType(userId, UserCapitalTypeEnum.currency_2.getValue());
+            int b = subUserBalance(amount, userId, UserCapitalTypeEnum.currency_2.getValue(), userCapital.getBalance(), userCapital.getOccupyBalance(), null, dataId, LogCapitalTypeEnum.buy, TableNameConstant.TRADING_RECORD);
+            if (b < 1) {
+                throwExp("有其他玩家正在购买，请刷新后重新购买!");
+            }
+
+        }
+    }
     @Transactional
     public void addUserBalanceByTradingSell(Long userId,Long tradId, Long itemId, BigDecimal amount, BigDecimal balanceBefore, BigDecimal occupyBalanceBefore, String orderNo, int number, BigDecimal price) {
         BigDecimal tradingRate = appConfigCacheService.getTradingRate();

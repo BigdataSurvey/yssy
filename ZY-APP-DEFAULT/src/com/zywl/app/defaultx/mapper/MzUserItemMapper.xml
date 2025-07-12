@@ -62,6 +62,8 @@
 		</where>
 	</select>
 
+
+
 	<select id="findByConditions" resultType="MzUserItem">
 		select * from t_user_mz_item
 		<where>

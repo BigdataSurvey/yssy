@@ -154,14 +154,12 @@ public class BattleRoyaleService2 extends BaseService {
         bot.forEach(e -> BOT_USER.put(e.getId().toString(), e));
         logger.info("加载人机完成，加载数量：" + BOT_USER.size());
         gameAddBot();
-        BOT_MONEY.add(new BigDecimal("3"));
+        BOT_MONEY.add(new BigDecimal("30"));
+        BOT_MONEY.add(new BigDecimal("31"));
+        BOT_MONEY.add(new BigDecimal("28"));
+        BOT_MONEY.add(new BigDecimal("29"));
         BOT_MONEY.add(new BigDecimal("20"));
-        BOT_MONEY.add(new BigDecimal("21"));
-        BOT_MONEY.add(new BigDecimal("18"));
-        BOT_MONEY.add(new BigDecimal("19"));
-        BOT_MONEY.add(new BigDecimal("10"));
-        BOT_MONEY.add(new BigDecimal("50"));
-        BOT_MONEY.add(new BigDecimal("5"));
+        BOT_MONEY.add(new BigDecimal("40"));
         //BOT_MONEY.add(new BigDecimal("100"));
     }
 

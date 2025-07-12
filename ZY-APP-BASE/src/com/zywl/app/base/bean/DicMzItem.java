@@ -12,6 +12,10 @@ public class DicMzItem extends BaseBean {
 
     private String context;
 
+    private String type;
+
+    private int lv;
+
     private int isShop;
 
     private int shopNumber;
@@ -94,5 +98,21 @@ public class DicMzItem extends BaseBean {
 
     public void setTradPrice(BigDecimal tradPrice) {
         this.tradPrice = tradPrice;
+    }
+
+    public String getType() {
+        return type;
+    }
+
+    public void setType(String type) {
+        this.type = type;
+    }
+
+    public int getLv() {
+        return lv;
+    }
+
+    public void setLv(int lv) {
+        this.lv = lv;
     }
 }

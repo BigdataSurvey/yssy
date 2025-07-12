@@ -23,5 +23,15 @@
         update dic_mz_item set shop_number = shop_number-1 where id=#{id} and shop_number-1>=0
     </update>
 
+    <select id="findByType" resultType="DicMzItem">
+        select *
+        from dic_mz_item where type=#{type}
+    </select>
+
+    <select id="findByTypeAndLv" resultType="DicMzItem">
+        select *
+        from dic_mz_item where type=#{type} and lv=#{lv}
+    </select>
+
 
 </mapper>

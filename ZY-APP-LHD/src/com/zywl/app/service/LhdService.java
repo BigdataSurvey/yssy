@@ -170,10 +170,10 @@ public class LhdService extends BaseService {
         bot.forEach(e -> BOT_USER.put(e.getId().toString(), e));
         logger.info("加载人机完成，加载数量：" + BOT_USER.size());
         gameAddBot();
-        BOT_MONEY.add(new BigDecimal("10"));
-        BOT_MONEY.add(new BigDecimal("11"));
-        BOT_MONEY.add(new BigDecimal("8"));
-        BOT_MONEY.add(new BigDecimal("9"));
+        BOT_MONEY.add(new BigDecimal("15"));
+        BOT_MONEY.add(new BigDecimal("16"));
+        BOT_MONEY.add(new BigDecimal("14"));
+        BOT_MONEY.add(new BigDecimal("17"));
 
 
     }
