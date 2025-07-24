@@ -181,4 +181,20 @@ public class BackpackService extends DaoService {
             execute("deletedOneMonthNoLogin", params);
         }
     }
+
+    public Long getWfsbNumber(){
+        long number = 0L;
+        for (int i = 0; i < 10; i++) {
+            try {
+                Map<String, Object> params = new HashedMap<>();
+                params.put("tableName", Backpack.tablePrefix + i);
+                long getWfsbNumber = count("getWfsbNumber", params);
+                number+=getWfsbNumber;
+            }catch (Exception e){
+                e.printStackTrace();
+            }
+        }
+        return number;
+    }
+
 }

@@ -28,13 +28,15 @@ public class MzTradService extends DaoService{
 	
 	
 	@Transactional
-	public void addMzTrad(Long mzItemId,Long userItemId,Long sellUserId,BigDecimal price,BigDecimal fee,BigDecimal getAmount) {
+	public void addMzTrad(Long mzItemId,Long userItemId,Long sellUserId,BigDecimal price,BigDecimal fee,BigDecimal getAmount,String name,int icon) {
 		MzTrad mzTrad = new MzTrad();
 		mzTrad.setFee(fee);
 		mzTrad.setUserItemId(userItemId);
 		mzTrad.setCreateTime(new Date());
 		mzTrad.setGetAmount(getAmount);
 		mzTrad.setStatus(1);
+		mzTrad.setName(name);
+		mzTrad.setIcon(icon);
 		mzTrad.setMzItemId(mzItemId);
 		mzTrad.setSellPrice(price);
 		mzTrad.setSellUserId(sellUserId);
@@ -49,11 +51,12 @@ public class MzTradService extends DaoService{
 	}
 
 
-	public List<MzTrad> findAllTrad(int page,int num){
+	public List<MzTrad> findAllTrad(int page,int num,Long userId){
 		Map<String,Object> map = new HashMap<>();
 		map.put("page",page*num);
 		map.put("num",num);
-		return findList("findAll",null);
+		map.put("userId",userId);
+		return findList("findAll",map);
 	}
 
 	@Transactional
@@ -61,23 +64,25 @@ public class MzTradService extends DaoService{
 		execute("updateMzTrad",trad);
 	}
 
-	public List<MzTrad> findByTypeAndLv(String type,int lv,int page,int num){
+	public List<MzTrad> findByTypeAndLv(String type,int lv,int page,int num,Long userId){
 		Map<String,Object> map = new HashMap<>();
 		map.put("type",type);
 		map.put("lv",lv);
 		map.put("page",page*num);
 		map.put("num",num);
+		map.put("userId",userId);
 		return findList("findByItemTypeAndLv",map);
 	}
 
 
 
-	public List<MzTrad> findByItemType(String type,int page,int num){
+	public List<MzTrad> findByItemType(String type,int page,int num,Long userId){
 		Map<String,Object> map = new HashMap<>();
 		map.put("type",type);
 		map.put("page",page*num);
 		map.put("num",num);
-		return findList("findByItemTypeAndLv",map);
+		map.put("userId",userId);
+		return findList("findByItemType",map);
 	}
 
 	public MzTrad findById(Long id){
@@ -85,4 +90,5 @@ public class MzTradService extends DaoService{
 		map.put("id",id);
 		return (MzTrad) findOne("findById",map);
 	}
+
 }

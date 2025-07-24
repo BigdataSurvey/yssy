@@ -107,6 +107,7 @@ public class TaskService extends BaseService {
         topService.updateTop1Info();
         adminSocketService.initKeepAlive();
         adminSocketService.initGiftInfo();
+        adminSocketService.initWfsbNumber();
         initPrizePool();
 
         //=========
@@ -207,6 +208,7 @@ public class TaskService extends BaseService {
                     adminSocketService.initAllBalance();
                     topService.updateTop1Info();
                     adminSocketService.initAllBalance();
+                    adminSocketService.initWfsbNumber();
                     Thread.sleep(1000);
                     gameService.updateStatic();
                 } catch (Exception e) {
@@ -297,7 +299,7 @@ public class TaskService extends BaseService {
 
                         }
                     }
-                    /*Activity activityByTime2 = activityService2.findActivity2ByTime();
+                    Activity activityByTime2 = activityService2.findActivity2ByTime();
                     Activity lastActive2 = activityService2.findById(activityByTime.getId() - 1);
                     long activeTime2 = activityByTime2.getBeginTime().getTime();
                     logger.info("本期活动2开启时间"+activeTime2);
@@ -321,7 +323,7 @@ public class TaskService extends BaseService {
 
                             }
                         }
-                    }*/
+                    }
 
                     logger.info("判断限时活动用时【" + (System.currentTimeMillis() - time) + "】ms");
                 } catch (Exception e) {
@@ -330,6 +332,43 @@ public class TaskService extends BaseService {
 
             }
         }, DateUtil.getActivityNeed(), 1000 * 60 * 60 * 24);
+
+        new Timer("定时判断是否需要操作限时活动2").schedule(new TimerTask() {
+            public void run() {
+                try {
+                    logger.info("判断限时活动是否需要插入提现订单开始");
+                    Activity activityByTime2 = activityService2.findActivity2ByTime();
+                    Activity lastActive2 = activityService2.findById(activityByTime2.getId() - 1);
+                    long activeTime2 = activityByTime2.getBeginTime().getTime();
+                    logger.info("本期活动2开启时间"+activeTime2);
+                    if ((System.currentTimeMillis() - activeTime2)/1000 <10 ){
+                        //本期活动刚开启还不到10秒  证明上一期刚结束
+                        List<JSONObject> lastActiveTopList = gameCacheService.getLastActiveTopList2(lastActive2);
+                        for (JSONObject info : lastActiveTopList) {
+                            Long userId = info.getLong("userId");
+                            User user = userCacheService.getUserInfoById(userId);
+                            BigDecimal rewardAmount = info.getBigDecimal("rewardAmount");
+                            int isAutoPay = managerConfigService.getInteger(Config.IS_AUTO_PAY);
+                            BigDecimal chunk = managerConfigService.getBigDecimal(Config.ALIPAY_ONE_MONEY);
+                            BigDecimal remaining = rewardAmount;
+                            while (remaining.compareTo(BigDecimal.ZERO) > 0) {
+                                String orderNo = OrderUtil.getOrder5Number();
+                                BigDecimal current = remaining.min(chunk);
+                                cashRecordService.addCashOrder(user.getOpenId(), userId, user.getUserNo(), user.getName(), user.getRealName(), orderNo,
+                                        current, 2, user.getPhone(),isAutoPay);
+                                System.out.println("取出: " + current);
+                                remaining = remaining.subtract(current);
+
+                            }
+                        }
+                    }
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+
+            }
+        }, DateUtil.getActivityNeed(), 1000 * 60 * 60 * 24);
+
 
     }
 

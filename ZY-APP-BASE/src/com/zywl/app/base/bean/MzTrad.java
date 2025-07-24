@@ -21,6 +21,12 @@ public class MzTrad extends BaseBean {
 
     private BigDecimal fee;
 
+    private int icon;
+
+    private String name;
+
+
+
     private BigDecimal getAmount;
 
     private int status;
@@ -105,5 +111,21 @@ public class MzTrad extends BaseBean {
 
     public void setUserItemId(Long userItemId) {
         this.userItemId = userItemId;
+    }
+
+    public int getIcon() {
+        return icon;
+    }
+
+    public void setIcon(int icon) {
+        this.icon = icon;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
     }
 }

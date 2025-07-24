@@ -333,7 +333,7 @@
 												</div>
 												<div class="col-8 p-l-0 text-left">
 													<h5>{{${menuId}.monitorData.todayAdNum || 0}}</h5>
-													<p class="text-muted m-b-0">今日广告次数</p>
+													<p class="text-muted m-b-0">文房四宝数量</p>
 												</div>
 											</div>
 										</div>

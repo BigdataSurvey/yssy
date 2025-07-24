@@ -8,6 +8,8 @@ import java.util.List;
 public class Config extends BaseBean {
 
 
+	public static final String NEW_USER_TIME = "NEW_USER_TIME";
+	public static final String MZ_NEED_WHITE = "MZ_NEED_WHITE";
 	public static final String ALIPAY_ONE_MONEY = "ALIPAY_ONE_MONEY";
 	public static final String FREE_ROLE_NUM = "FREE_ROLE_NUM";
 	public static final String UPDATE_ACH = "UPDATE_ACH";

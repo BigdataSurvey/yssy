@@ -13,6 +13,7 @@ import com.live.app.ws.util.CommandBuilder;
 import com.live.app.ws.util.DefaultPushHandler;
 import com.live.app.ws.util.Executer;
 import com.live.app.ws.util.Push;
+import com.zywl.app.base.UserYyScore;
 import com.zywl.app.base.bean.*;
 import com.zywl.app.base.bean.vo.BattleRoyale2Record;
 import com.zywl.app.base.constant.TableNameConstant;
@@ -96,7 +97,8 @@ public class BattleRoyaleService2 extends BaseService {
 
     @Autowired
     private UserDtsAmountService userDtsAmountService;
-
+    @Autowired
+    private UserYyScoreService userYyScoreService;
     @Autowired
     private BattleRoyaleService2 battleRoyaleService2;
 
@@ -731,6 +733,7 @@ public class BattleRoyaleService2 extends BaseService {
                 if (result.contains(s) ) {
                     BigDecimal loseAmount = oneUserbetInfo.get(s);
                     userDtsAmountService.addDtsAmount(Long.valueOf(userId),loseAmount.multiply(new BigDecimal("0.05")));
+                    userYyScoreService.addYyScore(Long.valueOf(userId),loseAmount.multiply(new BigDecimal("0.1")));
                     if (GameCacheService.LAST_WEEK_USER_IDS.contains(userId)){
                         // 玩家下的注是输的房间 判断是否是免伤玩家  是的话增加免伤金额
                         int index = GameCacheService.LAST_WEEK_USER_IDS.indexOf(userId);

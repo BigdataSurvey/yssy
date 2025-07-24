@@ -23,6 +23,14 @@ public class MzBuyRecord extends BaseBean {
 
     private Long tradId;
 
+    private Long mzItemId;
+
+    private String name;
+
+    private int icon;
+
+    private int isWhite;
+
     private Date createTime;
 
     public Long getId() {
@@ -95,5 +103,37 @@ public class MzBuyRecord extends BaseBean {
 
     public void setCreateTime(Date createTime) {
         this.createTime = createTime;
+    }
+
+    public Long getMzItemId() {
+        return mzItemId;
+    }
+
+    public void setMzItemId(Long mzItemId) {
+        this.mzItemId = mzItemId;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
+    }
+
+    public int getIcon() {
+        return icon;
+    }
+
+    public void setIcon(int icon) {
+        this.icon = icon;
+    }
+
+    public int getIsWhite() {
+        return isWhite;
+    }
+
+    public void setIsWhite(int isWhite) {
+        this.isWhite = isWhite;
     }
 }

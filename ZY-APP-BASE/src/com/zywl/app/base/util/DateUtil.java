@@ -805,6 +805,30 @@ public class DateUtil {
         return newDate;
     }
 
+    public static long getToDayDateByHour(int hour) {
+        Calendar calendar = Calendar.getInstance();
+        calendar.set(Calendar.HOUR_OF_DAY, hour);
+        calendar.set(Calendar.MINUTE, 0);
+        calendar.set(Calendar.SECOND, 0);
+        calendar.set(Calendar.MILLISECOND, 0);
+        long timestamp = calendar.getTimeInMillis();
+        return timestamp;
+    }
+
+
+
+    public static Date getDateBeginByDay(int day) {
+        Calendar calendar = Calendar.getInstance();
+        // 加上指定天数
+        calendar.add(Calendar.DAY_OF_YEAR, day);
+        calendar.set(Calendar.MINUTE, 0);
+        calendar.set(Calendar.HOUR_OF_DAY, 0);
+        calendar.set(Calendar.SECOND, 0);
+        calendar.set(Calendar.MILLISECOND, 0);
+        Date newDate = calendar.getTime();
+        return newDate;
+    }
+
 
     public static int getMonthValue() {
         LocalDate localDate = LocalDate.now();
@@ -1119,6 +1143,16 @@ public class DateUtil {
         return weekNumber;
     }
 
+    public static Date getDateTimeByString(String dateString){
+        DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
+        Date date = null;
+        try {
+             date = dateFormat.parse(dateString);
+        } catch (ParseException e) {
+            e.printStackTrace();
+        }
+        return date;
+    }
 
     //本周剩余时间 ms
     public static long thisWeekRemainingTime() {

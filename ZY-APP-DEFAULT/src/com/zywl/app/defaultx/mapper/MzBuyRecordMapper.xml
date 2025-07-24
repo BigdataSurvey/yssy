@@ -2,32 +2,62 @@
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.zywl.app.defaultx.mapper.MzBuyRecordMapper">
 
-   <insert id="insert" parameterType="MzBuyRecord" useGeneratedKeys="true" keyProperty="id" keyColumn="id">
-		insert into t_mz_buy_record
-		(
-			user_id,
-			order_no,
-			amount,
-			fee,
-			`buy_type`,
-			sell_user_id,
-			trad_id,
-			create_time
-		)
-		values
-		(
-               #{userId},
-               #{orderNo},
-			   #{amount},
-			   #{fee},
-			   #{buyType},
-			   #{sellUserId},
-			   #{tradId},
-			   #{createTime}
-		)
-	</insert>
+    <insert id="insert" parameterType="MzBuyRecord" useGeneratedKeys="true" keyProperty="id" keyColumn="id">
+        insert into t_mz_buy_record
+        (user_id,
+         order_no,
+         amount,
+         fee,
+         `buy_type`,
+         sell_user_id,
+         trad_id,
+        `name`,
+        `icon`,
+         mz_item_id,
+        `is_white`,
+         create_time)
+        values (#{userId},
+                #{orderNo},
+                #{amount},
+                #{fee},
+                #{buyType},
+                #{sellUserId},
+                #{tradId},
+                #{name},
+                #{icon},
+                #{mzItemId},
+                #{isWhite},
+                #{createTime})
+    </insert>
+
+    <select id="findTodayByUserId" resultType="MzBuyRecord">
+        select *
+        from t_mz_buy_record
+        where user_id = #{userId}
+          and create_time > #{time}
+          and  buy_type = 1
+    </select>
 
 
+    <select id="finUserTradRecord" resultType="MzBuyRecord">
+        select *
+        from t_mz_buy_record
+        where user_id = #{userId}
 
-	
+          and  buy_type = 2  order by id desc
+    </select>
+
+    <select id="findAllRecord2" resultType="MzBuyRecord">
+        select * from t_mz_buy_record where create_time&lt;#{time}
+    </select>
+
+
+    <select id="findTodayByUserId2" resultType="MzBuyRecord">
+        select *
+        from t_mz_buy_record
+        where user_id = #{userId}
+          and create_time > #{time}
+          and  buy_type = 1
+            and is_white = #{isWhite}
+    </select>
 </mapper>

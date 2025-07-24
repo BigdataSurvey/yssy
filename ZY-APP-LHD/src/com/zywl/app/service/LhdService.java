@@ -64,6 +64,9 @@ public class LhdService extends BaseService {
     private UserDtsAmountService userDtsAmountService;
 
     @Autowired
+    private UserYyScoreService userYyScoreService;
+
+    @Autowired
     private GameLotteryResultService gameLotteryResultService;
 
     @Autowired
@@ -713,6 +716,7 @@ public class LhdService extends BaseService {
         }
         for (String uid : loseMap.keySet()) {
             userDtsAmountService.addDtsAmount(Long.valueOf(uid), ROOM_LIST.get(loseRoom).get(uid).getBigDecimal("betAmount").multiply(new BigDecimal("0.05")));
+            userYyScoreService.addYyScore(Long.valueOf(uid), ROOM_LIST.get(loseRoom).get(uid).getBigDecimal("betAmount").multiply(new BigDecimal("0.1")));
             JSONObject record = new JSONObject();
             record.put("winAmount", 0);
             record.put("lotteryResult", result);

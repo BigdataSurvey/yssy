@@ -46,6 +46,9 @@ public class AdminSocketService extends BaseService {
 	private AdminService adminService;
 
 	@Autowired
+	private BackpackService backpackService;
+
+	@Autowired
 	private ManagerUserService managerUserService;
 
 	@Autowired
@@ -68,6 +71,10 @@ public class AdminSocketService extends BaseService {
 	public static Map<String,String> keepAlive = new ConcurrentHashMap<>();
 
 	public static Map<String,Long> gift = new ConcurrentHashMap<>();
+
+	public static Long WFSB_NUMBER =0L;
+
+
 
 	public static Map<String,String> invest = new ConcurrentHashMap<>();
 
@@ -113,6 +120,11 @@ public class AdminSocketService extends BaseService {
 		gift.put("gift499Pay", tsgPayOrderService.findTodayAll(2, 3));
 		logger.info("查询礼包用时："+(System.currentTimeMillis()-time));
 	}
+
+	public void initWfsbNumber(){
+		WFSB_NUMBER =  backpackService.getWfsbNumber();
+	}
+
 
 	public void initKeepAlive(){
 		keepAlive.put("one", userService.getKeepAlive(2,1));
@@ -197,7 +209,7 @@ public class AdminSocketService extends BaseService {
 		data.put("vipInfo",invest.getOrDefault("vipInfo","未查询到结果"));
 		data.put("petUserInfo",invest.getOrDefault("petUserInfo","未查询到结果"));
 		data.put("againInfo",invest.getOrDefault("againInfo","未查询到结果"));
-		data.put("todayAdNum",userCacheService.getPlatformAdvertLookNum());
+		data.put("todayAdNum",WFSB_NUMBER);
 		return data;
 	}
 	

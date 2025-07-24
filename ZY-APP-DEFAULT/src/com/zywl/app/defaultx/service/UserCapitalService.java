@@ -339,6 +339,21 @@ public class UserCapitalService extends DaoService {
     }
 
     @Transactional
+    public void addUserBalanceByMzTrad(Long userId, BigDecimal amount, String orderNo, Long sourceDataId) {
+        int capitalType = UserCapitalTypeEnum.currency_2.getValue();
+        UserCapital userCapital = userCapitalCacheService.getUserCapitalCacheByType(userId, capitalType);
+        int a = addUserBalance(amount, userId, capitalType, userCapital.getBalance(), userCapital.getOccupyBalance(), orderNo, sourceDataId, LogCapitalTypeEnum.sell, TableNameConstant.MZ_TRAD_RECORD);
+        if (a < 1) {
+            userCapitalCacheService.deltedUserCapitalCache(userId, capitalType);
+            userCapital = userCapitalCacheService.getUserCapitalCacheByType(userId, capitalType);
+            int b = addUserBalance(amount, userId, capitalType, userCapital.getBalance(), userCapital.getOccupyBalance(), orderNo, sourceDataId, LogCapitalTypeEnum.sell, TableNameConstant.MZ_TRAD_RECORD);
+            if (b < 1) {
+                throwExp("失败");
+            }
+        }
+    }
+
+    @Transactional
     public void addUserBalanceByGameEscort(Long userId, BigDecimal amount, String orderNo, Long sourceDataId) {
         int capitalType = UserCapitalTypeEnum.currency_2.getValue();
         UserCapital userCapital = userCapitalCacheService.getUserCapitalCacheByType(userId, capitalType);

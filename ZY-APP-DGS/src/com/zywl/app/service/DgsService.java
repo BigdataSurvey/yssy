@@ -13,18 +13,17 @@ import com.live.app.ws.util.CommandBuilder;
 import com.live.app.ws.util.DefaultPushHandler;
 import com.live.app.ws.util.Executer;
 import com.live.app.ws.util.Push;
-import com.sun.org.apache.bcel.internal.generic.NEW;
+import com.zywl.app.base.bean.DgsBetRecord;
+import com.zywl.app.base.bean.Game;
 import com.zywl.app.base.bean.Monster;
-import com.zywl.app.base.bean.*;
+import com.zywl.app.base.bean.User;
 import com.zywl.app.base.service.BaseService;
 import com.zywl.app.base.util.DateUtil;
 import com.zywl.app.base.util.OrderUtil;
 import com.zywl.app.defaultx.annotation.ServiceClass;
 import com.zywl.app.defaultx.annotation.ServiceMethod;
 import com.zywl.app.defaultx.cache.UserCapitalCacheService;
-import com.zywl.app.defaultx.enmus.GameTypeEnum;
 import com.zywl.app.defaultx.enmus.LogCapitalTypeEnum;
-import com.zywl.app.defaultx.enmus.LotteryGameStatusEnum;
 import com.zywl.app.defaultx.enmus.UserCapitalTypeEnum;
 import com.zywl.app.defaultx.service.*;
 import com.zywl.app.util.RequestManagerListener;
@@ -38,7 +37,6 @@ import java.math.RoundingMode;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.stream.Collectors;
 
 @Service
 @ServiceClass(code = "101")
@@ -64,6 +62,9 @@ public class DgsService extends BaseService {
     private UserCapitalCacheService userCapitalCacheService;
     @Autowired
     private GameService gameService;
+
+    @Autowired
+    private UserService userService;
 
     private static Object lock = new Object();
     public static int STATUS;
@@ -122,13 +123,60 @@ public class DgsService extends BaseService {
     public static Map<String, List<Map<String, String>>> userRankCapitals = new ConcurrentHashMap<>();
 
 
+
     public static Map<String, Integer> MONSTER_STATUS = new ConcurrentHashMap<>();
 
 
     private static final Map<String, Map<String, BigDecimal>> settleInfo = new ConcurrentHashMap<>();
 
+    public static Map<String, User> BOT_USER = new ConcurrentHashMap<>();
+
+    private int NEED_BOT = 20;
+
+    private Random random = new Random();
 
 
+    public Integer getRandomType(){
+        int i = random.nextInt(3);
+       if (i==2){
+            return 100;
+        } else if (i==1) {
+            return 10;
+        }else {
+            return 1;
+        }
+    }
+
+    public void gameAddBot() {
+        new Timer("游戏添加人机").schedule(new TimerTask() {
+            public void run() {
+                try {
+                    if ( NEED_BOT>1){
+                        //游戏阶段 添加人机
+                        int rate = random.nextInt(100);
+                        if (rate<NEED_BOT){
+                            User user = getBotUser();
+                            int i = random.nextInt(5);
+                            logger.info("人机"+user.getId()+"下注："+i);
+                            userBetBet(getRandomType(), Math.toIntExact(user.getId()),null);
+                        }
+                    }
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+
+            }
+        }, 0, 100);
+    }
+
+    public User getBotUser(){
+        return getRandomValue(BOT_USER);
+    }
+    public static <K,V> V getRandomValue(Map<K,V> map) {
+        return map.values().stream()
+                .skip(new Random().nextInt(map.size()))
+                .findFirst().orElse(null);
+    }
 
     public void pushRoomDate() {
         new Timer("定时推送SERVER").schedule(new TimerTask() {
@@ -163,6 +211,11 @@ public class DgsService extends BaseService {
         init();
         initGameStatus();
         addPushSuport();
+        logger.info("开始加载人机");
+        List<User> bot = userService.findBot();
+        bot.forEach(e -> BOT_USER.put(e.getId().toString(), e));
+        logger.info("加载人机完成，加载数量：" + BOT_USER.size());
+        gameAddBot();
     }
 
     public void init() {
@@ -375,7 +428,15 @@ public class DgsService extends BaseService {
     public JSONObject pushResult(int monsterType, String userId) {
         JSONObject pushResult = new JSONObject();
         pushResult.put("monsterType",monsterType);
-        pushResult.put("userInfo",USER_MAP.get(userId));
+        if (BOT_USER.containsKey(userId)){
+            JSONObject result = new JSONObject();
+            result.put("headImgUrl", BOT_USER.get(userId).getHeadImageUrl());
+            result.put("userNo", BOT_USER.get(userId).getUserNo());
+            result.put("userName", BOT_USER.get(userId).getName());
+            pushResult.put("userInfo",result);
+        }else {
+            pushResult.put("userInfo",USER_MAP.get(userId));
+        }
         pushResult.put("monsterInfo",atkMonsterMap.get(String.valueOf(monsterType)));
         pushResult.put("gameStatus",getGameStatus(monsterType));
         pushResult.put("gameId","10");
@@ -391,6 +452,10 @@ public class DgsService extends BaseService {
     public JSONObject attackBoss(DgsService adminSocketServer, Command lotteryCommand, JSONObject data) throws InterruptedException {
         Integer monsterType = data.getInteger("bet");
         Integer userId = data.getInteger("userId");
+        return userBetBet(monsterType,userId,lotteryCommand);
+    }
+
+    public JSONObject userBetBet(Integer monsterType,Integer userId,Command lotteryCommand){
         String orderNo = OrderUtil.getBatchOrder32Number();
         //判断游戏状态
         //ifStatus(monsterType);
@@ -399,10 +464,11 @@ public class DgsService extends BaseService {
                 throwExp("当前用户已经参加过本次击打活动");
             }
             //生成订单
-
             DgsBetRecord record = dgsBetRecordService.addRecord(Long.valueOf(userId), orderNo, monsterType,atkMonsterMap.get(monsterType.toString()).getMonsterNo());
             //更改资产
-            updateCapital(String.valueOf(userId), BigDecimal.valueOf(monsterType), orderNo, record.getId());
+            if (!BOT_USER.containsKey(userId.toString())){
+                updateCapital(String.valueOf(userId), BigDecimal.valueOf(monsterType), orderNo, record.getId());
+            }
             atkMap.get(monsterType.toString()).add(String.valueOf(userId));
             atkRecordMap.get(monsterType.toString()).put(userId.toString(),record);
             atkMonsterMap.get(monsterType.toString()).setCurrBlood(atkMonsterMap.get(monsterType.toString()).getCurrBlood()-100);
@@ -411,7 +477,6 @@ public class DgsService extends BaseService {
             JSONObject jsonObject = pushResult(monsterType, userId.toString());
             //判断是否需要结算
             if(atkMonsterMap.get(monsterType.toString()).getCurrBlood() == 0 ){
-                Thread.sleep(300);
                 Map<String, Map<String, Object>> settle = settle(lotteryCommand, monsterType);
                 jsonObject = pushResult(monsterType, userId.toString());
                 jsonObject.put("settleInfo",settle);
@@ -422,7 +487,9 @@ public class DgsService extends BaseService {
         return  new JSONObject();
     }
 
+
     private Map<String, Map<String, Object>> settle(Command lotteryCommand,Integer monsterType) {
+        System.out.println("结算-----------------");
         Map<String, Map<String, Object>> settleInfo = new ConcurrentHashMap<>();
         JSONObject result = new JSONObject();
         //怪兽最后一击时返回游戏状态为结算中
@@ -476,7 +543,9 @@ public class DgsService extends BaseService {
                 data.put("userId", newList.get(i).getUserId());
 
             }
-            jsonObject.put(String.valueOf(newList.get(i).getUserId()),data);
+            if (!BOT_USER.containsKey(String.valueOf(newList.get(i).getUserId()))){
+                jsonObject.put(String.valueOf(newList.get(i).getUserId()),data);
+            }
             //推送给server
             settleInfo.put(String.valueOf(newList.get(i).getUserId()),map);
         }

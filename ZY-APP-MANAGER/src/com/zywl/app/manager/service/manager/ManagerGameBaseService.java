@@ -9,6 +9,7 @@ import com.alipay.api.request.AlipaySystemOauthTokenRequest;
 import com.alipay.api.response.AlipaySystemOauthTokenResponse;
 import com.live.app.ws.enums.PushCode;
 import com.live.app.ws.util.Push;
+import com.zywl.app.base.UserYyScore;
 import com.zywl.app.base.bean.*;
 import com.zywl.app.base.bean.card.*;
 import com.zywl.app.base.bean.vo.*;
@@ -103,6 +104,9 @@ public class ManagerGameBaseService extends BaseService {
 
     @Autowired
     private UserService userService;
+
+    @Autowired
+    private UserYyScoreService userYyScoreService;
 
 
     @Autowired
@@ -1114,6 +1118,52 @@ public class ManagerGameBaseService extends BaseService {
             return new JSONObject();
         }
     }
+
+    @Transactional
+    @ServiceMethod(code = "057", description = "获取抽奖详情")
+    public Object getPrizeInfo(ManagerSocketServer adminSocketServer, JSONObject params) {
+        Long userId = params.getLongValue("userId");
+        UserYyScore byUserId = userYyScoreService.findByUserId(userId);
+        JSONObject result = new JSONObject();
+        Collection<DicPirzeDraw> values = PlayGameService.DIC_PRIZE_DRAW_MAP.values();
+        List<DicPirzeDrawVo> vos = new ArrayList<>();
+        for (DicPirzeDraw value : values) {
+            DicPirzeDrawVo vo = new DicPirzeDrawVo();
+            BeanUtils.copy(value,vo);
+            vos.add(vo);
+        }
+        result.put("rewardList",vos);
+        result.put("score",byUserId.getScore());
+        return result;
+    }
+    @Transactional
+    @ServiceMethod(code = "058", description = "抽奖")
+    public Object prize(ManagerSocketServer adminSocketServer, JSONObject params) {
+        Long userId = params.getLongValue("userId");
+        UserYyScore byUserId = userYyScoreService.findByUserId(userId);
+        if (byUserId.getScore().compareTo(new BigDecimal("100"))<1){
+            throwExp("积分不足，不能抽奖");
+        }
+        userYyScoreService.subScore(userId,new BigDecimal("100"));
+        JSONObject result = new JSONObject();
+        Random random = new Random();
+        int i = random.nextInt(1000)+1;
+        JSONArray rewards = new JSONArray();
+        Collection<DicPirzeDraw> values = PlayGameService.DIC_PRIZE_DRAW_MAP.values();
+        for (DicPirzeDraw value : values) {
+            if (i<value.getRate()){
+                rewards.add( value.getReward());
+                break;
+            }
+        }
+        if (rewards.size()>0){
+            gameService.addReward(userId,rewards,LogCapitalTypeEnum.cave_prize_draw);
+        }
+        result.put("rewardInfo",rewards);
+        result.put("score",byUserId.getScore());
+        return result;
+    }
+
 
 
 }

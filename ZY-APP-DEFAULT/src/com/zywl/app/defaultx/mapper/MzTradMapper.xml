@@ -12,6 +12,8 @@
 		 	`buy_user_id`,
 			`sell_price`,
 		 	`fee`,
+			`name`,
+		 	`icon`,
 			`get_amount`,
 			`status`,
 		 	`create_time`
@@ -24,6 +26,8 @@
 			 	#{buyUserId},
 				#{sellPrice},
 			 	#{fee},
+			 	#{name},
+			 	#{icon},
 				#{getAmount},
 				#{status},
 			 	#{createTime}
@@ -31,7 +35,7 @@
 	</insert>
 
 	<select id="findAll" resultType="MzTrad">
-	    select * from t_mz_trad
+	    select * from t_mz_trad where status = 1 and sell_user_id!=#{userId}
 		<if test="start != null and limit != null">
 			limit #{start}, #{limit}
 		</if>
@@ -39,7 +43,7 @@
 
 
 	<select id="findByItemType" resultType="MzTrad">
-		select * from t_mz_trad  where mz_item_id in (select id from dic_mz_item where type=#{type}) and status=0 order by id
+		select * from t_mz_trad  where mz_item_id in (select id from dic_mz_item where type=#{type}) and status=1  and sell_user_id!=#{userId} order by id
 		<if test="start != null and limit != null">
 			limit #{start}, #{limit}
 		</if>
@@ -47,7 +51,7 @@
 
 
 	<select id="findByItemTypeAndLv" resultType="MzTrad">
-		select * from t_mz_trad  where mz_item_id in (select id from dic_mz_item where type=#{type} and lv=#{lv}) and status=0 order by id
+		select * from t_mz_trad  where mz_item_id in (select id from dic_mz_item where type=#{type} and lv=#{lv}) and status=1 and sell_user_id!=#{userId} order by id
 		<if test="start != null and limit != null">
 			limit #{start}, #{limit}
 		</if>
