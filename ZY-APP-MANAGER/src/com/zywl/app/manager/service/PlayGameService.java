@@ -84,7 +84,7 @@ public class PlayGameService extends BaseService {
 
     public static Map<String, Product> productMap = new ConcurrentHashMap<>();
 
-    public static Map<String,DicPirzeDraw>  DIC_PRIZE_DRAW_MAP = new ConcurrentHashMap<>();
+    public static Map<String,DicPrizeDraw>  DIC_PRIZE_DRAW_MAP = new ConcurrentHashMap<>();
 
     public static Map<String, Achievement> achievementMap = new ConcurrentHashMap<>();
 
@@ -321,7 +321,7 @@ public class PlayGameService extends BaseService {
     }
 
     public void initPrizeDraw() {
-        List<DicPirzeDraw> allPrizeDraw = dicPrizeDrawService.findAllPrizeDraw();
+        List<DicPrizeDraw> allPrizeDraw = dicPrizeDrawService.findAllPrizeDraw();
         allPrizeDraw.forEach(e -> DIC_PRIZE_DRAW_MAP.put(e.getId().toString(), e));
     }
 

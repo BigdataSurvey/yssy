@@ -1125,9 +1125,9 @@ public class ManagerGameBaseService extends BaseService {
         Long userId = params.getLongValue("userId");
         UserYyScore byUserId = userYyScoreService.findByUserId(userId);
         JSONObject result = new JSONObject();
-        Collection<DicPirzeDraw> values = PlayGameService.DIC_PRIZE_DRAW_MAP.values();
+        Collection<DicPrizeDraw> values = PlayGameService.DIC_PRIZE_DRAW_MAP.values();
         List<DicPirzeDrawVo> vos = new ArrayList<>();
-        for (DicPirzeDraw value : values) {
+        for (DicPrizeDraw value : values) {
             DicPirzeDrawVo vo = new DicPirzeDrawVo();
             BeanUtils.copy(value,vo);
             vos.add(vo);
@@ -1149,8 +1149,8 @@ public class ManagerGameBaseService extends BaseService {
         Random random = new Random();
         int i = random.nextInt(1000)+1;
         JSONArray rewards = new JSONArray();
-        Collection<DicPirzeDraw> values = PlayGameService.DIC_PRIZE_DRAW_MAP.values();
-        for (DicPirzeDraw value : values) {
+        Collection<DicPrizeDraw> values = PlayGameService.DIC_PRIZE_DRAW_MAP.values();
+        for (DicPrizeDraw value : values) {
             if (i<value.getRate()){
                 rewards.add( value.getReward());
                 break;

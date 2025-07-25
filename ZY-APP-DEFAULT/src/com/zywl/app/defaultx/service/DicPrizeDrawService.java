@@ -1,6 +1,6 @@
 package com.zywl.app.defaultx.service;
 
-import com.zywl.app.base.bean.DicPirzeDraw;
+import com.zywl.app.base.bean.DicPrizeDraw;
 import com.zywl.app.base.bean.card.DicShop;
 import com.zywl.app.defaultx.dbutil.DaoService;
 import org.apache.commons.logging.Log;
@@ -23,7 +23,7 @@ public class DicPrizeDrawService extends DaoService {
 	private static final Log logger = LogFactory.getLog(DicPrizeDrawService.class);
 
 	
-	public List<DicPirzeDraw> findAllPrizeDraw() {
+	public List<DicPrizeDraw> findAllPrizeDraw() {
 		return findAll();
 	}
 
