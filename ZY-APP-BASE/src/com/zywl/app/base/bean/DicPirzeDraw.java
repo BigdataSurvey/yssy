@@ -35,4 +35,6 @@ public class DicPirzeDraw extends BaseBean {
     public void setRate(int rate) {
         this.rate = rate;
     }
+
+
 }
