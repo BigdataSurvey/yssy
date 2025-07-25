@@ -3,6 +3,7 @@ package com.zywl.app.base.constant;
 public class TableNameConstant {
 
 	public final static String GREETING_CARD = "t_greeting_card";
+	public final static String MZ_TRAD_RECORD = "t_mz_buy_record";
 	public final static String POP_RECORD = "r_user_receive_pop_record";
 	public final static String SHOPPING_RECORD = "r_shopping_record";
 

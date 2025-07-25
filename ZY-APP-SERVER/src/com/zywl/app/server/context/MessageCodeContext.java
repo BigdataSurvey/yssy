@@ -22,7 +22,7 @@ public class MessageCodeContext {
 	public final static String DZ_SERVER="020";
 	public final static String ALIPAY_SERVER="023";
 
-	public final static String PAY_ROLE="040";
+	public final static String MZ="040";
 
 	public final static String USER_ROLE="060";
 

@@ -29,7 +29,7 @@ public class MzUserItemService extends DaoService{
 	
 	
 	@Transactional
-	public Long addMzItem(Long userId,Long mzItemId,String lastUserNo,String lastUserName) {
+	public Long addMzItem(Long userId,Long mzItemId,String lastUserNo,String lastUserName,int icon,String name,String context) {
 		MzUserItem mzUserItem = new MzUserItem();
 		mzUserItem.setUserId(userId);
 		mzUserItem.setMzItemId(mzItemId);
@@ -37,7 +37,10 @@ public class MzUserItemService extends DaoService{
 		mzUserItem.setLastUserName(lastUserName);
 		mzUserItem.setStatus(0);
 		mzUserItem.setUpTime(null);
+		mzUserItem.setIcon(icon);
 		mzUserItem.setUpEndTime(null);
+		mzUserItem.setName(name);
+		mzUserItem.setContext(context);
 		mzUserItem.setCreateTime(new Date());
 		save(mzUserItem);
 		return mzUserItem.getId();
@@ -46,7 +49,13 @@ public class MzUserItemService extends DaoService{
 	public List<MzUserItem> findByUserId(Long userId){
 		Map<String,Object> map = new HashMap<>();
 		map.put("userId",userId);
-		return findList("findByUserId",map);
+		return findList("findByConditions",map);
+	}
+
+	public MzUserItem findById(Long id){
+		Map<String,Object> map = new HashMap<>();
+		map.put("id",id);
+		return (MzUserItem) findOne("findByConditions",map);
 	}
 
 	@Transactional

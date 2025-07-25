@@ -2,9 +2,9 @@ package com.zywl.app.manager.service.manager;
 
 import com.alibaba.fastjson2.JSONArray;
 import com.alibaba.fastjson2.JSONObject;
-import com.live.app.ws.enums.PushCode;
-import com.live.app.ws.util.Push;
-import com.zywl.app.base.bean.*;
+import com.zywl.app.base.bean.Mail;
+import com.zywl.app.base.bean.User;
+import com.zywl.app.base.bean.UserMail;
 import com.zywl.app.base.service.BaseService;
 import com.zywl.app.base.util.LockUtil;
 import com.zywl.app.base.util.OrderUtil;
@@ -13,9 +13,13 @@ import com.zywl.app.defaultx.annotation.ServiceClass;
 import com.zywl.app.defaultx.annotation.ServiceMethod;
 import com.zywl.app.defaultx.cache.AppConfigCacheService;
 import com.zywl.app.defaultx.cache.UserCacheService;
-import com.zywl.app.defaultx.cache.UserCapitalCacheService;
-import com.zywl.app.defaultx.enmus.*;
-import com.zywl.app.defaultx.service.*;
+import com.zywl.app.defaultx.enmus.ItemIdEnum;
+import com.zywl.app.defaultx.enmus.LogCapitalTypeEnum;
+import com.zywl.app.defaultx.enmus.LogUserBackpackTypeEnum;
+import com.zywl.app.defaultx.enmus.MailGoldTypeEnum;
+import com.zywl.app.defaultx.service.MailService;
+import com.zywl.app.defaultx.service.UserMailService;
+import com.zywl.app.defaultx.service.UserVipService;
 import com.zywl.app.manager.context.KafkaEventContext;
 import com.zywl.app.manager.context.KafkaTopicContext;
 import com.zywl.app.manager.context.MessageCodeContext;
@@ -26,8 +30,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import javax.annotation.PostConstruct;
-import java.math.BigDecimal;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Timer;
+import java.util.TimerTask;
 
 @Service
 @ServiceClass(code = MessageCodeContext.MAIL_SERVER)
@@ -38,7 +44,6 @@ public class ManagerMailService extends BaseService {
 
     @Autowired
     private UserMailService userMailService;
-
 
 
     @Autowired
@@ -150,24 +155,26 @@ public class ManagerMailService extends BaseService {
 
     @Transactional
     @ServiceMethod(code = "200", description = "玩家发送邮件（转赠功能）")
-    @KafkaProducer(topic = KafkaTopicContext.RED_POINT,event = KafkaEventContext.SEND_MAIL,sendParams = true)
+    @KafkaProducer(topic = KafkaTopicContext.RED_POINT, event = KafkaEventContext.SEND_MAIL, sendParams = true)
     public JSONObject sendMail(ManagerSocketServer adminSocketServer, JSONObject data) {
         checkNull(data);
         checkNull(data.get("toUserId"), data.get("userId"));
+        String itemId = data.getString("itemId");
         JSONArray array = new JSONArray();
         //第一个是赠送的文房四宝
         JSONObject detail = new JSONObject();
         //第二个是根据等级额外获得的信封道具
         long userId = data.getLongValue("userId");
-        synchronized (LockUtil.getlock(userId)){
+        synchronized (LockUtil.getlock(userId)) {
             long toUserId = data.getLongValue("toUserId");
-            String toUserNo  = data.getString("toUserNo");
+            String toUserNo = data.getString("toUserNo");
             String context = data.getString("context");
             int number = data.getIntValue("amount");
             if (number < 0) {
                 throwExp("数值异常");
             }
-            String itemId = ItemIdEnum.WFSB.getValue();
+
+            //  String itemId = ItemIdEnum.WFSB.getValue();
             String useItemId = ItemIdEnum.XG.getValue();
             String smallItemId = ItemIdEnum.XXF.getValue();
             String bigItemId = ItemIdEnum.DXF.getValue();
@@ -175,15 +182,18 @@ public class ManagerMailService extends BaseService {
             User user = userCacheService.getUserInfoById(userId);
             gameService.checkUserItemNumber(userId, itemId, number);
             //根据userId查询出当前用户的vip等级
-            UserVip uservip = userVipService.findRechargeAmountByUserId(userId);
-            UserVip toUservip = userVipService.findRechargeAmountByUserId(toUserId);
-            if(uservip.getVipLevel()<4 ){
+            // UserVip uservip = userVipService.findRechargeAmountByUserId(userId);
+            //  UserVip toUservip = userVipService.findRechargeAmountByUserId(toUserId);
+            // if(uservip.getVipLevel()<4 ){
+            if (itemId.equals(ItemIdEnum.WFSB.getValue())){
                 //需要消耗一个信鸽
                 gameService.checkUserItemNumber(userId, useItemId, number);
                 //修改该用户的道具
-                gameService.updateUserBackpack(userId, useItemId,-number, LogUserBackpackTypeEnum.use);
+                gameService.updateUserBackpack(userId, useItemId, -number, LogUserBackpackTypeEnum.use);
             }
-            if(uservip.getVipLevel()<4 && toUservip.getVipLevel() == 4){
+
+            // }
+            /*if(uservip.getVipLevel()<4 && toUservip.getVipLevel() == 4){
                 //收件人将获得一个小信封
                 //修改该用户的道具
                 //gameService.updateUserBackpack(toUserId, smallItemId,number, LogUserBackpackTypeEnum.use);
@@ -203,7 +213,7 @@ public class ManagerMailService extends BaseService {
                 detail1.put("channel", MailGoldTypeEnum.FRIEND.getValue());
                 detail1.put("fromUserId",user.getUserNo());
                 array.add(detail1);
-            }
+            }*/
             if (title == null) {
                 title = "好友赠送";
             }
@@ -216,14 +226,14 @@ public class ManagerMailService extends BaseService {
             detail.put("id", itemId);
             detail.put("number", number);
             detail.put("channel", MailGoldTypeEnum.FRIEND.getValue());
-            detail.put("fromUserId",user.getUserNo());
+            detail.put("fromUserId", user.getUserNo());
             //添加邮件记录
             int isAttachments = 1;
             array.add(detail);
             Long mailId = mailService.sendMail(userId, toUserId, title, context, null, isAttachments, array);
             String orderNo = OrderUtil.getOrder5Number();
             //如果是赠送   则再扣除赠送的金额  增加流水  赠送记录
-            gameService.updateUserBackpack(userId,itemId,-number, LogUserBackpackTypeEnum.zsg, String.valueOf(toUserNo));
+            gameService.updateUserBackpack(userId, itemId, -number, LogUserBackpackTypeEnum.zsg, String.valueOf(toUserNo));
             return null;
         }
 
@@ -257,7 +267,6 @@ public class ManagerMailService extends BaseService {
         return result;
 
     }
-
 
 
 }

@@ -123,17 +123,35 @@ public class ManagerMineService extends BaseService {
             BigDecimal anima = dicMine.getCostMoney();
             managerUserService.addAnimaToInviter(userId,anima,new BigDecimal("0.1"));
             addActiveScore(userId,dicMine);
+            addActive2Score(userId,dicMine);
             return vo;
         }
     }
 
     public void addActiveScore(Long userId,DicMine dicMine){
         Activity activity = gameCacheService.getActivity();
+        if (activity==null){
+            return;
+        }
         if (activity.getAddPointEvent()==2){
             User user = userCacheService.getUserInfoById(userId);
-            gameCacheService.addPoint(userId,getScore(dicMine));
+          //  gameCacheService.addPointMySelf(userId,getScore(dicMine));
             if (user.getParentId()!=null){
-                gameCacheService.addPoint(user.getParentId(),getScore(dicMine)*10);
+                gameCacheService.addPointMySelf(user.getParentId(),getScore(dicMine)*10);
+            }
+        }
+    }
+
+    public void addActive2Score(Long userId,DicMine dicMine){
+        Activity activity = gameCacheService.getActivity2();
+        if (activity==null){
+            return;
+        }
+        if (activity.getAddPointEvent()==2){
+            User user = userCacheService.getUserInfoById(userId);
+         //   gameCacheService.addPointMySelf(userId,getScore(dicMine));
+            if (user.getParentId()!=null){
+                gameCacheService.addPoint2MySelf(user.getParentId(),getScore(dicMine)*10);
             }
         }
     }

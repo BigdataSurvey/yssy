@@ -3,6 +3,7 @@ package com.zywl.app.base.bean;
 import com.zywl.app.base.BaseBean;
 
 import java.math.BigDecimal;
+import java.util.Date;
 
 public class DicMzItem extends BaseBean {
 
@@ -11,6 +12,10 @@ public class DicMzItem extends BaseBean {
     private String name;
 
     private String context;
+
+    private String type;
+
+    private int lv;
 
     private int isShop;
 
@@ -21,6 +26,11 @@ public class DicMzItem extends BaseBean {
     private int isTrad;
 
     private int icon;
+
+
+    private int days;
+
+    private Date canBuyTime;
 
     private BigDecimal tradPrice;
 
@@ -94,5 +104,37 @@ public class DicMzItem extends BaseBean {
 
     public void setTradPrice(BigDecimal tradPrice) {
         this.tradPrice = tradPrice;
+    }
+
+    public String getType() {
+        return type;
+    }
+
+    public void setType(String type) {
+        this.type = type;
+    }
+
+    public int getLv() {
+        return lv;
+    }
+
+    public void setLv(int lv) {
+        this.lv = lv;
+    }
+
+    public int getDays() {
+        return days;
+    }
+
+    public void setDays(int days) {
+        this.days = days;
+    }
+
+    public Date getCanBuyTime() {
+        return canBuyTime;
+    }
+
+    public void setCanBuyTime(Date canBuyTime) {
+        this.canBuyTime = canBuyTime;
     }
 }

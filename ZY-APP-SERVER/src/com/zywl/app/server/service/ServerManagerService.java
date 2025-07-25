@@ -114,7 +114,8 @@ public class ServerManagerService {
 			lhdSocket = new LhdSocket(TargetSocketType.nh, -1, managerProperties.get("nhServer.ws.address"), shakeHandsDatas);
 			lhdSocket.connect();
 		}
-	}public void connectDgsServer(){
+	}
+	public void connectDgsServer(){
 		if(dgsSocket == null){
 			PropertiesUtil managerProperties = new PropertiesUtil("manager.properties");
 			PropertiesUtil serverProperties = new PropertiesUtil("config.properties");

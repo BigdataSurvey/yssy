@@ -13,6 +13,7 @@ import com.live.app.ws.util.CommandBuilder;
 import com.live.app.ws.util.DefaultPushHandler;
 import com.live.app.ws.util.Executer;
 import com.live.app.ws.util.Push;
+import com.zywl.app.base.UserYyScore;
 import com.zywl.app.base.bean.*;
 import com.zywl.app.base.bean.vo.BattleRoyale2Record;
 import com.zywl.app.base.constant.TableNameConstant;
@@ -96,7 +97,8 @@ public class BattleRoyaleService2 extends BaseService {
 
     @Autowired
     private UserDtsAmountService userDtsAmountService;
-
+    @Autowired
+    private UserYyScoreService userYyScoreService;
     @Autowired
     private BattleRoyaleService2 battleRoyaleService2;
 
@@ -154,14 +156,12 @@ public class BattleRoyaleService2 extends BaseService {
         bot.forEach(e -> BOT_USER.put(e.getId().toString(), e));
         logger.info("加载人机完成，加载数量：" + BOT_USER.size());
         gameAddBot();
-        BOT_MONEY.add(new BigDecimal("3"));
+        BOT_MONEY.add(new BigDecimal("30"));
+        BOT_MONEY.add(new BigDecimal("31"));
+        BOT_MONEY.add(new BigDecimal("28"));
+        BOT_MONEY.add(new BigDecimal("29"));
         BOT_MONEY.add(new BigDecimal("20"));
-        BOT_MONEY.add(new BigDecimal("21"));
-        BOT_MONEY.add(new BigDecimal("18"));
-        BOT_MONEY.add(new BigDecimal("19"));
-        BOT_MONEY.add(new BigDecimal("10"));
-        BOT_MONEY.add(new BigDecimal("50"));
-        BOT_MONEY.add(new BigDecimal("5"));
+        BOT_MONEY.add(new BigDecimal("40"));
         //BOT_MONEY.add(new BigDecimal("100"));
     }
 
@@ -733,6 +733,7 @@ public class BattleRoyaleService2 extends BaseService {
                 if (result.contains(s) ) {
                     BigDecimal loseAmount = oneUserbetInfo.get(s);
                     userDtsAmountService.addDtsAmount(Long.valueOf(userId),loseAmount.multiply(new BigDecimal("0.05")));
+                    userYyScoreService.addYyScore(Long.valueOf(userId),loseAmount.multiply(new BigDecimal("0.1")));
                     if (GameCacheService.LAST_WEEK_USER_IDS.contains(userId)){
                         // 玩家下的注是输的房间 判断是否是免伤玩家  是的话增加免伤金额
                         int index = GameCacheService.LAST_WEEK_USER_IDS.indexOf(userId);

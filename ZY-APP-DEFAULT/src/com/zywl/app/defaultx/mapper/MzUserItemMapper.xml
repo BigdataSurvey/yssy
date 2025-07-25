@@ -3,12 +3,16 @@
 <mapper namespace="com.zywl.app.defaultx.mapper.MzUserItemMapper">
 
    <insert id="insert" parameterType="MzUserItem" useGeneratedKeys="true" keyProperty="id" keyColumn="id">
-		insert into t_user_mz_item
+		insert into t_mz_user_item
 		(
 			user_id,
 			mz_item_id,
+		 	`name`,
+		 	`context`,
+			icon,
 			last_user_no,
 			last_user_name,
+		 	price,
 			`status`,
 			up_time,
 			up_end_time,
@@ -18,8 +22,12 @@
 		(
                #{userId},
                #{mzItemId},
+		 		#{name},
+		 		#{context},
+		 		#{icon},
 			   #{lastUserNo},
 			   #{lastUserName},
+		 		#{price},
 			   #{status},
 			   #{upTime},
 			   #{upEndTime},
@@ -35,15 +43,28 @@
 		<if test="mzItemId != null">
 			and mz_item_id=#{mzItemId}
 		</if>
+		<if test="icon != null">
+			and icon=#{icon}
+		</if>
+		<if test="name != null">
+			and name=#{name}
+		</if>
+		<if test="context != null">
+			and context=#{context}
+		</if>
 		<if test="lastUserNo != null">
 			and last_user_no=#{lastUserNo}
 		</if>
 		<if test="lastUserName != null">
 			and last_user_name=#{lastUserName}
 		</if>
+		<if test="price != null">
+			and price=#{price}
+		</if>
 		<if test="status != null">
 			and status=#{status}
 		</if>
+
 		<if test="upTime != null">
 			and up_time=#{upTime}
 		</if>
@@ -53,17 +74,22 @@
 		<if test="createTime != null">
 			and create_time=#{createTime}
 		</if>
+		<if test="id != null">
+			and id=#{id}
+		</if>
 	</sql>
 
 	<select id="countByConditions" resultType="Long">
-		select count(1) from t_user_mz_item
+		select count(1) from t_mz_user_item
 		<where>
 			<include refid="conditions"></include>
 		</where>
 	</select>
 
+
+
 	<select id="findByConditions" resultType="MzUserItem">
-		select * from t_user_mz_item
+		select * from t_mz_user_item
 		<where>
 			<include refid="conditions"></include>
 		</where>
@@ -75,7 +101,7 @@
 	</select>
 
 	<update id="updateMzUserItem" parameterType="MzUserItem">
-		update t_user_mz_item
+		update t_mz_user_item
 		<set>
 			<if test="userId != null">
 				 user_id=#{userId},
@@ -89,6 +115,12 @@
 			<if test="lastUserName != null">
 				 last_user_name=#{lastUserName},
 			</if>
+			<if test="price != null">
+				price=#{price},
+			</if>
+			<if test="icon != null">
+				icon=#{icon},
+			</if>
 			<if test="status != null">
 				 status=#{status},
 			</if>
@@ -101,12 +133,18 @@
 			<if test="createTime != null">
 				 create_time=#{createTime},
 			</if>
+			<if test="name != null">
+				 name=#{name},
+			</if>
+			<if test="context != null">
+				 context=#{context},
+			</if>
 		</set>
 		where id= #{id}
 	</update>
 
 	<delete id="delete">
-		delete from t_user_mz_item where  id= #{id}
+		delete from t_mz_user_item where  id= #{id}
 	</delete>
 	
 </mapper>

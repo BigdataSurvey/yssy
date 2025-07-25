@@ -699,4 +699,22 @@ public class GameBaseService extends BaseService {
     }
 
 
+    @ServiceMethod(code = "057", description = "获取抽奖详情")
+    public Object getPrizeInfo(AppSocket appSocket, Command command, JSONObject data) {
+        Long userId = appSocket.getWsidBean().getUserId();
+        data.put("userId",userId);
+        Executer.request(TargetSocketType.manager, CommandBuilder.builder().request("100057", data).build(),
+                new RequestManagerListener(command));
+        return async();
+    }
+
+    @ServiceMethod(code = "058", description = "获取抽奖详情")
+    public Object prize(AppSocket appSocket, Command command, JSONObject data) {
+        Long userId = appSocket.getWsidBean().getUserId();
+        data.put("userId",userId);
+        Executer.request(TargetSocketType.manager, CommandBuilder.builder().request("100058", data).build(),
+                new RequestManagerListener(command));
+        return async();
+    }
+
 }

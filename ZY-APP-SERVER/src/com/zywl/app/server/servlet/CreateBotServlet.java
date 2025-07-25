@@ -2,9 +2,14 @@ package com.zywl.app.server.servlet;
 
 import com.alibaba.fastjson2.JSONArray;
 import com.alibaba.fastjson2.JSONObject;
+import com.zywl.app.base.bean.MzBuyRecord;
 import com.zywl.app.base.bean.User;
+import com.zywl.app.base.util.DateUtil;
 import com.zywl.app.base.util.HTTPUtil;
 import com.zywl.app.base.util.OrderUtil;
+import com.zywl.app.defaultx.cache.GameCacheService;
+import com.zywl.app.defaultx.cache.UserCacheService;
+import com.zywl.app.defaultx.service.MzBuyRecordService;
 import com.zywl.app.defaultx.service.UserService;
 import com.zywl.app.defaultx.util.SpringUtil;
 import com.zywl.app.server.service.VerifyCodeService;
@@ -26,11 +31,20 @@ public class CreateBotServlet extends HttpServlet {
 	private UserService userService;
 
 	private Set<String> userNos = new HashSet<>();
+
+	private MzBuyRecordService mzBuyRecordService;
+
+	private UserCacheService userCacheService;
+
+	private GameCacheService gameCacheService;
 	
 	@Override
 	public void init() throws ServletException {
 		super.init();
 		userService = SpringUtil.getService(UserService.class);
+		mzBuyRecordService = SpringUtil.getService(MzBuyRecordService.class);
+		userCacheService = SpringUtil.getService(UserCacheService.class);
+		gameCacheService = SpringUtil.getService(GameCacheService.class);
 		Set<String> allUserNo = userService.findAllUserNo();
 		userNos.addAll(allUserNo);
 	}
@@ -47,7 +61,7 @@ public class CreateBotServlet extends HttpServlet {
 	@Override
 	protected void doGet(HttpServletRequest req, HttpServletResponse resp)
 			throws ServletException, IOException {
-		Map<String,String> map1 = new HashMap<>();
+		/*Map<String,String> map1 = new HashMap<>();
 		map1.put("Authorization","Bearer app-cc0omi2vi8Stzi1iO9O87QJZ");
 		String aa = "{\"inputs\":{\"query\":\"\"},\"response _mode\":\"blocking\",\"user\":\"lzx\"}";
 		for (int i = 0; i < 1000; i++) {
@@ -66,7 +80,20 @@ public class CreateBotServlet extends HttpServlet {
 				throw new RuntimeException(e);
 			}
 			System.out.println("已插入"+(i+1)+"条数据");
-		}
+		}*/
 
+		List<MzBuyRecord> allRecord = mzBuyRecordService.findAllRecord2();
+		for (MzBuyRecord record : allRecord) {
+			Long userId = record.getUserId();
+			User user = userCacheService.getUserInfoById(userId);
+			double score = 10;
+			Date dateTimeByString = DateUtil.getDateTimeByString("2025-07-17");
+			if (user.getRegistTime().getTime()>dateTimeByString.getTime()){
+				//新用户
+				score = 15;
+			}
+			System.out.println("检测到"+userId+",扣除积分"+score);
+			gameCacheService.addPointMySelf(userId,-score);
+		}
 	}
 }

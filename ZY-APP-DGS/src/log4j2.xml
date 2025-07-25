@@ -2,7 +2,7 @@
 <configuration monitorInterval="30">
 	<properties>
 		<!-- File base path -->
-		<property name="LOG_HOME">/data/logs/dts5001</property>
+		<property name="LOG_HOME">/data/logs/dgs5001</property>
 		<!-- App server name -->
 		<property name="SERVER_NAME">dts</property>
 	</properties>

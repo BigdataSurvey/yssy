@@ -94,7 +94,9 @@ if(!window.CtrlFn_${menuId}){
             HF_RSA_PUBLIC_KEY:"汇付公钥",
             IS_AUTO_PAY:"是否自动打款",
             FREE_ROLE_NUM:"免费角色数量",
-            ALIPAY_ONE_MONEY:"支付宝单笔转出金额"
+            ALIPAY_ONE_MONEY:"支付宝单笔转出金额",
+            MZ_NEED_WHITE:"是否需要购买凭证",
+            NEW_USER_TIME:"新用户注册时间"
         };
         /*初始化表格*/
         function initTable() {

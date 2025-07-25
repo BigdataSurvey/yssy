@@ -84,6 +84,8 @@ public class PlayGameService extends BaseService {
 
     public static Map<String, Product> productMap = new ConcurrentHashMap<>();
 
+    public static Map<String,DicPirzeDraw>  DIC_PRIZE_DRAW_MAP = new ConcurrentHashMap<>();
+
     public static Map<String, Achievement> achievementMap = new ConcurrentHashMap<>();
 
     public static Map<String, Map<String, DicShop>> DIC_SHOP_MAP = new ConcurrentHashMap<>();
@@ -145,7 +147,8 @@ public class PlayGameService extends BaseService {
 
     @Autowired
     private ProductService productService;
-
+    @Autowired
+    private DicPrizeDrawService dicPrizeDrawService;
 
     @Autowired
     private GiveParentIncomeService giveParentIncomeService;
@@ -265,6 +268,7 @@ public class PlayGameService extends BaseService {
 
         initItem();
         initProduct();
+        initPrizeDraw();
         initDailyTask();
         initIncome();
         initAchievement();
@@ -315,6 +319,12 @@ public class PlayGameService extends BaseService {
         List<Product> allProduct = productService.findAllProduct();
         allProduct.forEach(e -> productMap.put(e.getId().toString(), e));
     }
+
+    public void initPrizeDraw() {
+        List<DicPirzeDraw> allPrizeDraw = dicPrizeDrawService.findAllPrizeDraw();
+        allPrizeDraw.forEach(e -> DIC_PRIZE_DRAW_MAP.put(e.getId().toString(), e));
+    }
+
 
     public void initDailyTask() {
         dailyTaskInfo.clear();

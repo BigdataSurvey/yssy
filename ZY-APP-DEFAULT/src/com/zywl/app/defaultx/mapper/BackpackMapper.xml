@@ -134,5 +134,9 @@
 	<delete id="deletedOneMonthNoLogin">
 			delete from ${tableName} where user_id= #{userId}
 	</delete>
+
+	<select id="getWfsbNumber" resultType="Long">
+		select sum(item_number) from ${tableName} where item_id =5
+	</select>
 	
 </mapper>

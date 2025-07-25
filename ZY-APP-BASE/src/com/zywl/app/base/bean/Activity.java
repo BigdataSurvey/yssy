@@ -39,6 +39,16 @@ public class Activity extends BaseBean {
 
     private String date;
 
+    private int minScore;
+
+    public int getMinScore() {
+        return minScore;
+    }
+
+    public void setMinScore(int minScore) {
+        this.minScore = minScore;
+    }
+
     public String getDate() {
         return date;
     }

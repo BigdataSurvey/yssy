@@ -252,21 +252,21 @@ public class GameCacheService extends RedisService {
     public List<JSONObject> getActiveTopList() {
         String key = RedisKeyConstant.APP_TOP_lIST + getActivity().getId();
         String rankKey = RedisKeyConstant.POINT_RANK_LIST;
-        return getTopList(key, rankKey, 1);
+        return getTopList(key, rankKey, activity.getMinScore());
 
     }
 
     public List<JSONObject> getActiveTopList2() {
         String key = RedisKeyConstant.APP_TOP_lIST_2 + getActivity2().getId();
         String rankKey = RedisKeyConstant.POINT_RANK_LIST_2;
-        return getTopList(key, rankKey, 1);
+        return getTopList2(key, rankKey, activity2.getMinScore());
 
     }
 
 
     public List<JSONObject> getLastActiveTopList(Activity activity) {
         String key = RedisKeyConstant.APP_TOP_lIST + activity.getId();
-        Map<String, Double> thisTopList = getActiveThisTopList(key, 3);
+        Map<String, Double> thisTopList = getActiveThisTopList(key, 30);
         Set<String> ids = thisTopList.keySet();
         List<JSONObject> list = new ArrayList<>();
         double allScore = 0.0;
@@ -323,7 +323,7 @@ public class GameCacheService extends RedisService {
 
     public List<JSONObject> getLastActiveTopList2(Activity activity) {
         String key = RedisKeyConstant.APP_TOP_lIST_2 + activity.getId();
-        Map<String, Double> thisTopList = getActiveThisTopList(key, 1);
+        Map<String, Double> thisTopList = getActiveThisTopList(key, activity.getMinScore());
         Set<String> ids = thisTopList.keySet();
         List<JSONObject> list = new ArrayList<>();
         double allScore = 0.0;
@@ -337,9 +337,20 @@ public class GameCacheService extends RedisService {
             info.put("userName", userInfoById.getName());
             info.put("userNo", userInfoById.getUserNo());
             info.put("score", score);
-            info.put("rank", rank);
+            UserCapital userCapital = userCapitalService.findUserCapitalByUserIdAndCapitalType(Long.valueOf(id), UserCapitalTypeEnum.currency_2.getValue());
+            info.put("money", userCapital.getBalance());
+            //info.put("rank", rank);
             list.add(info);
             allScore += score;
+        }
+        list.sort(
+                Comparator.comparingInt((JSONObject o) -> -o.getIntValue("score"))
+                        .thenComparingInt(o -> -o.getIntValue("money"))
+        );
+        int i = 1;
+        for (JSONObject jsonObject : list) {
+            jsonObject.put("rank", i);
+            i++;
         }
         //通过判断奖励规则 来计算金额
         if (activity.getMoneyRule() == 1) {
@@ -348,15 +359,17 @@ public class GameCacheService extends RedisService {
                 Double score = jsonObject.getDouble("score");
                 long rank = jsonObject.getLong("rank");
                 BigDecimal amount = BigDecimal.valueOf(score).multiply(activity.getOnePointMoney());
-                BigDecimal rewardAmount = getMoney(rank, amount);
+                BigDecimal rewardAmount = getMoney2(rank, amount);
                 jsonObject.put("rewardAmount", rewardAmount);
             }
         } else if (activity.getMoneyRule() == 2) {
             //总共多少钱 大家平分
             for (JSONObject jsonObject : list) {
                 BigDecimal allMoney = activity.getAllMoney();
+                long rank = jsonObject.getLong("rank");
                 Double score = jsonObject.getDouble("score");
                 BigDecimal myMoney = allMoney.multiply(BigDecimal.valueOf(score / allScore));
+                BigDecimal rewardAmount = getMoney2(rank, myMoney);
                 jsonObject.put("rewardAmount", myMoney);
             }
         }
@@ -425,6 +438,66 @@ public class GameCacheService extends RedisService {
         return list;
     }
 
+    public List<JSONObject> getTopList2(String pointKey, String rankKey, int minScore) {
+        List<JSONObject> list = getList(rankKey, JSONObject.class);
+        if (list == null || list.size() == 0) {
+            Map<String, Double> thisTopList = getActiveThisTopList(pointKey, minScore);
+            Set<String> ids = thisTopList.keySet();
+            list = new ArrayList<>();
+            double allScore = 0.0;
+            for (String id : ids) {
+                Double score = thisTopList.get(id);
+                //long rank = getTopRankByKey(pointKey, id) + 1;
+                User userInfoById = userCacheService.getUserInfoById(id);
+                JSONObject info = new JSONObject();
+                info.put("userHeadImg", userInfoById.getHeadImageUrl());
+                info.put("userId", id);
+                info.put("userName", userInfoById.getName());
+                info.put("userNo", userInfoById.getUserNo());
+                BigDecimal bd = new BigDecimal(score).setScale(2, RoundingMode.HALF_UP);
+                info.put("score", bd.doubleValue());
+                UserCapital userCapital = userCapitalService.findUserCapitalByUserIdAndCapitalType(Long.valueOf(id), UserCapitalTypeEnum.currency_2.getValue());
+                info.put("money", userCapital.getBalance());
+                //info.put("rank",rank);
+                list.add(info);
+                allScore += score;
+            }
+            list.sort(
+                    Comparator.comparingInt((JSONObject o) -> -o.getIntValue("score"))
+                            .thenComparingInt(o -> -o.getIntValue("money"))
+            );
+            int i = 1;
+            for (JSONObject jsonObject : list) {
+                jsonObject.put("rank", i);
+                i++;
+            }
+            //通过判断奖励规则 来计算金额
+            Activity activity = getActivity2();
+            if (activity.getMoneyRule() == 1) {
+                //1积分多少钱
+                for (JSONObject jsonObject : list) {
+                    Double score = jsonObject.getDouble("score");
+                    long rank = jsonObject.getLong("rank");
+                    BigDecimal amount = BigDecimal.valueOf(score).multiply(activity.getOnePointMoney());
+                    BigDecimal rewardAmount = getMoney2(rank, amount);
+                    jsonObject.put("rewardAmount", rewardAmount);
+                }
+            } else if (activity.getMoneyRule() == 2) {
+                //总共多少钱 大家平分
+                for (JSONObject jsonObject : list) {
+                    BigDecimal allMoney = activity.getAllMoney();
+                    Double score = jsonObject.getDouble("score");
+                    long rank = jsonObject.getLong("rank");
+                    BigDecimal myMoney = allMoney.multiply(BigDecimal.valueOf(score / allScore));
+                    BigDecimal rewardAmount = getMoney2(rank, myMoney);
+                    jsonObject.put("rewardAmount", rewardAmount);
+                }
+            }
+            set(rankKey, list, 60);
+        }
+        return list;
+    }
+
     public BigDecimal getRankMoney(Long userId, Double score, Long rank, List<JSONObject> list) {
         if (getActivity().getMoneyRule() == 1) {
             BigDecimal amount = BigDecimal.valueOf(score).multiply(getActivity().getOnePointMoney());
@@ -446,7 +519,7 @@ public class GameCacheService extends RedisService {
     public BigDecimal getRankMoney2(Long userId, Double score, Long rank, List<JSONObject> list) {
         if (getActivity2().getMoneyRule() == 1) {
             BigDecimal amount = BigDecimal.valueOf(score).multiply(getActivity2().getOnePointMoney());
-            return getMoney(rank, amount);
+            return getMoney2(rank, amount);
         } else {
             Double allScore = 0.0;
             Double myScore = 0.0;
@@ -492,6 +565,34 @@ public class GameCacheService extends RedisService {
 
     public BigDecimal getMoney(long rank, BigDecimal amount) {
         String topMoney = getActivity().getTopMoney();
+        String[] split = topMoney.split(",");
+
+        if (1 == rank) {
+            if (split.length >= 1) {
+                amount = amount.add(new BigDecimal(split[0]));
+            }
+        } else if (2 == rank) {
+            if (split.length >= 2) {
+                amount = amount.add(new BigDecimal(split[1]));
+            }
+        } else if (3 == rank) {
+            if (split.length >= 3) {
+                amount = amount.add(new BigDecimal(split[2]));
+            }
+        } else if (4 == rank) {
+            if (split.length >= 4) {
+                amount = amount.add(new BigDecimal(split[3]));
+            }
+        } else if (5 == rank) {
+            if (split.length >= 5) {
+                amount = amount.add(new BigDecimal(split[4]));
+            }
+        }
+        return amount;
+    }
+
+    public BigDecimal getMoney2(long rank, BigDecimal amount) {
+        String topMoney = getActivity2().getTopMoney();
         String[] split = topMoney.split(",");
 
         if (1 == rank) {
@@ -754,6 +855,27 @@ public class GameCacheService extends RedisService {
         }
     }
 
+    public void addPointMySelf(Long userId, double addPoint) {
+        getActivity();
+        String key = RedisKeyConstant.APP_TOP_lIST + activity.getId();
+        Double oldPoint = getZsetScore(key, String.valueOf(userId));
+        if (oldPoint == null) {
+            oldPoint = 0.0;
+        }
+        Double point = oldPoint + addPoint;
+        addForZset(key, String.valueOf(userId), point);
+    }
+
+    public void addPoint2MySelf(Long userId, double addPoint) {
+        getActivity2();
+        String key = RedisKeyConstant.APP_TOP_lIST_2 + activity2.getId();
+        Double oldPoint = getZsetScore(key, String.valueOf(userId));
+        if (oldPoint == null) {
+            oldPoint = 0.0;
+        }
+        Double point = oldPoint + addPoint;
+        addForZset(key, String.valueOf(userId), point);
+    }
 
     public void addPoint2(Long userId) {
         User user = userCacheService.getUserInfoById(userId);

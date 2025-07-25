@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.zywl.app.defaultx.mapper.MzTradMapper">
+
+
+	<insert id="insert" parameterType="MzTrad" useGeneratedKeys="true" keyProperty="id" keyColumn="id">
+		insert into t_mz_trad
+		(
+			`mz_item_id`,
+		 	`user_item_id`,
+		 	`sell_user_id`,
+		 	`buy_user_id`,
+			`sell_price`,
+		 	`fee`,
+			`name`,
+		 	`icon`,
+			`get_amount`,
+			`status`,
+		 	`create_time`
+		)
+		values
+			(
+				#{mzItemId},
+			 	#{userItemId},
+			 	#{sellUserId},
+			 	#{buyUserId},
+				#{sellPrice},
+			 	#{fee},
+			 	#{name},
+			 	#{icon},
+				#{getAmount},
+				#{status},
+			 	#{createTime}
+			)
+	</insert>
+
+	<select id="findAll" resultType="MzTrad">
+	    select * from t_mz_trad where status = 1 and sell_user_id!=#{userId}
+		<if test="start != null and limit != null">
+			limit #{start}, #{limit}
+		</if>
+	</select>
+
+
+	<select id="findByItemType" resultType="MzTrad">
+		select * from t_mz_trad  where mz_item_id in (select id from dic_mz_item where type=#{type}) and status=1  and sell_user_id!=#{userId} order by id
+		<if test="start != null and limit != null">
+			limit #{start}, #{limit}
+		</if>
+	</select>
+
+
+	<select id="findByItemTypeAndLv" resultType="MzTrad">
+		select * from t_mz_trad  where mz_item_id in (select id from dic_mz_item where type=#{type} and lv=#{lv}) and status=1 and sell_user_id!=#{userId} order by id
+		<if test="start != null and limit != null">
+			limit #{start}, #{limit}
+		</if>
+	</select>
+
+	<select id="findById" resultType="MzTrad">
+		select * from t_mz_trad  where id =#{id}
+	</select>
+
+	<update id="updateMzTrad" parameterType="MzTrad">
+		update t_mz_trad
+		<set >
+			<if test="buyUserId != null">
+				buy_user_id=#{buyUserId},
+			</if>
+			<if test="status != null">
+				status= #{status},
+			</if>
+		</set>
+		where  id= #{id}
+	</update>
+	<select id="findByUserId" resultType="MzTrad">
+		select * from t_mz_trad  where sell_user_id = #{userId} order by status desc
+	</select>
+
+
+
+</mapper>

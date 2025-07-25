@@ -2,6 +2,7 @@ package com.zywl.app.base.bean;
 
 import com.zywl.app.base.BaseBean;
 
+import java.math.BigDecimal;
 import java.util.Date;
 
 public class MzUserItem extends BaseBean {
@@ -12,6 +13,12 @@ public class MzUserItem extends BaseBean {
 
     private Long mzItemId;
 
+    private String name;
+
+    private String context;
+
+    private int icon;
+
     private String lastUserNo;
 
     private String lastUserName;
@@ -19,6 +26,8 @@ public class MzUserItem extends BaseBean {
     private Date createTime;
 
     private int status;
+
+    private BigDecimal price;
 
     private Date upTime;
 
@@ -95,5 +104,37 @@ public class MzUserItem extends BaseBean {
 
     public void setMzItemId(Long mzItemId) {
         this.mzItemId = mzItemId;
+    }
+
+    public int getIcon() {
+        return icon;
+    }
+
+    public void setIcon(int icon) {
+        this.icon = icon;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
+    }
+
+    public String getContext() {
+        return context;
+    }
+
+    public void setContext(String context) {
+        this.context = context;
+    }
+
+    public BigDecimal getPrice() {
+        return price;
+    }
+
+    public void setPrice(BigDecimal price) {
+        this.price = price;
     }
 }
