@@ -3,8 +3,8 @@ package com.zywl.app.base.bean;
 import com.alibaba.fastjson2.JSONArray;
 import com.alibaba.fastjson2.JSONObject;
 import com.zywl.app.base.BaseBean;
+public class DicPrizeDraw extends BaseBean {
 
-public class DicPirzeDraw extends BaseBean {
 
     private Long id;
 
