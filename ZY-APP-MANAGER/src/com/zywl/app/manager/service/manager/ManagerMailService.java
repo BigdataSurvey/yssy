@@ -5,6 +5,7 @@ import com.alibaba.fastjson2.JSONObject;
 import com.zywl.app.base.bean.Mail;
 import com.zywl.app.base.bean.User;
 import com.zywl.app.base.bean.UserMail;
+import com.zywl.app.base.bean.UserVip;
 import com.zywl.app.base.service.BaseService;
 import com.zywl.app.base.util.LockUtil;
 import com.zywl.app.base.util.OrderUtil;
@@ -182,14 +183,16 @@ public class ManagerMailService extends BaseService {
             User user = userCacheService.getUserInfoById(userId);
             gameService.checkUserItemNumber(userId, itemId, number);
             //根据userId查询出当前用户的vip等级
-            // UserVip uservip = userVipService.findRechargeAmountByUserId(userId);
+             UserVip uservip = userVipService.findRechargeAmountByUserId(userId);
             //  UserVip toUservip = userVipService.findRechargeAmountByUserId(toUserId);
             // if(uservip.getVipLevel()<4 ){
             if (itemId.equals(ItemIdEnum.WFSB.getValue())){
-                //需要消耗一个信鸽
-                gameService.checkUserItemNumber(userId, useItemId, number);
-                //修改该用户的道具
-                gameService.updateUserBackpack(userId, useItemId, -number, LogUserBackpackTypeEnum.use);
+                if (uservip.getVipLevel()<4){
+                    //需要消耗一个信鸽
+                    gameService.checkUserItemNumber(userId, useItemId, number);
+                    //修改该用户的道具
+                    gameService.updateUserBackpack(userId, useItemId, -number, LogUserBackpackTypeEnum.use);
+                }
             }
 
             // }
