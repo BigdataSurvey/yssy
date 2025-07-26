@@ -199,8 +199,8 @@ public class ManagerPitService extends BaseService {
                         params.put("createParentAmount", createParentAmount);
                         params.put("createGrandfaAmount", createGrandfaAmount);
                     } else {
-                        createParentAmount = createParentAmount.add(BigDecimal.valueOf(number).multiply(BigDecimal.valueOf(0.1)));
-                        createGrandfaAmount = createGrandfaAmount.add(BigDecimal.valueOf(number).multiply(BigDecimal.valueOf(0.025)));
+                        createParentAmount = createParentAmount.add(BigDecimal.valueOf(number).multiply(BigDecimal.valueOf(0.2)));
+                        createGrandfaAmount = createGrandfaAmount.add(BigDecimal.valueOf(number).multiply(BigDecimal.valueOf(0.05)));
                         params.put("createParentAmount", createParentAmount);
                         params.put("createGrandfaAmount", createGrandfaAmount);
                     }
