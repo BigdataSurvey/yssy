@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.zywl.app.defaultx.mapper.PitRecordMapper.xml">
+
+    <select id="findPitRecord" resultType="PitRecord">
+        select *
+        from r_pit_record
+        where user_id = #{userId}
+    </select>
+
+    <select id="findPitRecordByIds" resultType="PitRecord">
+        select user_id,sum(number) as number
+        from r_pit_record
+        where user_id in
+        <foreach collection="userIds" item="id" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+        GROUP BY user_id
+    </select>
+
+    <insert id="batchAddRecord" parameterType="java.util.List">
+        insert into r_pit_record
+        (
+        `user_id`,
+        `order_no`,
+        `receive_time`,
+        `pit_id`,
+        `number`,
+        `crte_time`
+        )
+        values
+
+        <foreach collection="list" item="item" separator=",">
+            (
+            #{item.userId},
+            #{item.orderNo},
+            #{item.receiveTime},
+            #{item.pitId},
+            #{item.number},
+            #{item.crteTime}
+            )
+        </foreach>
+    </insert>
+
+</mapper>
