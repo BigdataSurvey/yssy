@@ -252,9 +252,9 @@ public class ManagerMzService extends BaseService {
             MzUserItem byId = mzUserItemService.findById(id);
             long beginTime = DateUtil.getToDayDateByHour(15);
             long endTime = DateUtil.getToDayDateByHour(16);
-            /*if (System.currentTimeMillis() < beginTime || System.currentTimeMillis() > endTime) {
+            if (System.currentTimeMillis() < beginTime || System.currentTimeMillis() > endTime) {
                 throwExp("未到出售时间。出售时间15:00-16:00");
-            }*/
+            }
             if (byId == null) {
                 throwExp("道具不存在");
             }
@@ -285,9 +285,9 @@ public class ManagerMzService extends BaseService {
             MzTrad trad = mzTradService.findById(id);
             long beginTime = DateUtil.getToDayDateByHour(17);
             long endTime = DateUtil.getToDayDateByHour(18);
-            /*if (System.currentTimeMillis() < beginTime || System.currentTimeMillis() > endTime) {
+            if (System.currentTimeMillis() < beginTime || System.currentTimeMillis() > endTime) {
                 throwExp("未到购买时间。出售时间17:00-18:00");
-            }*/
+            }
             if (trad.getStatus() != 1) {
                 throwExp("已下架或被买走，清刷新后查看");
             }
