@@ -1,7 +1,6 @@
 package com.zywl.app.defaultx.service;
 
-import com.zywl.app.base.UserYyScore;
-import com.zywl.app.base.bean.UserDtsAmount;
+import com.zywl.app.base.bean.UserYyScore;
 import com.zywl.app.defaultx.dbutil.DaoService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -43,7 +42,12 @@ public class UserYyScoreService extends DaoService{
 	public UserYyScore findByUserId(Long userId){
 		Map<String,Object> params = new HashMap<>();
 		params.put("userId",userId);
-		return (UserYyScore) findOne("findByUserId",params);
+		UserYyScore findByUserId = (UserYyScore) findOne("findByUserId", params);
+		if (findByUserId == null){
+			addYyScore(userId,BigDecimal.ZERO);
+		}
+		findByUserId = (UserYyScore) findOne("findByUserId", params);
+		return findByUserId;
 	}
 
 
