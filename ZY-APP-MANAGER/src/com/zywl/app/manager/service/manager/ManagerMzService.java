@@ -57,6 +57,9 @@ public class ManagerMzService extends BaseService {
     private UserCacheService userCacheService;
 
     @Autowired
+    private ManagerUserService managerUserService;
+
+    @Autowired
     private MzTradService mzTradService;
 
     @Autowired
@@ -249,9 +252,9 @@ public class ManagerMzService extends BaseService {
             MzUserItem byId = mzUserItemService.findById(id);
             long beginTime = DateUtil.getToDayDateByHour(15);
             long endTime = DateUtil.getToDayDateByHour(16);
-            if (System.currentTimeMillis() < beginTime || System.currentTimeMillis() > endTime) {
+            /*if (System.currentTimeMillis() < beginTime || System.currentTimeMillis() > endTime) {
                 throwExp("未到出售时间。出售时间15:00-16:00");
-            }
+            }*/
             if (byId == null) {
                 throwExp("道具不存在");
             }
@@ -282,9 +285,9 @@ public class ManagerMzService extends BaseService {
             MzTrad trad = mzTradService.findById(id);
             long beginTime = DateUtil.getToDayDateByHour(17);
             long endTime = DateUtil.getToDayDateByHour(18);
-            if (System.currentTimeMillis() < beginTime || System.currentTimeMillis() > endTime) {
+            /*if (System.currentTimeMillis() < beginTime || System.currentTimeMillis() > endTime) {
                 throwExp("未到购买时间。出售时间17:00-18:00");
-            }
+            }*/
             if (trad.getStatus() != 1) {
                 throwExp("已下架或被买走，清刷新后查看");
             }
@@ -312,6 +315,8 @@ public class ManagerMzService extends BaseService {
             userCapitalService.subUserBalanceByMzTradingBuy(userId, trad.getSellPrice(), trad.getId());
             //增加卖方余额
             userCapitalService.addUserBalanceByMzTrad(trad.getSellUserId(), trad.getGetAmount(), orderNo, dataId);
+            //给上级 上上级添加收益
+            managerUserService.addAnimaToInviter(trad.getSellUserId(), trad.getSellPrice().subtract(trad.getGetAmount()),new BigDecimal("0.1"));
             //推送余额
             managerGameBaseService.pushCapitalUpdate(userId, UserCapitalTypeEnum.currency_2.getValue());
             managerGameBaseService.pushCapitalUpdate(trad.getSellUserId(), UserCapitalTypeEnum.currency_2.getValue());

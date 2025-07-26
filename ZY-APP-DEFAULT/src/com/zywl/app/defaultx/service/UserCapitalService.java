@@ -237,6 +237,20 @@ public class UserCapitalService extends DaoService {
         // 清理缓存
     }
 
+    @Transactional
+    public void subUserBalanceByOpenPit(Long userId,  BigDecimal amount) {
+        UserCapital userCapital = userCapitalCacheService.getUserCapitalCacheByType(userId, UserCapitalTypeEnum.currency_2.getValue());
+        int a = subUserBalance(amount, userId, UserCapitalTypeEnum.currency_2.getValue(), userCapital.getBalance(), userCapital.getOccupyBalance(), null, null, LogCapitalTypeEnum.buy_pit, null);
+        if (a < 1) {
+            userCapitalCacheService.deltedUserCapitalCache(userId, UserCapitalTypeEnum.currency_2.getValue());
+            userCapital = userCapitalCacheService.getUserCapitalCacheByType(userId, UserCapitalTypeEnum.currency_2.getValue());
+            int b = subUserBalance(amount, userId, UserCapitalTypeEnum.currency_2.getValue(), userCapital.getBalance(), userCapital.getOccupyBalance(), null, null, LogCapitalTypeEnum.buy_pit, null);
+            if (b < 1) {
+                throwExp("开通通行证失败，请重试");
+            }
+        }
+    }
+
     /**
      * 交易行用户取消求购 添加用户资产 减少冻结资产
      */
@@ -443,6 +457,14 @@ public class UserCapitalService extends DaoService {
         }
     }
 
+    public void addUserBalanceByCancelPit(BigDecimal amount, Long userId,int capitalType,LogCapitalTypeEnum em) {
+        UserCapital userCapital = userCapitalCacheService.getUserCapitalCacheByType(userId, capitalType);
+        int a = addUserBalance(amount, userId, capitalType,userCapital.getBalance(), userCapital.getOccupyBalance(), null, null, em, null);
+        if (a < 1) {
+            userCapitalCacheService.deltedUserCapitalCache(userId,  capitalType);
+            throwExp("退款失败");
+        }
+    }
 
 
 

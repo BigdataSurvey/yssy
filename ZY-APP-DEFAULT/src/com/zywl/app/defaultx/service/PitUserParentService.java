@@ -6,6 +6,7 @@ import com.zywl.app.base.bean.UserPit;
 import com.zywl.app.defaultx.dbutil.DaoService;
 import org.apache.commons.collections4.map.HashedMap;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Map;
@@ -14,7 +15,7 @@ import java.util.Map;
 public class PitUserParentService extends DaoService {
 
     public PitUserParentService() {
-        super("PitUserParentMapper.xml");
+        super("PitUserParentMapper");
     }
     public PitUserParent findParentByUserId(Long userId) {
         Map<String, Object> params = new HashedMap<>();
@@ -28,18 +29,23 @@ public class PitUserParentService extends DaoService {
         map.put("limit",  params.getIntValue("num"));
         return  findList("findSubor", map);
     }
+
+    @Transactional
     public int insertPitUserParent(JSONObject params) {
         Map<String, Object> map = new HashedMap<>();
         map.put("userId", params.getIntValue("userId"));
         map.put("pitParentId", params.getIntValue("parentId"));
         map.put("pitGrandfaId", params.getIntValue("pitGrandfaId"));
-        map.put("createParentAmount", params.getBigDecimal("createParentAmount"));
-        map.put("createGrandfaAmount", params.getBigDecimal("createGrandfaAmount"));
+        map.put("createParentAmount", 0);
+        map.put("createGrandfaAmount", 0);
         return execute("insertPitUserParent",map);
     }
+
+    @Transactional
     public int updateParent(JSONObject params) {
         Map<String, Object> map = new HashedMap<>();
         map.put("userId", params.getLong("userId"));
+        map.put("pitId",params.getLongValue("pitId"));
         map.put("createParentAmount", params.getBigDecimal("createParentAmount"));
         map.put("createGrandfaAmount", params.getBigDecimal("createGrandfaAmount"));
         return execute("update",map);
@@ -52,4 +58,22 @@ public class PitUserParentService extends DaoService {
         map.put("limit",  params.getIntValue("num"));
         return  findList("findIndirSubor", map);
     }
+
+    @Transactional
+    public void addParentIncome(Long userId,int number){
+        Map<String, Object> map = new HashedMap<>();
+        map.put("userId", userId);
+        map.put("number", number);
+        execute("addParentIncome",map);
+    }
+
+    @Transactional
+    public void addGrandfaIncome(Long userId,int number){
+        Map<String, Object> map = new HashedMap<>();
+        map.put("userId", userId);
+        map.put("number", number);
+        execute("addGrandfaIncome",map);
+    }
+
+
 }

@@ -2,16 +2,21 @@ package com.zywl.app.base.bean;
 
 import com.zywl.app.base.BaseBean;
 
+import java.math.BigDecimal;
+
 public class DicPit extends BaseBean {
 
     private Integer id;
 
     private String name;
 
-    private Integer rewardItem;
+    private BigDecimal price;
+
+    private Long rewardItem;
 
     private Integer days;
 
+    private int minCount;
     private Integer dayAddCount;
 
     public Integer getId() {
@@ -30,11 +35,11 @@ public class DicPit extends BaseBean {
         this.name = name;
     }
 
-    public Integer getRewardItem() {
+    public Long getRewardItem() {
         return rewardItem;
     }
 
-    public void setRewardItem(Integer rewardItem) {
+    public void setRewardItem(Long rewardItem) {
         this.rewardItem = rewardItem;
     }
 
@@ -54,11 +59,19 @@ public class DicPit extends BaseBean {
         this.dayAddCount = dayAddCount;
     }
 
-    public DicPit(Integer id, String name, Integer rewardItem, Integer days, Integer dayAddCount) {
-        this.id = id;
-        this.name = name;
-        this.rewardItem = rewardItem;
-        this.days = days;
-        this.dayAddCount = dayAddCount;
+    public BigDecimal getPrice() {
+        return price;
+    }
+
+    public void setPrice(BigDecimal price) {
+        this.price = price;
+    }
+
+    public int getMinCount() {
+        return minCount;
+    }
+
+    public void setMinCount(int minCount) {
+        this.minCount = minCount;
     }
 }

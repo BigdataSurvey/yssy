@@ -6,61 +6,54 @@ import java.math.BigDecimal;
 
 public class PitUserParent extends BaseBean {
 
-    private Integer userId;
+    private Long userId;
 
-    private Integer pitParentId;
+    private Long pitParentId;
 
-    private Integer pitGrandfaId;
+    private Long pitGrandfaId;
 
-    private BigDecimal createParentAmount;
+    private int createParentAmount;
 
-    private BigDecimal createGrandfaAmount;
+    private int createGrandfaAmount;
 
-    public PitUserParent(Integer userId, Integer pitParentId, Integer pitGrandfaId, BigDecimal createParentAmount, BigDecimal createGrandfaAmount) {
-        this.userId = userId;
-        this.pitParentId = pitParentId;
-        this.pitGrandfaId = pitGrandfaId;
-        this.createParentAmount = createParentAmount;
-        this.createGrandfaAmount = createGrandfaAmount;
-    }
 
-    public Integer getUserId() {
+    public Long getUserId() {
         return userId;
     }
 
-    public void setUserId(Integer userId) {
+    public void setUserId(Long userId) {
         this.userId = userId;
     }
 
-    public Integer getPitParentId() {
+    public Long getPitParentId() {
         return pitParentId;
     }
 
-    public void setPitParentId(Integer pitParentId) {
+    public void setPitParentId(Long pitParentId) {
         this.pitParentId = pitParentId;
     }
 
-    public Integer getPitGrandfaId() {
+    public Long getPitGrandfaId() {
         return pitGrandfaId;
     }
 
-    public void setPitGrandfaId(Integer pitGrandfaId) {
+    public void setPitGrandfaId(Long pitGrandfaId) {
         this.pitGrandfaId = pitGrandfaId;
     }
 
-    public BigDecimal getCreateParentAmount() {
+    public int getCreateParentAmount() {
         return createParentAmount;
     }
 
-    public void setCreateParentAmount(BigDecimal createParentAmount) {
+    public void setCreateParentAmount(int createParentAmount) {
         this.createParentAmount = createParentAmount;
     }
 
-    public BigDecimal getCreateGrandfaAmount() {
+    public int getCreateGrandfaAmount() {
         return createGrandfaAmount;
     }
 
-    public void setCreateGrandfaAmount(BigDecimal createGrandfaAmount) {
+    public void setCreateGrandfaAmount(int createGrandfaAmount) {
         this.createGrandfaAmount = createGrandfaAmount;
     }
 }

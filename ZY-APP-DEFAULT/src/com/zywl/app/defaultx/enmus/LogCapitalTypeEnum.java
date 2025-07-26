@@ -142,7 +142,8 @@ public enum LogCapitalTypeEnum {
     yyb_winning("打怪中奖",1026),
     dgs_join("参与打怪",1027),
     dgs_bet("打怪获得",1028),
-
+    buy_pit("开通矿洞",1029),
+    pit_refund("矿洞退款",1030),
     ;
 
     private String name;

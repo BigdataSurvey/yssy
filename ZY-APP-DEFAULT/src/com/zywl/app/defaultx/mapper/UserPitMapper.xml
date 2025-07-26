@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
-<mapper namespace="com.zywl.app.defaultx.mapper.UserPitMapper.xml">
+<mapper namespace="com.zywl.app.defaultx.mapper.UserPitMapper">
 
     <select id="findInitInfoList" resultType="UserPit">
         select *
@@ -61,7 +61,7 @@
                 un_receive= #{unReceive},
             </if>
         </set>
-        where  user_id= #{userId}
+        where  id=#{id}
     </update>
 
 
@@ -72,7 +72,7 @@
                 open_time=#{item.openTime},end_time=#{item.endTime},last_look_time=#{item.lastLookTime},last_receive_time=#{item.lastReceiveTime},
                 un_receive=#{item.unReceive}
             </set>
-            where user_id = #{item.userId}
+            where id = #{item.id}
         </foreach>
     </update>
 </mapper>

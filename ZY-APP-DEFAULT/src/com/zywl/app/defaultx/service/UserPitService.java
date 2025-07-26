@@ -11,6 +11,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
@@ -24,19 +25,28 @@ public class UserPitService extends DaoService {
 
 
     public UserPitService() {
-        super("UserPitMapper.xml");
+        super("UserPitMapper");
     }
 
     private static final Log logger = LogFactory.getLog(UserPitService.class);
 
-    public List<UserPit> findInitInfo(JSONObject params) {
+    public UserPit findInitInfo(JSONObject params) {
+        Map<String, Object> param = new HashedMap<>();
+        param.put("userId", params.get("userId"));
+        param.put("pitId", params.get("pitId"));
+        return (UserPit) findOne("findInitInfoList", param);
+    }
+
+    public List<UserPit> findPitList(JSONObject params) {
         Map<String, Object> param = new HashedMap<>();
         param.put("userId", params.get("userId"));
         param.put("pitId", params.get("pitId"));
         return findList("findInitInfoList", param);
     }
 
+    @Transactional
     public int insertUserPit(JSONObject jsonObject) {
+
         Map<String, Object> params = new HashedMap<>();
         params.put("userId", jsonObject.getIntValue("userId"));
         params.put("pitId",  jsonObject.getIntValue("pitId"));
@@ -47,7 +57,7 @@ public class UserPitService extends DaoService {
         JSONArray array = new JSONArray();
         JSONObject jsonObject1 = new JSONObject();
         jsonObject1.put("type",1);
-        jsonObject1.put("id",9);
+        jsonObject1.put("id",jsonObject.getLongValue("id"));
         jsonObject1.put("number",0);
         array.add(jsonObject1);
         Calendar currentdate = Calendar.getInstance();
@@ -58,11 +68,11 @@ public class UserPitService extends DaoService {
         return execute("insert",params);
     }
 
+    @Transactional
     public int receiveNumber(JSONObject jsonObject) {
         Map<String, Object> params = new HashedMap<>();
         params.put("userId", jsonObject.get("userId"));
         params.put("pitId",  jsonObject.get("pitId"));
-        params.put("lastLookTime",  new Date());
         params.put("lastReceiveTime",  new Date());
         // 格式要[{"type":1,"id":9,"number":3}]
         JSONArray array = new JSONArray();
@@ -74,6 +84,13 @@ public class UserPitService extends DaoService {
         params.put("unReceive", array);
         return execute("update",params);
     }
+
+    @Transactional
+    public void updateUserPit(UserPit userPit){
+        execute("update",userPit);
+    }
+
+    @Transactional
     public int batchUpdateNumber(List<UserPit> list) {
         return execute("batchUpdateNumber",list);
     }

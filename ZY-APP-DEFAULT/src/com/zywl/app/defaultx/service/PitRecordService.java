@@ -5,6 +5,7 @@ import com.zywl.app.base.bean.PitRecord;
 import com.zywl.app.defaultx.dbutil.DaoService;
 import org.apache.commons.collections4.map.HashedMap;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Map;
@@ -23,6 +24,8 @@ public class PitRecordService extends DaoService {
         param.put("limit",  params.getIntValue("num"));
         return findList("findPitRecord", param);
     }
+
+    @Transactional
     public int batchAddRecord(List<PitRecord> pitRecordList) {
         return execute("batchAddRecord",pitRecordList);
     }
