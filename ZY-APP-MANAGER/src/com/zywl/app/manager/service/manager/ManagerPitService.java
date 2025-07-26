@@ -4,16 +4,15 @@ import com.alibaba.fastjson2.JSON;
 import com.alibaba.fastjson2.JSONArray;
 import com.alibaba.fastjson2.JSONObject;
 import com.live.app.ws.bean.Command;
-import com.zywl.app.base.bean.PitRecord;
-import com.zywl.app.base.bean.PitUserParent;
-import com.zywl.app.base.bean.User;
-import com.zywl.app.base.bean.UserPit;
+import com.zywl.app.base.bean.*;
+import com.zywl.app.base.bean.card.DicMine;
 import com.zywl.app.base.service.BaseService;
 import com.zywl.app.base.util.DateUtil;
 import com.zywl.app.base.util.LockUtil;
 import com.zywl.app.base.util.OrderUtil;
 import com.zywl.app.defaultx.annotation.ServiceClass;
 import com.zywl.app.defaultx.annotation.ServiceMethod;
+import com.zywl.app.defaultx.cache.GameCacheService;
 import com.zywl.app.defaultx.cache.UserCacheService;
 import com.zywl.app.defaultx.enmus.LogCapitalTypeEnum;
 import com.zywl.app.defaultx.enmus.LogUserBackpackTypeEnum;
@@ -59,6 +58,9 @@ public class ManagerPitService extends BaseService {
     @Autowired
     private PitRecordService pitRecordService;
 
+    @Autowired
+    private GameCacheService gameCacheService;
+
 
     @PostConstruct
     public void _ServerMineService() {
@@ -91,7 +93,24 @@ public class ManagerPitService extends BaseService {
             int i = userPitService.insertUserPit(jsonObject);
             return i;
         }
+    }
 
+    public void addActiveScore(Long userId, Long pitId){
+        Activity activity = gameCacheService.getActivity();
+        if (activity==null){
+            return;
+        }
+        double score = 5.0;
+        if (pitId==1){
+            score = 10.0;
+        }
+        if (activity.getAddPointEvent()==4){
+            User user = userCacheService.getUserInfoById(userId);
+            //  gameCacheService.addPointMySelf(userId,getScore(dicMine));
+            if (user.getParentId()!=null){
+                gameCacheService.addPointMySelf(user.getParentId(),score);
+            }
+        }
     }
 
 

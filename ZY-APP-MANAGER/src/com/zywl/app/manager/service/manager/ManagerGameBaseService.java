@@ -1145,9 +1145,11 @@ public class ManagerGameBaseService extends BaseService {
         int i = random.nextInt(1000)+1;
         JSONArray rewards = new JSONArray();
         Collection<DicPrizeDraw> values = PlayGameService.DIC_PRIZE_DRAW_MAP.values();
+        Long id = null;
         for (DicPrizeDraw value : values) {
             if (i<value.getRate()){
                 rewards.add( value.getReward());
+                id = value.getId();
                 break;
             }
         }
@@ -1156,6 +1158,7 @@ public class ManagerGameBaseService extends BaseService {
         }
         result.put("rewardInfo",rewards);
         result.put("score",byUserId.getScore());
+        result.put("id",id);
         return result;
     }
 
