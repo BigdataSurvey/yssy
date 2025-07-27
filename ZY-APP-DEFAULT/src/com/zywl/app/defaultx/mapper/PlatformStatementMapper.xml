@@ -132,6 +132,9 @@
             <if test="addXhmj != null">`add_xhmj` =add_xhmj+ #{addXhmj},</if>
             <if test="subDgs != null">`sub_dgs` =sub_dgs+ #{subDgs},</if>
             <if test="addDgs != null">`add_dgs` =add_dgs+ #{addDgs},</if>
+            <if test="subPit != null">`sub_pit` =sub_pit+ #{subPit},</if>
+            <if test="addPit != null">`add_pit` =add_pit+ #{addPit},</if>
+            <if test="subRedZd != null">`sub_red_zd` = sub_red_zd+ #{subRedZd},</if>
         </set>
         where ymd = #{ymd}
     </update>

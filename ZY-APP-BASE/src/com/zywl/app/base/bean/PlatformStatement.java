@@ -5,11 +5,7 @@ import com.zywl.app.base.BaseBean;
 import java.math.BigDecimal;
 
 
-/**
- * @author chenshun
- * @email sunlightcs@gmail.com
- * @date 2023-11-30 17:37:56
- */
+
 public class PlatformStatement extends BaseBean {
 
     //
@@ -112,6 +108,8 @@ public class PlatformStatement extends BaseBean {
 
     private BigDecimal subRedGame = BigDecimal.ZERO;
 
+    private BigDecimal subRedZd = BigDecimal.ZERO;
+
     private BigDecimal addDtsRebate = BigDecimal.ZERO;
 
     private BigDecimal addDts2 = BigDecimal.ZERO;
@@ -188,6 +186,10 @@ public class PlatformStatement extends BaseBean {
     private BigDecimal subDgs= BigDecimal.ZERO;
 
     private BigDecimal addDgs= BigDecimal.ZERO;
+
+    private BigDecimal subPit = BigDecimal.ZERO;
+
+    private BigDecimal   addPit = BigDecimal.ZERO;
 
     public BigDecimal getSubDgs() {
         return subDgs;
@@ -1058,8 +1060,8 @@ public class PlatformStatement extends BaseBean {
     }
 
     public void init(){
-        allExpend=subShop.add(subTradingBuy).add(subGift);
-        allOutPut=addDailyTask.add(addAchievement).add(addSellSys).add(addReceiveMail).add(addDice).add(addWander).add(addSell).add(addReceiveIncome);
+        allExpend=subShop.add(subTradingBuy).add(subGift).add(subPit).add(subRedGame).subtract(subRedZd);
+        allOutPut=addDailyTask.add(addAchievement).add(addSellSys).add(addReceiveMail).add(addDice).add(addWander).add(addSell).add(addReceiveIncome).add(addPit).add(addRedGame);
         allMagicOutPut = BigDecimal.ZERO.add(addSellSysMagic).add(addAncientC5);
         allMagicExpend = BigDecimal.ZERO.add(subCreateXm).add(subBuyHead).add(subUpdateName).add(subJoinAncient).add(subRefresh).add(subContribution).add(subAddFlag).subtract(subShopMagic);
     }

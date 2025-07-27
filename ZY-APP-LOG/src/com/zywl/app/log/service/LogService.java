@@ -396,6 +396,12 @@ public class LogService extends BaseService {
             params.put("addDgs", amount);
         } else if (type == LogCapitalTypeEnum.dgs_join.getValue()) {
             params.put("subDgs", amount);
+        }else if (type == LogCapitalTypeEnum.buy_pit.getValue()) {
+            params.put("subPit", amount);
+        }else if (type == LogCapitalTypeEnum.pit_refund.getValue()) {
+            params.put("addPit", amount);
+        }else if (type == LogCapitalTypeEnum.cave_prize_draw.getValue()){
+            params.put("addPrize",amount);
         }
         platformStatementService.updateStatement(params);
     }

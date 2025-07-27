@@ -33,9 +33,9 @@ public class PitUserParentService extends DaoService {
     @Transactional
     public int insertPitUserParent(JSONObject params) {
         Map<String, Object> map = new HashedMap<>();
-        map.put("userId", params.getIntValue("userId"));
-        map.put("pitParentId", params.getIntValue("parentId"));
-        map.put("pitGrandfaId", params.getIntValue("pitGrandfaId"));
+        map.put("userId", params.getLongValue("userId"));
+        map.put("pitParentId", params.getLongValue("parentId"));
+        map.put("pitGrandfaId", params.getLongValue("pitGrandfaId"));
         map.put("createParentAmount", 0);
         map.put("createGrandfaAmount", 0);
         return execute("insertPitUserParent",map);

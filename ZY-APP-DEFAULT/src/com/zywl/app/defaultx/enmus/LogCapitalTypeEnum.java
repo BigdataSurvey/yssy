@@ -84,9 +84,9 @@ public enum LogCapitalTypeEnum {
     checkout_magic("魔幻阁领取",71),
     magic_convert("魔晶幻化",72),
     get_magic_convert("魔晶幻化获得",73),
-    send_red_package("发红包",74),
+    send_red_package("点燃鞭炮",74),
 
-    lq_red_package("抢红包",75),
+    lq_red_package("鞭炮获得",75),
     game_bet_dts2("游玩倩女幽魂", 77),
     game_bet_win_dts2("倩女幽魂奖励", 78),
     dts_rank_rebate("游园奖励",79),
@@ -144,6 +144,7 @@ public enum LogCapitalTypeEnum {
     dgs_bet("打怪获得",1028),
     buy_pit("开通矿洞",1029),
     pit_refund("矿洞退款",1030),
+    sub_red_zd("鞭炮踩雷",1031)
     ;
 
     private String name;

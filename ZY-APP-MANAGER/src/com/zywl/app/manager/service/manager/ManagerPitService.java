@@ -91,24 +91,26 @@ public class ManagerPitService extends BaseService {
             userCapitalService.subUserBalanceByOpenPit(userId, PlayGameService.DIC_PIT.get(pitId).getPrice());
             managerGameBaseService.pushCapitalUpdate(userId, UserCapitalTypeEnum.currency_2.getValue());
             int i = userPitService.insertUserPit(jsonObject);
+            addActiveScore(userId,pitId);
             return i;
         }
     }
 
-    public void addActiveScore(Long userId, Long pitId){
+    public void addActiveScore(Long userId, String pitId){
         Activity activity = gameCacheService.getActivity();
         if (activity==null){
             return;
         }
         double score = 5.0;
-        if (pitId==1){
+        if (pitId.equals("1")){
             score = 10.0;
         }
         if (activity.getAddPointEvent()==4){
             User user = userCacheService.getUserInfoById(userId);
+            PitUserParent pitUserParent = pitUserParentService.findParentByUserId(userId);
             //  gameCacheService.addPointMySelf(userId,getScore(dicMine));
-            if (user.getParentId()!=null){
-                gameCacheService.addPointMySelf(user.getParentId(),score);
+            if (pitUserParent.getPitParentId()!=null){
+                gameCacheService.addPointMySelf(pitUserParent.getPitParentId(),score);
             }
         }
     }
@@ -179,7 +181,7 @@ public class ManagerPitService extends BaseService {
                 userPit.setLastLookTime(DateUtil.getDateByDay(userPit.getLastLookTime(), (int) diffLastLookTime));
 
                 newUserPitList.add(userPit);
-                if ((System.currentTimeMillis() - userPit.getOpenTime().getTime()) / 1000 / 84600 == 7) {
+                if ((System.currentTimeMillis() - userPit.getOpenTime().getTime()) / 1000 / 84600 < 3) {
                     userPit.setIstk(1);
                 } else {
                     userPit.setIstk(0);
