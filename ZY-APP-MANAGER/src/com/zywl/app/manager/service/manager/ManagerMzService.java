@@ -268,7 +268,7 @@ public class ManagerMzService extends BaseService {
             mzUserItemService.updateMzUserItem(byId);
             DicMzItem dicMzItem = dicMzItemService.findById(byId.getMzItemId());
             BigDecimal sellPrice = dicMzItem.getTradPrice();
-            BigDecimal fee = sellPrice.multiply(new BigDecimal("0.3"));
+            BigDecimal fee = new BigDecimal("32").multiply(new BigDecimal("0.3"));
             mzTradService.addMzTrad(byId.getMzItemId(), byId.getId(), userId, sellPrice, fee, sellPrice.subtract(fee), dicMzItem.getName(), dicMzItem.getIcon());
         }
         return new JSONObject();

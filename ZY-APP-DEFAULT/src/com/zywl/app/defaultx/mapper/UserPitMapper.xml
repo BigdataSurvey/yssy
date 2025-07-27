@@ -75,4 +75,9 @@
             where id = #{item.id}
         </foreach>
     </update>
+
+
+    <delete id="delete">
+        delete from t_user_pit where user_id=#{userId} and pit_id=#{pitId}
+    </delete>
 </mapper>

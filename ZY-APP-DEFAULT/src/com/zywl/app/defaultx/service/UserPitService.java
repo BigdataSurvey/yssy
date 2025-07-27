@@ -4,6 +4,7 @@ import com.alibaba.fastjson2.JSONArray;
 import com.alibaba.fastjson2.JSONObject;
 import com.zywl.app.base.bean.User;
 import com.zywl.app.base.bean.UserPit;
+import com.zywl.app.base.util.DateUtil;
 import com.zywl.app.defaultx.dbutil.DaoService;
 import com.zywl.app.defaultx.enmus.LogUserBackpackTypeEnum;
 import org.apache.commons.collections4.map.HashedMap;
@@ -53,17 +54,13 @@ public class UserPitService extends DaoService {
         params.put("openTime",  new Date());
         params.put("lastLookTime",  new Date());
         params.put("lastReceiveTime",  new Date());
-        // 格式要[{"type":1,"id":9,"number":3}]
         JSONArray array = new JSONArray();
         JSONObject jsonObject1 = new JSONObject();
         jsonObject1.put("type",1);
         jsonObject1.put("id",jsonObject.getLongValue("id"));
         jsonObject1.put("number",0);
         array.add(jsonObject1);
-        Calendar currentdate = Calendar.getInstance();
-        currentdate.add(Calendar.DATE, 30);
-        Date endTime = currentdate.getTime();
-        params.put("endTime",endTime);
+        params.put("endTime", DateUtil.getDateByDay(60));
         params.put("unReceive", array);
         return execute("insert",params);
     }
@@ -99,5 +96,12 @@ public class UserPitService extends DaoService {
         Map<String, Object> params = new HashedMap<>();
         params.put("userId", o.getIntValue("userId"));
         return findList("findOpenPitTypeByUserId", params);
+    }
+
+    public void deleteUserPit(Long userId,Long pitId){
+        Map<String, Object> map = new HashedMap<>();
+        map.put("userId", userId);
+        map.put("pitId",pitId);
+        delete(map);
     }
 }

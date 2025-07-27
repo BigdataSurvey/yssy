@@ -91,26 +91,26 @@ public class ManagerPitService extends BaseService {
             userCapitalService.subUserBalanceByOpenPit(userId, PlayGameService.DIC_PIT.get(pitId).getPrice());
             managerGameBaseService.pushCapitalUpdate(userId, UserCapitalTypeEnum.currency_2.getValue());
             int i = userPitService.insertUserPit(jsonObject);
-            addActiveScore(userId,pitId);
+            addActiveScore(userId, pitId);
             return i;
         }
     }
 
-    public void addActiveScore(Long userId, String pitId){
+    public void addActiveScore(Long userId, String pitId) {
         Activity activity = gameCacheService.getActivity();
-        if (activity==null){
+        if (activity == null) {
             return;
         }
         double score = 5.0;
-        if (pitId.equals("1")){
+        if (pitId.equals("1")) {
             score = 10.0;
         }
-        if (activity.getAddPointEvent()==4){
+        if (activity.getAddPointEvent() == 4) {
             User user = userCacheService.getUserInfoById(userId);
             PitUserParent pitUserParent = pitUserParentService.findParentByUserId(userId);
             //  gameCacheService.addPointMySelf(userId,getScore(dicMine));
-            if (pitUserParent.getPitParentId()!=null){
-                gameCacheService.addPointMySelf(pitUserParent.getPitParentId(),score);
+            if (pitUserParent.getPitParentId() != null) {
+                gameCacheService.addPointMySelf(pitUserParent.getPitParentId(), score);
             }
         }
     }
@@ -202,7 +202,7 @@ public class ManagerPitService extends BaseService {
     public Object receiveNumber(ManagerSocketServer adminSocketServer, JSONObject params) {
         checkNull(params);
         Long userId = params.getLong("userId");
-        synchronized (LockUtil.getlock(userId)){
+        synchronized (LockUtil.getlock(userId)) {
             JSONObject jsonObject = new JSONObject();
             //初始化上次领取时间 上次查看时间 未领取
             jsonObject.put("userId", userId);
@@ -228,9 +228,9 @@ public class ManagerPitService extends BaseService {
                 String id = newUserPit.getString("id");
                 int number = newUserPit.getIntValue("number");
                 pitRecord.setNumber(number);
-                newUserPit.put("number",0);
+                newUserPit.put("number", 0);
             }
-            long day = (System.currentTimeMillis()-userPit.getLastReceiveTime().getTime())/1000/60/60/24;
+            long day = (System.currentTimeMillis() - userPit.getLastReceiveTime().getTime()) / 1000 / 60 / 60 / 24;
             userPit.setLastReceiveTime(DateUtil.getDateByDay(userPit.getLastReceiveTime(), (int) day));
             //领取矿石到背包
             gameService.addReward(userId, reward, null);
@@ -289,29 +289,32 @@ public class ManagerPitService extends BaseService {
          * 赋值上级id 查询父级的父级 赋值上上级id
          */
         Long userId = params.getLong("userId");
-        User parentUser = userCacheService.getUserInfoByUserNo(params.getString("userNo"));
-        if (parentUser == null) {
-            throwExp("玩家不存在");
+        synchronized (LockUtil.getlock(userId)){
+            User parentUser = userCacheService.getUserInfoByUserNo(params.getString("userNo"));
+            if (parentUser == null) {
+                throwExp("玩家不存在");
+            }
+            if (Objects.equals(parentUser.getId(), userId)) {
+                throwExp("不能绑定自己的id");
+            }
+            //上级的绑定信息 判断是否互相绑定
+            PitUserParent pitUserParent = pitUserParentService.findParentByUserId(parentUser.getId());
+            if (Objects.equals(parentUser.getParentId(), userId) || Objects.equals(parentUser.getGrandfaId(), userId)) {
+                throwExp("该玩家是您的好友，不能绑定");
+            }
+            long parentId = parentUser.getId();
+            params.put("parentId", parentId);
+            JSONObject jsonObject = new JSONObject();
+            //初始化上次领取时间 上次查看时间 未领取
+            jsonObject.put("userId", userId);
+            //查询上上级id
+            if (null != pitUserParent) {
+                params.put("pitGrandfaId", pitUserParent.getPitParentId());
+            }
+            pitUserParentService.insertPitUserParent(params);
+            return new JSONObject();
         }
-        if (Objects.equals(parentUser.getId(), userId)) {
-            throwExp("不能绑定自己的id");
-        }
-        //上级的绑定信息 判断是否互相绑定
-        PitUserParent pitUserParent = pitUserParentService.findParentByUserId(parentUser.getId());
-        if (Objects.equals(parentUser.getParentId(), userId) || Objects.equals(parentUser.getGrandfaId(), userId)) {
-            throwExp("该玩家是您的好友，不能绑定");
-        }
-        long parentId = parentUser.getId();
-        params.put("parentId", parentId);
-        JSONObject jsonObject = new JSONObject();
-        //初始化上次领取时间 上次查看时间 未领取
-        jsonObject.put("userId", userId);
-        //查询上上级id
-        if (null != pitUserParent) {
-            params.put("pitGrandfaId", pitUserParent.getPitParentId());
-        }
-        pitUserParentService.insertPitUserParent(params);
-        return new JSONObject();
+
     }
 
     @Transactional
@@ -320,21 +323,50 @@ public class ManagerPitService extends BaseService {
         JSONObject jsonObject = new JSONObject();
         checkNull(params);
         Long userId = params.getLong("userId");
-        Long pitId = params.getLong("pitId");
-        //初始化上次领取时间 上次查看时间 未领取
-        UserPit userPit = userPitService.findInitInfo(params);
-        //如果上次领取时间-开通时间 =0 未领取过
-        long diffLastReceiveTime = (userPit.getLastReceiveTime().getTime() - userPit.getOpenTime().getTime()) / 1000 / 86400;
-        if (diffLastReceiveTime > 0) {
-            throwExp("已领取过奖励，不可退款");
+        synchronized (LockUtil.getlock(userId)) {
+            Long pitId = params.getLong("pitId");
+            //初始化上次领取时间 上次查看时间 未领取
+            UserPit userPit = userPitService.findInitInfo(params);
+            if (userPit == null) {
+                throwExp("无需重复退款");
+
+            }
+            //如果上次领取时间-开通时间 =0 未领取过
+            long diffLastReceiveTime = (userPit.getLastReceiveTime().getTime() - userPit.getOpenTime().getTime()) / 1000 / 86400;
+            if (diffLastReceiveTime > 0) {
+                throwExp("已领取过奖励，不可退款");
+            }
+            if (((System.currentTimeMillis() - userPit.getOpenTime().getTime()) / 1000 / 60 / 60 / 24) > 3) {
+                throwExp("超过3天不可以退款");
+            }
+            BigDecimal amount = PlayGameService.DIC_PIT.get(pitId.toString()).getPrice();
+            userCapitalService.addUserBalanceByCancelPit(amount, userId, UserCapitalTypeEnum.currency_2.getValue(), LogCapitalTypeEnum.pit_refund);
+            managerGameBaseService.pushCapitalUpdate(userId, UserCapitalTypeEnum.currency_2.getValue());
+            jsonObject.put("refundStatus", 1);
+            userPitService.deleteUserPit(userId, pitId);
+            subActiveScore(userId, String.valueOf(pitId));
+            return jsonObject;
         }
-        if (((System.currentTimeMillis() - userPit.getOpenTime().getTime()) / 1000 / 60 / 60 / 24) > 3) {
-            throwExp("超过3天不可以退款");
+
+    }
+
+    public void subActiveScore(Long userId, String pitId) {
+        Activity activity = gameCacheService.getActivity();
+        if (activity == null) {
+            return;
         }
-        BigDecimal amount = PlayGameService.DIC_PIT.get(pitId.toString()).getPrice();
-        userCapitalService.addUserBalanceByCancelPit(amount, userId, UserCapitalTypeEnum.currency_2.getValue(), LogCapitalTypeEnum.pit_refund);
-        jsonObject.put("refundStatus", 1);
-        return jsonObject;
+        double score = -5.0;
+        if (pitId.equals("1")) {
+            score = -10.0;
+        }
+        if (activity.getAddPointEvent() == 4) {
+            User user = userCacheService.getUserInfoById(userId);
+            PitUserParent pitUserParent = pitUserParentService.findParentByUserId(userId);
+            //  gameCacheService.addPointMySelf(userId,getScore(dicMine));
+            if (pitUserParent.getPitParentId() != null) {
+                gameCacheService.addPointMySelf(pitUserParent.getPitParentId(), score);
+            }
+        }
     }
 
     @Transactional

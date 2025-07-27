@@ -1157,6 +1157,7 @@ public class ManagerGameBaseService extends BaseService {
             gameService.addReward(userId,rewards,LogCapitalTypeEnum.cave_prize_draw);
         }
         result.put("rewardInfo",rewards);
+        byUserId = userYyScoreService.findByUserId(userId);
         result.put("score",byUserId.getScore());
         result.put("id",id);
         return result;

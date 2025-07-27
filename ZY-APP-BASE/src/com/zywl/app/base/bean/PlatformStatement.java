@@ -1129,4 +1129,28 @@ public class PlatformStatement extends BaseBean {
     public void setAddAnima(BigDecimal addAnima) {
         this.addAnima = addAnima;
     }
+
+    public BigDecimal getSubRedZd() {
+        return subRedZd;
+    }
+
+    public void setSubRedZd(BigDecimal subRedZd) {
+        this.subRedZd = subRedZd;
+    }
+
+    public BigDecimal getSubPit() {
+        return subPit;
+    }
+
+    public void setSubPit(BigDecimal subPit) {
+        this.subPit = subPit;
+    }
+
+    public BigDecimal getAddPit() {
+        return addPit;
+    }
+
+    public void setAddPit(BigDecimal addPit) {
+        this.addPit = addPit;
+    }
 }
