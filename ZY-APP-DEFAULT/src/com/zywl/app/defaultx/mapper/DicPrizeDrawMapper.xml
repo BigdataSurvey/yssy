@@ -3,7 +3,7 @@
 <mapper namespace="com.zywl.app.defaultx.mapper.DicPrizeDrawMapper">
 
 
-	<select id="findAll" resultType="DicPrizeDraw">
+	<select id="findAll" resultType="com.zywl.app.base.bean.DicPrizeDraw">
 	    select * from dic_prize_draw
 	</select>
 	

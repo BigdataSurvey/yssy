@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.zywl.app.defaultx.mapper.RecordSheetMapper">
+
+<!--	<select id="findAll" resultType="RecordSheet">-->
+<!--		select id,amount from r_record_sheet-->
+<!--	</select>-->
+
+	<insert id="insert" parameterType="RecordSheet" useGeneratedKeys="true" keyProperty="id" keyColumn="id">
+		insert into r_record_sheet
+		(
+			`user_id`,
+			`red_id`,
+			`name`,
+			`amount`,
+			`create_time`,
+			`update_time`,
+			`order_no`
+
+		)
+		values
+			(
+				#{userId},
+				#{redId},
+				#{name},
+				#{amount},
+				#{createTime},
+				#{updateTime},
+				#{orderNo}
+
+			)
+	</insert>
+	
+
+</mapper>

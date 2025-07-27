@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.zywl.app.defaultx.mapper.RedEnvenlopeMapper">
+
+
+    <select id="findAll" resultType="RedEnvelope">
+        select id,total_amount from r_red_envelope
+    </select>
+
+    <insert id="insert" parameterType="RedEnvelope" useGeneratedKeys="true" keyProperty="id" keyColumn="id">
+        insert into r_red_envelope
+        (
+            `amount`,
+            `released_quantity`,
+            `red_award`,
+            `surplus_amount`,
+            `create_time`,
+            `update_time`,
+            `allocation_amount`,
+            `bomb_amount`,
+            `total_amount`,
+            `total_number`,
+            `bomb_index`,
+            `now_index`
+        )
+        values
+            (
+                #{amount},
+                #{releasedQuantity},
+                #{redAward},
+                #{surplusAmount},
+                #{createTime},
+                #{updateTime},
+                #{allocationAmount},
+                #{bombAmount},
+                `totalAmount`,
+                `totalNumber`,
+                `bombIndex`,
+                `nowIndex`
+
+                )
+</insert>
+
+    <update id="update" parameterType="RedEnvelope">
+        update r_red_envelope SET amount = #{amount},  status = #{status} update id = #{id}
+    </update>
+
+
+
+
+</mapper>

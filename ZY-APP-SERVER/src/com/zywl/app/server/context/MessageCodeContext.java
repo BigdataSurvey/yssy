@@ -42,5 +42,6 @@ public class MessageCodeContext {
 	public final static String Activity="079";
 	public final static String Dgs="080";
 	public final static String PIT ="081";
+	public final  static String RED_RECORD="082";
 
 }

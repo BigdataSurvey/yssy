@@ -7,6 +7,7 @@ package com.live.app.ws.enums;
  */
 public enum PushCode {
 
+	pushRed,
 	caidengmi,
 
 	//卡牌游戏==============================================

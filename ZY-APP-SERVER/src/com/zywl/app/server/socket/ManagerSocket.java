@@ -361,6 +361,19 @@ public class ManagerSocket extends BaseClientSocket {
             }
         }, this);
 
+        Push.registPush(new PushBean(PushCode.pushRed), new PushListener() {
+            public void onRegist(BaseSocket baseSocket, Object data) {
+                serverConfigService.initCache();
+            }
+
+            public void onReceive(BaseSocket baseSocket, Object data) {
+                logger.info("收到红包雨推送：" + data);
+                JSONObject info = (JSONObject) data;
+                //处理推送数据  推送给玩家
+                Push.push(PushCode.pushRed, "hongbaoyu", info);
+            }
+        }, this);
+
 
 
         //抽卡游戏 ===============================================

@@ -265,6 +265,7 @@ public class PlayGameService extends BaseService {
                 }
             }
         });
+        Push.addPushSuport(PushCode.pushRed, new DefaultPushHandler());
 
         initItem();
         initProduct();

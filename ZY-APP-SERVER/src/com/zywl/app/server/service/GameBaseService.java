@@ -133,6 +133,7 @@ public class GameBaseService extends BaseService {
         Push.addPushSuport(PushCode.updateUserInfo, new DefaultPushHandler());
         Push.addPushSuport(PushCode.updateUserPower, new DefaultPushHandler());
         Push.addPushSuport(PushCode.updateUserBackpack, new DefaultPushHandler());
+        Push.addPushSuport(PushCode.pushRed, new DefaultPushHandler());
         new Timer().schedule(new TimerTask() {
             public void run() {
                 try {

@@ -2,7 +2,7 @@
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.zywl.app.defaultx.mapper.UserYyScoreMapper">
 
-    <insert id="insertOrUpdate" parameterType="UserYyScore">
+    <insert id="insertOrUpdate" parameterType="com.zywl.app.base.UserYyScore">
         INSERT INTO t_user_yy_score(`user_id`, `score`,`create_time`)
         VALUES (#{userId}, #{score},NOW()) ON DUPLICATE KEY
         UPDATE score = score+#{score};
@@ -10,7 +10,7 @@
 
 
 
-    <select id="findByUserId" resultType="UserYyScore">
+    <select id="findByUserId" resultType="com.zywl.app.base.UserYyScore">
         select *
         from t_user_dts_amount
         where user_id = #{userId}

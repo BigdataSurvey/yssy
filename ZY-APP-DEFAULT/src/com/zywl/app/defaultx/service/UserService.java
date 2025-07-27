@@ -4,6 +4,7 @@ import com.alibaba.fastjson2.JSONObject;
 import com.zywl.app.base.bean.DeviceCount;
 import com.zywl.app.base.bean.RechargeOrder;
 import com.zywl.app.base.bean.User;
+import com.zywl.app.base.bean.UserCapital;
 import com.zywl.app.base.bean.vo.DSTopVo;
 import com.zywl.app.base.bean.vo.TempVo;
 import com.zywl.app.base.util.DateUtil;
@@ -905,5 +906,15 @@ public class UserService extends DaoService {
     public List<DSTopVo> findTopByDl() {
         return findList("findTopByDl", null);
     }
+
+    /**
+     * 检查用户是否可以发红包
+     * @param id
+     * @return
+     */
+    public boolean canSendRedEnvelope(Integer id) {
+        return false;
+    }
+
 
 }

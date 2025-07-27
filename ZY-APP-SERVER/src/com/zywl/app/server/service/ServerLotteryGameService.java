@@ -93,6 +93,7 @@ public class ServerLotteryGameService extends BaseService {
     public void registPush(AppSocket appSocket, String userId, String gameId) {
         if (gameId.equals("1")) {
             Push.doAddPush(appSocket, new PushBean(PushCode.updateRoomDate, gameId));
+
             Push.doAddPush(appSocket, new PushBean(PushCode.updateGameStatus, userId));
             Push.doAddPush(appSocket, new PushBean(PushCode.updateGameDiyData, gameId));
         } else if (gameId.equals("4")) {

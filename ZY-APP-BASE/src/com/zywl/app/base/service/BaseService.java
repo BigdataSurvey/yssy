@@ -1,12 +1,14 @@
 package com.zywl.app.base.service;
 
 import com.zywl.app.base.Base;
+import com.zywl.app.base.bean.hongbao.RedEnvelope;
 import com.zywl.app.base.util.Async;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
 import java.lang.reflect.Field;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 public abstract class BaseService extends Base {
@@ -41,4 +43,6 @@ public abstract class BaseService extends Base {
 	protected Log logger() {
 		return logger;
 	}
+
+
 }

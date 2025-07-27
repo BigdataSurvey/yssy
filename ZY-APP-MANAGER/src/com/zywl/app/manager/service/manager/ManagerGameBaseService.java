@@ -46,6 +46,8 @@ import java.util.stream.Collectors;
 @ServiceClass(code = MessageCodeContext.GAME_BASE_SERVER)
 public class ManagerGameBaseService extends BaseService {
 
+
+
     @Autowired
     private UserCapitalService userCapitalService;
 

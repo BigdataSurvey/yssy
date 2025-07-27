@@ -823,6 +823,37 @@ public class UserCapitalService extends DaoService {
         }
     }
 
+    //红包炸弹扣钱
+    @Transactional
+    public void subUserBalanceByRedZd(Long userId, BigDecimal amount, Long dataId,String orderNo) {
+        int capitalType = UserCapitalTypeEnum.currency_2.getValue();
+        UserCapital userCapital = userCapitalCacheService.getUserCapitalCacheByType(userId, capitalType);
+        int a = subUserBalance(amount, userId, capitalType, userCapital.getBalance(), userCapital.getOccupyBalance(), orderNo) {, dataId, LogCapitalTypeEnum.buy_coin, null);
+        if (a < 1) {
+            userCapitalCacheService.deltedUserCapitalCache(userId, capitalType);
+            userCapital = userCapitalCacheService.getUserCapitalCacheByType(userId, capitalType);
+            int b = subUserBalance(amount, userId, capitalType, userCapital.getBalance(), userCapital.getOccupyBalance(), orderNo) {, dataId, LogCapitalTypeEnum.buy_coin, null);
+            if (b < 1) {
+                throwExp("购买铜钱失败");
+            }
+        }
+    }
+
+    @Transactional
+    public void subUserBalanceByBuyRed(Long userId, BigDecimal amount, Long dataId) {
+        int capitalType = UserCapitalTypeEnum.currency_2.getValue();
+        UserCapital userCapital = userCapitalCacheService.getUserCapitalCacheByType(userId, capitalType);
+        int a = subUserBalance(amount, userId, capitalType, userCapital.getBalance(), userCapital.getOccupyBalance(), null, dataId, LogCapitalTypeEnum.send_red_package, null);
+        if (a < 1) {
+            userCapitalCacheService.deltedUserCapitalCache(userId, capitalType);
+            userCapital = userCapitalCacheService.getUserCapitalCacheByType(userId, capitalType);
+            int b = subUserBalance(amount, userId, capitalType, userCapital.getBalance(), userCapital.getOccupyBalance(), null, dataId, LogCapitalTypeEnum.send_red_package, null);
+            if (b < 1) {
+                throwExp("购买铜钱失败");
+            }
+        }
+    }
+
 
 
 
@@ -992,6 +1023,22 @@ public class UserCapitalService extends DaoService {
             if (b < 1) {
                 userCapitalCacheService.deltedUserCapitalCache(userId, UserCapitalTypeEnum.currency_2.getValue());
                 throwExp("试玩增加灵石失败");
+            }
+        }
+    }
+
+
+    //抢红包加钱
+    public void addUserBalanceByGetRed(BigDecimal amount, Long userId, String orderNo, Long dataId) {
+        UserCapital userCapital = userCapitalCacheService.getUserCapitalCacheByType(userId, UserCapitalTypeEnum.currency_2.getValue());
+        int a = addUserBalance(amount, userId, UserCapitalTypeEnum.currency_2.getValue(), userCapital.getBalance(), userCapital.getOccupyBalance(), orderNo, dataId, LogCapitalTypeEnum.lq_red_package, null);
+        if (a < 1) {
+            userCapitalCacheService.deltedUserCapitalCache(userId, UserCapitalTypeEnum.currency_2.getValue());
+            userCapital = userCapitalCacheService.getUserCapitalCacheByType(userId, UserCapitalTypeEnum.currency_2.getValue());
+            int b = addUserBalance(amount, userId, UserCapitalTypeEnum.currency_2.getValue(), userCapital.getBalance(), userCapital.getOccupyBalance(), orderNo, dataId, LogCapitalTypeEnum.lq_red_package, null);
+            if (b < 1) {
+                userCapitalCacheService.deltedUserCapitalCache(userId, UserCapitalTypeEnum.currency_2.getValue());
+                throwExp("操作失败");
             }
         }
     }
