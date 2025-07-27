@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.zywl.app.defaultx.mapper.PitUserParentMapper">
+
+    <select id="findParentId" resultType="PitUserParent">
+        select * from t_pit_user_parent where user_id = #{userId} group by user_id;
+    </select>
+    <update id="update" parameterType="PitUserParent">
+        update t_pit_user_parent
+        <set >
+            <if test="pitParentId != null">
+                pit_parent_id= #{pitParentId},
+            </if>
+            <if test="pitGrandfaId != null">
+                pit_grandfa_id= #{pitGrandfaId},
+            </if>
+
+            <if test="createParentAmount != null">
+                create_parent_amount= #{createParentAmount},
+            </if>
+            <if test="createGrandfaAmount != null">
+                create_grandfa_amount= #{createGrandfaAmount},
+            </if>
+        </set>
+        where  user_id= #{userId}
+    </update>
+
+    <select id="findSubor" resultType="PitUserParent">
+        select * from t_pit_user_parent where pit_parent_id = #{userId} group by user_id
+        <if test="start != null and limit != null">
+            limit #{start}, #{limit}
+        </if>
+        ;
+    </select>
+    <select id="findIndirSubor" resultType="PitUserParent">
+        select * from t_pit_user_parent where pit_grandfa_id = #{userId} group by user_id
+        <if test="start != null and limit != null">
+            limit #{start}, #{limit}
+        </if>
+;
+    </select>
+
+
+    <insert id="insertPitUserParent" parameterType="PitUserParent" useGeneratedKeys="true" keyProperty="id" keyColumn="id">
+        insert into t_pit_user_parent
+        (`user_id`,
+         `pit_parent_id`,
+         `pit_grandfa_id`,
+         `create_parent_amount`,
+         `create_grandfa_amount`)
+        values (#{userId},
+                #{pitParentId},
+                #{pitGrandfaId},
+                #{createParentAmount},
+                #{createGrandfaAmount})
+    </insert>
+
+    <update id="addParentIncome" parameterType="PitUserParent">
+        update t_pit_user_parent set create_parent_amount=create_parent_amount+#{number} where user_id=#{userId}
+    </update>
+
+    <update id="addGrandfaIncome" parameterType="PitUserParent">
+        update t_pit_user_parent set create_grandfa_amount=create_grandfa_amount+#{number} where user_id=#{userId}
+    </update>
+</mapper>

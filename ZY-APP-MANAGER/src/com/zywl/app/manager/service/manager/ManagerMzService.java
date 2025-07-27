@@ -57,6 +57,9 @@ public class ManagerMzService extends BaseService {
     private UserCacheService userCacheService;
 
     @Autowired
+    private ManagerUserService managerUserService;
+
+    @Autowired
     private MzTradService mzTradService;
 
     @Autowired
@@ -265,7 +268,7 @@ public class ManagerMzService extends BaseService {
             mzUserItemService.updateMzUserItem(byId);
             DicMzItem dicMzItem = dicMzItemService.findById(byId.getMzItemId());
             BigDecimal sellPrice = dicMzItem.getTradPrice();
-            BigDecimal fee = sellPrice.multiply(new BigDecimal("0.3"));
+            BigDecimal fee = new BigDecimal("32").multiply(new BigDecimal("0.3"));
             mzTradService.addMzTrad(byId.getMzItemId(), byId.getId(), userId, sellPrice, fee, sellPrice.subtract(fee), dicMzItem.getName(), dicMzItem.getIcon());
         }
         return new JSONObject();
@@ -312,6 +315,8 @@ public class ManagerMzService extends BaseService {
             userCapitalService.subUserBalanceByMzTradingBuy(userId, trad.getSellPrice(), trad.getId());
             //增加卖方余额
             userCapitalService.addUserBalanceByMzTrad(trad.getSellUserId(), trad.getGetAmount(), orderNo, dataId);
+            //给上级 上上级添加收益
+            managerUserService.addAnimaToInviter(trad.getSellUserId(), trad.getSellPrice().subtract(trad.getGetAmount()),new BigDecimal("0.1"));
             //推送余额
             managerGameBaseService.pushCapitalUpdate(userId, UserCapitalTypeEnum.currency_2.getValue());
             managerGameBaseService.pushCapitalUpdate(trad.getSellUserId(), UserCapitalTypeEnum.currency_2.getValue());

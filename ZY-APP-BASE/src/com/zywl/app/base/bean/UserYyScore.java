@@ -1,4 +1,6 @@
-package com.zywl.app.base;
+package com.zywl.app.base.bean;
+
+import com.zywl.app.base.BaseBean;
 
 import java.math.BigDecimal;
 import java.util.Date;

@@ -378,8 +378,11 @@ public class ServerUserRoleService extends BaseService {
         for (int i = 1; i <= 5; i++) {
             UserRole byUserIdAndRoleId = userRoleService.findByUserIdAndRoleId(userId, i);
             if (byUserIdAndRoleId != null) {
-                byUserIdAndRoleId.setEndTime(DateUtil.getDateByDay(byUserIdAndRoleId.getEndTime(), 30));
+                byUserIdAndRoleId.setEndTime(DateUtil.getDateByDay( 30));
+                byUserIdAndRoleId.setHp(240);
+                byUserIdAndRoleId.setLastReceiveTime(new Date());
                 userRoleService.updateUserRole(byUserIdAndRoleId);
+
             } else {
                 userRoleService.addUserRole(userId, (long) i, 30);
             }

@@ -13,7 +13,6 @@ import com.live.app.ws.util.CommandBuilder;
 import com.live.app.ws.util.DefaultPushHandler;
 import com.live.app.ws.util.Executer;
 import com.live.app.ws.util.Push;
-import com.zywl.app.base.UserYyScore;
 import com.zywl.app.base.bean.*;
 import com.zywl.app.base.bean.vo.BattleRoyale2Record;
 import com.zywl.app.base.constant.TableNameConstant;

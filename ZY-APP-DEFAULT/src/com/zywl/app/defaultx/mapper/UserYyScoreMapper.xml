@@ -12,7 +12,7 @@
 
     <select id="findByUserId" resultType="com.zywl.app.base.UserYyScore">
         select *
-        from t_user_dts_amount
+        from t_user_yy_score
         where user_id = #{userId}
     </select>
 

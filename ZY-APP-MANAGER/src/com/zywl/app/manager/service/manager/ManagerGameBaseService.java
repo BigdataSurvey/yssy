@@ -9,12 +9,10 @@ import com.alipay.api.request.AlipaySystemOauthTokenRequest;
 import com.alipay.api.response.AlipaySystemOauthTokenResponse;
 import com.live.app.ws.enums.PushCode;
 import com.live.app.ws.util.Push;
-import com.zywl.app.base.UserYyScore;
+import com.zywl.app.base.bean.UserYyScore;
 import com.zywl.app.base.bean.*;
 import com.zywl.app.base.bean.card.*;
 import com.zywl.app.base.bean.vo.*;
-import com.zywl.app.base.bean.vo.card.CardVo;
-import com.zywl.app.base.bean.vo.card.PlayerCardCodexVo;
 import com.zywl.app.base.bean.vo.card.UserShopVo;
 import com.zywl.app.base.service.BaseService;
 import com.zywl.app.base.util.*;
@@ -25,13 +23,11 @@ import com.zywl.app.defaultx.cache.*;
 import com.zywl.app.defaultx.cache.card.*;
 import com.zywl.app.defaultx.enmus.*;
 import com.zywl.app.defaultx.service.*;
-import com.zywl.app.defaultx.service.card.DicShopService;
 import com.zywl.app.manager.context.KafkaTopicContext;
 import com.zywl.app.manager.context.MessageCodeContext;
 import com.zywl.app.manager.context.KafkaEventContext;
 import com.zywl.app.manager.service.*;
 import com.zywl.app.manager.socket.ManagerSocketServer;
-import org.apache.commons.collections4.map.HashedMap;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -39,7 +35,6 @@ import org.springframework.transaction.annotation.Transactional;
 import javax.annotation.PostConstruct;
 import java.math.BigDecimal;
 import java.util.*;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 
 @Service
@@ -1152,9 +1147,11 @@ public class ManagerGameBaseService extends BaseService {
         int i = random.nextInt(1000)+1;
         JSONArray rewards = new JSONArray();
         Collection<DicPrizeDraw> values = PlayGameService.DIC_PRIZE_DRAW_MAP.values();
+        Long id = null;
         for (DicPrizeDraw value : values) {
             if (i<value.getRate()){
                 rewards.add( value.getReward());
+                id = value.getId();
                 break;
             }
         }
@@ -1162,7 +1159,9 @@ public class ManagerGameBaseService extends BaseService {
             gameService.addReward(userId,rewards,LogCapitalTypeEnum.cave_prize_draw);
         }
         result.put("rewardInfo",rewards);
+        byUserId = userYyScoreService.findByUserId(userId);
         result.put("score",byUserId.getScore());
+        result.put("id",id);
         return result;
     }
 

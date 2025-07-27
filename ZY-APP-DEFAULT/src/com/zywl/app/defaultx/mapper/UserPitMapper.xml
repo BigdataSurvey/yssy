@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.zywl.app.defaultx.mapper.UserPitMapper">
+
+    <select id="findInitInfoList" resultType="UserPit">
+        select *
+        from t_user_pit
+        where user_id = #{userId}
+        <if test="pitId != null">
+           and pit_id = #{pitId}
+        </if>
+
+    </select>
+    <select id="findOpenPitTypeByUserId" resultType="UserPit">
+        select *
+        from t_user_pit
+        where user_id = #{userId} and pit_id=#{pitId}
+    </select>
+
+    <insert id="insert" parameterType="UserPit" useGeneratedKeys="true" keyProperty="id" keyColumn="id">
+        insert into t_user_pit
+        (
+            `user_id`,
+            `pit_id`,
+            `open_time`,
+            `end_time`,
+            `last_look_time`,
+            `last_receive_time`,
+            `un_receive`
+
+        )
+        values
+            (
+                #{userId},
+                #{pitId},
+                #{openTime},
+                #{endTime},
+                #{lastLookTime},
+                #{lastReceiveTime},
+                #{unReceive}
+            )
+    </insert>
+
+    <update id="update" parameterType="UserPit">
+        update t_user_pit
+        <set >
+            <if test="openTime != null">
+                open_time= #{openTime},
+            </if>
+            <if test="endTime != null">
+                end_time= #{endTime},
+            </if>
+
+            <if test="lastLookTime != null">
+                last_look_time= #{lastLookTime},
+            </if>
+            <if test="lastReceiveTime != null">
+                last_receive_time= #{lastReceiveTime},
+            </if>
+            <if test="unReceive != null">
+                un_receive= #{unReceive},
+            </if>
+        </set>
+        where  id=#{id}
+    </update>
+
+
+    <update id="batchUpdateNumber" parameterType="java.util.List">
+        <foreach collection="list" item="item" index="index" open="" close="" separator=";">
+            update t_user_pit
+            <set>
+                open_time=#{item.openTime},end_time=#{item.endTime},last_look_time=#{item.lastLookTime},last_receive_time=#{item.lastReceiveTime},
+                un_receive=#{item.unReceive}
+            </set>
+            where id = #{item.id}
+        </foreach>
+    </update>
+
+
+    <delete id="delete">
+        delete from t_user_pit where user_id=#{userId} and pit_id=#{pitId}
+    </delete>
+</mapper>
