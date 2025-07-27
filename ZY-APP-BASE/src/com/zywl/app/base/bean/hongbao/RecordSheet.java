@@ -99,5 +99,6 @@ public class RecordSheet extends BaseBean {
 
     private Random random;
 
+    private int isBoom;
 
 }

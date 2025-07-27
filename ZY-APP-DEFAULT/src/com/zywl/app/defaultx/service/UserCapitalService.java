@@ -850,11 +850,11 @@ public class UserCapitalService extends DaoService {
     public void subUserBalanceByRedZd(Long userId, BigDecimal amount, Long dataId,String orderNo) {
         int capitalType = UserCapitalTypeEnum.currency_2.getValue();
         UserCapital userCapital = userCapitalCacheService.getUserCapitalCacheByType(userId, capitalType);
-        int a = subUserBalance(amount, userId, capitalType, userCapital.getBalance(), userCapital.getOccupyBalance(), orderNo) {, dataId, LogCapitalTypeEnum.buy_coin, null);
+        int a = subUserBalance(amount, userId, capitalType, userCapital.getBalance(), userCapital.getOccupyBalance(), orderNo, dataId, LogCapitalTypeEnum.sub_red_zd, null);
         if (a < 1) {
             userCapitalCacheService.deltedUserCapitalCache(userId, capitalType);
             userCapital = userCapitalCacheService.getUserCapitalCacheByType(userId, capitalType);
-            int b = subUserBalance(amount, userId, capitalType, userCapital.getBalance(), userCapital.getOccupyBalance(), orderNo) {, dataId, LogCapitalTypeEnum.buy_coin, null);
+            int b = subUserBalance(amount, userId, capitalType, userCapital.getBalance(), userCapital.getOccupyBalance(), orderNo, dataId, LogCapitalTypeEnum.sub_red_zd, null);
             if (b < 1) {
                 throwExp("购买铜钱失败");
             }

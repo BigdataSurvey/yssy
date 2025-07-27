@@ -11,6 +11,7 @@
 		(
 			`user_id`,
 			`red_id`,
+		 	`is_boom`,
 			`name`,
 			`amount`,
 			`create_time`,
@@ -22,6 +23,7 @@
 			(
 				#{userId},
 				#{redId},
+			 	#{isBoom},
 				#{name},
 				#{amount},
 				#{createTime},
@@ -30,6 +32,9 @@
 
 			)
 	</insert>
-	
+
+	<select id="findByRedId" resultType="RecordSheet">
+		select * from r_record_sheet where red_id=#{redId}
+	</select>
 
 </mapper>

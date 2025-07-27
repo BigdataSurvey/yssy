@@ -58,7 +58,7 @@ public class RedEnvelope extends BaseBean {
 
     private BigDecimal totalAmouns;
     
-    private String state;//状态
+    private int status;//状态
 
 
 }

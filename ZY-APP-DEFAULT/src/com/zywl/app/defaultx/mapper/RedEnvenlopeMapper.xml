@@ -4,7 +4,7 @@
 
 
     <select id="findAll" resultType="RedEnvelope">
-        select id,total_amount from r_red_envelope
+        select * from r_red_envelope where status = 1
     </select>
 
     <insert id="insert" parameterType="RedEnvelope" useGeneratedKeys="true" keyProperty="id" keyColumn="id">
@@ -44,6 +44,10 @@
     <update id="update" parameterType="RedEnvelope">
         update r_red_envelope SET amount = #{amount},  status = #{status} update id = #{id}
     </update>
+
+    <select id="findById" resultType="RedEnvelope">
+        SELECT * FROM r_red_envelope WHERE user_id = #{userId}
+    </select>
 
 
 
