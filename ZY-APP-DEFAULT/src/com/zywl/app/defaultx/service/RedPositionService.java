@@ -32,7 +32,7 @@ public class RedPositionService extends DaoService {
 
     public RedPosition findByUserId(Long userId){
         Map<String,Object> map = new HashMap<>();
-        map.put("redId",userId);
+        map.put("userId",userId);
         RedPosition findByUserId = (RedPosition) findOne("findByUserId", map);
         if(findByUserId==null){
             findByUserId = new RedPosition();
@@ -63,5 +63,10 @@ public class RedPositionService extends DaoService {
             map.put("count4",20);
         }
         execute("addCountByUserId",map);
+    }
+
+    @Transactional
+    public void updatePosition(RedPosition redPosition){
+        execute("updatePosition",redPosition);
     }
 }

@@ -29,6 +29,12 @@ public class RedEnvelopeService extends DaoService {
         execute("updateRed",redEnvelope);
     }
 
+    @Transactional
+    public Long saveRedEnvelope(RedEnvelope redEnvelope){
+        save(redEnvelope);
+        return redEnvelope.getId();
+    }
+
 
     @Override
     protected Log logger() {
@@ -50,18 +56,8 @@ public class RedEnvelopeService extends DaoService {
     }
 
 
-    public List<RedEnvelope> findQueryRedPacket(Long userId,int page,int num) {
-        Map<String,Object> map = new HashMap<>();
-        map.put("userId",userId);
-        map.put("start",page*num);
-        map.put("limit",num);
-        return findList("findByRedUserId",map);
-    }
 
 
-    public List<RedEnvelope> findQueryLuckyMoneyRcord(Long userId) {
-        Map<String,Object> map = new HashMap<>();
-        map.put("userId",userId);
-        return findList("findLuckyMoneyRcord",userId);
-    }
+
+
 }

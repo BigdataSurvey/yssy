@@ -16,20 +16,20 @@ public class RedEnvelope extends BaseBean {
 
     private Long id;
 
-    private Integer userId;
+    private Long userId;
 
     // 红包金额列表
     private JSONArray amount;
 
     //发放数量
-    private String releasedQuantity;
+    private int releasedQuantity;
 
 
     //发放红包奖励
-    private String redAward;
+    private BigDecimal redAward;
 
     //剩余金额
-    private Double surplusAmount;
+    private BigDecimal surplusAmount;
 
     private Date createTime;
 
@@ -40,24 +40,17 @@ public class RedEnvelope extends BaseBean {
     private int bombIndex;
     private Integer nowIndex;
 
-//    private Integer bombAmount; // 炸弹金额（分）
 
 
     /*** 以下对象*/
-    private  Long totalAmount; // 总金额（分）
-    private  int totalPeople; // 总人数
+    private  BigDecimal totalAmount; // 总金额（分）
 
 
-    private  double serviceRate; // 平台服务费率
-    private  int serviceFee; // 平台手续费（分）
-    private  int actualAmount; // 实际可分配金额（分）
-    private boolean isGameOver; // 游戏是否结束
 
     private int bombAmount; // 炸弹金额
     private int totalNumber;
 
-    private BigDecimal totalAmouns;
-    
+
     private int status;//状态
 
     private String remark;

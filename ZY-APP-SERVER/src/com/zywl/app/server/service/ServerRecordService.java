@@ -25,6 +25,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import javax.annotation.PostConstruct;
+import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -41,6 +44,19 @@ public class ServerRecordService extends BaseService {
     @Autowired
     private RedPositionService redPositionService;
 
+    public List<BigDecimal> canSendAmount = new ArrayList<>();
+    @Autowired
+    private RecordSheetService recordSheetService;
+
+    @PostConstruct
+    public void init(){
+        canSendAmount.add(new BigDecimal("10"));
+        canSendAmount.add(new BigDecimal("20"));
+        canSendAmount.add(new BigDecimal("50"));
+        canSendAmount.add(new BigDecimal("100"));
+
+    }
+
 
 
 
@@ -48,7 +64,10 @@ public class ServerRecordService extends BaseService {
     public Object joinRoom(final AppSocket appSocket, Command appCommand, JSONObject params) {
         checkNull(params);
         Push.doAddPush(appSocket, new PushBean(PushCode.pushRed, "hongbaoyu"));
-        return new Object();
+        RedPosition byUserId = redPositionService.findByUserId(appSocket.getWsidBean().getUserId());
+        JSONObject result = new JSONObject();
+        result.put("count",byUserId.getCount1()+byUserId.getCount2()+byUserId.getCount3()+byUserId.getCount4());
+        return result;
     }
 
     @ServiceMethod(code = "002", description = "离开房间")
@@ -79,17 +98,8 @@ public class ServerRecordService extends BaseService {
         int page = params.getIntValue("page");
         int num = params.getIntValue("num");
         Long userId = appSocket.getWsidBean().getUserId();
-        return redEnvelopeService.findQueryRedPacket(userId,page,num);
-    }
 
-    @ServiceMethod(code = "008", description = "领取红包记录")
-    // 查询用户发出的红包记录
-    public List<RedEnvelope> LuckyMoneyRcord(final AppSocket appSocket, Command appCommand, JSONObject params) {
-        checkNull(params);
-        checkNull(params.get("redId"));
-        Long userId = appSocket.getWsidBean().getUserId();
-        params.put("userId", userId);
-        return redEnvelopeService.findQueryLuckyMoneyRcord(userId);
+        return recordSheetService.findQueryRedPacket(userId,page,num);
     }
 
 
@@ -97,10 +107,12 @@ public class ServerRecordService extends BaseService {
     // 查询用户发出的红包记录
     public Object redEnvelopes(final AppSocket appSocket, Command appCommand, JSONObject params) {
         checkNull(params);
-        checkNull(params.get("redId"));
         checkNull(params.get("totalNumber"));
         checkNull(params.get("amount"));
-        checkNull(appSocket.getWsidBean().getUserId());
+        BigDecimal amount = params.getBigDecimal("amount");
+        if (!canSendAmount.contains(amount)) {
+            throwExp("金额异常");
+        }
         Long userId = appSocket.getWsidBean().getUserId();
         params.put("userId", userId);
         Executer.request(TargetSocketType.manager, CommandBuilder.builder().request("9020001", params).build(),
@@ -121,19 +133,24 @@ public class ServerRecordService extends BaseService {
     }
 
 
-    @ServiceMethod(code = "007 ", description = "发红包次数")
+    @ServiceMethod(code = "007", description = "发红包次数")
     // 查询用户发出的红包记录
     public Object redPacketCount(final AppSocket appSocket, Command appCommand, JSONObject params) {
         checkNull(params);
-        checkNull(params.get("redId"));
         Long userId = appSocket.getWsidBean().getUserId();
         return redPositionService.findByUserId(userId);
     }
 
 
 
-
-
+    @ServiceMethod(code = "008", description = "红包的领取记录")
+    // 查询用户发出的红包记录
+    public Object redCount(final AppSocket appSocket, Command appCommand, JSONObject params) {
+        checkNull(params);
+        checkNull(params.get("redId"));
+        Long redId = params.getLong("redId");
+        return recordSheetService.findByRedId(redId);
+    }
 
 
 }

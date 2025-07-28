@@ -10,6 +10,7 @@
     <insert id="insert" parameterType="RedEnvelope" useGeneratedKeys="true" keyProperty="id" keyColumn="id">
         insert into r_red_envelope
         (
+            `user_id`,
             `amount`,
             `released_quantity`,
             `red_award`,
@@ -22,10 +23,12 @@
             `total_number`,
             `bomb_index`,
             `now_index`,
-            `remark`
+            `remark`,
+            `status`
         )
         values
             (
+                #{userId},
                 #{amount},
                 #{releasedQuantity},
                 #{redAward},
@@ -34,28 +37,37 @@
                 #{updateTime},
                 #{allocationAmount},
                 #{bombAmount},
-                `totalAmount`,
-                `totalNumber`,
-                `bombIndex`,
-                `nowIndex`,
-                `remark`
+                #{totalAmount},
+                #{totalNumber},
+                #{bombIndex},
+                #{nowIndex},
+                #{remark},
+                #{status}
 
                 )
 </insert>
 
-    <update id="update" parameterType="RedEnvelope">
-        update r_red_envelope SET amount = #{amount},  status = #{status} update id = #{id}
+    <update id="updateRed" parameterType="RedEnvelope">
+
+        update r_red_envelope
+        <set>
+            <if test="surplusAmount!=null">
+                surplus_amount=#{surplusAmount},
+            </if>
+            <if test="nowIndex!=null">
+                now_index=#{nowIndex},
+            </if>
+            <if test="status!=null">
+                status=#{status},
+            </if>
+        </set>
+        where id = #{id}
     </update>
 
-    <select id="findByRedUserId" resultType="RedEnvelope">
-        SELECT id,user_id,total_number FROM r_red_envelope WHERE user_id = #{userId}
-        <if test="start != null and limit != null">
-            limit #{start}, #{limit}
-        </if>
-    </select>
+
 
     <select id="findByUserId" resultType="RedEnvelope">
-        SELECT id,remark,create_time,total_amount,state FROM r_red_envelope WHERE user_id = #{userId}
+        SELECT id,remark,create_time,total_amount,`status`,now_index FROM r_red_envelope WHERE user_id = #{userId}
         <if test="start != null and limit != null">
             limit #{start}, #{limit}
         </if>

@@ -367,7 +367,6 @@ public class ManagerSocket extends BaseClientSocket {
             }
 
             public void onReceive(BaseSocket baseSocket, Object data) {
-                logger.info("收到红包雨推送：" + data);
                 JSONObject info = (JSONObject) data;
                 //处理推送数据  推送给玩家
                 Push.push(PushCode.pushRed, "hongbaoyu", info);

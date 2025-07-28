@@ -13,7 +13,9 @@
 			`red_id`,
 		 	`is_boom`,
 			`name`,
+		 	`head_img`,
 			`amount`,
+		 	`red_amount`,
 			`create_time`,
 			`update_time`,
 			`order_no`,
@@ -27,7 +29,9 @@
 				#{redId},
 			 	#{isBoom},
 				#{name},
+			 	#{headImg},
 				#{amount},
+			 	#{redAmount},
 				#{createTime},
 				#{updateTime},
 				#{orderNo},
@@ -44,4 +48,11 @@
 		select id,remark,create_time,amount from r_record_sheet
 	</select>
 
+
+	<select id="findByRedUserId" resultType="RecordSheet">
+		SELECT * FROM r_record_sheet WHERE user_id = #{userId}
+		<if test="start != null and limit != null">
+			limit #{start}, #{limit}
+		</if>
+	</select>
 </mapper>

@@ -11,6 +11,7 @@ import com.zywl.app.base.bean.hongbao.RedEnvelope;
 import com.zywl.app.base.bean.hongbao.RedEnvelopeVo;
 import com.zywl.app.base.bean.hongbao.RedPosition;
 import com.zywl.app.base.service.BaseService;
+import com.zywl.app.base.util.BeanUtils;
 import com.zywl.app.base.util.LockUtil;
 import com.zywl.app.base.util.OrderUtil;
 import com.zywl.app.defaultx.annotation.ServiceClass;
@@ -23,7 +24,6 @@ import com.zywl.app.defaultx.service.RedPositionService;
 import com.zywl.app.defaultx.service.UserCapitalService;
 import com.zywl.app.manager.context.MessageCodeContext;
 import com.zywl.app.manager.socket.ManagerSocketServer;
-import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -68,9 +68,6 @@ public class ManagerRedEnvelopeService extends BaseService {
 
 
     private final Map<String, RedEnvelope> redEnvelopeMap = new ConcurrentHashMap<>();//可以被抢的红包
-    private final ConcurrentMap<String, Integer> bombPositions = new ConcurrentHashMap<>(); // 存储炸弹位置
-    private final ConcurrentMap<String, Integer> currentGrabIndex = new ConcurrentHashMap<>(); // 当前抢到第几个
-    private static final int MAX_RED_ENVELOPE_COUNT = 20; // 每个用户最多发20次红包
 
 
 
@@ -95,41 +92,47 @@ public class ManagerRedEnvelopeService extends BaseService {
             public void run() {
                 try{
                     //推送map中的包
-                    if(redEnvelopeMap.size()>0){
-                        JSONObject jsonObject = new JSONObject();
+                    if(!redEnvelopeMap.isEmpty()){
                         Collection<RedEnvelope> values = redEnvelopeMap.values();
                         List<RedEnvelope> list = new ArrayList<>(values);
                         Collections.shuffle(list);
                         RedEnvelopeVo newRedEnvelope = new RedEnvelopeVo();
-                        BeanUtils.copyProperties(list.get(0),newRedEnvelope);
-                        jsonObject.put("queryResult",newRedEnvelope);
-                        logger.info(jsonObject.toJSONString("推送红包数据"));
-                        Push.push(PushCode.pushRed, null, jsonObject);
+                        BeanUtils.copy(list.get(0),newRedEnvelope);
+                        Push.push(PushCode.pushRed, null, newRedEnvelope);
                     }
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
             }
-        }, 1000, 200);
+        }, 1000, 500);
     }
 
 
 
 
-    private RedEnvelope initRedEnvelopeAmounts() {
+    private RedEnvelope initRedEnvelopeAmounts(BigDecimal amount,Long userId) {
         RedEnvelope  redEnvelope =  new RedEnvelope();
         // 如果是炸弹红包，随机生成炸弹位置(1-9之间)
-            Random random = new Random();
-            int bombPos = random.nextInt(9)+1;//生成1-9的随机数
-            bombPositions.put(String.valueOf(redEnvelope.getId()),bombPos);
-            currentGrabIndex.put(String.valueOf(redEnvelope.getId()),0);
+        Random random = new Random();
+        int bombPos = random.nextInt(9)+1;//生成1-9的随机数
+        redEnvelope.setBombIndex(bombPos);
+        redEnvelope.setNowIndex(0);
+        redEnvelope.setSurplusAmount(amount);
+        redEnvelope.setReleasedQuantity(10);
+        redEnvelope.setUserId(userId);
+        redEnvelope.setCreateTime(new Date());
+        redEnvelope.setUpdateTime(new Date());
+        redEnvelope.setStatus(1);
+        redEnvelope.setRemark("发红包");
+        redEnvelope.setRedAward(amount.multiply(new BigDecimal("0.05")));
         // 生成普通红包
-        List<BigDecimal> normalAmounts = divideRedPacket((double) (redEnvelope.getTotalAmount() * 1000 * 0.95),10);
+        redEnvelope.setTotalAmount(amount);
+        List<BigDecimal> normalAmounts = divideRedPacket( Double.parseDouble(redEnvelope.getTotalAmount().toString()) * 1000 * 0.95,10);
         JSONArray array = new JSONArray(normalAmounts);
         redEnvelope.setAmount(array);
         redEnvelope.setStatus(1);
-        redEnvelopeMap.put(String.valueOf(redEnvelope.getId()),redEnvelope);
-        redEnvelopeService.save(redEnvelope);
+        Long id = redEnvelopeService.saveRedEnvelope(redEnvelope);
+        redEnvelopeMap.put(String.valueOf(id),redEnvelope);
         return redEnvelope;
     }
 
@@ -176,18 +179,26 @@ public class ManagerRedEnvelopeService extends BaseService {
                 //扣次数
                 redPosition.setCount1(redPosition.getCount1()-number);
             }
+        }
+        if (amount.compareTo(new BigDecimal("20"))==0){
             if (redPosition.getCount2()<number){
                 throwExp("次数不足");
             }else {
                 //扣次数
                 redPosition.setCount2(redPosition.getCount2()-number);
             }
+        }
+
+        if (amount.compareTo(new BigDecimal("50"))==0){
             if (redPosition.getCount3()<number){
                 throwExp("次数不足");
             }else {
                 //扣次数
                 redPosition.setCount3(redPosition.getCount3()-number);
             }
+        }
+
+        if (amount.compareTo(new BigDecimal("100"))==0){
             if (redPosition.getCount4()<number){
                 throwExp("次数不足");
             }else {
@@ -196,7 +207,7 @@ public class ManagerRedEnvelopeService extends BaseService {
             }
         }
         //更改数据库对象
-        redPositionService.update(redPosition);
+        redPositionService.updatePosition(redPosition);
     }
 
     @Transactional
@@ -214,7 +225,7 @@ public class ManagerRedEnvelopeService extends BaseService {
                 userCapitalService.subUserBalanceByBuyRed( userId,  amount.multiply(BigDecimal.valueOf(totalNumber)), (long) totalNumber);
                 managerGameBaseService.pushCapitalUpdate(userId,UserCapitalTypeEnum.currency_2.getValue());
                 for (int i = 0; i < totalNumber; i++) {
-                    initRedEnvelopeAmounts();
+                    initRedEnvelopeAmounts(amount,userId);
                 }
             }
             return new JSONObject();
@@ -231,10 +242,17 @@ public class ManagerRedEnvelopeService extends BaseService {
             //获取红包对象
             RedEnvelope redBean = redEnvelopeMap.get(redId);
             //抢红包之前判断玩家余额是否足够
-            managerGameBaseService.checkBalance(userId,redBean.getTotalAmouns(), UserCapitalTypeEnum.currency_2);
+            managerGameBaseService.checkBalance(userId,redBean.getTotalAmount(), UserCapitalTypeEnum.currency_2);
             Integer nowIndex = redBean.getNowIndex();
             if (nowIndex==10){
                 throwExp("已经被抢光，换一个吧");
+            }
+            //判断之前是否抢过这个红包
+            List<RecordSheet> byRedId = recordSheetService.findByRedId(Long.valueOf(redId));
+            for (RecordSheet recordSheet : byRedId) {
+                if (Objects.equals(recordSheet.getUserId(), userId)) {
+                     throwExp("已经点燃过此鞭炮，换一个吧");
+                }
             }
             //获取这个下标的金额
             BigDecimal getAmount= redBean.getAmount().getBigDecimal(nowIndex);
@@ -242,18 +260,17 @@ public class ManagerRedEnvelopeService extends BaseService {
             String orderNo = OrderUtil.getOrder5Number();
             User user = userCacheService.getUserInfoById(userId);
             //插入抢红包记录
-            Long dataId = recordSheetService.addRecord(userId, orderNo, getAmount, user.getName(), Long.valueOf(redId),nowIndex==redBean.getBombIndex()?1:0);
+            RecordSheet recordSheet = recordSheetService.addRecord(userId, orderNo, getAmount, user.getName(), Long.valueOf(redId),nowIndex==redBean.getBombIndex()?1:0,user.getHeadImageUrl(),redBean.getTotalAmount());
+            byRedId.add(recordSheet);
             //增加玩家余额
-            userCapitalService.addUserBalanceByGetRed(getAmount,userId,orderNo,dataId);
+            userCapitalService.addUserBalanceByGetRed(getAmount,userId,orderNo,recordSheet.getId());
             //判断是不是炸弹
             if (nowIndex==redBean.getBombIndex()){
                 //如果是炸弹  扣除红包的钱
-                userCapitalService.subUserBalanceByRedZd(userId,redBean.getTotalAmouns(),dataId,orderNo);
-                redPositionService.addCountByUserId(userId,redBean.getTotalAmouns());
+                userCapitalService.subUserBalanceByRedZd(userId,redBean.getTotalAmount(),recordSheet.getId(),orderNo);
+                redPositionService.addCountByUserId(userId,redBean.getTotalAmount());
 
             }
-
-
             //推送玩家余额变动
             managerGameBaseService.pushCapitalUpdate(userId,UserCapitalTypeEnum.currency_2.getValue());
             redBean.setNowIndex(redBean.getNowIndex()+1);
@@ -261,14 +278,16 @@ public class ManagerRedEnvelopeService extends BaseService {
                 redBean.setStatus(0);
                 //这是最后一个人抢  从map中移除
                 redEnvelopeMap.remove(redId);
-                checkSendRedReward(Long.valueOf(redBean.getUserId()),redBean.getTotalAmouns());
+                checkSendRedReward(Long.valueOf(redBean.getUserId()),redBean.getTotalAmount());
             }
             //更改数据库中的数据
             redEnvelopeService.updateRed(redBean);
             //查询这个红包的记录
-            List<RecordSheet> byRedId = recordSheetService.findByRedId(Long.valueOf(redId));
+             byRedId = recordSheetService.findByRedId(Long.valueOf(redId));
             JSONObject result = new JSONObject();
             result.put("recordList",byRedId);
+            RedPosition byUserId = redPositionService.findByUserId(userId);
+            result.put("count",byUserId.getCount1()+byUserId.getCount2()+byUserId.getCount3()+byUserId.getCount4());
             return result;
         }
     }

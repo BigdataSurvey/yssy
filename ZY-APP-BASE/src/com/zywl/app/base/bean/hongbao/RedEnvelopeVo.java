@@ -12,7 +12,7 @@ public class RedEnvelopeVo {
 
     private Long id;
 
-    private BigDecimal totalAmouns;
+    private BigDecimal totalAmount;
 
 
 }

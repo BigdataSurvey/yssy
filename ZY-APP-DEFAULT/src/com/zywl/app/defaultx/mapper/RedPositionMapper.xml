@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
-<mapper namespace="com.zywl.app.defaultx.mapper.RecordPositionMapper">
+<mapper namespace="com.zywl.app.defaultx.mapper.RedPositionMapper">
 
 	<select id="findByUserId" resultType="RedPosition">
 		select * from r_red_position where user_id = #{userId}
@@ -48,8 +48,23 @@
 			)
 	</insert>
 
-	<select id="findLuckyMoneyRcord" resultType="RedPosition">
-		select id,name,amount from r_red_position where user_id = #{userId}
-	</select>
+	<update id="updatePosition" parameterType="RedPosition">
+		update r_red_position
+		<set>
+			<if test="count1!=null" >
+				count1 = #{count1},
+			</if>
+			<if test="count2!=null" >
+				count2 = #{count2},
+			</if>
+			<if test="count3!=null" >
+				count3 = #{count3},
+			</if>
+			<if test="count4!=null" >
+				count4 = #{count4},
+			</if>
+		</set>
+		where user_id=#{userId}
+	</update>
 
 </mapper>
