@@ -101,4 +101,8 @@ public class RecordSheet extends BaseBean {
 
     private int isBoom;
 
+    private String remark;
+
+    private String state;
+
 }

@@ -60,5 +60,7 @@ public class RedEnvelope extends BaseBean {
     
     private int status;//状态
 
+    private String remark;
+
 
 }

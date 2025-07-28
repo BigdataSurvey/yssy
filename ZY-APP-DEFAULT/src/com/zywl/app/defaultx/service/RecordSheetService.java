@@ -2,7 +2,6 @@ package com.zywl.app.defaultx.service;
 
 
 import com.zywl.app.base.bean.hongbao.RecordSheet;
-import com.zywl.app.base.bean.hongbao.RedEnvelope;
 import com.zywl.app.defaultx.dbutil.DaoService;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -61,6 +60,8 @@ public class RecordSheetService extends DaoService {
     protected Log logger() {
         return logger;
     }
+
+
 
 
 

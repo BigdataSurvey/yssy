@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.zywl.app.defaultx.mapper.RecordPositionMapper">
+
+	<select id="findByUserId" resultType="RedPosition">
+		select * from r_red_position where user_id = #{userId}
+	</select>
+
+
+	<update id="addCountByUserId" parameterType="com.zywl.app.base.bean.hongbao.RedPosition">
+		update r_red_position
+		<set>
+			<if test="count1!=null" >
+				count1 = count1+#{count1},
+			</if>
+			<if test="count2!=null" >
+				count2 = count2+#{count2},
+			</if>
+			<if test="count3!=null" >
+				count3 = count3+#{count3},
+			</if>
+			<if test="count4!=null" >
+				count4 = count4+#{count4},
+			</if>
+		</set>
+		where user_id=#{userId}
+
+	</update>
+
+	<insert id="insert" parameterType="RedPosition" useGeneratedKeys="true" keyProperty="id" keyColumn="id">
+		insert into r_red_position
+		(
+			`user_id`,
+			`count1`,
+			`count2`,
+			`count3`,
+			`count4`
+
+		)
+		values
+			(
+				#{userId},
+				#{count1},
+				#{count2},
+				#{count3},
+				#{count4}
+
+			)
+	</insert>
+
+	<select id="findLuckyMoneyRcord" resultType="RedPosition">
+		select id,name,amount from r_red_position where user_id = #{userId}
+	</select>
+
+</mapper>

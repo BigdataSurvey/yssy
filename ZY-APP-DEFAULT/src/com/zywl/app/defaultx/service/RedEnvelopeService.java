@@ -8,9 +8,9 @@ import org.apache.commons.logging.LogFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.math.BigDecimal;
+import java.util.HashMap;
 import java.util.List;
-import java.util.Set;
+import java.util.Map;
 
 @Service
 public class RedEnvelopeService extends DaoService {
@@ -40,7 +40,28 @@ public class RedEnvelopeService extends DaoService {
         return findAll();
     }
 
-    public List<RedEnvelope> findRedEnvelopeById(Long userId) {
-        return findRedEnvelopeById(userId);
+
+    public List<RedEnvelope> findQueryRedRecord(Long userId,int page,int num) {
+        Map<String,Object> map = new HashMap<>();
+        map.put("userId",userId);
+        map.put("start",page*num);
+        map.put("limit",num);
+        return findList("findByUserId",map);
+    }
+
+
+    public List<RedEnvelope> findQueryRedPacket(Long userId,int page,int num) {
+        Map<String,Object> map = new HashMap<>();
+        map.put("userId",userId);
+        map.put("start",page*num);
+        map.put("limit",num);
+        return findList("findByRedUserId",map);
+    }
+
+
+    public List<RedEnvelope> findQueryLuckyMoneyRcord(Long userId) {
+        Map<String,Object> map = new HashMap<>();
+        map.put("userId",userId);
+        return findList("findLuckyMoneyRcord",userId);
     }
 }

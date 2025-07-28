@@ -2,9 +2,9 @@
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.zywl.app.defaultx.mapper.RecordSheetMapper">
 
-<!--	<select id="findAll" resultType="RecordSheet">-->
-<!--		select id,amount from r_record_sheet-->
-<!--	</select>-->
+	<select id="findAll" resultType="RecordSheet">
+		select id,amount,state,create_time from r_record_sheet
+	</select>
 
 	<insert id="insert" parameterType="RecordSheet" useGeneratedKeys="true" keyProperty="id" keyColumn="id">
 		insert into r_record_sheet
@@ -16,7 +16,9 @@
 			`amount`,
 			`create_time`,
 			`update_time`,
-			`order_no`
+			`order_no`,
+			`remark`,
+			`state`
 
 		)
 		values
@@ -28,13 +30,18 @@
 				#{amount},
 				#{createTime},
 				#{updateTime},
-				#{orderNo}
-
+				#{orderNo},
+				#{remark},
+				#{state}
 			)
 	</insert>
 
 	<select id="findByRedId" resultType="RecordSheet">
 		select * from r_record_sheet where red_id=#{redId}
+	</select>
+
+	<select id="findByRed" resultType="RecordSheet">
+		select id,remark,create_time,amount from r_record_sheet
 	</select>
 
 </mapper>

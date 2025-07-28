@@ -74,7 +74,7 @@ public class MessageCodeContext {
 	public final static String Activity= "9009";
 	public final static String USER_PIT= "9010";
 
-	public final static String RECORD= "9010";
+	public final static String RECORD= "9020";
 
 
 }

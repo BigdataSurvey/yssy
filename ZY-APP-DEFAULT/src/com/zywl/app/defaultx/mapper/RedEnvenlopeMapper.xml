@@ -21,7 +21,8 @@
             `total_amount`,
             `total_number`,
             `bomb_index`,
-            `now_index`
+            `now_index`,
+            `remark`
         )
         values
             (
@@ -36,7 +37,8 @@
                 `totalAmount`,
                 `totalNumber`,
                 `bombIndex`,
-                `nowIndex`
+                `nowIndex`,
+                `remark`
 
                 )
 </insert>
@@ -45,8 +47,18 @@
         update r_red_envelope SET amount = #{amount},  status = #{status} update id = #{id}
     </update>
 
-    <select id="findById" resultType="RedEnvelope">
-        SELECT * FROM r_red_envelope WHERE user_id = #{userId}
+    <select id="findByRedUserId" resultType="RedEnvelope">
+        SELECT id,user_id,total_number FROM r_red_envelope WHERE user_id = #{userId}
+        <if test="start != null and limit != null">
+            limit #{start}, #{limit}
+        </if>
+    </select>
+
+    <select id="findByUserId" resultType="RedEnvelope">
+        SELECT id,remark,create_time,total_amount,state FROM r_red_envelope WHERE user_id = #{userId}
+        <if test="start != null and limit != null">
+            limit #{start}, #{limit}
+        </if>
     </select>
 
 
