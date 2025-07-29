@@ -17,7 +17,6 @@
             `surplus_amount`,
             `create_time`,
             `update_time`,
-            `allocation_amount`,
             `bomb_amount`,
             `total_amount`,
             `total_number`,
@@ -35,7 +34,6 @@
                 #{surplusAmount},
                 #{createTime},
                 #{updateTime},
-                #{allocationAmount},
                 #{bombAmount},
                 #{totalAmount},
                 #{totalNumber},
@@ -67,7 +65,7 @@
 
 
     <select id="findByUserId" resultType="RedEnvelope">
-        SELECT id,remark,create_time,total_amount,`status`,now_index FROM r_red_envelope WHERE user_id = #{userId}
+        SELECT id,remark,create_time,total_amount,`status`,now_index,total_number FROM r_red_envelope WHERE user_id = #{userId} order by id desc
         <if test="start != null and limit != null">
             limit #{start}, #{limit}
         </if>

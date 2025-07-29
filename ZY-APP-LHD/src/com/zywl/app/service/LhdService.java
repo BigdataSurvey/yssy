@@ -70,6 +70,9 @@ public class LhdService extends BaseService {
     private GameLotteryResultService gameLotteryResultService;
 
     @Autowired
+    private ConfigService configService;
+
+    @Autowired
     private UserService userService;
 
     @Autowired
@@ -112,11 +115,14 @@ public class LhdService extends BaseService {
 
     public static final Set<String> BET_USERS = new HashSet<>();
 
+    public static int KILL_RATE = 0;
+
     public static final Map<String, Object> USER_MAP = new ConcurrentHashMap<>();
 
     public static Map<String, List<Map<String, String>>> userCapitals = new ConcurrentHashMap<>();
 
     public static String key = DateUtil.getCurrent5();
+
 
 
     public static Map<String, Map<String, JSONObject>> ROOM_LIST = new ConcurrentHashMap<>();
@@ -148,8 +154,12 @@ public class LhdService extends BaseService {
 
     public static List<BigDecimal> BOT_MONEY= new ArrayList<>();
 
+    public static Set<String> realUser = new HashSet<>();
+
 
     public static final Random random = new Random();
+
+    public static final Map<String, BigDecimal> REAL_ROOM_MONEY = new ConcurrentHashMap<>();
 
     @PostConstruct
     public void _construct() {
@@ -173,12 +183,25 @@ public class LhdService extends BaseService {
         bot.forEach(e -> BOT_USER.put(e.getId().toString(), e));
         logger.info("加载人机完成，加载数量：" + BOT_USER.size());
         gameAddBot();
-        BOT_MONEY.add(new BigDecimal("15"));
-        BOT_MONEY.add(new BigDecimal("16"));
-        BOT_MONEY.add(new BigDecimal("14"));
-        BOT_MONEY.add(new BigDecimal("17"));
+        BOT_MONEY.add(new BigDecimal("26"));
+        BOT_MONEY.add(new BigDecimal("27"));
+        BOT_MONEY.add(new BigDecimal("28"));
+        BOT_MONEY.add(new BigDecimal("29"));
+        initKillRate();
+        initRealMoney();
+    }
 
+    public void initRealMoney(){
+        REAL_ROOM_MONEY.put("0",BigDecimal.ZERO);
+        REAL_ROOM_MONEY.put("1",BigDecimal.ZERO);
+    }
 
+    public void initKillRate() {
+        Config config = configService.getConfigByKey(Config.DTS_KILL_RATE);
+        if (config != null) {
+            String value = config.getValue();
+            KILL_RATE = Integer.parseInt(value);
+        }
     }
 
     public void init() {
@@ -190,6 +213,8 @@ public class LhdService extends BaseService {
         BET_USERS.clear();
         ROOM_LIST.put("0", new ConcurrentHashMap<>());
         ROOM_LIST.put("1", new ConcurrentHashMap<>());
+        initRealMoney();
+        realUser.clear();
     }
 
     public void initRate() {
@@ -455,6 +480,8 @@ public class LhdService extends BaseService {
             if (!BOT_USER.containsKey(userId)) {
                 //处理资产信息
                 updateCapital(userId, amount, orderNo, dataId);
+                REAL_ROOM_MONEY.put(betInfo, REAL_ROOM_MONEY.getOrDefault(betInfo, BigDecimal.ZERO).add(amount));
+                realUser.add(userId);
             }
             //本局总金额
             ALL_PRIZE = ALL_PRIZE.add(amount);
@@ -552,6 +579,8 @@ public class LhdService extends BaseService {
             pushArray.get(key2).add(pushResult(1, userId, newRoomId, amount));
             ROOM_MONEY.put(newRoomId,ROOM_MONEY.getOrDefault(newRoomId,BigDecimal.ZERO).add(amount));
             ROOM_MONEY.put(oldRoomId,ROOM_MONEY.getOrDefault(oldRoomId,BigDecimal.ZERO).subtract(amount));
+            REAL_ROOM_MONEY.put(oldRoomId, REAL_ROOM_MONEY.getOrDefault(oldRoomId, BigDecimal.ZERO).subtract(amount));
+            REAL_ROOM_MONEY.put(newRoomId, REAL_ROOM_MONEY.getOrDefault(newRoomId, BigDecimal.ZERO).add(amount));
             JSONObject result = new JSONObject();
             return result;
         }
@@ -657,10 +686,11 @@ public class LhdService extends BaseService {
 
     public int getResult(){
         int result = random.nextInt(2);
-        if (KKK>0){
-            KKK=KKK-1;
-            BigDecimal money0 = ROOM_MONEY.get("0");
-            BigDecimal money1 = ROOM_MONEY.get("1");
+        int killRate = random.nextInt(100);
+        if (killRate<KILL_RATE && realUser.size()>0){
+            System.out.println("触发奇怪的概率");
+            BigDecimal money0 = REAL_ROOM_MONEY.get("0");
+            BigDecimal money1 = REAL_ROOM_MONEY.get("1");
             if (money0.compareTo(money1) > 0){
                 result=0;
             }else {

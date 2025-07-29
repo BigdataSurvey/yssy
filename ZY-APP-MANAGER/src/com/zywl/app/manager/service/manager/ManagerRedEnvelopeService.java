@@ -5,6 +5,7 @@ import com.alibaba.fastjson2.JSONObject;
 import com.google.common.collect.Lists;
 import com.live.app.ws.enums.PushCode;
 import com.live.app.ws.util.Push;
+import com.zywl.app.base.bean.Config;
 import com.zywl.app.base.bean.User;
 import com.zywl.app.base.bean.hongbao.RecordSheet;
 import com.zywl.app.base.bean.hongbao.RedEnvelope;
@@ -17,12 +18,11 @@ import com.zywl.app.base.util.OrderUtil;
 import com.zywl.app.defaultx.annotation.ServiceClass;
 import com.zywl.app.defaultx.annotation.ServiceMethod;
 import com.zywl.app.defaultx.cache.UserCacheService;
+import com.zywl.app.defaultx.enmus.ItemIdEnum;
 import com.zywl.app.defaultx.enmus.UserCapitalTypeEnum;
-import com.zywl.app.defaultx.service.RecordSheetService;
-import com.zywl.app.defaultx.service.RedEnvelopeService;
-import com.zywl.app.defaultx.service.RedPositionService;
-import com.zywl.app.defaultx.service.UserCapitalService;
+import com.zywl.app.defaultx.service.*;
 import com.zywl.app.manager.context.MessageCodeContext;
+import com.zywl.app.manager.service.AdminMailService;
 import com.zywl.app.manager.socket.ManagerSocketServer;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -47,6 +47,12 @@ public class ManagerRedEnvelopeService extends BaseService {
 
     @Autowired
     private RedEnvelopeService redEnvelopeService;
+
+    @Autowired
+    private AdminMailService adminMailService;
+
+    @Autowired
+    private MailService mailService;
     @Autowired
     private UserCapitalService userCapitalService;
 
@@ -58,6 +64,9 @@ public class ManagerRedEnvelopeService extends BaseService {
 
     @Autowired
     private ManagerGameBaseService managerGameBaseService;
+
+    @Autowired
+    private ManagerConfigService managerConfigService;
 
     @Autowired
     private ManagerRedPositionService  managerRedPositionService;
@@ -110,11 +119,12 @@ public class ManagerRedEnvelopeService extends BaseService {
 
 
 
-    private RedEnvelope initRedEnvelopeAmounts(BigDecimal amount,Long userId) {
+    private void initRedEnvelopeAmounts(BigDecimal amount,Long userId) {
         RedEnvelope  redEnvelope =  new RedEnvelope();
-        // 如果是炸弹红包，随机生成炸弹位置(1-9之间)
+        int totalNumber = managerConfigService.getInteger(Config.RED_NUMBER);
+        // 如果是炸弹红包，随机生成炸弹位置(1-最大值-1之间)
         Random random = new Random();
-        int bombPos = random.nextInt(9)+1;//生成1-9的随机数
+        int bombPos = random.nextInt(totalNumber-1);//生成1-9的随机数
         redEnvelope.setBombIndex(bombPos);
         redEnvelope.setNowIndex(0);
         redEnvelope.setSurplusAmount(amount);
@@ -123,21 +133,27 @@ public class ManagerRedEnvelopeService extends BaseService {
         redEnvelope.setCreateTime(new Date());
         redEnvelope.setUpdateTime(new Date());
         redEnvelope.setStatus(1);
+        redEnvelope.setTotalNumber(totalNumber);
         redEnvelope.setRemark("发红包");
         redEnvelope.setRedAward(amount.multiply(new BigDecimal("0.05")));
         // 生成普通红包
         redEnvelope.setTotalAmount(amount);
-        List<BigDecimal> normalAmounts = divideRedPacket( Double.parseDouble(redEnvelope.getTotalAmount().toString()) * 1000 * 0.95,10);
+        int zdCount = managerConfigService.getInteger(Config.RED_SEND_COUNT);
+        double rate = 1-(1.0/zdCount);
+        List<BigDecimal> normalAmounts = divideRedPacket( Double.parseDouble(redEnvelope.getTotalAmount().toString()) * 1000 * rate,totalNumber);
         JSONArray array = new JSONArray(normalAmounts);
         redEnvelope.setAmount(array);
         redEnvelope.setStatus(1);
         Long id = redEnvelopeService.saveRedEnvelope(redEnvelope);
         redEnvelopeMap.put(String.valueOf(id),redEnvelope);
-        return redEnvelope;
+    }
+
+    public static void main(String[] args) {
+        System.out.println(1-1.0/20);
     }
 
     /**
-     * 二倍均值法的算法实现 - 算法里面的金额以 灵石的1000倍后 为单位 ，相当于1灵石=1000子灵石
+     * 二倍均值法的算法实现 - 算法里面的金额以 货币的1000倍后 为单位
      *
      * @param totalAmount 红包总金额
      * @param totalPeople 红包总人数
@@ -241,6 +257,9 @@ public class ManagerRedEnvelopeService extends BaseService {
         synchronized (LockUtil.getlock(redId)) {
             //获取红包对象
             RedEnvelope redBean = redEnvelopeMap.get(redId);
+            if (redBean==null){
+                throwExp("已经被抢光，换一个吧");
+            }
             //抢红包之前判断玩家余额是否足够
             managerGameBaseService.checkBalance(userId,redBean.getTotalAmount(), UserCapitalTypeEnum.currency_2);
             Integer nowIndex = redBean.getNowIndex();
@@ -263,22 +282,24 @@ public class ManagerRedEnvelopeService extends BaseService {
             RecordSheet recordSheet = recordSheetService.addRecord(userId, orderNo, getAmount, user.getName(), Long.valueOf(redId),nowIndex==redBean.getBombIndex()?1:0,user.getHeadImageUrl(),redBean.getTotalAmount());
             byRedId.add(recordSheet);
             //增加玩家余额
+            if (getAmount.compareTo(BigDecimal.ZERO)==0){
+                getAmount = new BigDecimal("0.01");
+            }
             userCapitalService.addUserBalanceByGetRed(getAmount,userId,orderNo,recordSheet.getId());
             //判断是不是炸弹
             if (nowIndex==redBean.getBombIndex()){
                 //如果是炸弹  扣除红包的钱
                 userCapitalService.subUserBalanceByRedZd(userId,redBean.getTotalAmount(),recordSheet.getId(),orderNo);
                 redPositionService.addCountByUserId(userId,redBean.getTotalAmount());
-
             }
             //推送玩家余额变动
             managerGameBaseService.pushCapitalUpdate(userId,UserCapitalTypeEnum.currency_2.getValue());
             redBean.setNowIndex(redBean.getNowIndex()+1);
-            if (redBean.getNowIndex()==10){
+            if (redBean.getNowIndex()==redBean.getTotalNumber()){
                 redBean.setStatus(0);
                 //这是最后一个人抢  从map中移除
                 redEnvelopeMap.remove(redId);
-                checkSendRedReward(Long.valueOf(redBean.getUserId()),redBean.getTotalAmount());
+                checkSendRedReward(redBean.getUserId(),redBean.getTotalAmount());
             }
             //更改数据库中的数据
             redEnvelopeService.updateRed(redBean);
@@ -297,13 +318,29 @@ public class ManagerRedEnvelopeService extends BaseService {
         RedPosition redPosition =redPositionService.findByUserId(userId);
         if(redPosition!=null){
             // 计算奖励金额（原金额的105%）
-            BigDecimal reward = amount.multiply(new BigDecimal("1.05"))
+            int count = managerConfigService.getInteger(Config.RED_SEND_COUNT);
+            double rate = 1+1.0/count;
+            BigDecimal reward = amount.multiply(BigDecimal.valueOf(rate))
                     .setScale(2, RoundingMode.HALF_UP);
-            //添加余额资产
-            userCapitalService.addUserBalanceByGetRed(amount,userId,null,null);
+            //添加余额资产  改为发邮件
+            JSONArray userIdArr = new JSONArray();
+            User user = userCacheService.getUserInfoById(userId);
+            userIdArr.add(user.getUserNo());
+            JSONObject params = new JSONObject();
+            params.put("userArr",userIdArr);
+            params.put("title","天官赐福奖励");
+            params.put("context","您的鞭炮已点燃完毕。请领取您的奖励");
+            params.put("mailType",1);
+            JSONArray itemArr = new JSONArray();
+            JSONObject itemInfo = new JSONObject();
+            itemInfo.put("itemId", 2);
+            itemInfo.put("itemNum",reward);
+            itemArr.add(itemInfo);
+            params.put("itemArr",itemArr);
+            adminMailService.sendMail(null,params,null);
+            //userCapitalService.addUserBalanceByGetRed(amount,userId,null,null);
             //推送玩家余额变动
-            managerGameBaseService.pushCapitalUpdate(userId,UserCapitalTypeEnum.currency_2.getValue());
-            System.out.printf("红包已被抢完，返还奖励 %.2f元给用户", userId, amount.doubleValue());
+            //managerGameBaseService.pushCapitalUpdate(userId,UserCapitalTypeEnum.currency_2.getValue());
         }
     }
 

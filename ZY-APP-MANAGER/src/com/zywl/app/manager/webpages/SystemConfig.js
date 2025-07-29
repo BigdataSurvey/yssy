@@ -96,7 +96,12 @@ if(!window.CtrlFn_${menuId}){
             FREE_ROLE_NUM:"免费角色数量",
             ALIPAY_ONE_MONEY:"支付宝单笔转出金额",
             MZ_NEED_WHITE:"是否需要购买凭证",
-            NEW_USER_TIME:"新用户注册时间"
+            NEW_USER_TIME:"新用户注册时间",
+            GAME_DTS_BOT_MONEY:"大逃杀金额",
+            GAME_DTS_KILL_RATE:"大逃杀奇怪的概率",
+            GAME_LHD_KILL_RATE:"2杀1奇怪的概率",
+            RED_NUMBER:"红包瓜分个数",
+            RED_SEND_COUNT:"踩雷发包次数"
         };
         /*初始化表格*/
         function initTable() {

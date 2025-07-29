@@ -96,6 +96,9 @@ public class ManagerSocket extends BaseClientSocket {
 						LhdService.KKK=3;
 					}
 				}
+				if (config.getKey().equals(Config.LHD_KILL_RATE)){
+					LhdService.KILL_RATE=Integer.parseInt(config.getValue());
+				}
 
 			}
 		}, this);

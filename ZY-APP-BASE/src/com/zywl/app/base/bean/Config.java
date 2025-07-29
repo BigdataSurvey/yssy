@@ -7,7 +7,12 @@ import java.util.List;
 
 public class Config extends BaseBean {
 
+	public static final String RED_SEND_COUNT = "RED_SEND_COUNT";
 
+	public static final String RED_NUMBER = "RED_NUMBER";
+	public static final String LHD_KILL_RATE = "GAME_LHD_KILL_RATE";
+	public static final String DTS_KILL_RATE = "GAME_DTS_KILL_RATE";
+	public static final String DTS_BOT_MONEY = "GAME_DTS_BOT_MONEY";
 	public static final String NEW_USER_TIME = "NEW_USER_TIME";
 	public static final String MZ_NEED_WHITE = "MZ_NEED_WHITE";
 	public static final String ALIPAY_ONE_MONEY = "ALIPAY_ONE_MONEY";

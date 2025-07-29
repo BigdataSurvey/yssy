@@ -42,6 +42,7 @@ import java.math.BigDecimal;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.stream.Collectors;
 
 @Service
 @ServiceClass(code = "101")
@@ -50,6 +51,8 @@ public class BattleRoyaleService2 extends BaseService {
     public static BattleRoyaleRoom2 ROOM;
 
     public static JSONObject GAME_SETTING;
+
+    public static int KILL_RATE = 0;
 
 
     public static int PEOPLE_NUM;
@@ -128,6 +131,8 @@ public class BattleRoyaleService2 extends BaseService {
 
     public static final Map<String, JSONArray> pushArray = new ConcurrentHashMap<>();
 
+    public static final Map<String, BigDecimal> REAL_ROOM_MONEY = new ConcurrentHashMap<>();
+
     public static String key2 = DateUtil.getCurrent5();
 
     public static String key3 = DateUtil.getCurrent5();
@@ -135,7 +140,7 @@ public class BattleRoyaleService2 extends BaseService {
     public static int NEED_BOT = 0;
     public static BigDecimal rate = new BigDecimal("0.9");
 
-    public static List<BigDecimal> BOT_MONEY= new ArrayList<>();
+    public static List<BigDecimal> BOT_MONEY = new ArrayList<>();
 
 
     public void updateRate(BigDecimal a) {
@@ -155,40 +160,45 @@ public class BattleRoyaleService2 extends BaseService {
         bot.forEach(e -> BOT_USER.put(e.getId().toString(), e));
         logger.info("加载人机完成，加载数量：" + BOT_USER.size());
         gameAddBot();
-        BOT_MONEY.add(new BigDecimal("30"));
-        BOT_MONEY.add(new BigDecimal("31"));
-        BOT_MONEY.add(new BigDecimal("28"));
-        BOT_MONEY.add(new BigDecimal("29"));
-        BOT_MONEY.add(new BigDecimal("20"));
-        BOT_MONEY.add(new BigDecimal("40"));
+        initBotMoney();
+        initKillRate();
         //BOT_MONEY.add(new BigDecimal("100"));
     }
 
-    public static <K,V> V getRandomValue(Map<K,V> map) {
+    public void initKillRate() {
+        Config config = configService.getConfigByKey(Config.DTS_KILL_RATE);
+        if (config != null) {
+            String value = config.getValue();
+            KILL_RATE = Integer.parseInt(value);
+        }
+    }
+
+    public static <K, V> V getRandomValue(Map<K, V> map) {
         return map.values().stream()
                 .skip(new Random().nextInt(map.size()))
                 .findFirst().orElse(null);
     }
 
-    public User getBotUser(){
+    public User getBotUser() {
         return getRandomValue(BOT_USER);
     }
-    public static BigDecimal getBotMoney(){
+
+    public static BigDecimal getBotMoney() {
         Collections.shuffle(BOT_MONEY);
         return BOT_MONEY.get(0);
     }
+
     public void gameAddBot() {
         new Timer("游戏添加人机").schedule(new TimerTask() {
             public void run() {
                 try {
-                    if ((ROOM.getStatus() == LotteryGameStatusEnum.ready.getValue()||ROOM.getStatus() == LotteryGameStatusEnum.gaming.getValue()) && NEED_BOT>1){
+                    if ((ROOM.getStatus() == LotteryGameStatusEnum.ready.getValue() || ROOM.getStatus() == LotteryGameStatusEnum.gaming.getValue()) && NEED_BOT > 1) {
                         //游戏阶段 添加人机
                         int rate = random.nextInt(100);
-                        if (rate<NEED_BOT){
+                        if (rate < NEED_BOT) {
                             User user = getBotUser();
                             int i = random.nextInt(5);
-                            logger.info("人机"+user.getId()+"下注："+i);
-                            userBetBet(user.getId().toString(),String.valueOf(i),getBotMoney(),null,null);
+                            userBetBet(user.getId().toString(), String.valueOf(i), getBotMoney(), null, null);
                         }
                     }
                 } catch (Exception e) {
@@ -382,11 +392,13 @@ public class BattleRoyaleService2 extends BaseService {
                     (new BigDecimal(ROOM.getBetOptionsInfo().get(newRoomId).get("betAmount")).add(amount)).toString());
             pushArray.get(key2).add(ROOM.pushResult(1, userId, newRoomId, amount));
             updateRoomUser.remove(userId);
-            result.put("betAmount",amount);
-            result.put("gameId",1);
-            result.put("name",userName);
-            result.put("roomId",newRoomId);
-            result.put("type",1);
+            REAL_ROOM_MONEY.put(roomId, REAL_ROOM_MONEY.getOrDefault(roomId, BigDecimal.ZERO).subtract(amount));
+            REAL_ROOM_MONEY.put(newRoomId, REAL_ROOM_MONEY.getOrDefault(newRoomId, BigDecimal.ZERO).add(amount));
+            result.put("betAmount", amount);
+            result.put("gameId", 1);
+            result.put("name", userName);
+            result.put("roomId", newRoomId);
+            result.put("type", 1);
             return result;
         }
 
@@ -418,7 +430,7 @@ public class BattleRoyaleService2 extends BaseService {
     }
 
     public void rankRebate(String userId, BigDecimal amount, String orderNo) {
-        if (BOT_USER.containsKey(userId)){
+        if (BOT_USER.containsKey(userId)) {
             return;
         }
         userCapitalService.addUserBalanceByDtsRank(Long.parseLong(userId), amount);
@@ -444,29 +456,29 @@ public class BattleRoyaleService2 extends BaseService {
 
     public void bet(Map<String, String> myOrder, String userId, String userBet, BigDecimal amount) {
         // 添加订单信息
-        myOrder.put("isBot","0");
-        if (BOT_USER.containsKey(userId)){
-            myOrder.put("isBot","1");
+        myOrder.put("isBot", "0");
+        if (BOT_USER.containsKey(userId)) {
+            myOrder.put("isBot", "1");
         }
         ROOM.getUserBetOrderInfo().put(userId, myOrder);
         // 下注人数+1 观看人数-1
         ROOM.setBetNum(ROOM.getBetNum() + 1);
         ROOM.setLookNum(ROOM.getLookNum() - 1);
         JSONObject betInfo = new JSONObject();
-        logger.info("userId======"+userId);
+        logger.info("userId======" + userId);
         betInfo.put("userId", userId);
-        String name ="***" ;
-        if (ROOM.getPlayers().containsKey(userId)){
-            name =ROOM.getPlayers().get(userId).get("userName");
+        String name = "***";
+        if (ROOM.getPlayers().containsKey(userId)) {
+            name = ROOM.getPlayers().get(userId).get("userName");
         }
-        if (BOT_USER.containsKey(userId)){
+        if (BOT_USER.containsKey(userId)) {
             name = BOT_USER.get(userId).getName();
         }
         betInfo.put("name", name);
-        logger.info("name======"+name);
+        logger.info("name======" + name);
         betInfo.put("betAmount", amount);
         ROOM.getRoomList().get(userBet).put(userId, betInfo);
-        logger.info("roomList+"+userBet+"----"+ROOM.getRoomList().get(userBet));
+        logger.info("roomList+" + userBet + "----" + ROOM.getRoomList().get(userBet));
         ROOM.getLookList().remove(userId);
         Map<String, BigDecimal> bets = new HashMap<String, BigDecimal>();
         bets.put(userBet, amount);
@@ -499,7 +511,7 @@ public class BattleRoyaleService2 extends BaseService {
         }
 
         ROOM.getUserCheckNum().put(userId, userBet);
-        if (!BOT_USER.containsKey(userId)){
+        if (!BOT_USER.containsKey(userId)) {
             UserCapital userCapital = userCapitalService.findUserCapitalByUserIdAndCapitalType(Long.parseLong(userId),
                     CAPITAL_TYPE);
             if (userCapital == null) {
@@ -512,9 +524,11 @@ public class BattleRoyaleService2 extends BaseService {
                 throwExp("非法投入");
             }
         }
-        synchronized (LockUtil.getlock(userId )) {
-            betUser.add(userId);
-            String orderNo = OrderUtil.getOrder5Number();
+        synchronized (LockUtil.getlock(userId)) {
+            if (!BOT_USER.containsKey(userId)){
+                betUser.add(userId);
+            }
+             String orderNo = OrderUtil.getOrder5Number();
             JSONObject data = new JSONObject();
             JSONObject info = new JSONObject();
             info.put("amount", amount.negate());
@@ -528,7 +542,7 @@ public class BattleRoyaleService2 extends BaseService {
             if (ROOM.getUserBetInfo().containsKey(userId)) {
                 // 追加投资 不需要插入投注记录 修改投注订单即可
                 Map<String, String> orderInfo = ROOM.getUserBetOrderInfo().get(userId);
-                if (orderInfo.containsKey("isBot") && orderInfo.get("isBot").equals("1")){
+                if (orderInfo.containsKey("isBot") && orderInfo.get("isBot").equals("1")) {
                     return null;
                 }
                 dataId = Long.parseLong(orderInfo.get("dataId"));
@@ -567,8 +581,11 @@ public class BattleRoyaleService2 extends BaseService {
                 pushArray.get(key2).add(ROOM.pushResult(1, userId, userBet, allAmount));
                 //Push.push(PushCode.updateRoomDate, null, ROOM.pushResult(1, userId, userBet, allAmount));
                 if (!BOT_USER.containsKey(userId)) {
+                    REAL_ROOM_MONEY.put(userBet, REAL_ROOM_MONEY.getOrDefault(userBet, BigDecimal.ZERO).add(amount));
                     Executer.response(CommandBuilder.builder(lotteryCommand).success(ROOM.pushResult(1, userId, userBet, allAmount)).build());
                 }
+
+
             } catch (Exception e) {
                 if (!BOT_USER.containsKey(userId)) {
                     logger.info(e);
@@ -578,7 +595,6 @@ public class BattleRoyaleService2 extends BaseService {
                 }
             }
         }
-        betUser.remove(userId);
         return new JSONObject();
     }
 
@@ -649,6 +665,14 @@ public class BattleRoyaleService2 extends BaseService {
         }, 0, 1000L);
     }
 
+    public void initRealMoney() {
+        REAL_ROOM_MONEY.clear();
+        for (int i = 0; i < ROOM.getOption(); i++) {
+            REAL_ROOM_MONEY.put(String.valueOf(i), BigDecimal.ZERO);
+        }
+
+    }
+
     public void changeRoomStatus(int roomStatus, Command lotteryCommand) {
         ROOM.setStatus(roomStatus);
         JSONObject data = new JSONObject();
@@ -658,6 +682,8 @@ public class BattleRoyaleService2 extends BaseService {
             // 初始化房间信息 更新历史开奖结果
             ROOM.initRoomInfo();
             initHistoryResult();
+            initRealMoney();
+            betUser.clear();
             data.put("lookList", new ConcurrentHashMap<String, Map<String, Object>>());
             data.put("roomList", ROOM.getRoomList());
             data.put("status", ROOM.getStatus());
@@ -729,11 +755,11 @@ public class BattleRoyaleService2 extends BaseService {
         for (String userId : ROOM.getUserBetInfo().keySet()) {
             Map<String, BigDecimal> oneUserbetInfo = ROOM.getUserBetInfo().get(userId);
             for (String s : oneUserbetInfo.keySet()) {
-                if (result.contains(s) ) {
+                if (result.contains(s)) {
                     BigDecimal loseAmount = oneUserbetInfo.get(s);
-                    userDtsAmountService.addDtsAmount(Long.valueOf(userId),loseAmount.multiply(new BigDecimal("0.05")));
-                    userYyScoreService.addYyScore(Long.valueOf(userId),loseAmount.multiply(new BigDecimal("0.1")));
-                    if (GameCacheService.LAST_WEEK_USER_IDS.contains(userId)){
+                    userDtsAmountService.addDtsAmount(Long.valueOf(userId), loseAmount.multiply(new BigDecimal("0.05")));
+                    userYyScoreService.addYyScore(Long.valueOf(userId), loseAmount.multiply(new BigDecimal("0.1")));
+                    if (GameCacheService.LAST_WEEK_USER_IDS.contains(userId)) {
                         // 玩家下的注是输的房间 判断是否是免伤玩家  是的话增加免伤金额
                         int index = GameCacheService.LAST_WEEK_USER_IDS.indexOf(userId);
                         BigDecimal rate = BigDecimal.ZERO;
@@ -789,7 +815,7 @@ public class BattleRoyaleService2 extends BaseService {
                 o.put("capitalType", CAPITAL_TYPE);
                 o.put("orderNo", ROOM.getUserBetOrderInfo().get(userId).get("orderNo"));
                 o.put("em", LogCapitalTypeEnum.game_bet_win_dts2.getValue());
-                if (!BOT_USER.containsKey(userId)){
+                if (!BOT_USER.containsKey(userId)) {
                     data.put(userId, o);
                 }
                 ROOM.getUserBetOrderInfo().get(userId).put("winAmount",
@@ -840,7 +866,7 @@ public class BattleRoyaleService2 extends BaseService {
             public void handle(BaseClientSocket clientSocket, Command command) {
                 if (command.isSuccess()) {
                     battleRoyaleRecordService.batchUpdateRecord(updateRecord);
-                    if (lotteryCommand!=null){
+                    if (lotteryCommand != null) {
                         Executer.response(CommandBuilder.builder(lotteryCommand).success(result).build());
                     }
                 } else {
@@ -906,12 +932,13 @@ public class BattleRoyaleService2 extends BaseService {
     public List<Integer> draw() {
         // 先开奖
         List<Integer> killList;
-        if (ROOM.getNextResult() != null) {
+        killList = getKillList(getResultCount());
+       /* if (ROOM.getNextResult() != null) {
             killList = ROOM.getNextResult();
         } else {
             killList = getKillList(getResultCount());
         }
-        ROOM.setNextResult(getKillList(getResultCount()));
+        ROOM.setNextResult(getKillList(getResultCount()));*/
 
         gameLotteryResultService.drawLottery(1L, ROOM.getPeridosNum() == null ? "1" : ROOM.getPeridosNum(),
                 String.valueOf(killList), ROOM.getAllBetAmount(), BigDecimal.ZERO, BigDecimal.ONE, ROOM.getBetNum(), 0, 0,
@@ -932,12 +959,30 @@ public class BattleRoyaleService2 extends BaseService {
     }
 
     public static List<Integer> getKillList(int count) {
+        System.out.println("真实下注：" + REAL_ROOM_MONEY);
+        List<Map.Entry<String, BigDecimal>> sortedEntries = REAL_ROOM_MONEY.entrySet()
+                .stream()
+                .sorted(Map.Entry.comparingByValue(Comparator.reverseOrder()))
+                .collect(Collectors.toList());
+        List<Integer> killList = new ArrayList<>();
+        System.out.println("排序：" + sortedEntries);
+        int killRate = random.nextInt(100);
+        if (killRate < KILL_RATE && betUser.size() > 0) {
+            sortedEntries.forEach(entry ->
+                    killList.add(Integer.valueOf(entry.getKey())));
+            if (killList.size() > count) {
+                List<Integer> list = killList.subList(0, count);
+                System.out.println("击杀：" + list);
+                return list;
+            }
+            return killList;
+        }
+
         List<Integer> list = new ArrayList<>();
         for (int i = 0; i < 5; i++) {
             list.add(i);
         }
         Collections.shuffle(list);
-        List<Integer> killList = new ArrayList<>();
         for (int i = 0; i < count; i++) {
             killList.add(list.get(i));
         }
@@ -972,8 +1017,13 @@ public class BattleRoyaleService2 extends BaseService {
             CAPITAL_TYPE = GAME_SETTING.getIntValue("capitalType");
             MIN_KILL_COUNT = GAME_SETTING.getIntValue("minKillCount", 2);
             MAX_KILL_COUNT = GAME_SETTING.getIntValue("maxKillCount", 8);
-
+            initRate();
         }
+        logger.info("初始化大逃杀游戏配置完成");
+    }
+
+    public void initRate() {
+        RATE_LIST.clear();
         Config configByKey = configService.getConfigByKey(Config.QNYH_RATE);
         if (configByKey != null) {
             String value = configByKey.getValue();
@@ -983,7 +1033,19 @@ public class BattleRoyaleService2 extends BaseService {
                 RATE_LIST.add(i);
             }
         }
-        logger.info("初始化大逃杀游戏配置完成");
+    }
+
+    public void initBotMoney() {
+        BOT_MONEY.clear();
+        Config config = configService.getConfigByKey(Config.DTS_BOT_MONEY);
+        if (config == null) {
+            return;
+        }
+        String value = config.getValue();
+        String[] split = value.split(",");
+        for (String s : split) {
+            BOT_MONEY.add(new BigDecimal(s));
+        }
     }
 
 }

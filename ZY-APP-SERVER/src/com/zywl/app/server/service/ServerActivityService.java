@@ -13,10 +13,7 @@ import com.zywl.app.defaultx.annotation.ServiceClass;
 import com.zywl.app.defaultx.annotation.ServiceMethod;
 import com.zywl.app.defaultx.cache.GameCacheService;
 import com.zywl.app.defaultx.cache.UserCacheService;
-import com.zywl.app.defaultx.service.Activity2Service;
-import com.zywl.app.defaultx.service.ActivityService;
-import com.zywl.app.defaultx.service.CashRecordService;
-import com.zywl.app.defaultx.service.UserService;
+import com.zywl.app.defaultx.service.*;
 import com.zywl.app.server.context.MessageCodeContext;
 import com.zywl.app.server.socket.AppSocket;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -38,6 +35,9 @@ public class ServerActivityService extends BaseService {
 
     @Autowired
     private Activity2Service activity2Service;
+
+    @Autowired
+    private Activity3Service activity3Service;
     @Autowired
     private UserCacheService userCacheService;
     @Autowired
@@ -205,6 +205,70 @@ public class ServerActivityService extends BaseService {
             result.put("myMoney", BigDecimal.ZERO);
         } else {
             result.put("myMoney", gameCacheService.getRankMoney2(userId,userRankScore, lastRank + 1,lastTopList));
+        }
+        result.put("activeInfo",byId);
+        return result;
+    }
+
+
+    @ServiceMethod(code = "008", description = "获取榜单3信息")
+    public Object getTopListInfo3(final AppSocket appSocket, Command appCommand, JSONObject params) {
+        checkNull(params);
+        long userId = appSocket.getWsidBean().getUserId();
+        Activity activity = activity3Service.findActivity3ByTime();
+        if (activity == null) {
+            throwExp("未查询到活动信息");
+        }
+        String key = RedisKeyConstant.APP_TOP_lIST_3 + activity.getId();
+        User user = userCacheService.getUserInfoById(userId);
+        if (user == null) {
+            throwExp("用户信息异常");
+        }
+        JSONObject result = new JSONObject();
+        List<JSONObject> topList = gameCacheService.getActiveTopList3();
+        result.put("rankList", topList);
+        Double userRankScore = gameCacheService.getUserTopScore3(String.valueOf(userId),activity.getId());
+        result.put("myScore", userRankScore == null ? 0.0 : userRankScore);
+        Long myRank = gameCacheService.getTopRankByKey(key, String.valueOf(userId));
+        result.put("myRank", myRank == null ? "未上榜" : myRank + 1);
+
+        if (myRank == null || userRankScore == null) {
+            result.put("myMoney", BigDecimal.ZERO);
+        } else {
+            result.put("myMoney", gameCacheService.getRankMoney3(userId,userRankScore, myRank + 1,topList));
+        }
+        if (result.getDoubleValue("myScore")<1){
+            result.put("myRank", "未上榜");
+            result.put("myMoney", BigDecimal.ZERO);
+        }
+        result.put("activeInfo", activity);
+        return result;
+    }
+
+    @ServiceMethod(code = "009", description = "上期榜单3")
+    public Object getLastTopList3(final AppSocket appSocket, Command appCommand, JSONObject params) {
+        checkNull(params);
+        long userId = appSocket.getWsidBean().getUserId();
+        Activity activity = activity3Service.findActivity3ByTime();
+        if (activity == null) {
+            throwExp("未查询到上期榜单信息");
+        }
+        Activity byId = activity3Service.findById(activity.getId() - 1);
+        if (byId==null){
+            throwExp("未查询到上期榜单信息");
+        }
+        JSONObject result = new JSONObject();
+        String key = RedisKeyConstant.APP_TOP_lIST_3 + (activity.getId() - 1);
+        List<JSONObject> lastTopList = gameCacheService.getLastTopList3();
+        result.put("rankList", lastTopList);
+        Double userRankScore = gameCacheService.getLastUserTopScore(String.valueOf(userId), key);
+        result.put("myScore", userRankScore == null ? 0.0 : userRankScore);
+        Long lastRank = gameCacheService.getTopRankByKey(key, String.valueOf(userId));
+        result.put("myRank", lastRank == null ? "未上榜" : lastRank + 1);
+        if (lastRank == null || userRankScore == null) {
+            result.put("myMoney", BigDecimal.ZERO);
+        } else {
+            result.put("myMoney", gameCacheService.getRankMoney3(userId,userRankScore, lastRank + 1,lastTopList));
         }
         result.put("activeInfo",byId);
         return result;

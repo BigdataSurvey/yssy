@@ -356,12 +356,25 @@ public class ServerUserRoleService extends BaseService {
                         gameCacheService.addPoint2(myId);
                     }
                 }
+                addScoreByActive3(user.getId());
             }
             activeGiftRecordService.addRecord(myId, user.getId(), type);
             return params;
         }
     }
 
+    public void addScoreByActive3(Long userId){
+        Activity activity = gameCacheService.getActivity3();
+        if (activity!=null){
+            if (activity.getAddPointEvent() == ActivityAddPointEventEnum.RMB_BUY_GIFT.getValue()){
+                User user = userCacheService.getUserInfoById(userId);
+                if (user.getParentId()!=null){
+                    gameCacheService.addPointMySelf3(user.getParentId(),10);
+                }
+
+            }
+        }
+    }
 
     public void useSmallGift(Long userId) {
         UserRole byUserIdAndRoleId = userRoleService.findByUserIdAndRoleId(userId, 1);
@@ -381,6 +394,7 @@ public class ServerUserRoleService extends BaseService {
                 byUserIdAndRoleId.setEndTime(DateUtil.getDateByDay( 30));
                 byUserIdAndRoleId.setHp(240);
                 byUserIdAndRoleId.setLastReceiveTime(new Date());
+                byUserIdAndRoleId.setStatus(1);
                 userRoleService.updateUserRole(byUserIdAndRoleId);
 
             } else {

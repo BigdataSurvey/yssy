@@ -41,7 +41,7 @@
 	</insert>
 
 	<select id="findByRedId" resultType="RecordSheet">
-		select * from r_record_sheet where red_id=#{redId}
+		select * from r_record_sheet where red_id=#{redId} order by id desc
 	</select>
 
 	<select id="findByRed" resultType="RecordSheet">
@@ -50,7 +50,7 @@
 
 
 	<select id="findByRedUserId" resultType="RecordSheet">
-		SELECT * FROM r_record_sheet WHERE user_id = #{userId}
+		SELECT * FROM r_record_sheet WHERE user_id = #{userId} order by id desc
 		<if test="start != null and limit != null">
 			limit #{start}, #{limit}
 		</if>

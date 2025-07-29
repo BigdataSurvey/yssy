@@ -92,6 +92,15 @@ public class ManagerSocket2 extends BaseClientSocket {
 				if (config.getKey().equals(Config.GAME_DTS2_NEED_BOT)){
 					BattleRoyaleService2.NEED_BOT=Integer.parseInt(config.getValue());
 				}
+				if (config.getKey().equals(Config.QNYH_RATE)){
+					battleRoyaleService2.initRate();
+				}
+				if (config.getKey().equals(Config.DTS_BOT_MONEY)){
+					battleRoyaleService2.initBotMoney();
+				}
+				if (config.getKey().equals(Config.DTS_KILL_RATE)){
+					BattleRoyaleService2.KILL_RATE= Integer.parseInt(config.getValue());
+				}
 
 			}
 		}, this);

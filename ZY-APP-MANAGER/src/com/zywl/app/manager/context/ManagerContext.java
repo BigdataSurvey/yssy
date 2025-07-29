@@ -36,7 +36,7 @@ public class ManagerContext implements ServletContextListener {
         Thread t = new Thread(() -> {
             SpringUtil.getService(SocketLogService.class).connectLog();
         }, "connectLogServer");
-//        t.start();
+        t.start();
         Thread t2 = new Thread(() -> {
             KafkaConsumerService consumerService = new KafkaConsumerService(propertiesUtil.get("bootstrap.servers"), "red","Consumer-1");
             Runtime.getRuntime().addShutdownHook(new Thread(() -> {
