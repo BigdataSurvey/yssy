@@ -223,9 +223,9 @@
                             <div class="col-md-6">
                                 <div class="input-group input-group-danger">
                                     <div class="input-group-prepend col-min-7-5">
-                                        <span class="input-group-text">确定设置为顶商吗？</span>
+                                        <span class="input-group-text">输入新的上级id</span>
                                     </div>
-                                   <#-- <input type="text" class="form-control" placeholder="cno" name="cno">-->
+                                    <input type="text" class="form-control" placeholder="输入新的上级id" name="cno">
                                 </div>
                             </div>
 

@@ -54,6 +54,9 @@ public class TaskService extends BaseService {
 
     @Autowired
     private Activity2Service activityService2;
+
+    @Autowired
+    private Activity3Service activity3Service;
     @Autowired
     private DzCacheService dzCacheService;
 
@@ -333,17 +336,17 @@ public class TaskService extends BaseService {
             }
         }, DateUtil.getActivityNeed(), 1000 * 60 * 60 * 24);
 
-        new Timer("定时判断是否需要操作限时活动2").schedule(new TimerTask() {
+        new Timer("定时判断是否需要操作限时活动3").schedule(new TimerTask() {
             public void run() {
                 try {
                     logger.info("判断限时活动是否需要插入提现订单开始");
-                    Activity activityByTime2 = activityService2.findActivity2ByTime();
-                    Activity lastActive2 = activityService2.findById(activityByTime2.getId() - 1);
-                    long activeTime2 = activityByTime2.getBeginTime().getTime();
-                    logger.info("本期活动2开启时间"+activeTime2);
+                    Activity activity3ByTime = activity3Service.findActivity3ByTime();
+                    Activity activity = activity3Service.findById(activity3ByTime.getId() - 1);
+                    long activeTime2 = activity3ByTime.getBeginTime().getTime();
+                    logger.info("本期活动3开启时间"+activeTime2);
                     if ((System.currentTimeMillis() - activeTime2)/1000 <10 ){
                         //本期活动刚开启还不到10秒  证明上一期刚结束
-                        List<JSONObject> lastActiveTopList = gameCacheService.getLastActiveTopList2(lastActive2);
+                        List<JSONObject> lastActiveTopList = gameCacheService.getLastActiveTopList3(activity);
                         for (JSONObject info : lastActiveTopList) {
                             Long userId = info.getLong("userId");
                             User user = userCacheService.getUserInfoById(userId);

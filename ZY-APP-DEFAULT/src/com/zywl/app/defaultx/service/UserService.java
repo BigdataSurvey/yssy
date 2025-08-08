@@ -679,6 +679,17 @@ public class UserService extends DaoService {
     }
 
     @Transactional
+    public int updateUserParent(Long userId,Long parentId,Long grandfaId) {
+        Map<String, Object> params = new HashMap<>();
+        params.put("userId", userId);
+        params.put("parentId",parentId);
+        params.put("grandfaId",grandfaId);
+        int a = execute("updateUserParent", params);
+        userCacheService.removeUserInfoCache(userId);
+        return a;
+    }
+
+    @Transactional
     public int updateUserVip1(Long userId,int lv) {
         Map<String, Object> params = new HashMap<>();
         params.put("userId", userId);

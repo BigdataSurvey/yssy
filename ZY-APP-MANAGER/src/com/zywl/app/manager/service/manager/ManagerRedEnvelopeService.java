@@ -122,9 +122,9 @@ public class ManagerRedEnvelopeService extends BaseService {
     private void initRedEnvelopeAmounts(BigDecimal amount,Long userId) {
         RedEnvelope  redEnvelope =  new RedEnvelope();
         int totalNumber = managerConfigService.getInteger(Config.RED_NUMBER);
-        // 如果是炸弹红包，随机生成炸弹位置(1-最大值-1之间)
+        // 如果是炸弹红包，随机生成炸弹位置(1-最大值之间)
         Random random = new Random();
-        int bombPos = random.nextInt(totalNumber-1);//生成1-9的随机数
+        int bombPos = random.nextInt(totalNumber);//生成0-最大值-1的随机数
         redEnvelope.setBombIndex(bombPos);
         redEnvelope.setNowIndex(0);
         redEnvelope.setSurplusAmount(amount);
@@ -135,7 +135,7 @@ public class ManagerRedEnvelopeService extends BaseService {
         redEnvelope.setStatus(1);
         redEnvelope.setTotalNumber(totalNumber);
         redEnvelope.setRemark("发红包");
-        redEnvelope.setRedAward(amount.multiply(new BigDecimal("0.05")));
+        redEnvelope.setRedAward(amount.multiply(BigDecimal.valueOf(1.0/20)));
         // 生成普通红包
         redEnvelope.setTotalAmount(amount);
         int zdCount = managerConfigService.getInteger(Config.RED_SEND_COUNT);
@@ -263,7 +263,7 @@ public class ManagerRedEnvelopeService extends BaseService {
             //抢红包之前判断玩家余额是否足够
             managerGameBaseService.checkBalance(userId,redBean.getTotalAmount(), UserCapitalTypeEnum.currency_2);
             Integer nowIndex = redBean.getNowIndex();
-            if (nowIndex==10){
+            if (nowIndex>=redBean.getTotalNumber()){
                 throwExp("已经被抢光，换一个吧");
             }
             //判断之前是否抢过这个红包
@@ -289,8 +289,9 @@ public class ManagerRedEnvelopeService extends BaseService {
             //判断是不是炸弹
             if (nowIndex==redBean.getBombIndex()){
                 //如果是炸弹  扣除红包的钱
+                int count = managerConfigService.getInteger(Config.RED_SEND_COUNT);
                 userCapitalService.subUserBalanceByRedZd(userId,redBean.getTotalAmount(),recordSheet.getId(),orderNo);
-                redPositionService.addCountByUserId(userId,redBean.getTotalAmount());
+                redPositionService.addCountByUserId(userId,redBean.getTotalAmount(),count);
             }
             //推送玩家余额变动
             managerGameBaseService.pushCapitalUpdate(userId,UserCapitalTypeEnum.currency_2.getValue());

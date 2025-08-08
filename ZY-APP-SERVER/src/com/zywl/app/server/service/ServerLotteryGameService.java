@@ -166,7 +166,12 @@ public class ServerLotteryGameService extends BaseService {
         checkNull(params.get("gameId"));
         //params.put("gameId",5);
         if (!isOnline(params.getIntValue("gameId"))) {
-            throwExp("小游戏正在维护");
+            if (params.getIntValue("gameId")==10){
+                throwExp("游戏正在升级中。敬请期待！");
+            }else {
+                throwExp("小游戏正在维护");
+            }
+
         }
         long userId = appSocket.getWsidBean().getUserId();
         User user = userCacheService.getUserInfoById(userId);

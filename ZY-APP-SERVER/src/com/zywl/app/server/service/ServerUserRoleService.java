@@ -594,6 +594,9 @@ public class ServerUserRoleService extends BaseService {
             throwExp("用户不存在");
         }
         Long myId = appSocket.getWsidBean().getUserId();
+        if (number<=0){
+            throwExp("参数异常");
+        }
         synchronized (LockUtil.getlock(myId)) {
             if (Objects.equals(myId, toUser.getId())) {
                 throwExp("不能赠送给自己");

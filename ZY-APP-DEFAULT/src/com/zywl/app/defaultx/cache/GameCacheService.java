@@ -275,7 +275,7 @@ public class GameCacheService extends RedisService {
 
     public List<JSONObject> getLastActiveTopList(Activity activity) {
         String key = RedisKeyConstant.APP_TOP_lIST + activity.getId();
-        Map<String, Double> thisTopList = getActiveThisTopList(key, 30);
+        Map<String, Double> thisTopList = getActiveThisTopList(key, activity.getMinScore());
         Set<String> ids = thisTopList.keySet();
         List<JSONObject> list = new ArrayList<>();
         double allScore = 0.0;
@@ -323,6 +323,33 @@ public class GameCacheService extends RedisService {
                 BigDecimal myMoney = allMoney.multiply(BigDecimal.valueOf(score / allScore));
                 BigDecimal rewardAmount = getMoney(rank, myMoney);
                 jsonObject.put("rewardAmount", myMoney);
+            }
+        }else {
+            for (JSONObject jsonObject : list) {
+                Double score = jsonObject.getDouble("score");
+                long rank = jsonObject.getLong("rank");
+                //新出的 阶梯式节分
+                BigDecimal rate;
+                if (score < 200) {
+                    rate = new BigDecimal("2");
+                } else if (score >= 200 && score < 400) {
+                    rate = new BigDecimal("2.5");
+                } else if (score >= 400 && score < 800) {
+                    rate = new BigDecimal("3");
+                } else if (score >= 800 && score < 1200) {
+                    rate = new BigDecimal("4");
+                } else if (score >= 1200 && score < 1600) {
+                    rate = new BigDecimal("5");
+                } else if (score >= 1600 && score < 2400) {
+                    rate = new BigDecimal("6");
+                } else if (score >= 2400 && score < 3000) {
+                    rate = new BigDecimal("7");
+                } else {
+                    rate = new BigDecimal("8");
+                }
+                BigDecimal amount = BigDecimal.valueOf(score).multiply(rate);
+                BigDecimal rewardAmount = getMoney3(rank, amount);
+                jsonObject.put("rewardAmount", rewardAmount);
             }
         }
         String lastActiveKey = RedisKeyConstant.POINT_RANK_LIST_LAST;
@@ -381,6 +408,33 @@ public class GameCacheService extends RedisService {
                 BigDecimal rewardAmount = getMoney2(rank, myMoney);
                 jsonObject.put("rewardAmount", myMoney);
             }
+        }else {
+            for (JSONObject jsonObject : list) {
+                Double score = jsonObject.getDouble("score");
+                long rank = jsonObject.getLong("rank");
+                //新出的 阶梯式节分
+                BigDecimal rate;
+                if (score < 200) {
+                    rate = new BigDecimal("2");
+                } else if (score >= 200 && score < 400) {
+                    rate = new BigDecimal("2.5");
+                } else if (score >= 400 && score < 800) {
+                    rate = new BigDecimal("3");
+                } else if (score >= 800 && score < 1200) {
+                    rate = new BigDecimal("4");
+                } else if (score >= 1200 && score < 1600) {
+                    rate = new BigDecimal("5");
+                } else if (score >= 1600 && score < 2400) {
+                    rate = new BigDecimal("6");
+                } else if (score >= 2400 && score < 3000) {
+                    rate = new BigDecimal("7");
+                } else {
+                    rate = new BigDecimal("8");
+                }
+                BigDecimal amount = BigDecimal.valueOf(score).multiply(rate);
+                BigDecimal rewardAmount = getMoney3(rank, amount);
+                jsonObject.put("rewardAmount", rewardAmount);
+            }
         }
         String lastActiveKey = RedisKeyConstant.POINT_RANK_LIST_LAST_2;
         set(lastActiveKey, list, 86400 * 7);
@@ -438,6 +492,33 @@ public class GameCacheService extends RedisService {
                 BigDecimal myMoney = allMoney.multiply(BigDecimal.valueOf(score / allScore));
                 BigDecimal rewardAmount = getMoney3(rank, myMoney);
                 jsonObject.put("rewardAmount", myMoney);
+            }
+        }else {
+            for (JSONObject jsonObject : list) {
+                Double score = jsonObject.getDouble("score");
+                long rank = jsonObject.getLong("rank");
+                //新出的 阶梯式节分
+                BigDecimal rate;
+                if (score < 200) {
+                    rate = new BigDecimal("2");
+                } else if (score >= 200 && score < 400) {
+                    rate = new BigDecimal("2.5");
+                } else if (score >= 400 && score < 800) {
+                    rate = new BigDecimal("3");
+                } else if (score >= 800 && score < 1200) {
+                    rate = new BigDecimal("4");
+                } else if (score >= 1200 && score < 1600) {
+                    rate = new BigDecimal("5");
+                } else if (score >= 1600 && score < 2400) {
+                    rate = new BigDecimal("6");
+                } else if (score >= 2400 && score < 3000) {
+                    rate = new BigDecimal("7");
+                } else {
+                    rate = new BigDecimal("8");
+                }
+                BigDecimal amount = BigDecimal.valueOf(score).multiply(rate);
+                BigDecimal rewardAmount = getMoney3(rank, amount);
+                jsonObject.put("rewardAmount", rewardAmount);
             }
         }
         String lastActiveKey = RedisKeyConstant.POINT_RANK_LIST_LAST_3;
@@ -499,6 +580,33 @@ public class GameCacheService extends RedisService {
                     BigDecimal rewardAmount = getMoney(rank, myMoney);
                     jsonObject.put("rewardAmount", rewardAmount);
                 }
+            }else {
+                for (JSONObject jsonObject : list) {
+                    Double score = jsonObject.getDouble("score");
+                    long rank = jsonObject.getLong("rank");
+                    //新出的 阶梯式节分
+                    BigDecimal rate;
+                    if (score < 200) {
+                        rate = new BigDecimal("2");
+                    } else if (score >= 200 && score < 400) {
+                        rate = new BigDecimal("2.5");
+                    } else if (score >= 400 && score < 800) {
+                        rate = new BigDecimal("3");
+                    } else if (score >= 800 && score < 1200) {
+                        rate = new BigDecimal("4");
+                    } else if (score >= 1200 && score < 1600) {
+                        rate = new BigDecimal("5");
+                    } else if (score >= 1600 && score < 2400) {
+                        rate = new BigDecimal("6");
+                    } else if (score >= 2400 && score < 3000) {
+                        rate = new BigDecimal("7");
+                    } else {
+                        rate = new BigDecimal("8");
+                    }
+                    BigDecimal amount = BigDecimal.valueOf(score).multiply(rate);
+                    BigDecimal rewardAmount = getMoney3(rank, amount);
+                    jsonObject.put("rewardAmount", rewardAmount);
+                }
             }
             set(rankKey, list, 60);
         }
@@ -557,6 +665,33 @@ public class GameCacheService extends RedisService {
                     long rank = jsonObject.getLong("rank");
                     BigDecimal myMoney = allMoney.multiply(BigDecimal.valueOf(score / allScore));
                     BigDecimal rewardAmount = getMoney2(rank, myMoney);
+                    jsonObject.put("rewardAmount", rewardAmount);
+                }
+            }else {
+                for (JSONObject jsonObject : list) {
+                    Double score = jsonObject.getDouble("score");
+                    long rank = jsonObject.getLong("rank");
+                    //新出的 阶梯式节分
+                    BigDecimal rate;
+                    if (score < 200) {
+                        rate = new BigDecimal("2");
+                    } else if (score >= 200 && score < 400) {
+                        rate = new BigDecimal("2.5");
+                    } else if (score >= 400 && score < 800) {
+                        rate = new BigDecimal("3");
+                    } else if (score >= 800 && score < 1200) {
+                        rate = new BigDecimal("4");
+                    } else if (score >= 1200 && score < 1600) {
+                        rate = new BigDecimal("5");
+                    } else if (score >= 1600 && score < 2400) {
+                        rate = new BigDecimal("6");
+                    } else if (score >= 2400 && score < 3000) {
+                        rate = new BigDecimal("7");
+                    } else {
+                        rate = new BigDecimal("8");
+                    }
+                    BigDecimal amount = BigDecimal.valueOf(score).multiply(rate);
+                    BigDecimal rewardAmount = getMoney3(rank, amount);
                     jsonObject.put("rewardAmount", rewardAmount);
                 }
             }
@@ -635,8 +770,12 @@ public class GameCacheService extends RedisService {
                         rate = new BigDecimal("4");
                     } else if (score >= 1200 && score < 1600) {
                         rate = new BigDecimal("5");
-                    } else {
+                    } else if (score >= 1600 && score < 2400) {
                         rate = new BigDecimal("6");
+                    } else if (score >= 2400 && score < 3000) {
+                        rate = new BigDecimal("7");
+                    } else {
+                        rate = new BigDecimal("8");
                     }
                     BigDecimal amount = BigDecimal.valueOf(score).multiply(rate);
                     BigDecimal rewardAmount = getMoney3(rank, amount);

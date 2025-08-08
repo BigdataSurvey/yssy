@@ -8,6 +8,7 @@ import com.live.app.ws.enums.TargetSocketType;
 import com.live.app.ws.util.CommandBuilder;
 import com.live.app.ws.util.Executer;
 import com.live.app.ws.util.Push;
+import com.zywl.app.base.bean.Config;
 import com.zywl.app.base.bean.hongbao.RedEnvelope;
 import com.zywl.app.base.bean.hongbao.RedPosition;
 import com.zywl.app.base.service.BaseService;
@@ -41,6 +42,9 @@ public class ServerRecordService extends BaseService {
     @Autowired
     private RedEnvelopeService redEnvelopeService;
 
+
+    @Autowired
+    private ServerConfigService serverConfigService;
     @Autowired
     private RedPositionService redPositionService;
 
@@ -138,7 +142,10 @@ public class ServerRecordService extends BaseService {
     public Object redPacketCount(final AppSocket appSocket, Command appCommand, JSONObject params) {
         checkNull(params);
         Long userId = appSocket.getWsidBean().getUserId();
-        return redPositionService.findByUserId(userId);
+        JSONObject result = new JSONObject();
+        result.put("countInfo",redPositionService.findByUserId(userId));
+        result.put("rate",1+1.0/serverConfigService.getInteger(Config.RED_SEND_COUNT));
+        return result;
     }
 
 
@@ -150,6 +157,17 @@ public class ServerRecordService extends BaseService {
         checkNull(params.get("redId"));
         Long redId = params.getLong("redId");
         return recordSheetService.findByRedId(redId);
+    }
+
+    @ServiceMethod(code = "009", description = "获取规则参数")
+    public Object getRulesParams(final AppSocket appSocket, Command appCommand, JSONObject params) {
+        checkNull(params);
+        JSONObject result =new JSONObject();
+        //红包拆分个数
+        result.put("count1",serverConfigService.getInteger(Config.RED_NUMBER));
+        //踩雷发包次数
+        result.put("count2",serverConfigService.getInteger(Config.RED_SEND_COUNT));
+        return result;
     }
 
 
