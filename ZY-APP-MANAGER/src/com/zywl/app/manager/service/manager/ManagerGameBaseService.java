@@ -975,7 +975,8 @@ public class ManagerGameBaseService extends BaseService {
         }
     }
 
-    @ServiceMethod(code = "124", description = "领取当前收益")
+    @Transactional
+    @ServiceMethod(code = "124", description = "领取渠道收益")
     public Object queryChannelIncome(ManagerSocketServer adminSocketServer, Command webCommand, JSONObject params) {
         checkNull(params);
         checkNull(params.get("userId"));
@@ -1007,7 +1008,7 @@ public class ManagerGameBaseService extends BaseService {
     public Object getMyInfo(ManagerSocketServer adminSocketServer, JSONObject params) {
         Long userId = params.getLong("userId");
         double todayMyGetAnima = userCacheService.getTodayMyGetAnima(userId);
-        UserStatistic userStatistic = gameService.getUserStatistic(String.valueOf(userId));
+        UserStatistic userStatistic = userStatisticService.findByUserId(userId);
         JSONObject result = new JSONObject();
         result.put("today", todayMyGetAnima);
         result.put("all", userStatistic.getGetAnima2().setScale(2, BigDecimal.ROUND_DOWN));
@@ -1036,11 +1037,8 @@ public class ManagerGameBaseService extends BaseService {
         Long aLong = userService.countAllSon(userId);
         result.put("number", aLong);
         result.put("canReceive", userStatistic.getGetAnima());
-
-
         //TODO 查询收益字段
-        UserStatistic earnings = userStatisticService.findEarningByUserId(userId);
-        result.put("channelIncome", earnings.getChannelIncome());
+        result.put("channelIncome", userStatistic.getChannelIncome());
         result.put("nowChannelIncome", userStatistic.getNowChannelIncome());
         return result;
     }

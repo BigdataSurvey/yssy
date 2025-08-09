@@ -277,7 +277,7 @@ public class ServerUserService extends BaseService {
         return async();
     }
 
-    @ServiceMethod(code = "016", description = "领取奖励")
+    @ServiceMethod(code = "016", description = "领取渠道奖励")
     public Object receiveAward(final AppSocket appSocket, Command appCommand, JSONObject params) {
         checkNull(params);
         Long userId = appSocket.getWsidBean().getUserId();

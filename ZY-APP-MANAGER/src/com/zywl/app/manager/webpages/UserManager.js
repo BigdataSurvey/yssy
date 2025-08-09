@@ -16,6 +16,7 @@ if(!window.CtrlFn_${menuId}){
         var amountTypeDic = {'15': '添加普通金币', '16': '扣除普通金币', '17': '添加可提现金币', '18': '扣除可提现金币'};
         var playerLiveTypeDic = {'1': '直播', '2': '热门', '4': '帅哥'};
         var banStatus = { '1': '封号', '2': '解封'};
+        var isChannel = { '1': '渠道', '2': '非渠道'};
         var banStatusColor = {'1': 'text-success','2': 'text-danger',};
         var switchStatusMap = {};
         var switchLiveManagerMap = {};
@@ -40,10 +41,11 @@ if(!window.CtrlFn_${menuId}){
                     {data: "id", title: '用户平台ID', render: datatableUtil.renderNormal},
                     {data: "userNo", title: '用户ID', render: datatableUtil.renderNormal},
                     {data: "name", title: '昵称', render: datatableUtil.renderNormal},
-					/*{data: "authentication", title: '实名', render: function(data, type, row, setting){
-                        return data == null ? '-' :authenticationDic[data];
-                    }},*/
+					{data: "isChannel", title: '实名', render: function(data, type, row, setting){
+                        return data == null ? '-' :isChannel[data];
+                    }},
                     {data: "parentNo", title: '上级id', render: datatableUtil.renderNormal},
+
   					{data: "realName", title: '真实姓名', render: datatableUtil.renderNormal},
                     {data: "status", title: '状态', render: function(data, type, row, setting){
                         /*return '<input type="checkbox" class="switch-status" ' + (data == 1 ? 'checked': '') + ' data-id="' + row.id + '">';*/
