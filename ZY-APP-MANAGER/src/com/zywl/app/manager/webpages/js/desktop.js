@@ -66,7 +66,8 @@ var menuTree = [{id: 'Home', name: '总览', icon: 'ti-home'},
         {id: 'GoodNoManager', name: '靓号管理'}
     ]},
     {id: 'Rank', name: '排行榜', icon: 'ti-layers-alt', hasChild: true, children: [
-        {id: 'TreasureRank', name: '资产排行'}
+        {id: 'TreasureRank', name: '资产排行'},
+            {id: 'ItemRank', name: '文房四宝排行'}
     ]},
     {id: 'Trans', name: '交易行管理', icon: 'ti-layers-alt', hasChild: true, children: [
         {id: 'TransactionInfo', name: '交易行信息'},
@@ -121,7 +122,8 @@ var menuTree = [{id: 'Home', name: '总览', icon: 'ti-home'},
         {id: 'EmailManager', name: '邮件列表'}
     ]},
     {id: 'Rank', name: '排行榜', icon: 'ti-layers-alt', hasChild: true, children: [
-        {id: 'TreasureRank', name: '资产排行'}
+        {id: 'TreasureRank', name: '资产排行'},
+            {id: 'ItemRank', name: '文房四宝排行'}
     ]},
     {id: 'Order', name: '提现充值', icon: 'ti-layers-alt', hasChild: true, children: [
         {id: 'RechargeInfo', name: '充值记录'},

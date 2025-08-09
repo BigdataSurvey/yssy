@@ -40,12 +40,10 @@ if(!window.CtrlFn_${menuId}){
                     {data: "id", title: '用户平台ID', render: datatableUtil.renderNormal},
                     {data: "userNo", title: '用户ID', render: datatableUtil.renderNormal},
                     {data: "name", title: '昵称', render: datatableUtil.renderNormal},
-					{data: "authentication", title: '实名', render: function(data, type, row, setting){
+					/*{data: "authentication", title: '实名', render: function(data, type, row, setting){
                         return data == null ? '-' :authenticationDic[data];
-                    }},
-                    {data: "sex", title: '性别', render: function(data, type, row, setting){
-                        return data == null ? '-' :sexDic[data];
-                    }},
+                    }},*/
+                    {data: "parentNo", title: '上级id', render: datatableUtil.renderNormal},
   					{data: "realName", title: '真实姓名', render: datatableUtil.renderNormal},
                     {data: "status", title: '状态', render: function(data, type, row, setting){
                         /*return '<input type="checkbox" class="switch-status" ' + (data == 1 ? 'checked': '') + ' data-id="' + row.id + '">';*/

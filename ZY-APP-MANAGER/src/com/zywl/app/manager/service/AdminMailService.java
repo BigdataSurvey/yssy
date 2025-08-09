@@ -7,6 +7,7 @@ import com.live.app.ws.bean.Command;
 import com.live.app.ws.enums.PushCode;
 import com.live.app.ws.util.Push;
 import com.zywl.app.base.bean.*;
+import com.zywl.app.base.bean.vo.BackpackVo;
 import com.zywl.app.base.bean.vo.TsgPayOrderVo;
 import com.zywl.app.base.constant.RedisKeyConstant;
 import com.zywl.app.base.service.BaseService;
@@ -16,6 +17,7 @@ import com.zywl.app.defaultx.annotation.KafkaProducer;
 import com.zywl.app.defaultx.annotation.ServiceClass;
 import com.zywl.app.defaultx.annotation.ServiceMethod;
 import com.zywl.app.defaultx.cache.*;
+import com.zywl.app.defaultx.enmus.ItemIdEnum;
 import com.zywl.app.defaultx.enmus.UserCapitalTypeEnum;
 import com.zywl.app.defaultx.service.*;
 import com.zywl.app.defaultx.service.card.UserMineService;
@@ -32,6 +34,7 @@ import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
 @ServiceClass(code = MessageCodeContext.ADMIN_EMAIL_SERVER)
@@ -725,6 +728,40 @@ public class AdminMailService extends BaseService {
         data.put("count", count);
         return data;
     }
+    /**
+     * 使用Java8的Stream API实现分页
+     *
+     * @param list     入参集合
+     * @param pageSize 每页显示条数
+     * @param pageNum  当前页码
+     * @return 分页结果集合
+     */
+    private List<?> subListJava8(List<?> list, int pageSize, int pageNum) {
+        int count = list.size(); // 总记录数
+        // 计算总页数
+        int pages = count % pageSize == 0 ? count / pageSize : count / pageSize + 1;
+        // 起始位置
+        int start = pageNum <= 0 ? 0 : (pageNum > pages ? (pages - 1) * pageSize : (pageNum - 1) * pageSize);
+        // 终止位置
+        int end = pageSize ;
+        return list.stream().skip(start).limit(pageSize).collect(Collectors.toList());
+    }
+
+    @ServiceMethod(code = "052", description = "查询文房排行信息")
+    public Object searchItemRankInfo(AdminSocketServer adminSocketServer, Command webCommand, JSONObject params) {
+        checkNull(params);
+        int page = params.getIntValue("page", 0);
+        int limit = params.getIntValue("limit", 10);
+        String itemId = ItemIdEnum.WFSB.getValue();
+        List<BackpackVo> backpackTopList = backpackService.getBackpackTopList(itemId);
+        backpackTopList.sort(((o1, o2) -> (o1.getNumber() - o2.getNumber()) < 0 ? 1 : -1));
+        List<?> objects = subListJava8(backpackTopList, limit, page );
+        JSONObject data = new JSONObject();
+        data.put("list", objects);
+        data.put("count", backpackTopList.size());
+        return data;
+    }
+
 
 
     @ServiceMethod(code = "070", description = "查询角色信息")
@@ -1195,6 +1232,12 @@ public class AdminMailService extends BaseService {
         for (User user : list) {
             JSONObject obj = (JSONObject) JSON.toJSON(user);
             obj.put("online", managerSocketService.getUserOnlineInfo(user.getId().toString()) != null);
+            if (user.getParentId()!=null){
+                User parent = userCacheService.getUserInfoById(user.getParentId());
+                obj.put("parentNo",parent.getUserNo());
+            }else {
+                obj.put("parentNo","无上级");
+            }
             obj.remove("password");
             array.add(obj);
         }
@@ -1211,9 +1254,17 @@ public class AdminMailService extends BaseService {
         checkNull(params);
         checkNull(params.get("userId"));
         checkAuth(adminSocketServer);
+
         long userId = params.getLongValue("userId", 0);
+        String newParentNo = params.getString("cno");
+
         User user = userCacheService.getUserInfoById(userId);
-        Map<String, Object> queryObj = new HashMap<>();
+        User parent = userCacheService.getUserInfoByUserNo(newParentNo);
+        if (parent==null){
+            throwExp("新的上级不存在");
+        }
+        userService.updateUserParent(userId,parent.getId(),parent.getParentId());
+        /*Map<String, Object> queryObj = new HashMap<>();
         queryObj.put("userId", userId);
         queryObj.put("status", 2);
         List<Guild> rst = guildService.findByConditions(queryObj);
@@ -1221,7 +1272,7 @@ public class AdminMailService extends BaseService {
             throwExp("请耐心等待审核！");
         }
         Long dataId = guildService.applyAddGuild(user.getName(), userId, 1, BigDecimal.ZERO, 2);
-        userCapitalService.subUserBalanceByGuild(userId, BigDecimal.ZERO, dataId);
+        userCapitalService.subUserBalanceByGuild(userId, BigDecimal.ZERO, dataId);*/
         return new JSONObject();
     }
 

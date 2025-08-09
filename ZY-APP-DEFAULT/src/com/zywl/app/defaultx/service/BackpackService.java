@@ -5,6 +5,7 @@ import com.live.app.ws.enums.PushCode;
 import com.live.app.ws.util.Push;
 import com.zywl.app.base.bean.Backpack;
 import com.zywl.app.base.bean.User;
+import com.zywl.app.base.bean.vo.BackpackVo;
 import com.zywl.app.defaultx.cache.UserBackpackCacheService;
 import com.zywl.app.defaultx.cache.UserCacheService;
 import com.zywl.app.defaultx.dbutil.DaoService;
@@ -14,10 +15,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.Date;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 @Service
 public class BackpackService extends DaoService {
@@ -55,6 +53,19 @@ public class BackpackService extends DaoService {
         String i = Backpack.tablePrefix + userId.toString().charAt(userId.toString().length() - 1);
         map.put("tableName", i);
         return findByConditions(map);
+    }
+
+    public List<BackpackVo> getBackpackTopList(String itemId){
+        List<BackpackVo> backpackVos = new ArrayList<>();
+
+        for (int i = 0; i < 10; i++) {
+            Map<String, Object> map = new HashedMap<String, Object>();
+            map.put("tableName",  Backpack.tablePrefix + i);
+            map.put("itemId",itemId);
+            List<BackpackVo> findTopList = findList("findTopList", map);
+            backpackVos.addAll(findTopList);
+        }
+        return backpackVos;
     }
 
     //玩家减少道具数量

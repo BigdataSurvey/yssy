@@ -639,6 +639,10 @@
 	<update id="updateUserVip2" parameterType="User">
 		update t_user set vip2 =  1  where id=#{userId}
 	</update>
+
+	<update id="updateUserParent" parameterType="User">
+		update t_user set parent_id =  #{parentId} ,grandfa_id = #{grandfaId}  where id=#{userId}
+	</update>
 	<update id="updateUserVip1" parameterType="User">
 		update t_user set vip1 =  #{lv}  where id=#{userId}
 	</update>

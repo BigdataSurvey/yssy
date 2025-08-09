@@ -63,6 +63,10 @@
         from t_user_mine where user_id=#{userId} and `index`=#{index} order by id desc limit 1
     </select>
 
+    <delete id="delete">
+        delete from t_user_mine where  id= #{id}
+    </delete>
+
     <update id="updateUserMin" parameterType="UserMine">
         update t_user_mine
         <set>

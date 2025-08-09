@@ -47,20 +47,20 @@ public class RedPositionService extends DaoService {
     }
 
     @Transactional
-    public void addCountByUserId(Long userId, BigDecimal amount){
+    public void addCountByUserId(Long userId, BigDecimal amount,int count){
         Map<String,Object> map = new HashMap<>();
         map.put("userId",userId);
         if (amount.compareTo(BigDecimal.TEN)==0){
-            map.put("count1",20);
+            map.put("count1",count);
         }
         if (amount.compareTo(new BigDecimal("20"))==0){
-            map.put("count2",20);
+            map.put("count2",count);
         }
         if (amount.compareTo(new BigDecimal("50"))==0){
-            map.put("count3",20);
+            map.put("count3",count);
         }
         if (amount.compareTo(new BigDecimal("100"))==0){
-            map.put("count4",20);
+            map.put("count4",count);
         }
         execute("addCountByUserId",map);
     }

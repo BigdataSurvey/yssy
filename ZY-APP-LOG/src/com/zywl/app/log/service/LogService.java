@@ -402,6 +402,8 @@ public class LogService extends BaseService {
             params.put("addPit", amount);
         }else if (type == LogCapitalTypeEnum.cave_prize_draw.getValue()){
             params.put("addPrize",amount);
+        }else if (type == LogCapitalTypeEnum.sub_red_zd.getValue()){
+            params.put("subRedZd",amount);
         }
         platformStatementService.updateStatement(params);
     }

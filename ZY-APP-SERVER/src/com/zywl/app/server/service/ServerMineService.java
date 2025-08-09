@@ -28,10 +28,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import javax.annotation.PostConstruct;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
 @Service
@@ -106,7 +103,13 @@ public class ServerMineService extends BaseService {
             vo.setUseItem(Long.parseLong(DIC_MINE.get(userMine.getMineId().toString()).getMiningItem()));
             int useNumber = 10;
             vo.setUseNumber(useNumber);
-            userMineVos.add(vo);
+            if (userMine.getCount()==0 && userMine.getIsMining()==0 && userMine.getOutput()==0){
+                Map<String,Object> map = new HashMap<>();
+                map.put("id",userMine.getId());
+                userMineService.delete(map);
+            }else {
+                userMineVos.add(vo);
+            }
         }
         return userMineVos;
     }
@@ -132,7 +135,6 @@ public class ServerMineService extends BaseService {
             if (subHour >= 1) {
                 //产出
                 JSONArray reward = DIC_MINE.get(userMine.getMineId().toString()).getReward();
-                JSONArray addReward = new JSONArray();
                 int all = 0;
                 for (Object o : reward) {
                     JSONObject item = (JSONObject) o;
@@ -143,11 +145,13 @@ public class ServerMineService extends BaseService {
                     add.put("id", id);
                     add.put("number", number * subHour);
                     all = (int) (number*subHour);
-                    addReward.add(add);
                 }
                 userMine.setOutput(userMine.getOutput()+all);
                 //更新产出完成，更新产出时间
                 userMine.setLastOutputTime(DateUtil.getDateByHour(userMine.getLastOutputTime(), (int) subHour));
+                if (userMine.getCount()==0 && userMine.getIsMining()==0){
+                    userMine.setStatus(0);
+                }
                 //更新完成 更新数据库
                 userMineService.updateUserMine(userMine);
             }
