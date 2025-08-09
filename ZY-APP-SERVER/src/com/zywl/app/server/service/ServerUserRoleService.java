@@ -324,11 +324,6 @@ public class ServerUserRoleService extends BaseService {
         if (user.getId() == null || addMoney == null || addMoney.compareTo(BigDecimal.ZERO) <= 0) {
             throw new IllegalArgumentException("参数无效");
         }
-        //  获取玩家信息
-        User user1 = userService.findById(user.getId());
-        if (user1 == null) {
-            throw new RuntimeException("玩家不存在");
-        }
         //检查上级是否为渠道主
         Long parentId = user.getParentId();
         boolean parentIsChannelMaster  = false;
@@ -349,13 +344,9 @@ public class ServerUserRoleService extends BaseService {
                 return;//没有有效渠道主，无需处理
             }
             // 计算收益金额
-            addMoney.multiply(addMoney).divide(new BigDecimal("100"));
+           BigDecimal master = addMoney.multiply(addMoney).divide(new BigDecimal("100"));
             for(User user2 : channelMasterIds){
-                UserStatistic userStatistic  =new UserStatistic();
-                userStatistic.setUserId(user2.getId());
-                userStatistic.setNowChannelIncome(addMoney);
-                userStatistic.setCreateSw(BigDecimal.valueOf(0));
-                userStatisticService.updateNowChannelIncome(userStatistic);
+                userStatisticService.addChannelIncome(user2.getId(),master);
             }
         }
     }

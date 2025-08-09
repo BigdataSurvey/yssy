@@ -623,7 +623,7 @@
 
 	<select id="getValidById" resultType="User">
 		select * from t_user
-		where is_channel > 0  and id=#{userId} and status = 1
+		where is_channel > 0  and channel_no=#{channelNo} and status = 1
 	</select>
 
 
