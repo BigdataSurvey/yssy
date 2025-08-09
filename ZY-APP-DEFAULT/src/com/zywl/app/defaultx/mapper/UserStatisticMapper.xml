@@ -322,11 +322,10 @@
     <update id="updateStaticChannel" parameterType="UserStatistic">
         UPDATE t_user_statistic
         SET
-            now_channel_income =  now_channel_income + channel_income ,
+            channel_income =  now_channel_income + channel_income ,
             now_channel_income = 0
         WHERE
             id = #{userId}
-          AND now_channel_income > 0
     </update>
 
 

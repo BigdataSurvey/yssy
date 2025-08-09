@@ -958,22 +958,19 @@ public class ManagerGameBaseService extends BaseService {
         Long userId = params.getLong("userId");
         //User user = userCacheService.getUserInfoById(userId);
         //查询当前渠道收益信息
-        Optional<UserStatistic> userStatisticList = Optional.ofNullable(gameService.getUserStatistic(String.valueOf(userId)));
-        if(userStatisticList.isPresent()){
-            UserStatistic  userStatistic = userStatisticList.get();
-            BigDecimal nowChannelIncome = userStatistic.getNowChannelIncome();
+        UserStatistic userStatistic = userStatisticService.findByUserId(userId);
+        BigDecimal nowChannelIncome = userStatistic.getNowChannelIncome();
             //检查是否有可领取的收益
-            if(nowChannelIncome != null && nowChannelIncome.compareTo(BigDecimal.ZERO) >= 0){
+            if(nowChannelIncome != null && nowChannelIncome.compareTo(BigDecimal.ZERO) > 0){
                 //将当前收益领取累加到渠道收益中
                 BigDecimal channelIncome = userStatistic.getChannelIncome() == null ? BigDecimal.ZERO : userStatistic.getChannelIncome();
-                userStatistic.setNowChannelIncome(channelIncome.add(channelIncome));
-                //当前收益清零
-                userStatistic.setNowChannelIncome(BigDecimal.ZERO);
                 //保存更新
+                userCapitalService.addUserBalanceByReceiveFriend(channelIncome, Long.parseLong(String.valueOf(userId)), null, null);
+                pushCapitalUpdate(Long.valueOf(userId), UserCapitalTypeEnum.currency_2.getValue());
                 userStatisticService.updateStaticChannel(userStatistic);
                 //return true;
             }
-        }
+
         return new JSONObject();
     }
 
