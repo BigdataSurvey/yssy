@@ -950,6 +950,33 @@ public class ManagerGameBaseService extends BaseService {
         return shopInfo;
     }
 
+    @Transactional
+    @ServiceMethod(code = "124", description = "领取渠道收益")
+    public Object queryChannelIncome(ManagerSocketServer adminSocketServer, Command webCommand, JSONObject params) {
+        checkNull(params);
+        checkNull(params.get("userId"));
+        Long userId = params.getLong("userId");
+        //User user = userCacheService.getUserInfoById(userId);
+        //查询当前渠道收益信息
+        Optional<UserStatistic> userStatisticList = Optional.ofNullable(gameService.getUserStatistic(String.valueOf(userId)));
+        if(userStatisticList.isPresent()){
+            UserStatistic  userStatistic = userStatisticList.get();
+            BigDecimal nowChannelIncome = userStatistic.getNowChannelIncome();
+            //检查是否有可领取的收益
+            if(nowChannelIncome != null && nowChannelIncome.compareTo(BigDecimal.ZERO) >= 0){
+                //将当前收益领取累加到渠道收益中
+                BigDecimal channelIncome = userStatistic.getChannelIncome() == null ? BigDecimal.ZERO : userStatistic.getChannelIncome();
+                userStatistic.setNowChannelIncome(channelIncome.add(channelIncome));
+                //当前收益清零
+                userStatistic.setNowChannelIncome(BigDecimal.ZERO);
+                //保存更新
+                userStatisticService.updateStaticChannel(userStatistic);
+                //return true;
+            }
+        }
+        return new JSONObject();
+    }
+
 
     @Transactional
     @ServiceMethod(code = "040", description = "一键领取友情值和广告收益")
@@ -975,32 +1002,7 @@ public class ManagerGameBaseService extends BaseService {
         }
     }
 
-    @Transactional
-    @ServiceMethod(code = "124", description = "领取渠道收益")
-    public Object queryChannelIncome(ManagerSocketServer adminSocketServer, Command webCommand, JSONObject params) {
-        checkNull(params);
-        checkNull(params.get("userId"));
-        Long userId = params.getLong("userId");
-        User user = userCacheService.getUserInfoById(userId);
-        //查询当前渠道收益信息
-        Optional<UserStatistic> userStatisticList = Optional.ofNullable(userStatisticService.findByUserId(user.getId()));
-        if(userStatisticList.isPresent()){
-            UserStatistic  userStatistic = userStatisticList.get();
-            BigDecimal nowChannelIncome = userStatistic.getNowChannelIncome();
-            //检查是否有可领取的收益
-            if(nowChannelIncome != null && nowChannelIncome.compareTo(BigDecimal.ZERO) >= 0){
-                //将当前收益领取累加到渠道收益中
-                BigDecimal channelIncome = userStatistic.getChannelIncome() == null ? BigDecimal.ZERO : userStatistic.getChannelIncome();
-                userStatistic.setNowChannelIncome(channelIncome.add(nowChannelIncome));
-                //当前收益清零
-                userStatistic.setNowChannelIncome(BigDecimal.ZERO);
-                //保存更新
-                userStatisticService.updateStaticChannel(userStatistic);
-                //return true;
-            }
-        }
-        return new JSONObject();
-    }
+
 
 
     @Transactional
