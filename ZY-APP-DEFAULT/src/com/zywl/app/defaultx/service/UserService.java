@@ -4,7 +4,6 @@ import com.alibaba.fastjson2.JSONObject;
 import com.zywl.app.base.bean.DeviceCount;
 import com.zywl.app.base.bean.RechargeOrder;
 import com.zywl.app.base.bean.User;
-import com.zywl.app.base.bean.UserCapital;
 import com.zywl.app.base.bean.vo.DSTopVo;
 import com.zywl.app.base.bean.vo.TempVo;
 import com.zywl.app.base.util.DateUtil;
@@ -914,6 +913,33 @@ public class UserService extends DaoService {
      */
     public boolean canSendRedEnvelope(Integer id) {
         return false;
+    }
+
+    @Transactional
+    public int updateIsChannel(Long userId) {
+        Map<String, Object> params = new HashMap<String, Object>();
+        params.put("userId", userId);
+        return execute("updateIsChannelStatu", params);
+    }
+
+    public int isChannelMaster2(Long grandfaId, Long userId) {
+        Map<String, Object> params = new HashMap<>();
+        params.put("grandfaId", grandfaId);
+        params.put("userId", userId);
+        return execute("isChannelMaster2", params);
+    }
+
+    public int isChannelMaster(Long parentId, Long userId) {
+        Map<String, Object> params = new HashMap<>();
+        params.put("parentId", parentId);
+        params.put("userId", userId);
+        return execute("isChannelMaster", params);
+    }
+
+    public User getValidById(Long userId) {
+        Map<String, Object> params = new HashMap<>();
+        params.put("userId", userId);
+        return (User) findOne("getValidById", params);
     }
 
 

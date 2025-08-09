@@ -7,9 +7,6 @@ public class MessageCodeContext {
 	//错误信息
 	public final static String errorMessage ="888888";
 	
-	
-	
-	
 	public final static String GAME_BASE_SERVER= "100";
 	public final static String CAPITAL_SERVER="200";
 	public final static String TRADING_SERVER="300";

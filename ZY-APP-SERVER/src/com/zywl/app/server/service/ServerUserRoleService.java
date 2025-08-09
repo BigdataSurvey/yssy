@@ -84,6 +84,9 @@ public class ServerUserRoleService extends BaseService {
     @Autowired
     private GameCacheService gameCacheService;
 
+    @Autowired
+    private UserStatisticService userStatisticService;
+
     public static final Map<String, DicRole> DIC_ROLE = new ConcurrentHashMap<>();
 
     public static final String VERSION = "v1.0";
@@ -308,6 +311,57 @@ public class ServerUserRoleService extends BaseService {
         return params;
     }
 
+    /**
+     * 检查玩家的上级和上上级是否都不是渠道主
+     * @param user 玩家实体
+     * @return true=都不是渠道主，false=至少有一个是渠道主
+     */
+    private void checkParentNotChannelMaster(User user){
+        BigDecimal money = serverConfigService.getBigDecimal(Config.GIFT_PRICE_2_GAME);
+        BigDecimal rate = serverConfigService.getBigDecimal(Config.CHANNEL_RATE);
+        BigDecimal addMoney = money.multiply(rate);
+//        // 1. 校验参数
+        if (user.getId() == null || addMoney == null || addMoney.compareTo(BigDecimal.ZERO) <= 0) {
+            throw new IllegalArgumentException("参数无效");
+        }
+        //  获取玩家信息
+        User user1 = userService.findById(user.getId());
+        if (user1 == null) {
+            throw new RuntimeException("玩家不存在");
+        }
+        //检查上级是否为渠道主
+        Long parentId = user.getParentId();
+        boolean parentIsChannelMaster  = false;
+        if(parentId != null){
+            parentIsChannelMaster =  userService.isChannelMaster(parentId,user.getId()) > 0;
+        }
+        //检查上上级是否为渠道主
+        Long grandfaId=user.getGrandfaId();
+        boolean  grandfaIdIsChannelMaster = false;
+        if(grandfaId != null){
+            grandfaIdIsChannelMaster= userService.isChannelMaster(grandfaId,user.getId()) >0;
+        }
+        //只有两者都不是渠道主时，才给渠道主加收益
+        if(!parentIsChannelMaster && !grandfaIdIsChannelMaster){
+            // 获取该玩家所属渠道的有效渠道主
+            List<User> channelMasterIds = Collections.singletonList(userService.getValidById(user.getId()));
+            if(channelMasterIds.isEmpty()){
+                return;//没有有效渠道主，无需处理
+            }
+            // 计算收益金额
+            addMoney.multiply(addMoney).divide(new BigDecimal("100"));
+            for(User user2 : channelMasterIds){
+                UserStatistic userStatistic  =new UserStatistic();
+                userStatistic.setUserId(user2.getId());
+                userStatistic.setNowChannelIncome(addMoney);
+                userStatistic.setCreateSw(BigDecimal.valueOf(0));
+                userStatisticService.updateNowChannelIncome(userStatistic);
+            }
+        }
+    }
+
+
+
     @Transactional
     @ServiceMethod(code = "002", description = "激活角色礼包")
     public JSONObject useGift(final AppSocket appSocket, Command appCommand, JSONObject params) {
@@ -343,6 +397,7 @@ public class ServerUserRoleService extends BaseService {
                 JSONObject info = new JSONObject();
                 info.put("userId", myId);
                 Activity activity = gameCacheService.getActivity();
+
                 if (activity != null) {
                     if (activity.getAddPointEvent() == ActivityAddPointEventEnum.RMB_BUY_GIFT.getValue()) {
                         //已经激活大礼包的用户 给他上级加积分并存入redis
@@ -356,6 +411,7 @@ public class ServerUserRoleService extends BaseService {
                         gameCacheService.addPoint2(myId);
                     }
                 }
+                checkParentNotChannelMaster(user);
                 addScoreByActive3(user.getId());
             }
             activeGiftRecordService.addRecord(myId, user.getId(), type);

@@ -7,6 +7,7 @@ import com.alipay.api.AlipayApiException;
 import com.alipay.api.AlipayClient;
 import com.alipay.api.request.AlipaySystemOauthTokenRequest;
 import com.alipay.api.response.AlipaySystemOauthTokenResponse;
+import com.live.app.ws.bean.Command;
 import com.live.app.ws.enums.PushCode;
 import com.live.app.ws.util.Push;
 import com.zywl.app.base.bean.UserYyScore;
@@ -27,6 +28,7 @@ import com.zywl.app.manager.context.KafkaTopicContext;
 import com.zywl.app.manager.context.MessageCodeContext;
 import com.zywl.app.manager.context.KafkaEventContext;
 import com.zywl.app.manager.service.*;
+import com.zywl.app.manager.socket.AdminSocketServer;
 import com.zywl.app.manager.socket.ManagerSocketServer;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -973,6 +975,32 @@ public class ManagerGameBaseService extends BaseService {
         }
     }
 
+    @ServiceMethod(code = "124", description = "领取当前收益")
+    public Object queryChannelIncome(ManagerSocketServer adminSocketServer, Command webCommand, JSONObject params) {
+        checkNull(params);
+        checkNull(params.get("userId"));
+        Long userId = params.getLong("userId");
+        User user = userCacheService.getUserInfoById(userId);
+        //查询当前渠道收益信息
+        Optional<UserStatistic> userStatisticList = Optional.ofNullable(userStatisticService.findByUserId(user.getId()));
+        if(userStatisticList.isPresent()){
+            UserStatistic  userStatistic = userStatisticList.get();
+            BigDecimal nowChannelIncome = userStatistic.getNowChannelIncome();
+            //检查是否有可领取的收益
+            if(nowChannelIncome != null && nowChannelIncome.compareTo(BigDecimal.ZERO) >= 0){
+                //将当前收益领取累加到渠道收益中
+                BigDecimal channelIncome = userStatistic.getChannelIncome() == null ? BigDecimal.ZERO : userStatistic.getChannelIncome();
+                userStatistic.setNowChannelIncome(channelIncome.add(nowChannelIncome));
+                //当前收益清零
+                userStatistic.setNowChannelIncome(BigDecimal.ZERO);
+                //保存更新
+                userStatisticService.updateStaticChannel(userStatistic);
+                //return true;
+            }
+        }
+        return new JSONObject();
+    }
+
 
     @Transactional
     @ServiceMethod(code = "044", description = "我的信息")
@@ -1008,6 +1036,12 @@ public class ManagerGameBaseService extends BaseService {
         Long aLong = userService.countAllSon(userId);
         result.put("number", aLong);
         result.put("canReceive", userStatistic.getGetAnima());
+
+
+        //TODO 查询收益字段
+        UserStatistic earnings = userStatisticService.findEarningByUserId(userId);
+        result.put("channelIncome", earnings.getChannelIncome());
+        result.put("nowChannelIncome", userStatistic.getNowChannelIncome());
         return result;
     }
 

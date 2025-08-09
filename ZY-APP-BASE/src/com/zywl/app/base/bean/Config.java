@@ -9,6 +9,8 @@ public class Config extends BaseBean {
 
 	public static final String RED_SEND_COUNT = "RED_SEND_COUNT";
 
+	public static final String CHANNEL_RATE = "CHANNEL_RATE";
+
 	public static final String RED_NUMBER = "RED_NUMBER";
 	public static final String LHD_KILL_RATE = "GAME_LHD_KILL_RATE";
 	public static final String DTS_KILL_RATE = "GAME_DTS_KILL_RATE";

@@ -242,6 +242,42 @@
              </div>
          </div>
     </div>
+
+    <!-- 修改用户信息为渠道 -->
+    <div class="modal fade" id="${menuId}_rowModal_channel" tabindex="-1" role="dialog" aria-hidden="true" data-backdrop="static">
+        <div class="modal-dialog modal-lg" role="document">
+            <div class="modal-content">
+                <div class="modal-header no-bd">
+                    <h5 class="modal-title">修改用户信息：<span class="text-danger">{{${menuId}.currentTpl._title}}</span></h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">×</span> </button>
+                </div>
+                <div class="modal-body">
+                    <form role="form" autocomplete="off" id="${menuId}_formEdit">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="input-group input-group-danger">
+                                    <div class="input-group-prepend col-min-7-5">
+                                        <span class="input-group-text">确定设置为渠道吗？</span>
+                                    </div>
+                                    <#-- <input type="text" class="form-control" placeholder="cno" name="cno">-->
+                                </div>
+                            </div>
+
+                            <div class="col-md-12">
+                                <div class="alert alert-danger border-danger" ng-if="${menuId}.currentTpl._errorMsg">{{${menuId}.currentTpl._errorMsg}}</div>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer no-bd">
+                    <button class="btn btn-success" type="button" ng-disabled="${menuId}.saving" ng-click="${menuId}.saveEditData_channel()"><span class="btn-label mr-1"> <i class="fa fa-check"></i> </span> 提交</button>
+                    <button type="button" class="btn btn-danger" data-dismiss="modal"><span class="btn-label mr-1"> <i class="fas fa-times"></i> </span> 关闭</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
     <!-- 封号 -->
     <div class="modal fade" id="${menuId}_banModal" tabindex="-1" role="dialog" aria-hidden="true" data-backdrop="static">
         <div class="modal-dialog modal-lg" role="document">

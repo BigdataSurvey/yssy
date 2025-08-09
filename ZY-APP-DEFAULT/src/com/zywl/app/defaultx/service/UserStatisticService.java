@@ -251,4 +251,26 @@ public class UserStatisticService extends DaoService{
 	public List<UserStatistic> findSonNumberByPrizePool(){
 		return findList("findSonNumberByPrizePool",null);
 	}
+
+	public void updateStaticChannel(UserStatistic userStatistic) {
+		Map<String, Object> params = new HashedMap<>();
+		params.put("userId",userStatistic.getUserId());
+		execute("updateStaticChannel", params);
+
+	}
+
+	@Transactional
+	public void addUserStatisticInfo(UserStatistic userStatistic) {
+		execute("addStatisticInfo",userStatistic);
+	}
+
+	public UserStatistic findEarningByUserId(Long userId) {
+		Map<String,Object> params = new HashMap<>();
+		params.put("userId",userId);
+		return (UserStatistic) findOne("findEarningByUserId",params);
+	}
+
+	public void updateNowChannelIncome(UserStatistic userStatistic) {
+		execute("updateNowChannelIncome",userStatistic);
+	}
 }
