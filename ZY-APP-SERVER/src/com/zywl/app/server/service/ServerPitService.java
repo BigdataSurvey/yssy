@@ -95,9 +95,8 @@ public class ServerPitService extends BaseService {
     public Object refund(final AppSocket appSocket, Command appCommand, JSONObject params) {
         checkNull(params);
         params.put("userId", appSocket.getWsidBean().getUserId());
-        Executer.request(TargetSocketType.manager, CommandBuilder.builder().request("9010005", params).build(),
-                new RequestManagerListener(appCommand));
-        return async();
+        throwExp("不支持取消开通");
+        return new JSONObject();
     }
     @Transactional
     @ServiceMethod(code = "006", description = "领取记录")

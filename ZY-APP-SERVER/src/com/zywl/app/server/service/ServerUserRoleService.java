@@ -313,44 +313,24 @@ public class ServerUserRoleService extends BaseService {
 
     /**
      * 检查玩家的上级和上上级是否都不是渠道主
+     *
      * @param user 玩家实体
      * @return true=都不是渠道主，false=至少有一个是渠道主
      */
-    private void checkParentNotChannelMaster(User user){
+    private void checkParentNotChannelMaster(User user) {
         BigDecimal money = serverConfigService.getBigDecimal(Config.GIFT_PRICE_2_GAME);
         BigDecimal rate = serverConfigService.getBigDecimal(Config.CHANNEL_RATE);
+        User channelUser = userService.getValidById(user.getChannelNo());
+        if (channelUser == null) {
+            return;//没有有效渠道主，无需处理
+        }
+        if (Objects.equals(user.getParentId(), channelUser.getId()) || Objects.equals(user.getGrandfaId(), channelUser.getId())) {
+            //两代内 不反收益
+            return;
+        }
         BigDecimal addMoney = money.multiply(rate);
-//        // 1. 校验参数
-        if (user.getId() == null || addMoney == null || addMoney.compareTo(BigDecimal.ZERO) <= 0) {
-            throw new IllegalArgumentException("参数无效");
-        }
-        //检查上级是否为渠道主
-        Long parentId = user.getParentId();
-        boolean parentIsChannelMaster  = false;
-        if(parentId != null){
-            parentIsChannelMaster =  userService.isChannelMaster(parentId,user.getId()) > 0;
-        }
-        //检查上上级是否为渠道主
-        Long grandfaId=user.getGrandfaId();
-        boolean  grandfaIdIsChannelMaster = false;
-        if(grandfaId != null){
-            grandfaIdIsChannelMaster= userService.isChannelMaster(grandfaId,user.getId()) >0;
-        }
-        //只有两者都不是渠道主时，才给渠道主加收益
-        if(!parentIsChannelMaster && !grandfaIdIsChannelMaster){
-            // 获取该玩家所属渠道的有效渠道主
-            List<User> channelMasterIds = Collections.singletonList(userService.getValidById(user.getId()));
-            if(channelMasterIds.isEmpty()){
-                return;//没有有效渠道主，无需处理
-            }
-            // 计算收益金额
-           BigDecimal master = addMoney.multiply(addMoney).divide(new BigDecimal("100"));
-            for(User user2 : channelMasterIds){
-                userStatisticService.addChannelIncome(user2.getId(),master);
-            }
-        }
+        userStatisticService.addChannelIncome(channelUser.getId(), addMoney);
     }
-
 
 
     @Transactional
@@ -393,7 +373,7 @@ public class ServerUserRoleService extends BaseService {
                     if (activity.getAddPointEvent() == ActivityAddPointEventEnum.RMB_BUY_GIFT.getValue()) {
                         //已经激活大礼包的用户 给他上级加积分并存入redis
                         //用户父id的积分
-                        gameCacheService.addPoint(myId,5);
+                        gameCacheService.addPoint(myId, 5);
                     }
                 }
                 Activity activity2 = gameCacheService.getActivity2();
@@ -410,13 +390,13 @@ public class ServerUserRoleService extends BaseService {
         }
     }
 
-    public void addScoreByActive3(Long userId){
+    public void addScoreByActive3(Long userId) {
         Activity activity = gameCacheService.getActivity3();
-        if (activity!=null){
-            if (activity.getAddPointEvent() == ActivityAddPointEventEnum.RMB_BUY_GIFT.getValue()){
+        if (activity != null) {
+            if (activity.getAddPointEvent() == ActivityAddPointEventEnum.RMB_BUY_GIFT.getValue()) {
                 User user = userCacheService.getUserInfoById(userId);
-                if (user.getParentId()!=null){
-                    gameCacheService.addPointMySelf3(user.getParentId(),10);
+                if (user.getParentId() != null) {
+                    gameCacheService.addPointMySelf3(user.getParentId(), 10);
                 }
 
             }
@@ -438,7 +418,7 @@ public class ServerUserRoleService extends BaseService {
         for (int i = 1; i <= 5; i++) {
             UserRole byUserIdAndRoleId = userRoleService.findByUserIdAndRoleId(userId, i);
             if (byUserIdAndRoleId != null) {
-                byUserIdAndRoleId.setEndTime(DateUtil.getDateByDay( 30));
+                byUserIdAndRoleId.setEndTime(DateUtil.getDateByDay(30));
                 byUserIdAndRoleId.setHp(240);
                 byUserIdAndRoleId.setLastReceiveTime(new Date());
                 byUserIdAndRoleId.setStatus(1);
@@ -468,9 +448,9 @@ public class ServerUserRoleService extends BaseService {
         Long userId = appSocket.getWsidBean().getUserId();
         synchronized (LockUtil.getlock(userId)) {
             List<UserRole> roles = userRoleService.findByUserId(userId);
-            if (roles.size()>=5){
+            if (roles.size() >= 5) {
                 User user = userCacheService.getUserInfoById(userId);
-                if (user.getVip2()!=1){
+                if (user.getVip2() != 1) {
                     user.setVip2(1);
                     userService.updateUserVip2(userId);
                 }
@@ -524,7 +504,6 @@ public class ServerUserRoleService extends BaseService {
         userRoleService.batchUpdateUserRole(needUpdate);
         return roles;
     }
-
 
 
     @Transactional
@@ -641,7 +620,7 @@ public class ServerUserRoleService extends BaseService {
             throwExp("用户不存在");
         }
         Long myId = appSocket.getWsidBean().getUserId();
-        if (number<=0){
+        if (number <= 0) {
             throwExp("参数异常");
         }
         synchronized (LockUtil.getlock(myId)) {
@@ -700,7 +679,7 @@ public class ServerUserRoleService extends BaseService {
         Long userId = appSocket.getWsidBean().getUserId();
         params.put("userId", userId);
         long freeRoleNumber = userRoleService.findFreeRoleNumber();
-        if (freeRoleNumber>=serverConfigService.getInteger(Config.FREE_ROLE_NUM)){
+        if (freeRoleNumber >= serverConfigService.getInteger(Config.FREE_ROLE_NUM)) {
             throwExp("角色已经领取完啦");
         }
         Executer.request(TargetSocketType.manager, CommandBuilder.builder().request("400004", params).build(), new RequestManagerListener(appCommand));
@@ -745,12 +724,12 @@ public class ServerUserRoleService extends BaseService {
             Date lastLookTime = userRoleAd.getLastTime();
             if ((System.currentTimeMillis() - lastLookTime.getTime()) / 1000 > 90 * 60) {
                 //如果当前时间 比上次请求时间超过了1个半小时 并且之前的次数也不够4次 那么这会要加次数
-                long count =( (System.currentTimeMillis() - lastLookTime.getTime()) / 1000) / (90 * 60);
+                long count = ((System.currentTimeMillis() - lastLookTime.getTime()) / 1000) / (90 * 60);
                 userRoleAd.setCanLook((int) (userRoleAd.getCanLook() + count));
                 if (userRoleAd.getCanLook() == 4) {
                     userRoleAd.setLastTime(new Date());
                 } else {
-                    userRoleAd.setLastTime(DateUtil.getDateByM(userRoleAd.getLastTime(), (int) (90 * count*60)));
+                    userRoleAd.setLastTime(DateUtil.getDateByM(userRoleAd.getLastTime(), (int) (90 * count * 60)));
                 }
             }
         } else {
@@ -758,14 +737,14 @@ public class ServerUserRoleService extends BaseService {
         }
         System.out.println(userRoleAd.getLook());
         System.out.println(userRoleAd.getCanLook());
-        if ((userRoleAd.getLook()+userRoleAd.getCanLook())>10){
-            userRoleAd.setCanLook(10-userRoleAd.getLook());
+        if ((userRoleAd.getLook() + userRoleAd.getCanLook()) > 10) {
+            userRoleAd.setCanLook(10 - userRoleAd.getLook());
         }
         userRoleAdService.update(userRoleAd);
         JSONObject result = new JSONObject();
-        result.put("canLook",userRoleAd.getCanLook());
-        result.put("todayRemaining",10-userRoleAd.getLook());
-        result.put("nextAdTime",DateUtil.getDateByM(userRoleAd.getLastTime(),90*60).getTime());
+        result.put("canLook", userRoleAd.getCanLook());
+        result.put("todayRemaining", 10 - userRoleAd.getLook());
+        result.put("nextAdTime", DateUtil.getDateByM(userRoleAd.getLastTime(), 90 * 60).getTime());
         return result;
     }
 
@@ -777,8 +756,8 @@ public class ServerUserRoleService extends BaseService {
         JSONArray array = new JSONArray();
         for (DicRole dicRole : allRole) {
             JSONObject info = new JSONObject();
-            info.put("roleId",dicRole.getId());
-            info.put("price",serverConfigService.getBigDecimal(Config.GIFT_PRICE_1_GAME));
+            info.put("roleId", dicRole.getId());
+            info.put("price", serverConfigService.getBigDecimal(Config.GIFT_PRICE_1_GAME));
             array.add(info);
         }
         return array;
@@ -790,9 +769,9 @@ public class ServerUserRoleService extends BaseService {
         checkNull(params);
         checkNull(params.get("roleId"));
         Long userId = appSocket.getWsidBean().getUserId();
-        params.put("userId",userId);
+        params.put("userId", userId);
         Long roleId = params.getLong("roleId");
-        if (roleId<1 || roleId>5){
+        if (roleId < 1 || roleId > 5) {
             throwExp("非法请求");
         }
         Executer.request(TargetSocketType.manager, CommandBuilder.builder().request("400005", params).build(), new RequestManagerListener(appCommand));
@@ -800,7 +779,7 @@ public class ServerUserRoleService extends BaseService {
     }
 
     public static void main(String[] args) {
-        long a = 15560/5400;
+        long a = 15560 / 5400;
         System.out.println(a);
     }
 

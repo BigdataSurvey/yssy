@@ -45,6 +45,13 @@ public class UserPitService extends DaoService {
         return findList("findInitInfoList", param);
     }
 
+    public List<UserPit> findPitList(Long userId,Long pitId) {
+        Map<String, Object> param = new HashedMap<>();
+        param.put("userId", userId);
+        param.put("pitId", pitId);
+        return findList("findInitInfoList", param);
+    }
+
     @Transactional
     public int insertUserPit(JSONObject jsonObject) {
 

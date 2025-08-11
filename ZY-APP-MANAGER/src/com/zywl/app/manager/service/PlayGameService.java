@@ -9,18 +9,18 @@ import com.live.app.ws.socket.BaseSocket;
 import com.live.app.ws.util.DefaultPushHandler;
 import com.live.app.ws.util.Push;
 import com.zywl.app.base.bean.*;
-import com.zywl.app.base.bean.card.*;
-import com.zywl.app.base.bean.vo.AchievementVo;
+import com.zywl.app.base.bean.card.Card;
+import com.zywl.app.base.bean.card.DicMine;
+import com.zywl.app.base.bean.card.DicShop;
+import com.zywl.app.base.bean.card.JDCard;
 import com.zywl.app.base.constant.RedisKeyConstant;
 import com.zywl.app.base.service.BaseService;
-import com.zywl.app.base.util.BeanUtils;
 import com.zywl.app.base.util.LockUtil;
 import com.zywl.app.defaultx.annotation.KafkaProducer;
 import com.zywl.app.defaultx.cache.AppConfigCacheService;
 import com.zywl.app.defaultx.cache.GameCacheService;
 import com.zywl.app.defaultx.cache.UserCacheService;
 import com.zywl.app.defaultx.cache.UserCapitalCacheService;
-import com.zywl.app.defaultx.cache.card.CardGameCacheService;
 import com.zywl.app.defaultx.enmus.*;
 import com.zywl.app.defaultx.service.*;
 import com.zywl.app.defaultx.service.card.DicDrawProbabilityService;
@@ -463,7 +463,7 @@ public class PlayGameService extends BaseService {
         return playerItems.get(userId);
     }
 
-    public int getUserItemNumber(Long userId, String itemId) {
+    public double getUserItemNumber(Long userId, String itemId) {
         if (!playerItems.containsKey(userId)) {
             List<Backpack> list = backpackService.getBackpackByUserId(userId);
             Map<String, Backpack> map = new HashMap<>();
@@ -480,11 +480,11 @@ public class PlayGameService extends BaseService {
         return 0;
     }
 
-    public void updateUserBackpack(Long userId, String itemId, int number, LogUserBackpackTypeEnum em) {
+    public void updateUserBackpack(Long userId, String itemId, double number, LogUserBackpackTypeEnum em) {
         updateUserBackpack(userId.toString(), itemId, number, em);
     }
 
-    public void updateUserBackpack(Long userId, String itemId, int number, LogUserBackpackTypeEnum em,String otherUserId) {
+    public void updateUserBackpack(Long userId, String itemId, double number, LogUserBackpackTypeEnum em,String otherUserId) {
         updateUserBackpack(userId.toString(), itemId, number, em,otherUserId);
     }
 
@@ -500,11 +500,11 @@ public class PlayGameService extends BaseService {
         }
     }
 
-    public void updateUserBackpack(String userId, String itemId, int number, LogUserBackpackTypeEnum em) {
+    public void updateUserBackpack(String userId, String itemId, double number, LogUserBackpackTypeEnum em) {
         synchronized (LockUtil.getlock(userId)) {
             Map<String, Backpack> map = getUserBackpack(userId);
             int type = 0;
-            int beforeNumber = 0;
+            double beforeNumber = 0;
             Long id = null;
             if (map != null && map.size() > 0) {
                 if (map.containsKey(itemId)) {
@@ -542,11 +542,11 @@ public class PlayGameService extends BaseService {
         }
     }
 
-    public void updateUserBackpack(String userId, String itemId, int number, LogUserBackpackTypeEnum em,String otherUserId) {
+    public void updateUserBackpack(String userId, String itemId, double number, LogUserBackpackTypeEnum em,String otherUserId) {
         synchronized (LockUtil.getlock(userId)) {
             Map<String, Backpack> map = getUserBackpack(userId);
             int type = 0;
-            int beforeNumber = 0;
+            double beforeNumber = 0;
             Long id = null;
             if (map != null && map.size() > 0) {
                 if (map.containsKey(itemId)) {
@@ -706,7 +706,7 @@ public class PlayGameService extends BaseService {
             JSONObject reward = (JSONObject) o;
             int type = reward.getIntValue("type");
             String id = reward.getString("id");
-            int number = reward.getIntValue("number");
+            double number = reward.getDoubleValue("number");
             if (type == 1) {
                 if (id.equals(ItemIdEnum.GOLD.getValue()) || id.equals(ItemIdEnum.YYQ.getValue())) {
                     BigDecimal amount = reward.getBigDecimal("number");

@@ -41,9 +41,10 @@ if(!window.CtrlFn_${menuId}){
                     {data: "id", title: '用户平台ID', render: datatableUtil.renderNormal},
                     {data: "userNo", title: '用户ID', render: datatableUtil.renderNormal},
                     {data: "name", title: '昵称', render: datatableUtil.renderNormal},
-					{data: "isChannel", title: '实名', render: function(data, type, row, setting){
-                        return data == null ? '-' :isChannel[data];
-                    }},
+                    {data: "score1", title: '活动1积分', render: datatableUtil.renderNormal},
+                    {data: "score2", title: '活动2积分', render: datatableUtil.renderNormal},
+                    {data: "score3", title: '活动3积分', render: datatableUtil.renderNormal},
+					{data: "isChannel", title: '是否为渠道', render: datatableUtil.renderNormal},
                     {data: "parentNo", title: '上级id', render: datatableUtil.renderNormal},
 
   					{data: "realName", title: '真实姓名', render: datatableUtil.renderNormal},
@@ -63,12 +64,13 @@ if(!window.CtrlFn_${menuId}){
                     {data: "registTime", title: '注册时间', render: datatableUtil.renderTime},
                     {data: "lastLoginTime", title: '最后登录时间', render: datatableUtil.renderTime},
                     {data: "id", title: '操作', width: '160px', render: function(data, type, row, setting) {
-                        var _opearHtml = '<button class="btn waves-effect waves-light btn-primary btn-sm mr-2" ng-click="dctrl.gotoMenu(dctrl.getMenu(\'BanLoginLog\'), $event,{params:\'' + row.id + '\'})"><i class="ti-slice"></i>封禁日志</button>'
+                        var _opearHtml =  /*'<button class="btn waves-effect waves-light btn-primary btn-sm mr-2" ng-click="dctrl.gotoMenu(dctrl.getMenu(\'BanLoginLog\'), $event,{params:\'' + row.id + '\'})"><i class="ti-slice"></i>封禁日志</button>'
                             + '<button class="btn waves-effect waves-light btn-primary btn-sm mr-2" ng-click="dctrl.gotoMenu(dctrl.getMenu(\'PlayerManager\'), $event,{params:\'' + row.id + '\'})"><i class="ti-slice"></i>角色详情</button>'
-                            /* + '<button class="btn waves-effect waves-light btn-inverse btn-sm mr-2" ng-click="dctrl.gotoMenu(dctrl.getMenu(\'TreasureInfo\'), $event,{params:\'' + row.id + '\'})"><i class="ti-money"></i>资产详情</button>'*/
+                            + */'<button class="btn waves-effect waves-light btn-inverse btn-sm mr-2" ng-click="dctrl.gotoMenu(dctrl.getMenu(\'TreasureInfo\'), $event,{params:\'' + row.id + '\'})"><i class="ti-money"></i>资产详情</button>'
                             + '<button class="btn waves-effect waves-light btn-primary btn-sm mr-2" ng-click="dctrl.gotoMenu(dctrl.getMenu(\'BackpackInfo\'), $event,{params:\'' + row.id + '\'})"><i class="ti-money"></i>背包详情</button>'
                             /*  + '<button class="btn waves-effect waves-light btn-inverse btn-sm mr-2" ng-click="dctrl.gotoMenu(dctrl.getMenu(\'PetInfo\'), $event,{params:\'' + row.id + '\'})"><i class="ti-notepad"></i>神兽详情</button>'*/
-                             + '<button class="btn waves-effect waves-light btn-primary btn-sm mr-2" ng-click="${menuId}.updateRow(\'' + row.id + '\')"><i class="ti-slice"></i>修改</button>'
+                             + '<button class="btn waves-effect waves-light btn-primary btn-sm mr-2" ng-click="${menuId}.updateRow(\'' + row.id + '\')"><i class="ti-slice"></i>修改上级</button>'
+                            + '<button class="btn waves-effect waves-light btn-primary btn-sm mr-2" ng-click="${menuId}.updateRowActive(\'' + row.id + '\')"><i class="ti-slice"></i>增加活动积分</button>'
                             + '<button class="btn waves-effect waves-light btn-primary btn-sm mr-2" ng-click="${menuId}.updateRowChannel(\'' + row.id + '\')"><i class="ti-slice"></i>设置为渠道</button>';
                              /*
                              + '<button class="btn waves-effect waves-light btn-danger btn-sm mr-2" ng-click="${menuId}.amountRow(\'' + row.id + '\')"><i class="ti-money"></i>金币校正</button>'
@@ -333,6 +335,26 @@ if(!window.CtrlFn_${menuId}){
                 $('#${menuId}_rowModal').modal('show');
             }
         };
+
+        /*修改排行榜活动积分*/
+        me.updateRowActive = function(id){
+            var record = dataMap[id];
+            if(record) {
+                me.currentTpl = record;
+                me.currentTpl._title = record.id + ' - ' + (record.name || '');
+                me.currentTpl._errorMsg = null;
+                me.currentTpl.$type = 'edit';
+                $('#${menuId}_formEdit').find('input[name],select[name],textarea[name]').val('').trigger('change');
+                for(var key in record) {
+                    if(key == 'playerGiftFee' || key == 'playerTicketFee' || key == 'playerChargeFee' || key == 'playerGuardFee'){
+                        record[key] = record[key] == -1 ? null : record[key];
+                    }
+                    $('#${menuId}_formEdit').find('input[name="' + key + '"],select[name="' + key + '"],textarea[name="' + key + '"]').val(record[key]).trigger('change');
+                }
+                $('#${menuId}_rowModal_active').modal('show');
+            }
+        };
+
         /*修改设置为渠道*/
         me.updateRowChannel = function(id){
             var record = dataMap[id];
@@ -536,6 +558,38 @@ if(!window.CtrlFn_${menuId}){
                 me.saving = false;
             });
         };
+
+        /*修改积分*/
+        me.saveEditDataActive = function() {
+            if(me.saving) return;
+            let record = dataMap[me.currentTpl.id];
+            if(!record) {
+                toastr.error(command.message || '提交异常', '系统提示');
+                return;
+            }
+            var submitData = {
+                userId: record.id
+            };
+            $('#${menuId}_formEdit_active').find('input[name],select[name],textarea[name]').each(function(i, r) {
+                var _name = $(r).attr('name');
+                var _value = $(r).val() || null;
+                submitData[_name] = _value == null ? null : $.trim(_value);
+            });
+
+            me.saving = true;
+            websocketService.request('021123', submitData, function(command){
+                if(command.success){
+                    baseTable.ajax.reload(null, false);
+                    me.currentTpl = null;
+                    $('#${menuId}_rowModal_active').modal('hide');
+                } else {
+                    me.currentTpl._errorMsg = command.message || '';
+                    toastr.error(command.message || '提交异常', '系统提示');
+                }
+                me.saving = false;
+            });
+        };
+
         /*修改设置为渠道*/
         me.saveEditData_channel = function() {
             if(me.saving) return;

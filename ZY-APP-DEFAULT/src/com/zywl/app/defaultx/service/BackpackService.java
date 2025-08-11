@@ -35,7 +35,7 @@ public class BackpackService extends DaoService {
     }
 
     @Transactional
-    public int addBackpackInfo(Long itemId, int itemNumber, Long userId) {
+    public int addBackpackInfo(Long itemId, double itemNumber, Long userId) {
         Map<String, Object> params = new HashMap<>();
         params.put("userId", userId);
         params.put("itemId", itemId);
@@ -70,7 +70,7 @@ public class BackpackService extends DaoService {
 
     //玩家减少道具数量
     @Transactional
-    public int subItemNumber(Long userId, Long itemId, int number, LogUserBackpackTypeEnum em, int beforeNumber, Long id) {
+    public int subItemNumber(Long userId, Long itemId, double number, LogUserBackpackTypeEnum em, double beforeNumber, Long id) {
         Map<String, Object> params = new HashedMap<String, Object>();
         params.put("userId", userId);
         params.put("itemId", itemId);
@@ -84,7 +84,7 @@ public class BackpackService extends DaoService {
     }
 
     @Transactional
-    public int subItemNumber(Long userId, Long itemId, int number, LogUserBackpackTypeEnum em, int beforeNumber, Long id,String otherUserId) {
+    public int subItemNumber(Long userId, Long itemId, double number, LogUserBackpackTypeEnum em, double beforeNumber, Long id,String otherUserId) {
         Map<String, Object> params = new HashedMap<String, Object>();
         params.put("userId", userId);
         params.put("itemId", itemId);
@@ -112,7 +112,7 @@ public class BackpackService extends DaoService {
         return a;
     }
 
-    public void pushLog(Long userId, Long itemId, int numberBefore, int number, LogUserBackpackTypeEnum em) {
+    public void pushLog(Long userId, Long itemId, double numberBefore, double number, LogUserBackpackTypeEnum em) {
         JSONObject a = new JSONObject();
         a.put("logType", 2);
         a.put("userId", userId);
@@ -124,7 +124,7 @@ public class BackpackService extends DaoService {
 
     }
 
-    public void pushLog(Long userId, Long itemId, int numberBefore, int number, LogUserBackpackTypeEnum em,String otherUserId) {
+    public void pushLog(Long userId, Long itemId, double numberBefore, double number, LogUserBackpackTypeEnum em,String otherUserId) {
         JSONObject a = new JSONObject();
         a.put("logType", 2);
         a.put("userId", userId);
@@ -139,7 +139,7 @@ public class BackpackService extends DaoService {
 
     //玩家增加道具数量
     @Transactional
-    public int addItemNumber(Long userId, Long itemId, int number, LogUserBackpackTypeEnum em, int type, int beforeNumber, Long id) {
+    public int addItemNumber(Long userId, Long itemId, double number, LogUserBackpackTypeEnum em, int type, double beforeNumber, Long id) {
         int a = 0;
         if (type == 0) {
             //没有该道具 向背包种添加
@@ -158,7 +158,7 @@ public class BackpackService extends DaoService {
     }
 
     @Transactional
-    public int addItemNumber(Long userId, Long itemId, int number, LogUserBackpackTypeEnum em, int type, int beforeNumber, Long id,String fromUserId) {
+    public int addItemNumber(Long userId, Long itemId, double number, LogUserBackpackTypeEnum em, int type, double beforeNumber, Long id,String fromUserId) {
         int a = 0;
         if (type == 0) {
             //没有该道具 向背包种添加

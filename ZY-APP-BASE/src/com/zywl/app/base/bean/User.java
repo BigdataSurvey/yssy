@@ -17,7 +17,7 @@ public class User extends BaseBean{
 	
 	private Long grandfaId;
 
-	private Integer isChannel;
+	private int isChannel;
 
 	private Integer isChannel2;
 
@@ -473,11 +473,11 @@ public class User extends BaseBean{
 		this.roleId = roleId;
 	}
 
-	public Integer getIsChannel() {
+	public int getIsChannel() {
 		return isChannel;
 	}
 
-	public void setIsChannel(Integer isChannel) {
+	public void setIsChannel(int isChannel) {
 		this.isChannel = isChannel;
 	}
 

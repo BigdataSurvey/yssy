@@ -44,7 +44,6 @@ import java.util.stream.Collectors;
 public class ManagerGameBaseService extends BaseService {
 
 
-
     @Autowired
     private UserCapitalService userCapitalService;
 
@@ -277,6 +276,10 @@ public class ManagerGameBaseService extends BaseService {
             result.put("notice", managerConfigService.getString(Config.HOME_POPUP));
             result.put("exLim", managerConfigService.getDouble(Config.TRAD_MIN));
             result.put("exMax", managerConfigService.getDouble(Config.TRAD_MAX));
+            result.put("isShowTopList",managerConfigService.getInteger(Config.SHOW_TOP_LIST));
+            result.put("isShowActive1",managerConfigService.getInteger(Config.ACTIVE1));
+            result.put("isShowActive2",managerConfigService.getInteger(Config.ACTIVE2));
+            result.put("isShowActive3",managerConfigService.getInteger(Config.ACTIVE3));
             result.put("serverTime", System.currentTimeMillis());
             result.put("tableInfo", syncTableInfo(params));
             result.put("version", authService.getVersion().getVersionName());
@@ -600,7 +603,7 @@ public class ManagerGameBaseService extends BaseService {
         return getItemNumber(userId, itemId);
     }
 
-    public int getItemNumber(Long userId, String itemId) {
+    public double getItemNumber(Long userId, String itemId) {
         Map<String, Backpack> userBackpack = gameService.getUserBackpack(userId.toString());
         if (userBackpack.containsKey(itemId)) {
             return userBackpack.get(itemId).getItemNumber();
@@ -800,7 +803,7 @@ public class ManagerGameBaseService extends BaseService {
                     pushCapitalUpdate(userId, dicShop.getUseItemId().intValue());
                 }
             } else {
-                int userItemNumber = gameService.getUserItemNumber(userId, dicShop.getUseItemId().toString());
+                double userItemNumber = gameService.getUserItemNumber(userId, dicShop.getUseItemId().toString());
                 if (userItemNumber < number) {
                     throwExp(PlayGameService.itemMap.get(dicShop.getUseItemId().toString()).getName() + "不足");
                 } else {
@@ -915,7 +918,7 @@ public class ManagerGameBaseService extends BaseService {
     }
 
 
-    public void pushBackpackUpdate(Long userId, String id, int number, int type) {
+    public void pushBackpackUpdate(Long userId, String id, double number, int type) {
         JSONObject pushData = new JSONObject();
         pushData.put("userId", userId);
         JSONArray array = new JSONArray();
@@ -955,23 +958,25 @@ public class ManagerGameBaseService extends BaseService {
     public Object queryChannelIncome(ManagerSocketServer adminSocketServer, Command webCommand, JSONObject params) {
         checkNull(params);
         checkNull(params.get("userId"));
-        Long userId = params.getLong("userId");
-        //User user = userCacheService.getUserInfoById(userId);
-        //查询当前渠道收益信息
-        UserStatistic userStatistic = userStatisticService.findByUserId(userId);
-        BigDecimal nowChannelIncome = userStatistic.getNowChannelIncome();
+        String userId = params.getString("userId");
+        synchronized (LockUtil.getlock(userId)) {
+            //User user = userCacheService.getUserInfoById(userId);
+            //查询当前渠道收益信息
+            UserStatistic userStatistic = userStatisticService.findByUserId(Long.valueOf(userId));
+            BigDecimal nowChannelIncome = userStatistic.getNowChannelIncome();
             //检查是否有可领取的收益
-            if(nowChannelIncome != null && nowChannelIncome.compareTo(BigDecimal.ZERO) > 0){
-                //将当前收益领取累加到渠道收益中
-                BigDecimal channelIncome = userStatistic.getChannelIncome() == null ? BigDecimal.ZERO : userStatistic.getChannelIncome();
+            if (nowChannelIncome != null && nowChannelIncome.compareTo(BigDecimal.ZERO) > 0) {
                 //保存更新
-                userCapitalService.addUserBalanceByReceiveFriend(channelIncome, Long.parseLong(String.valueOf(userId)), null, null);
+                userCapitalService.addUserBalanceByReceiveFriend(nowChannelIncome, Long.parseLong(userId), null, null);
                 pushCapitalUpdate(Long.valueOf(userId), UserCapitalTypeEnum.currency_2.getValue());
                 userStatisticService.updateStaticChannel(userStatistic);
                 //return true;
+            } else {
+                throwExp("没有可以领取的收益");
             }
 
-        return new JSONObject();
+            return new JSONObject();
+        }
     }
 
 

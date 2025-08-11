@@ -947,9 +947,9 @@ public class UserService extends DaoService {
         return execute("isChannelMaster", params);
     }
 
-    public User getValidById(Long userId) {
+    public User getValidById(String channelNo) {
         Map<String, Object> params = new HashMap<>();
-        params.put("userId", userId);
+        params.put("channelNo",channelNo);
         return (User) findOne("getValidById", params);
     }
 

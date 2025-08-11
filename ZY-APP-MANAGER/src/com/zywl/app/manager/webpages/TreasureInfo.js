@@ -7,7 +7,7 @@ if(!window.CtrlFn_${menuId}){
         let baseTable = null;
         $scope.searchModel = {userId:'',userName:'',userNo:'',startDate:'', endDate:''};
         me.queryParam = $stateParams.params;
-        let capitalType = {'1':'铜钱', '2':'灵石', '3': '仙晶', '4': '余额'};
+        let capitalType = {'1':'废弃', '2':'通宝', '3': '游园券', '4': '废弃'};
         /*初始化表格*/
         function initTable() {
             baseTable = datatableUtil.init('#${menuId}_baseTable', {

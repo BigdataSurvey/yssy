@@ -69,9 +69,6 @@ public class ManagerRedEnvelopeService extends BaseService {
     private ManagerConfigService managerConfigService;
 
     @Autowired
-    private ManagerRedPositionService  managerRedPositionService;
-
-    @Autowired
     private RedPositionService redPositionService;
 
 
@@ -282,7 +279,7 @@ public class ManagerRedEnvelopeService extends BaseService {
             RecordSheet recordSheet = recordSheetService.addRecord(userId, orderNo, getAmount, user.getName(), Long.valueOf(redId),nowIndex==redBean.getBombIndex()?1:0,user.getHeadImageUrl(),redBean.getTotalAmount());
             byRedId.add(recordSheet);
             //增加玩家余额
-            if (getAmount.compareTo(BigDecimal.ZERO)==0){
+            if (getAmount.compareTo(new BigDecimal("0.01"))<0){
                 getAmount = new BigDecimal("0.01");
             }
             userCapitalService.addUserBalanceByGetRed(getAmount,userId,orderNo,recordSheet.getId());
@@ -296,6 +293,7 @@ public class ManagerRedEnvelopeService extends BaseService {
             //推送玩家余额变动
             managerGameBaseService.pushCapitalUpdate(userId,UserCapitalTypeEnum.currency_2.getValue());
             redBean.setNowIndex(redBean.getNowIndex()+1);
+            redBean.setSurplusAmount(redBean.getSurplusAmount().subtract(getAmount));
             if (redBean.getNowIndex()==redBean.getTotalNumber()){
                 redBean.setStatus(0);
                 //这是最后一个人抢  从map中移除

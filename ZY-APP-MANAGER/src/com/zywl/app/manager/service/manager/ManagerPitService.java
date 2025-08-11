@@ -91,24 +91,28 @@ public class ManagerPitService extends BaseService {
             userCapitalService.subUserBalanceByOpenPit(userId, PlayGameService.DIC_PIT.get(pitId).getPrice());
             managerGameBaseService.pushCapitalUpdate(userId, UserCapitalTypeEnum.currency_2.getValue());
             int i = userPitService.insertUserPit(jsonObject);
-            addActiveScore(userId, pitId);
+            Long otherPitId = 0L;
+            if (pitId.equals("1")){
+                otherPitId=2L;
+            }else {
+                otherPitId=1L;
+            }
+            List<UserPit> pitList = userPitService.findPitList(userId, otherPitId);
+            if (pitList.size()>0){
+                addActiveScore(userId);
+            }
             return i;
         }
     }
 
-    public void addActiveScore(Long userId, String pitId) {
+    public void addActiveScore(Long userId) {
         Activity activity = gameCacheService.getActivity();
         if (activity == null) {
             return;
         }
-        double score = 5.0;
-        if (pitId.equals("1")) {
-            score = 10.0;
-        }
+        double score = 10.0;
         if (activity.getAddPointEvent() == 4) {
-            User user = userCacheService.getUserInfoById(userId);
             PitUserParent pitUserParent = pitUserParentService.findParentByUserId(userId);
-            //  gameCacheService.addPointMySelf(userId,getScore(dicMine));
             if (pitUserParent.getPitParentId() != null) {
                 gameCacheService.addPointMySelf(pitUserParent.getPitParentId(), score);
             }
@@ -156,9 +160,9 @@ public class ManagerPitService extends BaseService {
                 int start = PlayGameService.DIC_PIT.get(userPit.getPitId().toString()).getMinCount();      // 起始值
                 int increment = 1;   // 每次递增的值
                 int steps = (int) diffLastReceiveTime;// 递增次数
-                Map<String, Integer> numberMap = new HashMap<>();
+                Map<String, Double> numberMap = new HashMap<>();
                 for (int i = 0; i < steps; i++) {
-                    int currentValue = start + (i * increment);
+                    double currentValue = start + (i * increment);
                     Integer a = i + 1;
                     numberMap.put(a + "", currentValue);
                 }
@@ -166,13 +170,13 @@ public class ManagerPitService extends BaseService {
                 if (userPit.getUnReceive() != null) {
                     for (Object o : userPit.getUnReceive()) {
                         JSONObject reward = (JSONObject) o;
-                        Integer number = reward.getIntValue("number");
+                        double number = reward.getDoubleValue("number");
                         long needCount = diffLastReceiveTime - diffLastLookTime;
                         Integer b = Math.toIntExact(needCount + 1);
-                        Integer startNumber = numberMap.get(b + ""); //继续新增的起始值
-                        Integer sumNumber = 0;    // 累加总和
+                        Double startNumber = numberMap.get(b + ""); //继续新增的起始值
+                        double sumNumber = 0;    // 累加总和
                         for (int i = 0; i < diffLastLookTime; i++) {
-                            sumNumber += startNumber + i; // 依次累加 95, 96, 97, 98, 99
+                            sumNumber += startNumber + i*PlayGameService.DIC_PIT.get("1").getDayAddCount(); // 依次累加 95, 96, 97, 98, 99
                         }
                         //赋值未领取收益
                         reward.put("number", number + sumNumber);
@@ -223,7 +227,7 @@ public class ManagerPitService extends BaseService {
                 JSONObject newUserPit = (JSONObject) o;
                 info.put("type", newUserPit.getIntValue("type"));
                 info.put("id", newUserPit.getIntValue("id"));
-                info.put("number", newUserPit.getIntValue("number"));
+                info.put("number", newUserPit.getDoubleValue("number"));
                 reward.add(info);
                 String id = newUserPit.getString("id");
                 int number = newUserPit.getIntValue("number");

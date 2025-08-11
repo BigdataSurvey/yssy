@@ -17,7 +17,7 @@ public class DicPit extends BaseBean {
     private Integer days;
 
     private int minCount;
-    private Integer dayAddCount;
+    private double dayAddCount;
 
     public Integer getId() {
         return id;
@@ -51,11 +51,11 @@ public class DicPit extends BaseBean {
         this.days = days;
     }
 
-    public Integer getDayAddCount() {
+    public double getDayAddCount() {
         return dayAddCount;
     }
 
-    public void setDayAddCount(Integer dayAddCount) {
+    public void setDayAddCount(double dayAddCount) {
         this.dayAddCount = dayAddCount;
     }
 
