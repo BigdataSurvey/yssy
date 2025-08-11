@@ -41,7 +41,7 @@ public class Http {
         reqs.put("sign", sign);
         System.out.println("【加密后map】：" + reqs);
 
-        List<NameValuePair> nameValuePairList = new ArrayList<NameValuePair>();
+        List<NameValuePair> nameValuePairList = new ArrayList<>();
 
         for (String key : reqs.keySet()) {
             Object value = reqs.get(key);
