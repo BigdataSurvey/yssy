@@ -165,6 +165,10 @@ public class Config extends BaseBean {
 
 	public static final String HOME_POPUP= "HOME_POPUP";
 
+	public static final String ACTIVE1= "ACTIVE1";
+	public static final String ACTIVE2= "ACTIVE2";
+	public static final String ACTIVE3= "ACTIVE3";
+
 	public static final String APP_VERSION= "APP_VERSION";
 
 

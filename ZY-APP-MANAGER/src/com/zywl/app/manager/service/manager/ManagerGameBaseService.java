@@ -274,6 +274,9 @@ public class ManagerGameBaseService extends BaseService {
             result.put("userCapitals", userCapitals);
             result.put("alipayAuth", user.getAlipayId() == null ? 0 : 1);
             result.put("notice", managerConfigService.getString(Config.HOME_POPUP));
+            result.put("active1", managerConfigService.getString(Config.ACTIVE1));
+            result.put("active2", managerConfigService.getString(Config.ACTIVE2));
+            result.put("active3", managerConfigService.getString(Config.ACTIVE3));
             result.put("exLim", managerConfigService.getDouble(Config.TRAD_MIN));
             result.put("exMax", managerConfigService.getDouble(Config.TRAD_MAX));
             result.put("isShowTopList",managerConfigService.getInteger(Config.SHOW_TOP_LIST));
