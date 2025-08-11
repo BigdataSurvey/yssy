@@ -52,6 +52,59 @@
                 #{nowChannelIncome})
     </insert>
 
+    <insert id="addStatisticInfo" parameterType="UserStatistic" useGeneratedKeys="true" keyProperty="id" keyColumn="id">
+        insert into t_user_statistic
+        (`user_id`,
+         `acquire_rmb`,
+         `cash_rmb`,
+         `cash_times`,
+         `acquire_money`,
+         `expend_money`,
+         `advert_times`,
+         `login_times`,
+         `one_junior_num`,
+         `two_junior_num`,
+         `create_sw`,
+         `create_anima`,
+         `create_anima2`,
+         `create_grandfa_anima`,
+         `create_grandfa_anima2`,
+         `get_anima`,
+         `get_anima2`,
+         `create_income`,
+         `create_grandfa_income`,
+         `get_income`,
+         `get_all_income`,
+         `channel_income`,
+         `now_channel_income`)
+        values (#{userId},
+                #{acquireRmb},
+                #{cashRmb},
+                #{cashTimes},
+                #{acquireMoney},
+                #{expendMoney},
+                #{advertTimes},
+                #{loginTimes},
+                #{oneJuniorNum},
+                #{twoJuniorNum},
+                #{createSw},
+                #{createAnima},
+                #{createAnima2},
+                #{createGrandfaAnima},
+                #{createGrandfaAnima2},
+                #{getAnima},
+                #{getAnima2},
+                #{createIncome},
+                #{createGrandfaIncome},
+                #{getIncome},
+                #{getAllIncome},
+                #{channelIncome},
+                #{nowChannelIncome})
+    </insert>
+
+
+
+
 
     <select id="findOne" resultType="UserStatistic">
         select *
@@ -59,8 +112,17 @@
         where id = #{id}
     </select>
 
+
+    <!-- TODO -->
     <select id="findOneByUserId" resultType="UserStatistic">
         select *
+        from t_user_statistic
+        where user_id = #{userId}
+    </select>
+
+    <!-- 查询收益-->
+    <select id="findEarningByUserId" resultType="UserStatistic">
+        select channel_income,now_channel_income
         from t_user_statistic
         where user_id = #{userId}
     </select>
@@ -256,6 +318,26 @@
         where user_id=#{userId}
     </update>
 
+    <!-- TODO -->
+    <update id="updateStaticChannel" parameterType="UserStatistic">
+        UPDATE t_user_statistic
+        SET
+            channel_income += now_channel_income,
+            now_channel_income = 0
+        WHERE
+            user_id = #{userId}
+    </update>
+
+    <update id="addNoChannelIncome" parameterType="UserStatistic">
+        UPDATE t_user_statistic
+        SET
+
+            now_channel_income = now_channel_income+#{addIncome}
+        WHERE
+            id = #{userId}
+    </update>
+
+
 
     <update id="updateStatic" parameterType="UserStatistic">
         update t_user_statistic
@@ -361,4 +443,16 @@
         from t_user_statistic
         where one_junior_num+two_junior_num > 20
     </select>
+
+
+
+
+    <update id="updateNowChannelIncome" parameterType="UserStatistic">
+
+        UPDATE t_user_statistic
+        SET
+            now_channel_income = now_channel_income + now_channel_income
+        WHERE id = #{userId}
+    </update>
+
 </mapper>

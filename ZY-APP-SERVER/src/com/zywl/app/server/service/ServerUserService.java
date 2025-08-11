@@ -246,6 +246,8 @@ public class ServerUserService extends BaseService {
         return async();
     }
 
+
+
   /*  @ServiceMethod(code = "week", description = "周卡")
     public Object week(final AppSocket appSocket, Command appCommand, JSONObject params) {
         checkNull(params);
@@ -271,6 +273,16 @@ public class ServerUserService extends BaseService {
         Long userId = appSocket.getWsidBean().getUserId();
         params.put("userId",userId);
         Executer.request(TargetSocketType.manager, CommandBuilder.builder().request("100044", params).build(),
+                new RequestManagerListener(appCommand));
+        return async();
+    }
+
+    @ServiceMethod(code = "016", description = "领取渠道奖励")
+    public Object receiveAward(final AppSocket appSocket, Command appCommand, JSONObject params) {
+        checkNull(params);
+        Long userId = appSocket.getWsidBean().getUserId();
+        params.put("userId",userId);
+        Executer.request(TargetSocketType.manager, CommandBuilder.builder().request("100124", params).build(),
                 new RequestManagerListener(appCommand));
         return async();
     }

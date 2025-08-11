@@ -101,7 +101,8 @@ if(!window.CtrlFn_${menuId}){
             GAME_DTS_KILL_RATE:"大逃杀奇怪的概率",
             GAME_LHD_KILL_RATE:"2杀1奇怪的概率",
             RED_NUMBER:"红包瓜分个数",
-            RED_SEND_COUNT:"踩雷发包次数"
+            RED_SEND_COUNT:"踩雷发包次数",
+            CHANNEL_RATE:"渠道返利比例"
         };
         /*初始化表格*/
         function initTable() {

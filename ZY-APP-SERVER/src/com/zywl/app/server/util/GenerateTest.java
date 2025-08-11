@@ -1,6 +1,7 @@
 package com.zywl.app.server.util;
 
 
+import cn.hutool.core.text.CharSequenceUtil;
 import com.alipay.api.domain.Person;
 
 import java.io.BufferedWriter;
@@ -83,6 +84,8 @@ public class GenerateTest {
         public String getName() { return name; }
         public String getType() { return type; }
         public String getComment() { return comment; }
+
+
     }
 
     // 生成实体类代码
@@ -94,8 +97,33 @@ public class GenerateTest {
             sb.append("package ").append(packageName).append(";\n\n");
         }
 
+        // 生成构造方法
+        sb.append("    public ").append(className).append("() {\n");
+        sb.append("        super();\n");
+        sb.append("    }\n\n");
+
+
         // 添加必要的导入
-        sb.append("import lombok.Data;\n\n");
+        //sb.append("import lombok.Data;\n\n");
+//        // 生成getter和setter方法
+//        for (Field field : fields) {
+//            String[] parts = field.toString().trim().split("\\s+");
+//            if (parts.length >= 2) {
+//                String type = parts[0];
+//                String name = parts[1];
+//                String capitalizedName = name.substring(0, 1).toUpperCase() + name.substring(1);
+//
+//                // Getter
+//                sb.append("    public ").append(type).append(" get").append(capitalizedName).append("() {\n");
+//                sb.append("        return this.").append(name).append(";\n");
+//                sb.append("    }\n\n");
+//
+//                // Setter
+//                sb.append("    public void set").append(capitalizedName).append("(").append(type).append(" ").append(name).append(") {\n");
+//                sb.append("        this.").append(name).append(" = ").append(name).append(";\n");
+//                sb.append("    }\n\n");
+//            }
+//        }
 
         // 添加类注释
         sb.append("/**\n");

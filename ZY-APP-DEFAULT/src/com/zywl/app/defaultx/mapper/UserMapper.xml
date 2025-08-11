@@ -210,6 +210,9 @@
 		update t_user set points=points-#{points}
 		where  id= #{userId}   and points = #{old}            and status=1
 	</update>
+
+
+
 	
 	<update id="updateCourierInfo" parameterType="User">
 		update t_user set courier_name=#{courierName},courier_phone=#{courierPhone},courier_address=#{courierAddress}
@@ -254,6 +257,11 @@
 	<select id="findOneByOpenId" resultType="User">
 	    select * from t_user where open_id = #{openId} 
 	</select>
+
+	<select id="findOneByParentId" resultType="User">
+		select * from t_user where parent_id = #{userId}
+	</select>
+
 	<select id="findAll" resultType="User">
 	    select * from t_user
 	</select>
@@ -263,6 +271,15 @@
 
 	<update id="updateIsCash" parameterType="User">
 		update t_user set is_cash=1
+		where  id= #{userId}
+	</update>
+
+	<!-- TODO 修改为状态为1 -->
+	<update id="updateIsChannelStatu" parameterType="User">
+		update t_user
+		set
+		    is_channel = 1,
+			channel_no = user_no
 		where  id= #{userId}
 	</update>
 	
@@ -597,6 +614,21 @@
 	<update id="updateUserChannelNo" parameterType="User">
 		update t_user set channel_no =  #{channelNo}  where id=#{userId}
 	</update>
+
+
+
+	<select id="isChannelMaster" resultType="User">
+		SELECT * FROM t_user WHERE id = #{userId} AND status = 1
+	</select>
+
+	<select id="getValidById" resultType="User">
+		select * from t_user
+		where is_channel > 0  and channel_no=#{channelNo} and status = 1
+	</select>
+
+
+
+
 	<update id="updateUserCNo" parameterType="User">
 		update t_user set cno =  #{cno}  where id=#{userId}
 	</update>

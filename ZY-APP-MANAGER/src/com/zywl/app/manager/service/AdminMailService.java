@@ -505,6 +505,8 @@ public class AdminMailService extends BaseService {
         return new Object();
     }
 
+
+
     @ServiceMethod(code = "024", description = "解散公会")
     public Object dissGuild(AdminSocketServer adminSocketServer, Command webCommand, JSONObject params) {
         checkNull(params);
@@ -1271,6 +1273,19 @@ public class AdminMailService extends BaseService {
         }
         Long dataId = guildService.applyAddGuild(user.getName(), userId, 1, BigDecimal.ZERO, 2);
         userCapitalService.subUserBalanceByGuild(userId, BigDecimal.ZERO, dataId);*/
+        return new JSONObject();
+    }
+
+    @ServiceMethod(code = "122", description = "修改用户信息渠道状态")
+    public Object modifyUserChannel(AdminSocketServer adminSocketServer, Command webCommand, JSONObject params) {
+        checkNull(params);
+        checkNull(params.get("userId"));
+        checkAuth(adminSocketServer);
+        Long userId = params.getLong("userId");
+        User user = userCacheService.getUserInfoById(userId);
+        JSONObject content = new JSONObject();
+        content.put("id", user.getId());
+        userService.updateIsChannel(userId);
         return new JSONObject();
     }
 
