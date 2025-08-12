@@ -102,7 +102,12 @@ if(!window.CtrlFn_${menuId}){
             GAME_LHD_KILL_RATE:"2杀1奇怪的概率",
             RED_NUMBER:"红包瓜分个数",
             RED_SEND_COUNT:"踩雷发包次数",
-            CHANNEL_RATE:"渠道返利比例"
+            CHANNEL_RATE:"渠道返利比例",
+            SHOW_TOP_LIST:"是否显示排行榜",
+            ACTIVE1:"是否显示限时活动1",
+            ACTIVE2:"是否显示限时活动2",
+            ACTIVE3:"是否显示限时活动3",
+            RED_RATE:"红包消耗比例"
         };
         /*初始化表格*/
         function initTable() {

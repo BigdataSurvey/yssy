@@ -303,7 +303,7 @@ public class TaskService extends BaseService {
                         }
                     }
                     Activity activityByTime2 = activityService2.findActivity2ByTime();
-                    Activity lastActive2 = activityService2.findById(activityByTime.getId() - 1);
+                    Activity lastActive2 = activityService2.findById(activityByTime2.getId() - 1);
                     long activeTime2 = activityByTime2.getBeginTime().getTime();
                     logger.info("本期活动2开启时间"+activeTime2);
                     if ((System.currentTimeMillis() - activeTime2)/1000 <10 ){

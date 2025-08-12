@@ -184,7 +184,7 @@ public class UserStatisticService extends DaoService{
 		Map<String, Object> params = new HashedMap<String, Object>();
 		params.put("userId",userId);
 		params.put("addIncome",addIncome);
-		return execute("addChannelIncome",params);
+		return execute("addNowChannelIncome",params);
 	}
 
 	public int updateUserCreateGrandfaAnima(Long userId,BigDecimal anima){

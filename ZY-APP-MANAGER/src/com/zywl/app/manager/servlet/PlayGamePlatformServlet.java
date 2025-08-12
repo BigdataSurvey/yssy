@@ -187,7 +187,7 @@ public class PlayGamePlatformServlet extends BaseServlet {
 		if (parent==null){
 			return;
 		}
-		if (parent.getIsChannel()!=null && parent.getIsChannel()==1){
+		if ( parent.getIsChannel()==1){
 			amount = amount.multiply(new BigDecimal("0.3")).setScale(2,BigDecimal.ROUND_DOWN);
 		}else{
 			amount = amount.multiply(new BigDecimal("0.2")).setScale(2,BigDecimal.ROUND_DOWN);

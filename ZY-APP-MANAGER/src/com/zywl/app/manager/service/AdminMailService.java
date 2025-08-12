@@ -7,6 +7,7 @@ import com.live.app.ws.bean.Command;
 import com.live.app.ws.enums.PushCode;
 import com.live.app.ws.util.Push;
 import com.zywl.app.base.bean.*;
+import com.zywl.app.base.bean.card.DicMine;
 import com.zywl.app.base.bean.vo.BackpackVo;
 import com.zywl.app.base.bean.vo.TsgPayOrderVo;
 import com.zywl.app.base.constant.RedisKeyConstant;
@@ -49,6 +50,8 @@ public class AdminMailService extends BaseService {
     private ItemCacheService itemCacheService;
     @Autowired
     private ApplyForService applyForService;
+    @Autowired
+    private GameCacheService gameCacheService;
     @Autowired
     private UserCacheService userCacheService;
     @Autowired
@@ -506,7 +509,6 @@ public class AdminMailService extends BaseService {
     }
 
 
-
     @ServiceMethod(code = "024", description = "解散公会")
     public Object dissGuild(AdminSocketServer adminSocketServer, Command webCommand, JSONObject params) {
         checkNull(params);
@@ -728,6 +730,7 @@ public class AdminMailService extends BaseService {
         data.put("count", count);
         return data;
     }
+
     /**
      * 使用Java8的Stream API实现分页
      *
@@ -743,7 +746,7 @@ public class AdminMailService extends BaseService {
         // 起始位置
         int start = pageNum <= 0 ? 0 : (pageNum > pages ? (pages - 1) * pageSize : (pageNum - 1) * pageSize);
         // 终止位置
-        int end = pageSize ;
+        int end = pageSize;
         return list.stream().skip(start).limit(pageSize).collect(Collectors.toList());
     }
 
@@ -755,13 +758,12 @@ public class AdminMailService extends BaseService {
         String itemId = ItemIdEnum.WFSB.getValue();
         List<BackpackVo> backpackTopList = backpackService.getBackpackTopList(itemId);
         backpackTopList.sort(((o1, o2) -> (o1.getNumber() - o2.getNumber()) < 0 ? 1 : -1));
-        List<?> objects = subListJava8(backpackTopList, limit, page );
+        List<?> objects = subListJava8(backpackTopList, limit, page);
         JSONObject data = new JSONObject();
         data.put("list", objects);
         data.put("count", backpackTopList.size());
         return data;
     }
-
 
 
     @ServiceMethod(code = "070", description = "查询角色信息")
@@ -1232,13 +1234,36 @@ public class AdminMailService extends BaseService {
         for (User user : list) {
             JSONObject obj = (JSONObject) JSON.toJSON(user);
             obj.put("online", managerSocketService.getUserOnlineInfo(user.getId().toString()) != null);
-            if (user.getParentId()!=null){
+            if (user.getParentId() != null) {
                 User parent = userCacheService.getUserInfoById(user.getParentId());
-                obj.put("parentNo",parent.getUserNo());
-            }else {
-                obj.put("parentNo","无上级");
+                obj.put("parentNo", parent.getUserNo());
+            } else {
             }
             obj.remove("password");
+            for (int i = 1; i <= 3; i++) {
+                Activity activity = getActivity(i);
+                Double score;
+                if (i == 1) {
+                    if (activity!=null){
+                        score = gameCacheService.getUserTopScore(String.valueOf(user.getId()), activity.getId());
+                    }else {
+                        score=0.0;
+                    }
+                } else if (i == 2) {
+                    if (activity!=null){
+                        score = gameCacheService.getUserTopScore2(String.valueOf(user.getId()), activity.getId());
+                    }else {
+                        score=0.0;
+                    }
+                } else {
+                    if (activity!=null){
+                        score = gameCacheService.getUserTopScore3(String.valueOf(user.getId()), activity.getId());
+                    }else {
+                        score=0.0;
+                    }
+                }
+                obj.put("score"+i,score==null?0.0:score);
+            }
             array.add(obj);
         }
 
@@ -1260,10 +1285,10 @@ public class AdminMailService extends BaseService {
 
         User user = userCacheService.getUserInfoById(userId);
         User parent = userCacheService.getUserInfoByUserNo(newParentNo);
-        if (parent==null){
+        if (parent == null) {
             throwExp("新的上级不存在");
         }
-        userService.updateUserParent(userId,parent.getId(),parent.getParentId());
+        userService.updateUserParent(userId, parent.getId(), parent.getParentId());
         /*Map<String, Object> queryObj = new HashMap<>();
         queryObj.put("userId", userId);
         queryObj.put("status", 2);
@@ -1287,6 +1312,37 @@ public class AdminMailService extends BaseService {
         content.put("id", user.getId());
         userService.updateIsChannel(userId);
         return new JSONObject();
+    }
+
+    public Activity getActivity(int activeNo) {
+        if (activeNo == 1) {
+            return gameCacheService.getActivity();
+        } else if (activeNo == 2) {
+            return gameCacheService.getActivity2();
+        } else {
+            return gameCacheService.getActivity3();
+        }
+    }
+
+    @ServiceMethod(code = "123", description = "修改用户活动积分")
+    public Object updateUserActiveScore(AdminSocketServer adminSocketServer, Command webCommand, JSONObject params) {
+        checkNull(params);
+        checkNull(params.get("userId"));
+        checkAuth(adminSocketServer);
+        Long userId = params.getLong("userId");
+        int activeNo = params.getIntValue("activeNo");
+        int score = params.getIntValue("score");
+        User user = userCacheService.getUserInfoById(userId);
+        if (activeNo == 1) {
+            gameCacheService.addPointMySelf(userId, score);
+        } else if (activeNo == 2) {
+            gameCacheService.addPoint2MySelf(userId, score);
+        } else {
+            gameCacheService.addPointMySelf3(userId, score);
+        }
+        JSONObject content = new JSONObject();
+        content.put("id", user.getId());
+        return content;
     }
 
 

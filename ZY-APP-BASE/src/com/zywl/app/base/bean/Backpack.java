@@ -13,7 +13,7 @@ public class Backpack extends BaseBean{
 	
 	private Long itemId;
 	
-	private Integer itemNumber;
+	private double itemNumber;
 	
 	private Date createTime;
 	
@@ -43,11 +43,11 @@ public class Backpack extends BaseBean{
 		this.itemId = itemId;
 	}
 
-	public Integer getItemNumber() {
+	public double getItemNumber() {
 		return itemNumber;
 	}
 
-	public void setItemNumber(Integer itemNumber) {
+	public void setItemNumber(double itemNumber) {
 		this.itemNumber = itemNumber;
 	}
 
