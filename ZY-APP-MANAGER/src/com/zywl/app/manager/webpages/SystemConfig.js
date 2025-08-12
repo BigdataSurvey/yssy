@@ -106,7 +106,8 @@ if(!window.CtrlFn_${menuId}){
             SHOW_TOP_LIST:"是否显示排行榜",
             ACTIVE1:"是否显示限时活动1",
             ACTIVE2:"是否显示限时活动2",
-            ACTIVE3:"是否显示限时活动3"
+            ACTIVE3:"是否显示限时活动3",
+            RED_RATE:"红包消耗比例"
         };
         /*初始化表格*/
         function initTable() {

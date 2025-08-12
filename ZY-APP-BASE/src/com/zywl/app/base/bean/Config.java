@@ -12,6 +12,7 @@ public class Config extends BaseBean {
 	public static final String ACTIVE3 = "ACTIVE3";
 	public static final String SHOW_TOP_LIST = "SHOW_TOP_LIST";
 	public static final String RED_SEND_COUNT = "RED_SEND_COUNT";
+	public static final String RED_RATE = "RED_RATE";
 
 	public static final String CHANNEL_RATE = "CHANNEL_RATE";
 
@@ -165,9 +166,6 @@ public class Config extends BaseBean {
 
 	public static final String HOME_POPUP= "HOME_POPUP";
 
-	public static final String ACTIVE1= "ACTIVE1";
-	public static final String ACTIVE2= "ACTIVE2";
-	public static final String ACTIVE3= "ACTIVE3";
 
 	public static final String APP_VERSION= "APP_VERSION";
 
