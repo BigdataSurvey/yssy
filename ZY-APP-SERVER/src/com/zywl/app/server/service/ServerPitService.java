@@ -98,7 +98,6 @@ public class ServerPitService extends BaseService {
         throwExp("不支持取消开通");
         return new JSONObject();
     }
-    @Transactional
     @ServiceMethod(code = "006", description = "领取记录")
     public Object receiveRecord(final AppSocket appSocket, Command appCommand, JSONObject params) {
         checkNull(params);
@@ -107,7 +106,6 @@ public class ServerPitService extends BaseService {
                 new RequestManagerListener(appCommand));
         return async();
     }
-    @Transactional
     @ServiceMethod(code = "007", description = "直接矿工")
     public Object getSuborList(final AppSocket appSocket, Command appCommand, JSONObject params) {
         checkNull(params);
@@ -117,12 +115,19 @@ public class ServerPitService extends BaseService {
         return async();
     }
 
-    @Transactional
     @ServiceMethod(code = "008", description = "直接矿工")
     public Object getIndirSuborList(final AppSocket appSocket, Command appCommand, JSONObject params) {
         checkNull(params);
         params.put("userId", appSocket.getWsidBean().getUserId());
         Executer.request(TargetSocketType.manager, CommandBuilder.builder().request("9010008", params).build(),
+                new RequestManagerListener(appCommand));
+        return async();
+    }
+    @ServiceMethod(code = "009", description = "搜索上级")
+    public Object selectParent(final AppSocket appSocket, Command appCommand, JSONObject params) {
+        checkNull(params);
+        params.put("userId", appSocket.getWsidBean().getUserId());
+        Executer.request(TargetSocketType.manager, CommandBuilder.builder().request("9010009", params).build(),
                 new RequestManagerListener(appCommand));
         return async();
     }
