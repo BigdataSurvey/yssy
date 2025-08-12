@@ -326,7 +326,7 @@ public class SGService extends BaseService {
         String userId = data.getString("userId");
         users.add(userId);
         JSONObject returnInfo = getReturnInfo();
-        returnInfo.put("myBetInfo", getMyBtBet("1",userId));
+        returnInfo.put("myBetInfo", getMyBtBet(userId));
         return returnInfo;
     }
 
@@ -353,6 +353,29 @@ public class SGService extends BaseService {
             }
         }
         return btBetInfo;
+    }
+
+    public  Map<String,Map<String, Map<String, BigDecimal>>> getMyBtBet(String userId) {
+        Map<String,Map<String, Map<String, BigDecimal>>> newBtBetInfo = new ConcurrentHashMap<>();
+        for (Map.Entry<String, Map<String, Map<String, BigDecimal>>> twEntry : btBetInfo.entrySet()) {
+
+            Map<String, Map<String, BigDecimal>> bookMap = twEntry.getValue();
+
+            for (Map.Entry<String, Map<String, BigDecimal>> bookBetEntry : bookMap.entrySet()) {
+
+                Map<String, BigDecimal> userMap = bookBetEntry.getValue();
+
+                for (Map.Entry<String, BigDecimal> userEntry : userMap.entrySet()) {
+
+                    String userKey = userEntry.getKey();
+                    if (userKey.equals(userId)){
+                        newBtBetInfo.put(twEntry.getKey(),bookMap);
+                        return newBtBetInfo;
+                    }
+                }
+            }
+        }
+        return null;
     }
 
     @Transactional
@@ -454,70 +477,6 @@ public class SGService extends BaseService {
         }
     }
 
-    @Transactional
-    @ServiceMethod(code = "103", description = "用户参与投入")
-    public Object play(SGService adminSocketServer, Command lotteryCommand, JSONObject data) {
-        checkNull(data);
-        checkNull(data.get("userId"), data.get("bet"), data.get("betAmount"));
-        String userId = data.getString("userId");
-        String bet = data.getString("bet");
-        BigDecimal amount = data.getBigDecimal("betAmount");
-        if (Integer.parseInt(bet) < 0 || Integer.parseInt(bet) > 4) {
-            throwExp("非法请求");
-        }
-        synchronized (LockUtil.getlock(userId)) {
-            if (STATUS == 0) {
-                throwExp("游戏即将维护，暂时不能进行游戏！");
-            }
-            if (GAME_STATUS == LotteryGameStatusEnum.settle.getValue()) {
-                throwExp("上局结算中,请等待结算完成重新参与 ~");
-            }
-            if (GAME_STATUS != LotteryGameStatusEnum.ready.getValue() && endTime != 0L && endTime - System.currentTimeMillis() < 2000) {
-                throwExp("本局即将结束，请稍后参与 ~");
-            }
-
-            //处理内存信息
-            Map<String, BigDecimal> betMap = betInfo.get(bet);
-            if (betMap.getOrDefault(userId, BigDecimal.ZERO).add(amount).compareTo(new BigDecimal("500")) > 0) {
-                throwExp("单个签最大参与500灵石~");
-            }
-        /*
-            1.生成订单
-            2.扣款
-            3.处理内存信息
-         */
-            logger.info("加入游戏");
-            String orderNo;
-            Long dataId;
-            //得到订单信息
-            if (userOrders.containsKey(userId)) {
-                //已经投入过了  寻找他的订单
-                SgBetRecord SgBetRecord = userOrders.get(userId);
-                orderNo = SgBetRecord.getOrderNo();
-                dataId = SgBetRecord.getId();
-            } else {
-                orderNo = OrderUtil.getOrder5Number();
-                Map<String, BigDecimal> map = new HashMap<>();
-                map.put(bet, amount);
-                SgBetRecord record = sgBetRecordService.addRecord(Long.parseLong(userId), orderNo, PERIODS_NUM, JSONObject.from(map).toJSONString(), amount);
-                dataId = record.getId();
-                userOrders.put(userId, record);
-            }
-            //处理资产信息
-            Map<String, String> map = updateCapital(userId, amount, orderNo, dataId);
-            //本局总金额
-            ALL_PRIZE = ALL_PRIZE.add(amount);
-
-            betMap.put(userId, betMap.getOrDefault(userId, betMap.getOrDefault(userId, BigDecimal.ZERO)).add(amount));
-            JSONObject result = new JSONObject();
-            result.put("myBetInfo", getMyBet(userId));
-            lastBetUserInfo.put("name", data.getOrDefault("name", ""));
-            lastBetUserInfo.put("headImgUrl", data.getOrDefault("headImgUrl", ""));
-            jionUserIds.add(userId);
-            needPush = 1;
-            return result;
-        }
-    }
 
 
     public void changeRoomStatus(int roomStatus) {
