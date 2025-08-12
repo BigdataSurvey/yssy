@@ -289,7 +289,7 @@ public class ManagerPitService extends BaseService {
          * 赋值上级id 查询父级的父级 赋值上上级id
          */
         Long userId = params.getLong("userId");
-        synchronized (LockUtil.getlock(userId)){
+        synchronized (LockUtil.getlock(userId)) {
             User parentUser = userCacheService.getUserInfoByUserNo(params.getString("userNo"));
             if (parentUser == null) {
                 throwExp("玩家不存在");
@@ -427,6 +427,26 @@ public class ManagerPitService extends BaseService {
         }
         JSONObject result = new JSONObject();
         result.put("indirSuborList", array);
+        return result;
+    }
+
+    @Transactional
+    @ServiceMethod(code = "009", description = "搜索上级")
+    public JSONObject selectParent(ManagerSocketServer adminSocketServer, JSONObject params) {
+        checkNull(params);
+        Long userId = params.getLong("userId");
+        //根据userId查询我的下下级矿工
+        PitUserParent pitUserParent = pitUserParentService.findParentByUserId(userId);
+        JSONObject jsonObject = new JSONObject();
+        User user = userCacheService.getUserInfoById(pitUserParent.getPitParentId().longValue());
+        jsonObject.put("userId", user.getId());
+        jsonObject.put("userNo", user.getUserNo());
+        jsonObject.put("name", user.getName());
+        jsonObject.put("headImageUrl", user.getHeadImageUrl());
+        //根据两个集合查询出我下级员工的所有收益
+        jsonObject.put("number", pitUserParent.getCreateGrandfaAmount());
+        JSONObject result = new JSONObject();
+        result.put("parentId", jsonObject);
         return result;
     }
 }
