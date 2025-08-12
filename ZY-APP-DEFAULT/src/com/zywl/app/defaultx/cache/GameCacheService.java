@@ -812,6 +812,9 @@ public class GameCacheService extends RedisService {
     public BigDecimal getRankMoney2(Long userId, Double score, Long rank, List<JSONObject> list) {
         if (getActivity2().getMoneyRule() == 1) {
             BigDecimal amount = BigDecimal.valueOf(score).multiply(getActivity2().getOnePointMoney());
+            if (getActivity2().getMinScore()>score){
+                return BigDecimal.ZERO;
+            }
             return getMoney2(rank, amount);
         } else {
             Double allScore = 0.0;

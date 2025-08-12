@@ -319,8 +319,10 @@ public class TaskService extends BaseService {
                             while (remaining.compareTo(BigDecimal.ZERO) > 0) {
                                 String orderNo = OrderUtil.getOrder5Number();
                                 BigDecimal current = remaining.min(chunk);
-                                cashRecordService.addCashOrder(user.getOpenId(), userId, user.getUserNo(), user.getName(), user.getRealName(), orderNo,
-                                        current, 2, user.getPhone(),isAutoPay);
+                                if (current.compareTo(BigDecimal.ZERO)>0){
+                                    cashRecordService.addCashOrder(user.getOpenId(), userId, user.getUserNo(), user.getName(), user.getRealName(), orderNo,
+                                            current, 2, user.getPhone(),isAutoPay);
+                                }
                                 System.out.println("取出: " + current);
                                 remaining = remaining.subtract(current);
 

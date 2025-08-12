@@ -268,7 +268,7 @@ public class ManagerRedEnvelopeService extends BaseService {
         } else if (amount.compareTo(new BigDecimal("50"))==0) {
             return 5;
         } else if (amount.compareTo(new BigDecimal("100"))==0) {
-            return 100;
+            return 10;
         }
         return 0;
     }
@@ -279,7 +279,7 @@ public class ManagerRedEnvelopeService extends BaseService {
             return;
         }
         if (activity.getAddPointEvent() == 5) {
-            gameCacheService.addPointMySelf(userId, score);
+            gameCacheService.addPoint2MySelf(userId, score);
         }
     }
 

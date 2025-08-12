@@ -390,8 +390,9 @@ public class SGService extends BaseService {
     @ServiceMethod(code = "105", description = "切换房间")
     public Object cutRoom(SGService adminSocketServer, Command lotteryCommand, JSONObject data) {
         String userId = data.getString("userId");
-        String type = data.getString("type");
+        String type = data.getString("bet");
         users.remove(userId);
+
         Map<String, Map<String, BigDecimal>> currRoom = btBetInfo.get(type);
         for(Map.Entry<String,Map<String, BigDecimal>> entry : currRoom.entrySet()){
            if( entry.getValue().get(userId)!=null){
