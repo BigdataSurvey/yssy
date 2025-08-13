@@ -14,6 +14,7 @@ import com.live.app.ws.util.Executer;
 import com.live.app.ws.util.Push;
 import com.zywl.app.base.bean.User;
 import com.zywl.app.base.bean.UserDtsAmount;
+import com.zywl.app.base.bean.hongbao.RedPosition;
 import com.zywl.app.base.service.BaseService;
 import com.zywl.app.base.util.Async;
 import com.zywl.app.base.util.DateUtil;
@@ -166,7 +167,7 @@ public class ServerLotteryGameService extends BaseService {
         checkNull(params.get("gameId"));
         //params.put("gameId",5);
         if (!isOnline(params.getIntValue("gameId"))) {
-            if (params.getIntValue("gameId")==10){
+            if (params.getIntValue("gameId") == 10){
                 throwExp("游戏正在升级中。敬请期待！");
             }else {
                 throwExp("小游戏正在维护");
@@ -243,7 +244,7 @@ public class ServerLotteryGameService extends BaseService {
         return async();
     }
 
-    @ServiceMethod(code = "003", description = "更换房间")
+    @ServiceMethod(code = "003", description = "更换摊位")
     public Async battleRoyaleUpdateBet(final AppSocket appSocket, Command appCommand, JSONObject params) {
         checkNull(params);
         checkNull(params.get("bet"));
@@ -536,6 +537,9 @@ public class ServerLotteryGameService extends BaseService {
                 new RequestManagerListener(appCommand));
         return async();
     }
+
+
+
 
 
 
