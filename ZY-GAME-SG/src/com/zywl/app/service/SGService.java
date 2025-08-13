@@ -462,7 +462,7 @@ public class SGService extends BaseService {
                 userOrders.put(userId, record);
             }
             //处理资产信息
-            Map<String, String> map = updateCapital(userId, amount, orderNo, dataId);
+            updateCapital(userId, amount, orderNo, dataId);
             //本局总金额
             ALL_PRIZE = ALL_PRIZE.add(amount);
 
