@@ -16,6 +16,8 @@ public class SgBetRecord extends BaseBean{
 	private String orderNo;
 	
 	private int periodsNum;
+
+	private String betIndex;
 	
 	private JSONObject betInfo;
 
@@ -139,5 +141,13 @@ public class SgBetRecord extends BaseBean{
 
 	public void setLotteryResult(String lotteryResult) {
 		this.lotteryResult = lotteryResult;
+	}
+
+	public String getBetIndex() {
+		return betIndex;
+	}
+
+	public void setBetIndex(String betIndex) {
+		this.betIndex = betIndex;
 	}
 }

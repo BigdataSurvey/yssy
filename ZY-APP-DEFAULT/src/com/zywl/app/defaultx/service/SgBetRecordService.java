@@ -32,13 +32,14 @@ public class SgBetRecordService extends DaoService {
 	 * @param userId
 	 */
 	@Transactional
-	public SgBetRecord addRecord(Long userId,String orderNo,int periodsNum,String betInfo,BigDecimal amount) {
+	public SgBetRecord addRecord(Long userId,String orderNo,int periodsNum,String betInfo,BigDecimal amount,String index) {
 		SgBetRecord record = new SgBetRecord();
 		record.setUserId(userId);
 		record.setOrderNo(orderNo);
 		if ( periodsNum==0) {
 			periodsNum=1;
 		}
+		record.setBetIndex(index);
 		record.setPeriodsNum(periodsNum);
 		record.setBetInfo(JSONObject.parseObject(betInfo));
 		record.setBetAmount(amount);
@@ -86,6 +87,7 @@ public class SgBetRecordService extends DaoService {
 			map.put("winAmount", o.get("winAmount"));
 			map.put("lotteryResult", o.get("lotteryResult"));
 			map.put("winOrLose",o.get("winOrLose"));
+			map.put("betIndex",o.get("betIndex"));
 			map.put("betInfo",o.get("betInfo"));
 			list.add(map);
 		}

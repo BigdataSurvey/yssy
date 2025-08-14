@@ -23,10 +23,9 @@ import com.zywl.app.defaultx.annotation.ServiceMethod;
 import com.zywl.app.defaultx.enmus.GameTypeEnum;
 import com.zywl.app.defaultx.enmus.LogCapitalTypeEnum;
 import com.zywl.app.defaultx.enmus.LotteryGameStatusEnum;
+import com.zywl.app.defaultx.enmus.UserCapitalTypeEnum;
 import com.zywl.app.defaultx.service.*;
 import com.zywl.app.util.RequestManagerListener;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -75,7 +74,7 @@ public class SGService extends BaseService {
 
     public static int PERIODS_NUM;
 
-    public static Integer LAST_RESULT;
+    public static List<Integer> LAST_RESULT;
 
     public static Long beginTime;
 
@@ -106,14 +105,11 @@ public class SGService extends BaseService {
 
     private static final Map<String, Map<String, BigDecimal>> betInfo = new ConcurrentHashMap<>();
 
-    //Map<摊位,Map<下注的0123, Map<用户id, 下注的金额>>>
-    private static final Map<String,Map<String, Map<String, BigDecimal>>> btBetInfo = new ConcurrentHashMap<>();
-
     private static final Map<String, BigDecimal> optionRate = new ConcurrentHashMap<>();
 
-    private static final Map<String,Map<String, BigDecimal>> roomOptionRate = new ConcurrentHashMap<>();
-
     private static final JSONObject lastBetUserInfo = new JSONObject();
+
+    public static final Map<String, Set<String>> USER_INDEX = new ConcurrentHashMap<>();
 
     private static int needPush = 0;
 
@@ -124,19 +120,11 @@ public class SGService extends BaseService {
         userOrders.clear();
         settleInfo.clear();
         ALL_PRIZE = BigDecimal.ZERO;
-        btBetInfo.clear();
         betInfo.clear();
         for (int i = 0; i < 5; i++) {
             betInfo.put(String.valueOf(i), new HashMap<>());
         }
-        Map<String, Map<String, BigDecimal>> betInfo1 = new HashMap<>();
-        Map<String, Map<String, BigDecimal>> betInfo2 = new HashMap<>();
-        for (int i = 0; i < 4; i++) {
-            betInfo1.put(String.valueOf(i), new HashMap<>());
-            betInfo2.put(String.valueOf(i), new HashMap<>());
-        }
-        btBetInfo.put(String.valueOf(1),betInfo1);
-        btBetInfo.put(String.valueOf(2),betInfo2);
+
     }
 
 
@@ -194,22 +182,10 @@ public class SGService extends BaseService {
         optionRate.put("2", new BigDecimal("2"));
         optionRate.put("3", new BigDecimal("4"));
         optionRate.put("4", new BigDecimal("16"));
-
-        Map<String , BigDecimal> map1 = new HashMap<>();
-        Map<String , BigDecimal> map2 = new HashMap<>();
-
-        map1.put("0",new BigDecimal("4.0"));
-        map1.put("1",new BigDecimal("4.0"));
-        map1.put("2",new BigDecimal("3.6"));
-        map1.put("3",new BigDecimal("3.6"));
-
-        map2.put("0",new BigDecimal("3.6"));
-        map2.put("1",new BigDecimal("3.6"));
-        map2.put("2",new BigDecimal("4.0"));
-        map2.put("3",new BigDecimal("4.0"));
-        roomOptionRate.put("1",  map1);
-        roomOptionRate.put("2",  map2);
         pushRoomDate();
+        USER_INDEX.clear();
+        USER_INDEX.put("1", new HashSet<>());
+        USER_INDEX.put("2", new HashSet<>());
     }
 
     public void pushRoomDate() {
@@ -277,26 +253,26 @@ public class SGService extends BaseService {
     }
 
     public void initHistoryResult() {
-        logger.info("更新算卦历史开奖结果");
+        /*logger.info("更新算卦历史开奖结果");
         long time = System.currentTimeMillis();
         List<GameLotteryResult> result20 = gameLotteryResultService.findHistoryResultByGameId(8L, 10);
         JSONObject result2 = new JSONObject();
         this.history10Result.clear();
         for (GameLotteryResult gameLotteryResult : result20) {
             String lotteryResult = gameLotteryResult.getLotteryResult();
-            //JSONArray result = JSONArray.parseArray(lotteryResult);
-            this.history10Result.add(lotteryResult);
+            JSONArray result = JSONArray.parseArray(lotteryResult);
+            this.history10Result.add(result);
         }
-        logger.info("更新算卦历史开奖结果完成，用时：" + (System.currentTimeMillis() - time));
+        logger.info("更新算卦历史开奖结果完成，用时：" + (System.currentTimeMillis() - time));*/
     }
 
     public JSONObject getReturnInfo() {
         JSONObject result = new JSONObject();
-        result.put("periods", PERIODS_NUM);//期数
+        result.put("periods", PERIODS_NUM);
         result.put("status", GAME_STATUS);
         result.put("beginTime", beginTime);
         result.put("endTime", endTime);
-        result.put("allPrize", ALL_PRIZE);//奖励
+        result.put("allPrize", ALL_PRIZE);
         result.put("lastResult", LAST_RESULT);
         return result;
     }
@@ -304,7 +280,7 @@ public class SGService extends BaseService {
     public JSONObject getPushInfo() {
         JSONObject result = new JSONObject();
         result.put("allPrize", ALL_PRIZE);
-        result.put("userNum", btBetInfo.size());
+        result.put("userNum", betInfo.size());
         return result;
     }
 
@@ -328,8 +304,42 @@ public class SGService extends BaseService {
         String userId = data.getString("userId");
         users.add(userId);
         JSONObject returnInfo = getReturnInfo();
-        returnInfo.put("myBetInfo", getMyBtBet(userId));
+        returnInfo.put("myBetInfo", getMyBet(userId));
+        int index = 0;
+        if (USER_INDEX.get("1").contains(userId)) {
+            index = 1;
+        }
+        if (USER_INDEX.get("2").contains(userId)) {
+            index = 2;
+        }
+        returnInfo.put("myIndex", index);
         return returnInfo;
+    }
+
+    @Transactional
+    @ServiceMethod(code = "105", description = "用户更换摊位")
+    public Object updateRoom(SGService adminSocketServer, Command lotteryCommand, JSONObject data) {
+        checkNull(data);
+        checkNull(data.get("userId"),data.get("bet"));
+        String userId = data.getString("userId");
+        synchronized (LockUtil.getlock(userId)){
+            users.add(userId);
+            String newIndex = data.getString("bet");
+            if (USER_INDEX.get(newIndex).contains(userId)){
+                throwExp("已经在该摊位了");
+            }
+
+            String oldIndex = "";
+            if (newIndex.equals("2")) {
+                oldIndex = "1";
+            }else {
+                oldIndex = "2";
+            }
+            USER_INDEX.get(oldIndex).remove(userId);
+            JSONObject returnInfo = new JSONObject();
+            returnInfo.put("myIndex",newIndex);
+            return returnInfo;
+        }
     }
 
     public Map<String, BigDecimal> getMyBet(String userId) {
@@ -344,42 +354,6 @@ public class SGService extends BaseService {
         return myBetInfo;
     }
 
-    public  Map<String,Map<String, Map<String, BigDecimal>>> getMyBtBet(String type,String userId) {
-        Map<String, Map<String, BigDecimal>> info = btBetInfo.get(type);
-        Set<String> options = info.keySet();
-        Map<String, BigDecimal> myBetInfo = new HashMap<>();
-        for (String option : options) {
-            Map<String, BigDecimal> optionBet = info.getOrDefault(option, new HashMap<>());
-            if (optionBet.containsKey(userId)) {
-                myBetInfo.put(option, optionBet.get(userId));
-            }
-        }
-        return btBetInfo;
-    }
-
-    public  Map<String,Map<String, Map<String, BigDecimal>>> getMyBtBet(String userId) {
-        Map<String,Map<String, Map<String, BigDecimal>>> newBtBetInfo = new ConcurrentHashMap<>();
-        for (Map.Entry<String, Map<String, Map<String, BigDecimal>>> twEntry : btBetInfo.entrySet()) {
-
-            Map<String, Map<String, BigDecimal>> bookMap = twEntry.getValue();
-
-            for (Map.Entry<String, Map<String, BigDecimal>> bookBetEntry : bookMap.entrySet()) {
-
-                Map<String, BigDecimal> userMap = bookBetEntry.getValue();
-
-                for (Map.Entry<String, BigDecimal> userEntry : userMap.entrySet()) {
-
-                    String userKey = userEntry.getKey();
-                    if (userKey.equals(userId)){
-                        newBtBetInfo.put(twEntry.getKey(),bookMap);
-                        return newBtBetInfo;
-                    }
-                }
-            }
-        }
-        return null;
-    }
-
     @Transactional
     @ServiceMethod(code = "104", description = "用户离开算卦房间")
     public Object leveRoom(SGService adminSocketServer, Command lotteryCommand, JSONObject data) {
@@ -388,40 +362,17 @@ public class SGService extends BaseService {
         return new JSONObject();
     }
 
-    @Transactional
-    @ServiceMethod(code = "105", description = "切换房间")
-    public Object cutRoom(SGService adminSocketServer, Command lotteryCommand, JSONObject data) {
-        String userId = data.getString("userId");
-        String type = data.getString("bet");
-        users.remove(userId);
-
-        Map<String, Map<String, BigDecimal>> currRoom = btBetInfo.get(type);
-        for(Map.Entry<String,Map<String, BigDecimal>> entry : currRoom.entrySet()){
-           if( entry.getValue().get(userId)!=null){
-               if(type.equals("1")){
-                   btBetInfo.get("2").put(entry.getKey(),entry.getValue());
-               }else {
-                   btBetInfo.get("1").put(entry.getKey(),entry.getValue());
-               }
-               entry.getValue().clear();
-           }
-        }
-        return new JSONObject();
-    }
-
 
     @Transactional
     @ServiceMethod(code = "103", description = "用户参与投入")
-    public Object playBtGame(SGService adminSocketServer, Command lotteryCommand, JSONObject data) {
+    public Object play(SGService adminSocketServer, Command lotteryCommand, JSONObject data) {
         checkNull(data);
-        //type为摊位
-        checkNull(data.get("userId"),data.get("type"), data.get("bet"), data.get("betAmount"));
+        checkNull(data.get("userId"), data.get("bet"), data.get("betAmount"));
         String userId = data.getString("userId");
-        //选择的摊位
-        String type = data.getString("type");//摊位类型
-        String bet = data.getString("bet");//书
-        BigDecimal amount = data.getBigDecimal("betAmount");//金额
-        if (Integer.parseInt(bet) < 0 || Integer.parseInt(bet) > 3) {
+        String bet = data.getString("bet");
+        String index = data.getString("type");
+        BigDecimal amount = data.getBigDecimal("betAmount");
+        if (Integer.parseInt(bet) < 0 || Integer.parseInt(bet) > 4) {
             throwExp("非法请求");
         }
         synchronized (LockUtil.getlock(userId)) {
@@ -435,42 +386,41 @@ public class SGService extends BaseService {
                 throwExp("本局即将结束，请稍后参与 ~");
             }
             //处理内存信息
-            Map<String, Map<String, BigDecimal>> info = btBetInfo.get(type);
-            Map<String, BigDecimal> betMap = info.get(bet);
-
+            Map<String, BigDecimal> betMap = betInfo.get(bet);
             if (betMap.getOrDefault(userId, BigDecimal.ZERO).add(amount).compareTo(new BigDecimal("500")) > 0) {
-                throwExp("单个签最大参与500灵石~");
+                throwExp("单本书籍最大参与500游园券~");
             }
-            /*1.生成订单2.扣款3.处理内存信息*/
+            USER_INDEX.get(index).add(userId);
+        /*
+            1.生成订单
+            2.扣款
+            3.处理内存信息
+         */
             logger.info("加入游戏");
             String orderNo;
             Long dataId;
             //得到订单信息
             if (userOrders.containsKey(userId)) {
                 //已经投入过了  寻找他的订单
-                SgBetRecord betRecord = userOrders.get(userId);
-                orderNo = betRecord.getOrderNo();
-                dataId = betRecord.getId();
+                SgBetRecord SgBetRecord = userOrders.get(userId);
+                orderNo = SgBetRecord.getOrderNo();
+                dataId = SgBetRecord.getId();
             } else {
-                orderNo = OrderUtil.getOrder3Number();
-                Map map = new HashMap();
-                Map<String, BigDecimal> map1 = new HashMap<>();
-                map1.put(bet, amount);
-                //map.put("map", map1);
-                map.put("type", map1);
-                SgBetRecord record = sgBetRecordService.addRecord(Long.parseLong(userId), orderNo, PERIODS_NUM, String.valueOf(JSONObject.from(map)), amount);
+                orderNo = OrderUtil.getOrder5Number();
+                Map<String, BigDecimal> map = new HashMap<>();
+                map.put(bet, amount);
+                SgBetRecord record = sgBetRecordService.addRecord(Long.parseLong(userId), orderNo, PERIODS_NUM, JSONObject.from(map).toJSONString(), amount,index);
                 dataId = record.getId();
                 userOrders.put(userId, record);
             }
             //处理资产信息
-            updateCapital(userId, amount, orderNo, dataId);
+            Map<String, String> map = updateCapital(userId, amount, orderNo, dataId);
             //本局总金额
             ALL_PRIZE = ALL_PRIZE.add(amount);
 
             betMap.put(userId, betMap.getOrDefault(userId, betMap.getOrDefault(userId, BigDecimal.ZERO)).add(amount));
-            btBetInfo.put(type,info);
             JSONObject result = new JSONObject();
-            result.put("myBetInfo", getMyBtBet(type,userId));
+            result.put("myBetInfo", getMyBet(userId));
             lastBetUserInfo.put("name", data.getOrDefault("name", ""));
             lastBetUserInfo.put("headImgUrl", data.getOrDefault("headImgUrl", ""));
             jionUserIds.add(userId);
@@ -478,7 +428,6 @@ public class SGService extends BaseService {
             return result;
         }
     }
-
 
 
     public void changeRoomStatus(int roomStatus) {
@@ -500,27 +449,15 @@ public class SGService extends BaseService {
             });
             Push.push(PushCode.updateSgStatus, null, data);
         } else if (GAME_STATUS == LotteryGameStatusEnum.settle.getValue()) {
-            settleInfo.clear();//内存中清除结算记录
-            Integer result1 = btDraw();
-            Integer result2 = btDraw();
-            JSONObject jsonObject1 = SGService.settle1(result1, "1");
-            JSONObject jsonObject2 = SGService.settle1(result2,"2");
-            BigDecimal room1Amount = (BigDecimal) jsonObject1.get("allWinAmount");
-            BigDecimal room2Amount = (BigDecimal) jsonObject2.get("allWinAmount");
-            BigDecimal allWinAmount = room1Amount.add(room2Amount);
-            int type1UserNum = jsonObject1.getIntValue("typeUserNum");
-            int type2UserNum = jsonObject2.getIntValue("typeUserNum");
-            Integer userNum = type1UserNum+type2UserNum;
-            gameLotteryResultService.drawLottery(8L, String.valueOf(PERIODS_NUM),
-                    result1+","+result2, ALL_PRIZE, allWinAmount, ALL_PRIZE.compareTo(allWinAmount)>0?BigDecimal.ONE:BigDecimal.ONE.negate(), jionUserIds.size(),userNum , jionUserIds.size()-userNum);
-
+            settleInfo.clear();
+            List<Integer> result = draw();
+            SGService.settle(result);
             int status = GAME_STATUS;
             JSONObject settleData = new JSONObject();
             data.put("status", status);
             data.put("userIds", users);
             data.put("settleInfo", settleInfo);
-            data.put("result1", result1);
-            data.put("result2", result2);
+            data.put("result", result);
             //房间人数 金额 我参与的哪个房间 以及对应的金额
             Push.push(PushCode.updateSgStatus, null, data);
             try {
@@ -532,7 +469,7 @@ public class SGService extends BaseService {
             //期数加1
             PERIODS_NUM = PERIODS_NUM + 1;
             initHistoryResult();
-            LAST_RESULT = result1+result2;
+            LAST_RESULT = result;
             jionUserIds.clear();
             if (STATUS != 0) {
                 gameStart();
@@ -544,23 +481,10 @@ public class SGService extends BaseService {
     public List<Integer> draw() {
         // 先开奖
         Random r = new Random();
-        List<Integer> result = new ArrayList<>();
-        if (isK == 0) {
-            for (int i = 0; i < 4; i++) {
-                result.add(r.nextInt(2));
-            }
-        } else {
-            result = computeResult();
-            isK = 0;
-        }
-        return result;
-    }
-
-    @Transactional
-    public Integer btDraw() {
-        // 先开奖
-        Random r = new Random();
-        return r.nextInt(4);
+        List<Integer> list = new ArrayList<>();
+        list.add(r.nextInt(4));
+        list.add(r.nextInt(4));
+        return list;
     }
 
     public List<Integer> computeResult() {
@@ -618,7 +542,6 @@ public class SGService extends BaseService {
             int i = TIME;
 
             public void run() {
-                logger.info("剩余时间"+i);
                 if (endTime <= System.currentTimeMillis()) {
                     logger.info("游戏结束  结算");
                     // 下注期结束 更改状态为结算
@@ -662,98 +585,53 @@ public class SGService extends BaseService {
         return null;
     }
 
-    protected final Log logger = LogFactory.getLog(getClass());
-
-    @Transactional
-    public JSONObject settle1(Integer result,String type) {
-        /*下注等于结果的  增加获得金额*/
-        JSONObject jsonObject = new JSONObject();
-        Map<String, Map<String, BigDecimal>> infoMap = btBetInfo.get(type);
-        Map<String, BigDecimal> drawUsers = infoMap.get(String.valueOf(result));
-        Set<String> winsUserIds = drawUsers.keySet();
-        BigDecimal rate = roomOptionRate.get(type).get(result);
-        JSONObject data = new JSONObject();
-        JSONObject updateRecord = new JSONObject();
-        BigDecimal allWinAmount = BigDecimal.ZERO;
-        for (String userId : jionUserIds) {
-            Map<String, Object> map = new HashMap<>();
-            map.put("result", result);
-            JSONObject record = new JSONObject();
-            if (winsUserIds.contains(userId)) {
-                map.put("winOrLose", 1);
-                JSONObject o = new JSONObject();
-                BigDecimal winAmount = drawUsers.getOrDefault(userId, BigDecimal.ZERO).multiply(rate);
-                map.put("winAmount", winAmount);
-                allWinAmount = allWinAmount.add(winAmount);
-                o.put("amount", winAmount);
-                o.put("capitalType", 3);
-                o.put("orderNo", userOrders.get(userId).getOrderNo());
-                o.put("em", LogCapitalTypeEnum.game_bet_win_sg.getValue());
-                data.put(userId, o);
-                record.put("winAmount", winAmount);
-                record.put("winOrLose", 1);
-            } else {
-                record.put("winAmount", BigDecimal.ZERO);
-                record.put("winOrLose", 0);
-                map.put("winOrLose", 0);
-                map.put("winAmount", BigDecimal.ZERO);
-                map.put("result", result);
-            }
-            record.put("lotteryResult", result);
-            settleInfo.put(userId, map);
-            record.put("settleInfo", map);
-            Map<String, BigDecimal> map1 = new HashMap<>();
-            Set<String> strings = betInfo.keySet();
-            for (String option : strings) {
-                if (betInfo.get(option).containsKey(userId)) {
-                    map1.put(option, betInfo.get(option).get(userId));
-                }
-            }
-            record.put("betInfo", JSONObject.from(map1).toJSONString());
-            updateRecord.put(userOrders.get(userId).getOrderNo(), record);
-            logger.info("输出"+ record);
-        }
-        sgRequestMangerService.requestManagerBet(data, new Listener() {
-            public void handle(BaseClientSocket clientSocket, Command command) {
-                logger.info("输出"+ clientSocket + command);
-                if (command.isSuccess()) {
-                    sgBetRecordService.batchUpdateRecord(updateRecord);
-                } else {
-                    STATUS = 0;
-                }
-            }
-        });
-        jsonObject.put("allWinAmount",allWinAmount);
-        jsonObject.put("typeUserNum",btBetInfo.get(type).get(String.valueOf(result)).size());
-        return jsonObject;
-
-    }
-
 
     @Transactional
     public void settle(List<Integer> list) {
         /*
              下注等于结果的  增加获得金额
          */
-        String result = getSgResult(list);
-        Map<String, BigDecimal> betMap = betInfo.get(result);
-        Set<String> winsUserIds = betMap.keySet();
-        BigDecimal rate = optionRate.get(result);
+        String result1 = String.valueOf(list.get(0));
+        String result2 = String.valueOf(list.get(1));
+
+        Map<String, BigDecimal> betMap1 = betInfo.get(result1);
+        Map<String, BigDecimal> betMap2 = betInfo.get(result2);
+        Set<String> winsUserIds1 = betMap1.keySet();
+        winsUserIds1.removeIf(next -> !USER_INDEX.get("1").contains(next));
+        Set<String> winsUserIds2 = betMap2.keySet();
+        winsUserIds2.removeIf(next -> !USER_INDEX.get("2").contains(next));
+        BigDecimal rate = new BigDecimal("3.6");
         JSONObject data = new JSONObject();
         JSONObject updateRecord = new JSONObject();
         BigDecimal allWinAmount = BigDecimal.ZERO;
+
         for (String userId : jionUserIds) {
             Map<String, Object> map = new HashMap<>();
-            map.put("result", list);
+            //开奖结果
+            map.put("result1", result1);
+            map.put("result2", result2);
             JSONObject record = new JSONObject();
-            if (winsUserIds.contains(userId)) {
+            if (winsUserIds1.contains(userId)) {
                 map.put("winOrLose", 1);
                 JSONObject o = new JSONObject();
-                BigDecimal winAmount = betMap.getOrDefault(userId, BigDecimal.ZERO).multiply(rate).multiply(new BigDecimal("0.9"));
+                BigDecimal winAmount = betMap1.getOrDefault(userId, BigDecimal.ZERO).multiply(rate).multiply(new BigDecimal("0.9"));
                 map.put("winAmount", winAmount);
                 allWinAmount = allWinAmount.add(winAmount);
                 o.put("amount", winAmount);
-                o.put("capitalType", 3);
+                o.put("capitalType", UserCapitalTypeEnum.yyb.getValue());
+                o.put("orderNo", userOrders.get(userId).getOrderNo());
+                o.put("em", LogCapitalTypeEnum.game_bet_win_sg.getValue());
+                data.put(userId, o);
+                record.put("winAmount", winAmount);
+                record.put("winOrLose", 1);
+            } else if (winsUserIds2.contains(userId)) {
+                map.put("winOrLose", 1);
+                JSONObject o = new JSONObject();
+                BigDecimal winAmount = betMap2.getOrDefault(userId, BigDecimal.ZERO).multiply(rate).multiply(new BigDecimal("0.9"));
+                map.put("winAmount", winAmount);
+                allWinAmount = allWinAmount.add(winAmount);
+                o.put("amount", winAmount);
+                o.put("capitalType", UserCapitalTypeEnum.yyb.getValue());
                 o.put("orderNo", userOrders.get(userId).getOrderNo());
                 o.put("em", LogCapitalTypeEnum.game_bet_win_sg.getValue());
                 data.put(userId, o);
@@ -766,7 +644,7 @@ public class SGService extends BaseService {
                 map.put("winAmount", BigDecimal.ZERO);
                 map.put("result", list);
             }
-            record.put("lotteryResult", result);
+            record.put("lotteryResult", list);
             settleInfo.put(userId, map);
             record.put("settleInfo", map);
             Map<String, BigDecimal> map1 = new HashMap<>();
@@ -780,9 +658,8 @@ public class SGService extends BaseService {
             updateRecord.put(userOrders.get(userId).getOrderNo(), record);
         }
         gameLotteryResultService.drawLottery(8L, String.valueOf(PERIODS_NUM),
-                String.valueOf(list), ALL_PRIZE, allWinAmount,
-                ALL_PRIZE.compareTo(allWinAmount)>0?BigDecimal.ONE:BigDecimal.ONE.negate(),
-                jionUserIds.size(), betInfo.get(result).size(), jionUserIds.size()-betInfo.get(result).size());
+                String.valueOf(list), ALL_PRIZE, allWinAmount, ALL_PRIZE.compareTo(allWinAmount) > 0 ? BigDecimal.ONE : BigDecimal.ONE.negate(), jionUserIds.size(), winsUserIds1.size()+winsUserIds2.size(), jionUserIds.size() - (winsUserIds1.size()+winsUserIds2.size())
+        );
         sgRequestMangerService.requestManagerBet(data, new Listener() {
             public void handle(BaseClientSocket clientSocket, Command command) {
                 if (command.isSuccess()) {

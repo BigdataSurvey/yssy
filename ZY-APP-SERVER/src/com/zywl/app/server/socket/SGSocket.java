@@ -98,6 +98,8 @@ public class SGSocket extends BaseClientSocket {
                         Map<String,Map<String, Object>> map = (Map<String, Map<String, Object>>) obj.get("settleInfo");
                         result.put("mySettleInfo",map.get(userId));
                         result.put("gameResult",obj.get("result"));
+                        result.put("result1",obj.get("result1"));
+                        result.put("result2",obj.get("result2"));
                     } else if (LotteryGameStatusEnum.gaming.getValue() == status) {
                         result.put("endTime", obj.get("endTime"));
                     }

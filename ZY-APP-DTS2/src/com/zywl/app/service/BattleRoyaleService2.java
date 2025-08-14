@@ -941,8 +941,7 @@ public class BattleRoyaleService2 extends BaseService {
         ROOM.setNextResult(getKillList(getResultCount()));*/
 
         gameLotteryResultService.drawLottery(1L, ROOM.getPeridosNum() == null ? "1" : ROOM.getPeridosNum(),
-                String.valueOf(killList), ROOM.getAllBetAmount(), BigDecimal.ZERO, BigDecimal.ONE, ROOM.getBetNum(), 0, 0,
-                1);
+                String.valueOf(killList), ROOM.getAllBetAmount(), BigDecimal.ZERO, BigDecimal.ONE, ROOM.getBetNum(), 0, 0);
         return killList;
     }
 

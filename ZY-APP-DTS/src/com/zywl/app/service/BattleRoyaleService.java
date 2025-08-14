@@ -114,6 +114,8 @@ public class BattleRoyaleService extends BaseService {
     public static BigDecimal rate = new BigDecimal("0.9");
 
 
+
+
     public void updateRate(BigDecimal a){
         rate=a;
     }
@@ -803,8 +805,7 @@ public class BattleRoyaleService extends BaseService {
         }
         ROOM.setNextResult(r.nextInt(OPTIONS_NUM));
         gameLotteryResultService.drawLottery(1L, ROOM.getPeridosNum() == null ? "1" : ROOM.getPeridosNum(),
-                String.valueOf(result), ROOM.getAllBetAmount(), BigDecimal.ZERO, BigDecimal.ONE, ROOM.getBetNum(), 0, 0,
-                1);
+                String.valueOf(result), ROOM.getAllBetAmount(), BigDecimal.ZERO, BigDecimal.ONE, ROOM.getBetNum(), 0, 0);
         return String.valueOf(result);
     }
 

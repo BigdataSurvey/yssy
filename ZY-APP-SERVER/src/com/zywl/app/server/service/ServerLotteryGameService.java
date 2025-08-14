@@ -244,7 +244,7 @@ public class ServerLotteryGameService extends BaseService {
         return async();
     }
 
-    @ServiceMethod(code = "003", description = "更换摊位")
+    @ServiceMethod(code = "003", description = "更换房间")
     public Async battleRoyaleUpdateBet(final AppSocket appSocket, Command appCommand, JSONObject params) {
         checkNull(params);
         checkNull(params.get("bet"));
@@ -275,38 +275,7 @@ public class ServerLotteryGameService extends BaseService {
         return async();
     }
 
-    @ServiceMethod(code = "005", description = "切换房间")
-    public Async cutBtRoom(final AppSocket appSocket, Command appCommand, JSONObject params) {
-        checkNull(params);
-        checkNull(params.get("bet"),params.get("type"));
-        String bet = params.getString("bet");
-        String type = params.getString("type");
-        long userId = appSocket.getWsidBean().getUserId();
-        User user = userCacheService.getUserInfoById(userId);
-        if (user == null) {
-            throwExp("用户信息异常");
-        }
-        String userNo = user.getUserNo();
-        String headImgUrl = user.getHeadImageUrl();
-        String UserName = user.getName();
-        JSONObject data = new JSONObject();
-        data.put("userId", userId);
-        data.put("userNo", userNo);
-        data.put("headImgUrl", headImgUrl);
-        data.put("userName", UserName);
-        data.put("bet", params.getString("bet"));
-        data.put("type", params.getString("type"));
-        if (params.getIntValue("gameId")==GameTypeEnum.bt.getValue()){
-            data.put("floor",params.getString("floor"));
-        }
-        if (isOnline(params.getIntValue("gameId"))) {
-            Executer.request(TargetSocketType.getServerEnum(params.getIntValue("gameId")), CommandBuilder.builder().request("101105", data).build(),
-                    new RequestManagerListener(appCommand));
-            // 玩家同时只能呆在一个lottery服
-            userLotteryPush.put(String.valueOf(userId), TargetSocketType.getServerEnum(params.getIntValue("gameId")));
-        }
-        return async();
-    }
+
 
 
     @ServiceMethod(code = "004", description = "离开房间")

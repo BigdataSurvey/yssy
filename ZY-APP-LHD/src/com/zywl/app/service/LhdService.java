@@ -762,8 +762,7 @@ public class LhdService extends BaseService {
         }
         ROOM_MONEY.clear();
         gameLotteryResultService.drawLottery(5L, String.valueOf(PERIODS_NUM == 0 ? 1 : PERIODS_NUM),
-                String.valueOf(result), ALL_PRIZE, allWinAmount, ALL_PRIZE.subtract(allWinAmount), BET_USERS.size(), winMap.size(), loseMap.size(),
-                1);
+                String.valueOf(result), ALL_PRIZE, allWinAmount, ALL_PRIZE.subtract(allWinAmount), BET_USERS.size(), winMap.size(), loseMap.size());
         logger.info("期号："+PERIODS_NUM+",LIST:"+ROOM_LIST);
         requestMangerService.requestManagerBet(data, new Listener() {
             public void handle(BaseClientSocket clientSocket, Command command) {
