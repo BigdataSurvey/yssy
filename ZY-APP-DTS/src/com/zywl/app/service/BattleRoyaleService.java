@@ -803,8 +803,7 @@ public class BattleRoyaleService extends BaseService {
         }
         ROOM.setNextResult(r.nextInt(OPTIONS_NUM));
         gameLotteryResultService.drawLottery(1L, ROOM.getPeridosNum() == null ? "1" : ROOM.getPeridosNum(),
-                String.valueOf(result), ROOM.getAllBetAmount(), BigDecimal.ZERO, BigDecimal.ONE, ROOM.getBetNum(), 0, 0,
-                1);
+                String.valueOf(result), ROOM.getAllBetAmount(), BigDecimal.ZERO, BigDecimal.ONE, ROOM.getBetNum(), 0, 0);
         return String.valueOf(result);
     }
 
