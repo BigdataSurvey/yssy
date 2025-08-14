@@ -158,7 +158,7 @@ public class ManagerPitService extends BaseService {
                 long diffLastLookTime = (targetDate - userPit.getLastLookTime().getTime()) / 1000 / 86400;
                 userPit.setDays((int) diffLastReceiveTime);
                 int start = PlayGameService.DIC_PIT.get(userPit.getPitId().toString()).getMinCount();      // 起始值
-                int increment = 1;   // 每次递增的值
+                int increment = 2;   // 每次递增的值
                 int steps = (int) diffLastReceiveTime;// 递增次数
                 Map<String, Double> numberMap = new HashMap<>();
                 for (int i = 0; i < steps; i++) {
