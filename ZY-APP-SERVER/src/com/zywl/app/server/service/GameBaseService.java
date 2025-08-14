@@ -532,6 +532,7 @@ public class GameBaseService extends BaseService {
         return async();
     }*/
 
+    //TODO
     @ServiceMethod(code = "035", description = "商城购买")
     public Object buy(AppSocket appSocket, Command command, JSONObject data) {
         checkNull(data);

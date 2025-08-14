@@ -110,9 +110,6 @@ public class DgsService extends BaseService {
     public static final Map<String, Map<String, DgsBetRecord>> atkRecordMap = new ConcurrentHashMap<>();
 
     //结算信息
-
-
-
     public static Map<String, List<Map<String, String>>> userCapitals = new ConcurrentHashMap<>();
 
     public static String key = DateUtil.getCurrent5();

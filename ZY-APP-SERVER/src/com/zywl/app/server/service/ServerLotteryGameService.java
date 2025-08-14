@@ -507,42 +507,6 @@ public class ServerLotteryGameService extends BaseService {
         return async();
     }
 
-    @ServiceMethod(code = "022", description = "摆摊投入")
-    public Async bttr(final AppSocket appSocket, Command appCommand, JSONObject params) {
-        checkNull(params);
-        checkNull( params.get("bet"));
-        int gameId = params.getIntValue("gameId");
-        int type = params.getIntValue("type");
-        BigDecimal betAmount = params.getBigDecimal("betAmount");
-        if (!isOnline(gameId)) {
-            throwExp("小游戏正在维护");
-        }
-        long userId = appSocket.getWsidBean().getUserId();
-        User user = userCacheService.getUserInfoById(userId);
-        if (user == null) {
-            throwExp("用户信息异常");
-        }
-      /*  BigDecimal amount = params.getBigDecimal("betAmount");
-        if (gameId != 5) {
-            if (!betList.contains(amount)) {
-                throwExp("非法请求");
-            }
-        }*/
-        params.put("userId", userId);
-        params.put("headImgUrl",user.getHeadImageUrl());
-        params.put("name",user.getName());
-        params.put("type",type);
-        params.put("betAmount",betAmount);
-        Executer.request(TargetSocketType.getServerEnum(gameId), CommandBuilder.builder().request("101102", params).build(),
-                new RequestManagerListener(appCommand));
-        return async();
-    }
-
-
-
-
-
-
 
 
 }

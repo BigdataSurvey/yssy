@@ -74,7 +74,7 @@ public class GameLotteryResultService extends DaoService {
 	//开奖
 	@Transactional
 	public int drawLottery(Long gameId,String periodsNum,String lottryResult,BigDecimal playerBet,
-			BigDecimal playerProfit,BigDecimal winLose,int allTakeNum,int winNum,int loseNum,int status) {
+			BigDecimal playerProfit,BigDecimal winLose,int allTakeNum,int winNum,int loseNum) {
 		GameLotteryResult result = new GameLotteryResult();
 		result.setGameId(gameId);
 		result.setPeriodsNum(periodsNum);
@@ -86,7 +86,7 @@ public class GameLotteryResultService extends DaoService {
 		result.setPlayerProfit(playerProfit);
 		result.setWinLose(winLose);
 		result.setWinNum(winNum);
-		result.setStatus(status);
+		result.setStatus(1);
 		return save(result);
 		
 	}

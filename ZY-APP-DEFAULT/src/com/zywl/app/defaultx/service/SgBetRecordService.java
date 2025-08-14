@@ -42,7 +42,7 @@ public class SgBetRecordService extends DaoService {
 		record.setPeriodsNum(periodsNum);
 		record.setBetInfo(JSONObject.parseObject(betInfo));
 		record.setBetAmount(amount);
-		record.setStatus(0);
+		record.setStatus(1);
 		record.setCreateTime(new Date());
 		record.setUpdateTime(new Date());
 		save(record);

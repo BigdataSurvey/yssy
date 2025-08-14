@@ -8,7 +8,7 @@ import java.util.Date;
 
 public class UserCapital extends BaseBean{
 	
-	public static final  String tablePrefix = "t_user_capital_";
+	public static final  String tablePrefix = "t_user_capital";
 
 	private Long id;
 	
