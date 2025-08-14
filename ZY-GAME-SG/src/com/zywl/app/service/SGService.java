@@ -457,7 +457,7 @@ public class SGService extends BaseService {
                 Map<String, BigDecimal> map1 = new HashMap<>();
                 map1.put(bet, amount);
                 //map.put("map", map1);
-                map.put("type", type);
+                map.put("type", map1);
                 SgBetRecord record = sgBetRecordService.addRecord(Long.parseLong(userId), orderNo, PERIODS_NUM, String.valueOf(JSONObject.from(map)), amount);
                 dataId = record.getId();
                 userOrders.put(userId, record);
