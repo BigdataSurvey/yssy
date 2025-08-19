@@ -109,7 +109,7 @@ if(!window.CtrlFn_${menuId}){
             ACTIVE2:"是否显示限时活动2",
             ACTIVE3:"是否显示限时活动3",
             RED_RATE:"红包消耗比例",
-            SHOOP_MANAGER:"店长申请通宝余额"
+            SHOP_MANAGER:"店长申请通宝余额"
         };
         /*初始化表格*/
         function initTable() {
