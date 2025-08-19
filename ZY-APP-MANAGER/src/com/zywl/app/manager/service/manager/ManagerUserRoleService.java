@@ -3,6 +3,7 @@ package com.zywl.app.manager.service.manager;
 import com.alibaba.fastjson2.JSONArray;
 import com.alibaba.fastjson2.JSONObject;
 import com.zywl.app.base.bean.*;
+import com.zywl.app.base.bean.shoop.ShopManager;
 import com.zywl.app.base.service.BaseService;
 import com.zywl.app.base.util.DateUtil;
 import com.zywl.app.base.util.LockUtil;
@@ -11,12 +12,10 @@ import com.zywl.app.defaultx.annotation.ServiceClass;
 import com.zywl.app.defaultx.annotation.ServiceMethod;
 import com.zywl.app.defaultx.cache.GameCacheService;
 import com.zywl.app.defaultx.cache.UserCacheService;
+import com.zywl.app.defaultx.cache.UserCapitalCacheService;
 import com.zywl.app.defaultx.enmus.LogUserBackpackTypeEnum;
 import com.zywl.app.defaultx.enmus.UserCapitalTypeEnum;
-import com.zywl.app.defaultx.service.CashRecordService;
-import com.zywl.app.defaultx.service.UserCapitalService;
-import com.zywl.app.defaultx.service.UserRoleAdService;
-import com.zywl.app.defaultx.service.UserRoleService;
+import com.zywl.app.defaultx.service.*;
 import com.zywl.app.manager.context.KafkaEventContext;
 import com.zywl.app.manager.context.KafkaTopicContext;
 import com.zywl.app.manager.context.MessageCodeContext;
@@ -26,6 +25,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import javax.annotation.PostConstruct;
 import java.math.BigDecimal;
 import java.util.Date;
 import java.util.List;
@@ -51,6 +51,9 @@ public class ManagerUserRoleService extends BaseService {
     private UserCacheService userCacheService;
 
     @Autowired
+    private UserCapitalCacheService userCapitalCacheService;
+
+    @Autowired
     private ManagerConfigService managerConfigService;
 
     @Autowired
@@ -60,7 +63,20 @@ public class ManagerUserRoleService extends BaseService {
     private GameCacheService gameCacheService;
 
     @Autowired
+    private ConfigService configService;
+
+    @Autowired
     private CashRecordService cashRecordService;
+
+    @Autowired
+    private UserService userService;
+
+    @Autowired
+    private ShopManagerService shopManagerService;
+
+
+
+
 
     @Transactional
     @ServiceMethod(code = "001", description = "恢复角色体力")
@@ -217,6 +233,9 @@ public class ManagerUserRoleService extends BaseService {
         return data;
     }
 
+
+
+
     @Transactional
     @ServiceMethod(code = "005", description = "购买角色")
     public  JSONObject buyRole(ManagerSocketServer adminSocketServer,  JSONObject data) {
@@ -244,4 +263,43 @@ public class ManagerUserRoleService extends BaseService {
         }
         return data;
     }
+
+    @Transactional
+    @ServiceMethod(code = "006", description = "申请成为店长")
+    public  JSONObject buyShoopManager(ManagerSocketServer adminSocketServer,  JSONObject data) {
+        checkNull(data.get("userId"));
+        Long userId = data.getLong("userId");
+        User user = userCacheService.getUserInfoById(userId);
+        synchronized (LockUtil.getlock(userId)){
+            String url = data.getString("");
+            ShopManager userEntity = shopManagerService.findByUserId(userId);
+            if (userEntity!=null){
+                throwExp("申请成为店长,请耐心等待审核！");
+            }
+            BigDecimal price = managerConfigService.getBigDecimal(Config.SHOOP_MANAGER);
+            //获取账户余额
+            managerGameBaseService.checkBalance(userId,price,UserCapitalTypeEnum.currency_2);
+            //扣除金额
+            userCapitalService.subShopManager(price, userId, null, null);
+            //推送用户余额变动
+            managerGameBaseService.pushCapitalUpdate(userId,UserCapitalTypeEnum.currency_2.getValue());
+            ShopManager shopManager = new ShopManager();
+            shopManager.setUserId(userId);
+            shopManager.setNickName(user.getName());
+            shopManager.setHeadImageUrl(user.getHeadImageUrl());
+            shopManager.setUserNo(user.getUserNo());
+            shopManager.setWechat(user.getWechatId());
+            shopManager.setQq(user.getQq());
+            shopManager.setUserAddress(url);
+            shopManager.setStatus(1);
+            shopManagerService.addShopManager(shopManager);
+            }
+        return new JSONObject();
+    }
+
+
+
+
+
+
 }

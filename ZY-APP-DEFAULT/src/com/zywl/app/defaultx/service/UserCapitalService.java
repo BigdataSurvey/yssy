@@ -1034,6 +1034,9 @@ public class UserCapitalService extends DaoService {
 
 
 
+
+
+
     //试玩增加货币
     public void addUserBalanceByPlayTest(BigDecimal amount, Long userId, String orderNo, Long dataId) {
         UserCapital userCapital = userCapitalCacheService.getUserCapitalCacheByType(userId, UserCapitalTypeEnum.currency_2.getValue());
@@ -1333,6 +1336,36 @@ public class UserCapitalService extends DaoService {
             }
         }
     }
+
+
+    //TODO  hk
+    @Transactional
+    public void subShopManager(BigDecimal amount, Long userId, String orderNo, Long dataId) {
+        UserCapital userCapital = userCapitalCacheService.getUserCapitalCacheByType(userId, UserCapitalTypeEnum.currency_2.getValue());
+        int a = subUserBalance(amount, userId, UserCapitalTypeEnum.currency_2.getValue(), userCapital.getBalance(), userCapital.getOccupyBalance(), orderNo, dataId, LogCapitalTypeEnum.sub_shop_manager, TableNameConstant.BUY_GIFT);
+        if (a < 1) {
+            userCapitalCacheService.deltedUserCapitalCache(userId, UserCapitalTypeEnum.rmb.getValue());
+            userCapital = userCapitalCacheService.getUserCapitalCacheByType(userId, UserCapitalTypeEnum.rmb.getValue());
+            int b = subUserBalance(amount, userId, UserCapitalTypeEnum.rmb.getValue(), userCapital.getBalance(), userCapital.getOccupyBalance(), orderNo, dataId, LogCapitalTypeEnum.exchange, TableNameConstant.EXCHANGE_RECORD);
+            if (b < 1) {
+                throwExp("扣除余额失败");
+            }
+        }
+    }
+
+//    @Transactional
+//    public void subUserBalanceByExchange(BigDecimal amount, Long userId, String orderNo, Long dataId) {
+//        UserCapital userCapital = userCapitalCacheService.getUserCapitalCacheByType(userId, UserCapitalTypeEnum.rmb.getValue());
+//        int a = subUserBalance(amount, userId, UserCapitalTypeEnum.rmb.getValue(), userCapital.getBalance(), userCapital.getOccupyBalance(), orderNo, dataId, LogCapitalTypeEnum.exchange, TableNameConstant.EXCHANGE_RECORD);
+//        if (a < 1) {
+//            userCapitalCacheService.deltedUserCapitalCache(userId, UserCapitalTypeEnum.rmb.getValue());
+//            userCapital = userCapitalCacheService.getUserCapitalCacheByType(userId, UserCapitalTypeEnum.rmb.getValue());
+//            int b = subUserBalance(amount, userId, UserCapitalTypeEnum.rmb.getValue(), userCapital.getBalance(), userCapital.getOccupyBalance(), orderNo, dataId, LogCapitalTypeEnum.exchange, TableNameConstant.EXCHANGE_RECORD);
+//            if (b < 1) {
+//                throwExp("扣除余额失败");
+//            }
+//        }
+//    }
 
 
 

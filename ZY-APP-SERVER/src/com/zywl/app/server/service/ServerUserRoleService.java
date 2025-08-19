@@ -11,6 +11,7 @@ import com.live.app.ws.util.CommandBuilder;
 import com.live.app.ws.util.Executer;
 import com.live.app.ws.util.Push;
 import com.zywl.app.base.bean.*;
+import com.zywl.app.base.bean.shoop.ShopManager;
 import com.zywl.app.base.bean.vo.SendGiftRecordVo;
 import com.zywl.app.base.bean.vo.UserVo;
 import com.zywl.app.base.constant.RedisKeyConstant;
@@ -81,6 +82,10 @@ public class ServerUserRoleService extends BaseService {
     private RedisTemplate redisTemplate;
     @Autowired
     private RedisService redisService;
+
+
+    @Autowired
+    private ShopManagerService shopManagerService;
     @Autowired
     private GameCacheService gameCacheService;
 
@@ -778,9 +783,29 @@ public class ServerUserRoleService extends BaseService {
         return async();
     }
 
+    @ServiceMethod(code = "019", description = "申请成为店长")
+    public Object buyShoopManager(final AppSocket appSocket, Command appCommand, JSONObject params) {
+        checkNull(params.get("url"));
+        Long userId = appSocket.getWsidBean().getUserId();
+        params.put("userId", userId);
+        Executer.request(TargetSocketType.manager, CommandBuilder.builder().request("400006", params).build(), new RequestManagerListener(appCommand));
+        return async();
+    }
+
+    @ServiceMethod(code = "020", description = "查询店长列表")
+    public Object buyShoopManagerList(final AppSocket appSocket, Command appCommand, JSONObject params) {
+        List<ShopManager> shopManagers = shopManagerService.queryShopManager();
+        return shopManagers;
+    }
+
+
+
     public static void main(String[] args) {
         long a = 15560 / 5400;
         System.out.println(a);
     }
+
+
+
 
 }

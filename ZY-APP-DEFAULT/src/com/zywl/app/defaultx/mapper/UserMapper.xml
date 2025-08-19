@@ -626,9 +626,6 @@
 		where is_channel > 0  and channel_no=#{channelNo} and status = 1
 	</select>
 
-
-
-
 	<update id="updateUserCNo" parameterType="User">
 		update t_user set cno =  #{cno}  where id=#{userId}
 	</update>
