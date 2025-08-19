@@ -140,7 +140,7 @@ public class Config extends BaseBean {
 	public static final String GUILD_FEE = "GUILD_FEE";
 
 	//店长申请通宝余额
-	public static final String SHOOP_MANAGER = "SHOOP_MANAGER";
+	public static final String SHOP_MANAGER = "SHOP_MANAGER";
 
 	//添加公会成员质押价格
 	public static final String GUILD_MEMBER_FEE = "GUILD_MEMBER_FEE";

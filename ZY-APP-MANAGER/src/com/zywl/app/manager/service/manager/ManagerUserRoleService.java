@@ -28,7 +28,9 @@ import org.springframework.transaction.annotation.Transactional;
 import javax.annotation.PostConstruct;
 import java.math.BigDecimal;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 
 @Service
@@ -276,7 +278,7 @@ public class ManagerUserRoleService extends BaseService {
             if (userEntity!=null){
                 throwExp("申请成为店长,请耐心等待审核！");
             }
-            BigDecimal price = managerConfigService.getBigDecimal(Config.SHOOP_MANAGER);
+            BigDecimal price = managerConfigService.getBigDecimal(Config.SHOP_MANAGER);
             //获取账户余额
             managerGameBaseService.checkBalance(userId,price,UserCapitalTypeEnum.currency_2);
             //扣除金额
@@ -293,6 +295,8 @@ public class ManagerUserRoleService extends BaseService {
             shopManager.setUserAddress(url);
             shopManager.setStatus(1);
             shopManagerService.addShopManager(shopManager);
+            JSONObject result = new JSONObject();
+            result.put("price",price);
             }
         return new JSONObject();
     }
