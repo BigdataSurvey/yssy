@@ -98,7 +98,19 @@ public class ServerNxqGameService extends BaseService {
         }
         return result;
     }
-
+    @ServiceMethod(code = "005", description = "领取记录")
+    public Async findInvestRecord(final AppSocket appSocket, Command appCommand, JSONObject params) {
+        checkNull(params);
+        long userId = appSocket.getWsidBean().getUserId();
+        params.put("userId", userId);
+        User user = userCacheService.getUserInfoById(userId);
+        if (user == null) {
+            throwExp("用户信息异常");
+        }
+        Executer.request(TargetSocketType.manager, CommandBuilder.builder().request("9021006", params).build(),
+                new RequestManagerListener(appCommand));
+        return async();
+    }
 
 
 

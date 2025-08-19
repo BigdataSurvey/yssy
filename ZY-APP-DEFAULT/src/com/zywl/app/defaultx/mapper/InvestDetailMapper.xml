@@ -22,6 +22,9 @@
     <select id="findInvestDetail" resultType="InvestDetail">
         select * from t_invest_detail where user_id = #{userId} and invest_seal_status = #{investSealStatus}
     </select>
+   <select id="getReceiveRecord" resultType="InvestDetail">
+        select * from t_invest_detail where user_id = #{userId} and gener_yyq is not null;
+    </select>
 
     <update id="batchUpdateInvestDetail" parameterType="java.util.List">
         <foreach collection="list" item="item" index="index" open="" close="" separator=";">

@@ -147,6 +147,17 @@ public class ManagerNxqGameService extends BaseService {
 
     }
 
+    @Transactional
+    @ServiceMethod(code = "006", description = "领取记录")
+    public Object getReceiveRecord(ManagerSocketServer adminSocketServer, JSONObject params) {
+        checkNull(params);
+        Long userId = params.getLong("userId");
+        synchronized (LockUtil.getlock(userId)) {
+            List<InvestDetail> investDetailList = investDetailService.getReceiveRecord(params);
+            return investDetailList;
+        }
+    }
+
 
 
     public int getItemNumber(Long userId, String itemId) {
