@@ -4,6 +4,7 @@ import com.zywl.app.base.BaseBean;
 import lombok.Data;
 
 import java.time.LocalDateTime;
+import java.util.Date;
 
 
 /**
@@ -51,6 +52,9 @@ public class ShopManager extends BaseBean {
      * 1启用 0禁用 2申请
      */
     private Integer status;
+
+
+
 
 
 }

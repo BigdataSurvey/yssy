@@ -273,7 +273,7 @@ public class ManagerUserRoleService extends BaseService {
         Long userId = data.getLong("userId");
         User user = userCacheService.getUserInfoById(userId);
         synchronized (LockUtil.getlock(userId)){
-            String url = data.getString("");
+            String url = data.getString("url");
             ShopManager userEntity = shopManagerService.findByUserId(userId);
             if (userEntity!=null){
                 throwExp("申请成为店长,请耐心等待审核！");
@@ -293,7 +293,7 @@ public class ManagerUserRoleService extends BaseService {
             shopManager.setWechat(user.getWechatId());
             shopManager.setQq(user.getQq());
             shopManager.setUserAddress(url);
-            shopManager.setStatus(1);
+            shopManager.setStatus(2);
             shopManagerService.addShopManager(shopManager);
             }
         return new JSONObject();

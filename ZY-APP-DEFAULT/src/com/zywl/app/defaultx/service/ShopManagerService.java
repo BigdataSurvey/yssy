@@ -18,9 +18,8 @@ public class ShopManagerService extends DaoService {
     }
 
     public ShopManager addShopManager(ShopManager shopManager) {
-        Map<String, Object> params = new HashMap<>();
-        params.put("userId", shopManager.getUserId());
-        return (ShopManager) findOne("addShopManager", params);
+        save(shopManager);
+        return shopManager;
     }
 
     public ShopManager findByUserId(Long userId) {

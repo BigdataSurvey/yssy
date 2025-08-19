@@ -1346,7 +1346,7 @@ public class UserCapitalService extends DaoService {
         if (a < 1) {
             userCapitalCacheService.deltedUserCapitalCache(userId, UserCapitalTypeEnum.rmb.getValue());
             userCapital = userCapitalCacheService.getUserCapitalCacheByType(userId, UserCapitalTypeEnum.rmb.getValue());
-            int b = subUserBalance(amount, userId, UserCapitalTypeEnum.rmb.getValue(), userCapital.getBalance(), userCapital.getOccupyBalance(), orderNo, dataId, LogCapitalTypeEnum.exchange, TableNameConstant.EXCHANGE_RECORD);
+            int b = subUserBalance(amount, userId, UserCapitalTypeEnum.rmb.getValue(), userCapital.getBalance(), userCapital.getOccupyBalance(), orderNo, dataId, LogCapitalTypeEnum.sub_shop_manager, TableNameConstant.EXCHANGE_RECORD);
             if (b < 1) {
                 throwExp("扣除余额失败");
             }

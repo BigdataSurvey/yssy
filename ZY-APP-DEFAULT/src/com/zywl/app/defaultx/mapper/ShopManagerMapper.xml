@@ -2,7 +2,7 @@
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.zywl.app.defaultx.mapper.ShopManagerMapper">
 
-    <insert id="addShopManager" parameterType="ShopManager" useGeneratedKeys="true" keyProperty="id" keyColumn="id">
+    <insert id="insert" parameterType="ShopManager" useGeneratedKeys="true" keyProperty="id" keyColumn="id">
         insert into r_shop_manager
         (`user_id`,
          `nick_name`,
