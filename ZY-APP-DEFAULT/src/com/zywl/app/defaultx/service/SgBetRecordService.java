@@ -43,7 +43,7 @@ public class SgBetRecordService extends DaoService {
 		record.setPeriodsNum(periodsNum);
 		record.setBetInfo(JSONObject.parseObject(betInfo));
 		record.setBetAmount(amount);
-		record.setStatus(1);
+		record.setStatus(0);
 		record.setCreateTime(new Date());
 		record.setUpdateTime(new Date());
 		save(record);
@@ -83,9 +83,9 @@ public class SgBetRecordService extends DaoService {
 			Map<String, Object> map = new HashedMap<String, Object>();
 			map.put("orderNo", key);
 			JSONObject o = (JSONObject) obj.get(key);
-			map.put("settleInfo",o.getJSONObject("settleInfo"));
+			map.put("settleInfo",o.getJSONObject("settleInfo").toJSONString());
 			map.put("winAmount", o.get("winAmount"));
-			map.put("lotteryResult", o.get("lotteryResult"));
+			map.put("lotteryResult", o.getJSONArray("lotteryResult").toJSONString());
 			map.put("winOrLose",o.get("winOrLose"));
 			map.put("betIndex",o.get("betIndex"));
 			map.put("betInfo",o.get("betInfo"));

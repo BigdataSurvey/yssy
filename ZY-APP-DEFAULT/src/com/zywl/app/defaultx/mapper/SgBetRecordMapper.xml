@@ -101,7 +101,7 @@
         <foreach collection="list" item="item" index="index" open="" close="" separator=";">
             update r_sg_bet_record
             <set>
-                profit=#{item.winAmount},status=1,lottery_result=#{item.lotteryResult},settle_info=#{item.settleInfo},win_or_lose=#{item.winOrLose},bet_info=#{item.betInfo},bet_index=#{betIndex}
+                profit=#{item.winAmount},status=1,lottery_result=#{item.lotteryResult},settle_info=#{item.settleInfo},win_or_lose=#{item.winOrLose},bet_info=#{item.betInfo},bet_index=#{item.betIndex}
             </set>
             where order_no = #{item.orderNo}
         </foreach>

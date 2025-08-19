@@ -82,8 +82,9 @@ public class ManagerSocket extends BaseClientSocket {
 					logger.info("调整游戏状态："+status);
 					sGService.updateStatus(status);
 				}
-				if (config.getKey().equals(Config.SG_RATE)){
+				if (config.getKey().equals(Config.GAME_SG_RATE)){
 					BigDecimal rate = new BigDecimal(config.getValue());
+					SGService.gameRate = rate;
 					logger.info("调整游戏手续费："+rate);
 				}
 				if (config.getKey().equals(Config.SG_ISK)){

@@ -242,8 +242,8 @@ public class ManagerPitService extends BaseService {
             //批量新增領取记录
             pitRecordService.batchAddRecord(pitRecordList);
             //添加上级收益
-            addParentOrGrandfaReward(userPit.getUnReceive(), 1, userId);
-            addParentOrGrandfaReward(userPit.getUnReceive(), 2, userId);
+            addParentOrGrandfaReward(reward, 1, userId);
+            addParentOrGrandfaReward(reward, 2, userId);
             //数据库更改数据
             userPitService.update(userPit);
             JSONObject result = new JSONObject();

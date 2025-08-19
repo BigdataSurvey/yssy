@@ -42,6 +42,8 @@ if(!window.CtrlFn_${menuId}){
                     {data: "allOutPut", title: '今日总产出', render: datatableUtil.renderNormal},
                     {data: "allExpend", title: '今日总消耗', render: datatableUtil.renderNormal},
                     {data: "addDice", title: '捐赠产出通宝', render: datatableUtil.renderNormal},
+                    {data: "subCq", title: '四大名著投入', render: datatableUtil.renderNormal},
+                    {data: "addCq", title: '四大名著产出', render: datatableUtil.renderNormal},
                     {data: "subRedGame", title: '鞭炮发放', render: datatableUtil.renderNormal},
                     {data: "addRedGame", title: '鞭炮领取', render: datatableUtil.renderNormal},
                     {data: "subRedZd", title: '鞭炮炸弹', render: datatableUtil.renderNormal},

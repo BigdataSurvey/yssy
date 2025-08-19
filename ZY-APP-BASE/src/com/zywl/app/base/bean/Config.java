@@ -70,7 +70,7 @@ public class Config extends BaseBean {
 	public static final String DAILY_STOLEN_COUNT = "DAILY_STOLEN_COUNT";
 	public static final String DTS_STATUS="GAME_DTS_STATUS";
 	public static final String DZ_GAME_ON = "GAME_DZ_GAME_ON";
-	public static final String SG_RATE = "SG_RATE";
+	public static final String GAME_SG_RATE = "GAME_SG_RATE";
 	public static final String SG_STATUS="GAME_SG_STATUS";
 	public static final String DZ_LUCK_USER = "DZ_LUCK_USER";
 
