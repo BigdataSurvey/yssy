@@ -295,8 +295,6 @@ public class ManagerUserRoleService extends BaseService {
             shopManager.setUserAddress(url);
             shopManager.setStatus(1);
             shopManagerService.addShopManager(shopManager);
-            JSONObject result = new JSONObject();
-            result.put("price",price);
             }
         return new JSONObject();
     }

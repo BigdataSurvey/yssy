@@ -14,6 +14,7 @@ public class RedisKeyConstant {
 	public final static String GAME_RANK_LIST_DTS="t:app:dts:nowRankList:";
 	public final static String GAME_RANK_LIST_LHD="t:app:lhd:nowRankList:";
 	public final static String GAME_RANK_LIST_DGS="t:app:dgs:nowRankList:";
+	public final static String GAME_RANK_LIST_NCC="t:app:ncc:nowRankList:";
 	public final static String APP_USER_DISPATCH_NUMBER = "t:app:user:todayDispatch:";
 	public final static String APP_USER_TODAY_IS_LOGIN = "t:app:user:todayIsLogin:";
 	public final static String APP_GAME_RANK_LIKE = "t:app:game:rankLike:";
@@ -350,6 +351,7 @@ public class RedisKeyConstant {
 	public final static String GAME_LAST_WEEK_TOP_LIST_LHD ="t:app:lhd:lastWeekList:";
 
 	public final static String GAME_LAST_WEEK_TOP_LIST_DGS ="t:app:dgs:lastWeekList:";
+	public final static String GAME_LAST_WEEK_TOP_LIST_NCC ="t:app:ncc:lastWeekList:";
 
 
 	public final static String KILL_RANK_LIST="t:app:game:killRankList";
@@ -398,5 +400,7 @@ public class RedisKeyConstant {
 	public final static String POINT_RANK_LIST_3="t:app:pointList3:";
 
 	public final static String POINT_RANK_LIST_LAST_3="t:app:lastPointList3:";
+	public final static String HEART_LIST_LAST_3="t:app:lastHeartList3:";
+	public final static String GAME_HEART_WEEK_TOP_LIST_NCC ="t:app:nxq:lastWeekList:";
 }
 
