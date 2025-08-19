@@ -188,6 +188,7 @@ public class ManagerGuildService extends BaseService {
         return new JSONObject();
     }
 
+
     public void passApplyGuild(long dataId, long userId) {
         User user = userCacheService.getUserInfoById(userId);
         if (user.getRoleId() != 1) {

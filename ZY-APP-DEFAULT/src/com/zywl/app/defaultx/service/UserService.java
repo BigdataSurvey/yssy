@@ -953,5 +953,4 @@ public class UserService extends DaoService {
         return (User) findOne("getValidById", params);
     }
 
-
 }
