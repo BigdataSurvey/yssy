@@ -784,7 +784,7 @@ public class ServerUserRoleService extends BaseService {
     }
 
     @ServiceMethod(code = "019", description = "申请成为店长")
-    public Object buyShoopManager(final AppSocket appSocket, Command appCommand, JSONObject params) {
+    public Object buyShopManager(final AppSocket appSocket, Command appCommand, JSONObject params) {
         checkNull(params.get("url"));
         Long userId = appSocket.getWsidBean().getUserId();
         params.put("userId", userId);
@@ -793,9 +793,13 @@ public class ServerUserRoleService extends BaseService {
     }
 
     @ServiceMethod(code = "020", description = "查询店长列表")
-    public Object buyShoopManagerList(final AppSocket appSocket, Command appCommand, JSONObject params) {
+    public Object buyShopManagerList(final AppSocket appSocket, Command appCommand, JSONObject params) {
         List<ShopManager> shopManagers = shopManagerService.queryShopManager();
-        return shopManagers;
+        BigDecimal price = serverConfigService.getBigDecimal(Config.SHOP_MANAGER);
+        JSONObject result = new JSONObject();
+        result.put("shopManagers", shopManagers);
+        result.put("price", price);
+        return result;
     }
 
 
