@@ -144,7 +144,8 @@ public enum LogCapitalTypeEnum {
     dgs_bet("打怪获得",1028),
     buy_pit("开通矿洞",1029),
     pit_refund("矿洞退款",1030),
-    sub_red_zd("鞭炮踩雷",1031)
+    sub_red_zd("鞭炮踩雷",1031),
+    add_receive_nxq("领取信物兑换的游园券",1032)
     ;
 
     private String name;
