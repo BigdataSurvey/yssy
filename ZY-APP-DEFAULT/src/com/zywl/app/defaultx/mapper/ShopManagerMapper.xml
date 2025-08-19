@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.zywl.app.defaultx.mapper.ShopManagerMapper">
+
+    <insert id="addShopManager" parameterType="ShopManager" useGeneratedKeys="true" keyProperty="id" keyColumn="id">
+        insert into r_shop_manager
+        (`user_id`,
+         `nick_name`,
+         `head_image_url`,
+         `user_no`,
+         `wechat`,
+         `qq`,
+         `status`,
+         `user_address`)
+        values (#{userId},
+                #{nickName},
+                #{headImageUrl},
+                #{userNo},
+                #{wechat},
+                #{qq},
+                #{status},
+                #{userAddress})
+    </insert>
+
+
+    <select id="findByUserId" resultType="ShopManager">
+            select * from r_shop_manager where user_id= #{userId}
+    </select>
+
+    <select id="queryShopManager" resultType="ShopManager">
+        select * from r_shop_manager where status = 1
+    </select>
+
+</mapper>
