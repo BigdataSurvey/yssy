@@ -23,7 +23,7 @@ if(!window.CtrlFn_${menuId}){
                     {data: "userNo", title: '用户编号', render: datatableUtil.renderNormal},
                     {data: "headImageUrl", title: '头像', render: datatableUtil.renderNormal},
                     {data: "wechat", title: '微信', render: datatableUtil.renderNormal},
-                    {data: "qq", title: '头像', render: datatableUtil.renderNormal},
+                    {data: "qq", title: 'qq', render: datatableUtil.renderNormal},
                     {data: "userAddress", title: '用户地址', render: datatableUtil.renderNormal},
                     {data: "status", title: '状态', render: function(data, type, row, setting){
                             return '<span class="' + statusColorDic[data] + '">' + (statusDic[data] || '-') + '</span>';
