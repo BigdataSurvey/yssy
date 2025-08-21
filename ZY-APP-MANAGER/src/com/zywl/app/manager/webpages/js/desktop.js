@@ -61,6 +61,7 @@ var menuTree = [{id: 'Home', name: '总览', icon: 'ti-home'},
         {id: 'GuildManager', name: '公会系统'},
         {id: 'GuildMemberManager', name: '公会成员'},
         {id: 'ChannelManager', name: '渠道审核'},
+        {id: 'ShopManager', name: '店长申请'},
         {id: 'EmailManager', name: '邮件列表'},
         {id: 'SendMail', name: '发送邮件'},
         {id: 'GoodNoManager', name: '靓号管理'}

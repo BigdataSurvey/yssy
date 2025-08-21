@@ -22,6 +22,35 @@
                 #{userAddress})
     </insert>
 
+    <sql id="conditions">
+        <if test="userId != null">
+            and user_id=#{userId}
+        </if>
+        <if test="userNo != null">
+            and user_no=#{userNo}
+        </if>
+        <if test="nickName != null">
+            and nick_name=#{nickName}
+        </if>
+
+        <if test="status != null">
+            and status=#{status}
+        </if>
+
+        <if test="headImageUrl !=null">
+            and head_image_url=#{headImageUrl}
+        </if>
+        <if test="wechat !=null">
+            and wechat=#{wechat}
+        </if>
+        <if test="qq !=null">
+            and qq=#{qq}
+        </if>
+        <if test="userAddress !=null">
+            and user_address=#{userAddress}
+        </if>
+    </sql>
+
 
     <select id="findByUserId" resultType="ShopManager">
             select * from r_shop_manager where user_id= #{userId}
@@ -29,6 +58,47 @@
 
     <select id="queryShopManager" resultType="ShopManager">
         select * from r_shop_manager where status = 1
+    </select>
+
+    <update id="pass" parameterType="ApplyFor">
+        UPDATE `r_shop_manager` SET `status`=#{status} WHERE user_id=#{userId}
+    </update>
+    
+    <update id="updateShopManagerInfo" parameterType="ShopManager">
+        update r_shop_manager set status=1  where id=#{userId} and status=0
+    </update>
+
+    <select id="countByConditions" resultType="Long">
+        select count(1) from r_shop_manager
+        <where>
+            <include refid="conditions"></include>
+        </where>
+    </select>
+
+    <select id="findByConditions" resultType="ShopManager">
+        select
+            id,
+            user_no,
+            user_id,
+            nick_name,
+            head_image_url,
+            wechat,
+        qq,
+        user_address,status
+               from r_shop_manager
+        <where>
+            <include refid="conditions"></include>
+        </where>
+        <if test="start != null and limit != null">
+            limit #{start}, #{limit}
+        </if>
+    </select>
+
+    <select id="findOne" resultType="ShopManager">
+        select * from r_shop_manager
+        <where>
+            <include refid="conditions"></include>
+        </where>
     </select>
 
 </mapper>

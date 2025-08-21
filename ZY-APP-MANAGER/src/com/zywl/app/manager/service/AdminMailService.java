@@ -8,6 +8,7 @@ import com.live.app.ws.enums.PushCode;
 import com.live.app.ws.util.Push;
 import com.zywl.app.base.bean.*;
 import com.zywl.app.base.bean.card.DicMine;
+import com.zywl.app.base.bean.shoop.ShopManager;
 import com.zywl.app.base.bean.vo.BackpackVo;
 import com.zywl.app.base.bean.vo.TsgPayOrderVo;
 import com.zywl.app.base.constant.RedisKeyConstant;
@@ -108,6 +109,9 @@ public class AdminMailService extends BaseService {
 
     @Autowired
     private UserMineService userMineService;
+
+    @Autowired
+    private ShopManagerService shopManagerService;
 
 
     private void checkAuth(AdminSocketServer adminSocketServer) {
@@ -289,6 +293,42 @@ public class AdminMailService extends BaseService {
     }
 
     /**
+     * 获取店长列表
+     *
+     * @return
+     */
+    @ServiceMethod(code = "026", description = "获取店长列表")
+    public Object getShopList(AdminSocketServer adminSocketServer, Command webCommand, JSONObject params) {
+        int page = params.getIntValue("page", 0);
+        int limit = params.getIntValue("limit", 10);
+        int status = params.getIntValue("status", -1);
+
+        Integer start = (page - 1) * limit;
+        Integer end = page * limit;
+        Map<String, Object> condition = new HashMap<>();
+        condition.put("start", start);
+        condition.put("limit", 10);
+        if (status >= 0) {
+            condition.put("status", status);
+        }
+        Long count = shopManagerService.count("countByConditions", condition);
+        List<ShopManager> list = shopManagerService.findByConditions(condition);
+
+        JSONArray array = new JSONArray();
+        for (ShopManager shopManager : list) {
+            JSONObject obj = (JSONObject) JSON.toJSON(shopManager);
+            User user1 = userCacheService.getUserInfoById(shopManager.getUserId());
+            obj.put("userName", user1 == null ? "" : user1.getName());
+            array.add(obj);
+        }
+
+        JSONObject data = new JSONObject();
+        data.put("list", array);
+        data.put("count", count);
+        return data;
+    }
+
+    /**
      * 获取渠道列表
      *
      * @return
@@ -360,6 +400,45 @@ public class AdminMailService extends BaseService {
         }
         return new JSONObject();
     }
+
+    /**
+     * 店长审核
+     *
+     * @return
+     */
+    @ServiceMethod(code = "025", description = "店长审核")
+    public Object modifyShopManager(AdminSocketServer adminSocketServer, Command webCommand, JSONObject params) {
+        checkNull(params);
+        checkNull(params.get("userId"), params.get("status"));
+        checkAuth(adminSocketServer);
+
+        Long userId = params.getLongValue("userId", -1);
+        int status = params.getIntValue("status", -1);
+
+        Map<String, Object> findCondition = new HashMap<>();
+        findCondition.put("userId", userId);
+        findCondition.put("status", 0);
+        try {
+            if (shopManagerService.findOne(findCondition) == null) {
+                throwExp("未找到数据！");
+            }
+
+            Map<String, Object> condition = new HashMap();
+            condition.put("userId", userId);
+            condition.put("status", status);
+            shopManagerService.execute("pass", condition);
+            Map<String, Object> upCondition = new HashMap<>();
+            upCondition.put("userId", userId);
+            shopManagerService.execute("updateShopManagerInfo", upCondition);
+            userCacheService.removeUserInfoCache(userId);
+            adminLogService.addAdminLog(adminSocketServer.getAdmin(), "modifyChannelApply", new JSONObject(condition));
+        } catch (Exception e) {
+            throwExp("执行出错！" + e.toString());
+        }
+        return new JSONObject();
+    }
+
+
 
     @ServiceMethod(code = "020", description = "获取公会列表")
     public Object getGuildList(AdminSocketServer adminSocketServer, Command webCommand, JSONObject params) {
