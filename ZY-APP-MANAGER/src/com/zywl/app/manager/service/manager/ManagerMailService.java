@@ -6,6 +6,7 @@ import com.zywl.app.base.bean.Mail;
 import com.zywl.app.base.bean.User;
 import com.zywl.app.base.bean.UserMail;
 import com.zywl.app.base.bean.UserVip;
+import com.zywl.app.base.bean.shoop.ShopManager;
 import com.zywl.app.base.service.BaseService;
 import com.zywl.app.base.util.LockUtil;
 import com.zywl.app.base.util.OrderUtil;
@@ -19,6 +20,7 @@ import com.zywl.app.defaultx.enmus.LogCapitalTypeEnum;
 import com.zywl.app.defaultx.enmus.LogUserBackpackTypeEnum;
 import com.zywl.app.defaultx.enmus.MailGoldTypeEnum;
 import com.zywl.app.defaultx.service.MailService;
+import com.zywl.app.defaultx.service.ShopManagerService;
 import com.zywl.app.defaultx.service.UserMailService;
 import com.zywl.app.defaultx.service.UserVipService;
 import com.zywl.app.manager.context.KafkaEventContext;
@@ -60,6 +62,10 @@ public class ManagerMailService extends BaseService {
 
     @Autowired
     private UserVipService userVipService;
+
+
+    @Autowired
+    private ShopManagerService shopManagerService;
 
 
     @PostConstruct
@@ -153,6 +159,28 @@ public class ManagerMailService extends BaseService {
         }
     }
 
+    private boolean isManager(String userId){
+        return "userId".equals(userId);
+    }
+
+    public void  shopManagerSend(Long userId,String userNo){
+        //判断发送人是否是店长
+        if(isManager(userId.toString())){
+            System.out.println("发送人是店长，无需检查接收人");
+        }else{
+            //如果不是店长，需要判断接收人是不是店长
+            System.out.println("发送人不是店长，检查接收人是否为店长");
+            boolean recriverUserNo =isManager(userNo);
+            if(recriverUserNo){
+                System.out.println("接收人是店长，允许发送");
+            }else {
+                throwExp("只能赠送给店长");
+            }
+        }
+    }
+
+
+
 
     @Transactional
     @ServiceMethod(code = "200", description = "玩家发送邮件（转赠功能）")
@@ -160,17 +188,19 @@ public class ManagerMailService extends BaseService {
     public JSONObject sendMail(ManagerSocketServer adminSocketServer, JSONObject data) {
         checkNull(data);
         checkNull(data.get("toUserId"), data.get("userId"));
-        String itemId = data.getString("itemId");
+        String itemId = data.getString("itemId");//道具id
         JSONArray array = new JSONArray();
+
         //第一个是赠送的文房四宝
         JSONObject detail = new JSONObject();
+
         //第二个是根据等级额外获得的信封道具
         long userId = data.getLongValue("userId");
         synchronized (LockUtil.getlock(userId)) {
             long toUserId = data.getLongValue("toUserId");
             String toUserNo = data.getString("toUserNo");
-            String context = data.getString("context");
-            int number = data.getIntValue("amount");
+            String context = data.getString("context");//赠送的内容
+            int number = data.getIntValue("amount");//赠送的数量
             if (number < 0) {
                 throwExp("数值异常");
             }
@@ -179,7 +209,7 @@ public class ManagerMailService extends BaseService {
             String useItemId = ItemIdEnum.XG.getValue();
             String smallItemId = ItemIdEnum.XXF.getValue();
             String bigItemId = ItemIdEnum.DXF.getValue();
-            String title = data.getString("title");
+            String title = data.getString("title");//赠送的好友
             User user = userCacheService.getUserInfoById(userId);
             gameService.checkUserItemNumber(userId, itemId, number);
             //根据userId查询出当前用户的vip等级
@@ -194,7 +224,9 @@ public class ManagerMailService extends BaseService {
                     gameService.updateUserBackpack(userId, useItemId, -number, LogUserBackpackTypeEnum.use);
                 }
             }
-
+            if(itemId.equals(ItemIdEnum.DUST.getValue())){
+                shopManagerSend(userId,toUserNo);
+            }
             // }
             /*if(uservip.getVipLevel()<4 && toUservip.getVipLevel() == 4){
                 //收件人将获得一个小信封
@@ -230,6 +262,7 @@ public class ManagerMailService extends BaseService {
             detail.put("number", number);
             detail.put("channel", MailGoldTypeEnum.FRIEND.getValue());
             detail.put("fromUserId", user.getUserNo());
+
             //添加邮件记录
             int isAttachments = 1;
             array.add(detail);

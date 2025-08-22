@@ -525,7 +525,6 @@ public class PlayGameService extends BaseService {
                 throwExp("道具操作失败,请重试");
             }
             if (playerItems.containsKey(userId)) {
-                //TODO
                 if (playerItems.get(userId).containsKey(itemId)) {
                     playerItems.get(userId).get(itemId).setItemNumber(playerItems.get(userId).get(itemId).getItemNumber() + number);
                 } else {
@@ -567,7 +566,7 @@ public class PlayGameService extends BaseService {
                 throwExp("道具操作失败,请重试");
             }
             if (playerItems.containsKey(userId)) {
-                //TODO
+
                 if (playerItems.get(userId).containsKey(itemId)) {
                     playerItems.get(userId).get(itemId).setItemNumber(playerItems.get(userId).get(itemId).getItemNumber() + number);
                 } else {
