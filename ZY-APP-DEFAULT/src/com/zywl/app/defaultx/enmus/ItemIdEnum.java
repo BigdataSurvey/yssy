@@ -8,7 +8,7 @@ public enum ItemIdEnum {
     GOLD("金币", "2"),
     YYQ("游园券", "3"),
     WFSB("文房四宝","5"),
-    DUST("洗尘丹","6"),
+    DUST("金刚铃","6"),
     FRIEND("友情点", "7"),
     XG("信鸽","8"),
     XXF("小信封","9"),
