@@ -2,10 +2,7 @@ package com.zywl.app.manager.service.manager;
 
 import com.alibaba.fastjson2.JSONArray;
 import com.alibaba.fastjson2.JSONObject;
-import com.zywl.app.base.bean.Mail;
-import com.zywl.app.base.bean.User;
-import com.zywl.app.base.bean.UserMail;
-import com.zywl.app.base.bean.UserVip;
+import com.zywl.app.base.bean.*;
 import com.zywl.app.base.bean.shoop.ShopManager;
 import com.zywl.app.base.service.BaseService;
 import com.zywl.app.base.util.LockUtil;
@@ -19,10 +16,7 @@ import com.zywl.app.defaultx.enmus.ItemIdEnum;
 import com.zywl.app.defaultx.enmus.LogCapitalTypeEnum;
 import com.zywl.app.defaultx.enmus.LogUserBackpackTypeEnum;
 import com.zywl.app.defaultx.enmus.MailGoldTypeEnum;
-import com.zywl.app.defaultx.service.MailService;
-import com.zywl.app.defaultx.service.ShopManagerService;
-import com.zywl.app.defaultx.service.UserMailService;
-import com.zywl.app.defaultx.service.UserVipService;
+import com.zywl.app.defaultx.service.*;
 import com.zywl.app.manager.context.KafkaEventContext;
 import com.zywl.app.manager.context.KafkaTopicContext;
 import com.zywl.app.manager.context.MessageCodeContext;
@@ -52,10 +46,6 @@ public class ManagerMailService extends BaseService {
     @Autowired
     private UserCacheService userCacheService;
 
-
-    @Autowired
-    private AppConfigCacheService appConfigCacheService;
-
     @Autowired
     private PlayGameService gameService;
 
@@ -63,9 +53,6 @@ public class ManagerMailService extends BaseService {
     @Autowired
     private UserVipService userVipService;
 
-
-    @Autowired
-    private ShopManagerService shopManagerService;
 
 
     @PostConstruct

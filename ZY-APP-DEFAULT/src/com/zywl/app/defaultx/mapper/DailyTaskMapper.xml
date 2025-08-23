@@ -57,5 +57,9 @@
 	<select id="findAll" resultType="DailyTask">
 	    select * from dic_daily_task
 	</select>
+
+<!--	<select id="selectById" resultType="DailyTask">-->
+<!--		select * from dic_daily_task where id=#{userId}-->
+<!--	</select>-->
 	
 </mapper>

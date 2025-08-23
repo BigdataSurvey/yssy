@@ -60,6 +60,9 @@ public class GameBaseService extends BaseService {
     @Autowired
     private UserCacheService userCacheService;
 
+//    @Autowired
+//    private DailyTaskService dailyTaskService;
+
 
     @Autowired
     private UserSignCacheService userSignCacheService;
@@ -347,6 +350,7 @@ public class GameBaseService extends BaseService {
         long userId = appSocket.getWsidBean().getUserId();
         JSONObject result = new JSONObject();
         Map userTask = cardGameCacheService.getUserTask(userId);
+        //List<DailyTask> dailyTask = dailyTaskService.findDailyTaskById(userId);
         Collection values = userTask.values();
         List<UserDailyTaskVo> list0 = new ArrayList<>();
         List<UserDailyTaskVo> list1 = new ArrayList<>();
