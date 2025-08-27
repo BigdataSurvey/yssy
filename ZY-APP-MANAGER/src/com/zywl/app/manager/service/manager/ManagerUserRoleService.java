@@ -3,6 +3,7 @@ package com.zywl.app.manager.service.manager;
 import com.alibaba.fastjson2.JSONArray;
 import com.alibaba.fastjson2.JSONObject;
 import com.zywl.app.base.bean.*;
+import com.zywl.app.base.bean.jingang.BellRecord;
 import com.zywl.app.base.bean.shoop.ShopManager;
 import com.zywl.app.base.service.BaseService;
 import com.zywl.app.base.util.DateUtil;
@@ -13,6 +14,7 @@ import com.zywl.app.defaultx.annotation.ServiceMethod;
 import com.zywl.app.defaultx.cache.GameCacheService;
 import com.zywl.app.defaultx.cache.UserCacheService;
 import com.zywl.app.defaultx.cache.UserCapitalCacheService;
+import com.zywl.app.defaultx.enmus.ItemIdEnum;
 import com.zywl.app.defaultx.enmus.LogUserBackpackTypeEnum;
 import com.zywl.app.defaultx.enmus.UserCapitalTypeEnum;
 import com.zywl.app.defaultx.service.*;
@@ -25,12 +27,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import javax.annotation.PostConstruct;
 import java.math.BigDecimal;
 import java.util.Date;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 
 @Service
@@ -75,6 +74,10 @@ public class ManagerUserRoleService extends BaseService {
 
     @Autowired
     private ShopManagerService shopManagerService;
+
+
+    @Autowired
+    private KongKimBellService kongkimBellService;
 
 
 
@@ -299,6 +302,35 @@ public class ManagerUserRoleService extends BaseService {
         return new JSONObject();
     }
 
+
+
+    @Transactional
+    @ServiceMethod(code = "007", description = "金刚铃兑换")
+    public  JSONObject buyJingGangLing(ManagerSocketServer adminSocketServer,  JSONObject data) {
+        checkNull(data.get("userId"));
+        Long userId = data.getLong("userId");
+        int number = data.getInteger("number");
+        synchronized (LockUtil.getlock(userId)){
+
+            BellRecord bellRecord =new BellRecord();
+            BigDecimal price = managerConfigService.getBigDecimal(Config.CONVERT_TOTAL);
+            //判断积分余额够不够
+            managerGameBaseService.checkBalance(userId,price.multiply(BigDecimal.valueOf(number)),UserCapitalTypeEnum.score);
+            //扣除金额
+            userCapitalService.subJingGangLing(price.multiply(BigDecimal.valueOf(number)), userId, null, bellRecord.getId());
+            //增加玩家道具
+            gameService.updateUserBackpack(userId, ItemIdEnum.DUST.getValue(), number, LogUserBackpackTypeEnum.use);
+            //积分推送
+            managerGameBaseService.pushCapitalUpdate(userId,UserCapitalTypeEnum.score.getValue());
+            //插兑换记录
+            bellRecord.setUserId(userId);
+            bellRecord.setConverCount(BigDecimal.valueOf(number));
+            bellRecord.setConsumeTotal(price.multiply(BigDecimal.valueOf(number)));
+            bellRecord.setCreateTime(new Date());
+            kongkimBellService.addKongkimBell(bellRecord);
+        }
+        return new JSONObject();
+    }
 
 
 

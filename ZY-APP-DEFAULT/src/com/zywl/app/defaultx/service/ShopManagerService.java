@@ -17,6 +17,12 @@ public class ShopManagerService extends DaoService {
         super("ShopManagerMapper");
     }
 
+
+
+    public List<ShopManager> queryShopList() {
+        return findList("queryShopList", null);
+    }
+
     public ShopManager addShopManager(ShopManager shopManager) {
         save(shopManager);
         return shopManager;
@@ -29,6 +35,7 @@ public class ShopManagerService extends DaoService {
     }
 
     public List<ShopManager> queryShopManager() {
+
         return findList("queryShopManager",null);
     }
 }

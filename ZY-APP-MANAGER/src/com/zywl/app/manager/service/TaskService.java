@@ -2,6 +2,7 @@ package com.zywl.app.manager.service;
 
 import com.alibaba.fastjson2.JSONObject;
 import com.zywl.app.base.bean.*;
+import com.zywl.app.base.bean.shoop.ShopManager;
 import com.zywl.app.base.service.BaseService;
 import com.zywl.app.base.util.DateUtil;
 import com.zywl.app.base.util.OrderUtil;
@@ -33,7 +34,6 @@ public class TaskService extends BaseService {
     @Autowired
     private AdminSocketService adminSocketService;
 
-
     @Autowired
     private UserStatisticService userStatisticService;
 
@@ -64,6 +64,9 @@ public class TaskService extends BaseService {
     private DzService dzService;
 
     @Autowired
+    private ShopManagerService shopManagerService;
+
+    @Autowired
     private DzPeriodsService dzPeriodsService;
 
     @Autowired
@@ -75,10 +78,8 @@ public class TaskService extends BaseService {
     @Autowired
     private ManagerConfigService managerConfigService;
 
-
     @Autowired
     private GuildDailyStaticsService guildDailyStaticsService;
-
 
     @Autowired
     private GuildMemberService guildMemberService;
@@ -86,12 +87,8 @@ public class TaskService extends BaseService {
     @Autowired
     private TsgPayOrderCheckService tsgPayOrderCheckService;
 
-
-
     @Autowired
     private PlayGameService gameService;
-
-
 
     public static double ALL_JUNIOR_NUM = 0;
 
@@ -229,6 +226,18 @@ public class TaskService extends BaseService {
                 }
             }
         }, 1000, 60000 );
+
+
+        new Timer("每晚0点执行店长推送金刚铃价格增值币66").schedule(new TimerTask() {
+            public void run() {
+                try {
+                    shopManagerService.queryShopList();
+                    logger.info("每晚0点执行成为店长推送金刚铃价格增值币66");
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+        }, DateUtil.getActivityNeed(), 1000 * 60 * 60 * 24);
 
 
         new Timer("计算奖池信息").schedule(new TimerTask() {

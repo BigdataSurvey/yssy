@@ -245,11 +245,7 @@ public class AdminMailService extends BaseService {
         if (adminSocketServer != null) {
             adminLogService.addAdminLog(adminSocketServer.getAdmin(), "sendMail", content);
         }
-
-        return new
-
-                JSONObject();
-
+        return new JSONObject();
     }
 
     @ServiceMethod(code = "003", description = "获取道具列表")

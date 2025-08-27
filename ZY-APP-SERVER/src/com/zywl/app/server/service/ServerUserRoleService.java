@@ -11,6 +11,7 @@ import com.live.app.ws.util.CommandBuilder;
 import com.live.app.ws.util.Executer;
 import com.live.app.ws.util.Push;
 import com.zywl.app.base.bean.*;
+import com.zywl.app.base.bean.jingang.BellRecord;
 import com.zywl.app.base.bean.shoop.ShopManager;
 import com.zywl.app.base.bean.vo.SendGiftRecordVo;
 import com.zywl.app.base.bean.vo.UserVo;
@@ -78,6 +79,10 @@ public class ServerUserRoleService extends BaseService {
 
     @Autowired
     private ServerConfigService serverConfigService;
+
+    @Autowired
+    private KongKimBellService  kongKimBellService;
+
     @Autowired
     private RedisTemplate redisTemplate;
     @Autowired
@@ -795,10 +800,32 @@ public class ServerUserRoleService extends BaseService {
     @ServiceMethod(code = "020", description = "查询店长列表")
     public Object buyShopManagerList(final AppSocket appSocket, Command appCommand, JSONObject params) {
         List<ShopManager> shopManagers = shopManagerService.queryShopManager();
-        BigDecimal price = serverConfigService.getBigDecimal(Config.SHOP_MANAGER);
         JSONObject result = new JSONObject();
         result.put("shopManagers", shopManagers);
-        result.put("price", price);
+        result.put("price", serverConfigService.getBigDecimal(Config.SHOP_MANAGER));
+        return result;
+    }
+
+    @ServiceMethod(code = "021", description = "金刚铃兑换")
+    public Object buyJinGangLing(final AppSocket appSocket, Command appCommand, JSONObject params) {
+        checkNull(params);
+        checkNull(params.get("number"));
+        Long userId = appSocket.getWsidBean().getUserId();
+        params.put("userId", userId);
+        Executer.request(TargetSocketType.manager,
+                CommandBuilder.builder().request("400007", params).build(),
+                new RequestManagerListener(appCommand));
+        return async();
+    }
+
+    @ServiceMethod(code = "022", description = "查询金刚铃兑换记录")
+    public Object buyJinGangLingList(final AppSocket appSocket, Command appCommand, JSONObject params) {
+        checkNull(params);
+        Long userId = appSocket.getWsidBean().getUserId();
+        List<BellRecord> bellRecord = kongKimBellService.findByUserId(userId);
+        JSONObject result = new JSONObject();
+        result.put("bellRecord", bellRecord);
+        result.put("price", serverConfigService.getBigDecimal(Config.CONVERT_TOTAL));
         return result;
     }
 
