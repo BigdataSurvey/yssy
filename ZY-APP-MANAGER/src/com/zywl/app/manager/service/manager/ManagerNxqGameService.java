@@ -119,7 +119,7 @@ public class ManagerNxqGameService extends BaseService {
             jsonObject.put("dicNccList",dicNccList);
             jsonObject.put("returnNum",investDetailList.size());
             jsonObject.put("receiveAmount",totalAmount);
-            jsonObject.put("30daysReceiveAmount",totalAmount.multiply(BigDecimal.valueOf(30)));
+            jsonObject.put("receiveAmount30days",totalAmount.multiply(BigDecimal.valueOf(30)));
         }
         return jsonObject;
     }
