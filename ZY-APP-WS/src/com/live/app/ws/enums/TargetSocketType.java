@@ -40,6 +40,7 @@ public enum TargetSocketType {
 	nh,
 	dgs,
 	dts2,
+	nxq,
 	//算卦
 	sg,
 	bt;

@@ -23,7 +23,11 @@
         select * from t_invest_detail where user_id = #{userId} and invest_seal_status = #{investSealStatus}
     </select>
    <select id="getReceiveRecord" resultType="InvestDetail">
-        select * from t_invest_detail where user_id = #{userId} and gener_yyq is not null;
+        select * from t_invest_detail where user_id = #{userId} and gener_yyq is not null
+       <if test="start != null and limit != null">
+           limit #{start}, #{limit}
+       </if>
+       ;
     </select>
 
     <update id="batchUpdateInvestDetail" parameterType="java.util.List">
@@ -32,7 +36,7 @@
             <set>
                 invest_number=#{item.investNumber}, invest_date=#{item.investDate},end_date=#{item.endDate},invest_seal_status = #{item.investSealStatus},gener_yyq=#{item.generYyq},un_receive=#{item.unReceive}
             </set>
-            where user_id= #{item.userId}
+            where id= #{item.id}
         </foreach>
     </update>
 
