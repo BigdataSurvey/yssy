@@ -25,6 +25,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
 import javax.websocket.server.ServerEndpoint;
+import java.util.Random;
 import java.util.Set;
 
 @ServerEndpoint(value = "/ManagerDgsServer" + SocketConstants.SOCKET_CONNECT_SHAKE_HANDS, configurator = HttpSessionConfigurator.class)
@@ -68,6 +69,16 @@ private static final Log logger = LogFactory.getLog(ManagerDgsSocketServer.class
 		managerPromoteService = SpringUtil.getService(ManagerPromoteService.class);
 		managerCapitalService = SpringUtil.getService(ManagerCapitalService.class);
 	}
+
+
+/*	public static void main(String[] args) {
+		int number = 66; // 可以替换为任意数字
+		int lowerBound = (number / 10) * 10;
+		int upperBound = lowerBound + 9;
+
+		System.out.println("数字 " + number + " 位于十位数区间: [" + lowerBound + ", " + upperBound + "]");
+	}*/
+
 
 	public ConnectedData onConnect(JSONObject shakeHandsData) {
 		this.address = shakeHandsData.getString("address");
