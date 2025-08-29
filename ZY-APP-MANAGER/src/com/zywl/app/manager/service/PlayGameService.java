@@ -13,6 +13,7 @@ import com.zywl.app.base.bean.card.Card;
 import com.zywl.app.base.bean.card.DicMine;
 import com.zywl.app.base.bean.card.DicShop;
 import com.zywl.app.base.bean.card.JDCard;
+import com.zywl.app.base.bean.hongbao.DicPrize;
 import com.zywl.app.base.constant.RedisKeyConstant;
 import com.zywl.app.base.service.BaseService;
 import com.zywl.app.base.util.LockUtil;
@@ -86,6 +87,8 @@ public class PlayGameService extends BaseService {
 
     public static Map<String,DicPrizeDraw>  DIC_PRIZE_DRAW_MAP = new ConcurrentHashMap<>();
 
+    public static Map<String, DicPrize>  DIC_PRIZE = new ConcurrentHashMap<>();
+
     public static Map<String,DicPit>  DIC_PIT = new ConcurrentHashMap<>();
 
     public static Map<String, Achievement> achievementMap = new ConcurrentHashMap<>();
@@ -150,7 +153,7 @@ public class PlayGameService extends BaseService {
     @Autowired
     private ProductService productService;
     @Autowired
-    private DicPrizeDrawService dicPrizeDrawService;
+    private DicPrizeService dicPrizeService;
 
     @Autowired
     private DicPitService dicPitService;
@@ -274,7 +277,7 @@ public class PlayGameService extends BaseService {
 
         initItem();
         initProduct();
-        initPrizeDraw();
+        initPrize();
         initPit();
         initDailyTask();
         initIncome();
@@ -327,10 +330,11 @@ public class PlayGameService extends BaseService {
         allProduct.forEach(e -> productMap.put(e.getId().toString(), e));
     }
 
-    public void initPrizeDraw() {
-        List<DicPrizeDraw> allPrizeDraw = dicPrizeDrawService.findAllPrizeDraw();
-        allPrizeDraw.forEach(e -> DIC_PRIZE_DRAW_MAP.put(e.getId().toString(), e));
+    public void initPrize() {
+        List<DicPrize> allPrizeRecord = dicPrizeService.findAllPrize();
+        allPrizeRecord.forEach(e -> DIC_PRIZE.put(e.getId().toString(), e));
     }
+
     public void initPit() {
         List<DicPit> allPit = dicPitService.findAllPit();
         allPit.forEach(e -> DIC_PIT.put(e.getId().toString(), e));
@@ -389,6 +393,19 @@ public class PlayGameService extends BaseService {
             userAchievementService.batchUpdateStatic(list);
             userAchievementMap.clear();
             logger.info("用户成就数据更新至数据库完成，用时：" + (System.currentTimeMillis() - time) + ",条数：" + list.size());
+        } catch (Exception e) {
+            logger.info(e);
+        }
+    }
+
+    public void updateUserPrize() {
+        try {
+            long time = System.currentTimeMillis();
+            logger.info("=========更新奖池的数据==========");
+            List<DicPrize> list = new ArrayList<>();
+            DIC_PRIZE.values().stream().forEach(e -> list.add(e));
+            DIC_PRIZE.clear();
+            logger.info("用户成就数据更新完成，用时：" + (System.currentTimeMillis() - time) + ",条数：" + list.size());
         } catch (Exception e) {
             logger.info(e);
         }

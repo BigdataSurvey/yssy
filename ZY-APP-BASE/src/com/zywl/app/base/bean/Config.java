@@ -118,6 +118,8 @@ public class Config extends BaseBean {
 	public static final String CONVERT_RATE = "CONVERT_RATE";
 
 
+	public static final String YYB_CONVERT_RATE = "YYB_CONVERT_RATE";
+
 	// 邮件有效期
 	public static final String MAIL_VALIDITY = "MAIL_VALIDITY";
 

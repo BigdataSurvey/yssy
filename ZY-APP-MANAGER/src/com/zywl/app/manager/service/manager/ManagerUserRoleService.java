@@ -3,6 +3,7 @@ package com.zywl.app.manager.service.manager;
 import com.alibaba.fastjson2.JSONArray;
 import com.alibaba.fastjson2.JSONObject;
 import com.zywl.app.base.bean.*;
+import com.zywl.app.base.bean.hongbao.DicPrize;
 import com.zywl.app.base.bean.jingang.BellRecord;
 import com.zywl.app.base.bean.shoop.ShopManager;
 import com.zywl.app.base.service.BaseService;
@@ -13,7 +14,6 @@ import com.zywl.app.defaultx.annotation.ServiceClass;
 import com.zywl.app.defaultx.annotation.ServiceMethod;
 import com.zywl.app.defaultx.cache.GameCacheService;
 import com.zywl.app.defaultx.cache.UserCacheService;
-import com.zywl.app.defaultx.cache.UserCapitalCacheService;
 import com.zywl.app.defaultx.enmus.ItemIdEnum;
 import com.zywl.app.defaultx.enmus.LogUserBackpackTypeEnum;
 import com.zywl.app.defaultx.enmus.UserCapitalTypeEnum;
@@ -28,8 +28,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
-import java.util.Date;
-import java.util.List;
+import java.util.*;
 
 
 @Service
@@ -51,8 +50,6 @@ public class ManagerUserRoleService extends BaseService {
     @Autowired
     private UserCacheService userCacheService;
 
-    @Autowired
-    private UserCapitalCacheService userCapitalCacheService;
 
     @Autowired
     private ManagerConfigService managerConfigService;
@@ -64,13 +61,7 @@ public class ManagerUserRoleService extends BaseService {
     private GameCacheService gameCacheService;
 
     @Autowired
-    private ConfigService configService;
-
-    @Autowired
-    private CashRecordService cashRecordService;
-
-    @Autowired
-    private UserService userService;
+    private DicPrizeService  dicPrizeService;
 
     @Autowired
     private ShopManagerService shopManagerService;
@@ -333,6 +324,49 @@ public class ManagerUserRoleService extends BaseService {
     }
 
 
+    LinkedList <Long> desk;
+
+    @Transactional
+    @ServiceMethod(code = "008", description = "翻拍游戏")
+    public  JSONObject buyFanPai(ManagerSocketServer adminSocketServer,  JSONObject data) {
+        checkNull(data.get("userId"));
+        Long id = data.getLongValue("id");
+        Long userId = data.getLong("userId");
+        int number = data.getInteger("number");
+        //游园卷兑换比例
+        BigDecimal price = managerConfigService.getBigDecimal(Config.YYB_CONVERT_RATE);
+        //判断余额够不够
+        managerGameBaseService.checkBalance(userId,price,UserCapitalTypeEnum.yyb);
+        //扣除金额
+        userCapitalService.subFanPai(price.multiply(BigDecimal.valueOf(number)), userId, null, null);
+        JSONObject object = new JSONObject();
+        Collections.shuffle(desk);
+        List<DicPrize> prizeList = new ArrayList<>();
+        for (int i = 0; i < number; i++) {
+          Long num = desk.remove(0);
+          prizeList.add(PlayGameService.DIC_PRIZE.get(num.toString()));
+            //更改数据库的当前数量
+            dicPrizeService.updatePrizeTotal(id);
+            //获取完奖品id之后  要扣除奖池数量
+            PlayGameService.DIC_PRIZE.get(num.toString()).setNumTotal(PlayGameService.DIC_PRIZE.get(num.toString()).getNumTotal()-1);
+        }
+        BigDecimal priceNum =  BigDecimal.ZERO;
+        for (DicPrize prize : prizeList) {
+            priceNum=priceNum.add(prize.getType());
+        }
+        userCapitalService.addUseeBalancePrize(priceNum,userId,null,null,UserCapitalTypeEnum.yyb.getValue());
+        //推送用户余额变动
+        managerGameBaseService.pushCapitalUpdate(userId,UserCapitalTypeEnum.yyb.getValue());
+        object.put("prizeList", prizeList);
+        return object;
+    }
+
+    @Transactional
+    @ServiceMethod(code = "009", description = "当前总数量")
+    public  Object buyFanPaiToal(ManagerSocketServer adminSocketServer,  JSONObject data) {
+        checkNull(data.get("userId"));
+        return PlayGameService.DIC_PRIZE;
+    }
 
 
 

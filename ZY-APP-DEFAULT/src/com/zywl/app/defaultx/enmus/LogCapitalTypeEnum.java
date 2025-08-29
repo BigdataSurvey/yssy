@@ -36,6 +36,7 @@ public enum LogCapitalTypeEnum {
     exchange("兑换商品", 26),
     sign("补签", 27),
     sign_reward("签到奖励", 28),
+    dic_prize("抽奖奖励",101),
     achievement_reward("新手任务奖励", 29),
     send_mail("发送贺卡手续费", 30),
     up_lv("购买经验扣除", 31),
