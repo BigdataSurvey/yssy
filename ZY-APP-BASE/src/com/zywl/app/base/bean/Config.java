@@ -118,6 +118,8 @@ public class Config extends BaseBean {
 	public static final String CONVERT_RATE = "CONVERT_RATE";
 
 
+	public static final String YYB_CONVERT_RATE = "YYB_CONVERT_RATE";
+
 	// 邮件有效期
 	public static final String MAIL_VALIDITY = "MAIL_VALIDITY";
 
@@ -136,11 +138,16 @@ public class Config extends BaseBean {
 
 
 
+
+
 	//开通公会质押价格
 	public static final String GUILD_FEE = "GUILD_FEE";
 
 	//店长申请通宝余额
 	public static final String SHOP_MANAGER = "SHOP_MANAGER";
+
+	//金刚铃兑换单价
+	public static final String CONVERT_TOTAL="CONVERT_TOTAL";
 
 	//添加公会成员质押价格
 	public static final String GUILD_MEMBER_FEE = "GUILD_MEMBER_FEE";

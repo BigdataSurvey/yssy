@@ -36,6 +36,7 @@ public enum LogCapitalTypeEnum {
     exchange("兑换商品", 26),
     sign("补签", 27),
     sign_reward("签到奖励", 28),
+    dic_prize("抽奖奖励",101),
     achievement_reward("新手任务奖励", 29),
     send_mail("发送贺卡手续费", 30),
     up_lv("购买经验扣除", 31),
@@ -146,7 +147,8 @@ public enum LogCapitalTypeEnum {
     pit_refund("矿洞退款",1030),
     sub_red_zd("鞭炮踩雷",1031),
     sub_shop_manager("申请成为店长",1032),
-    add_receive_nxq("领取信物兑换的游园券",1033)
+    add_receive_nxq("领取信物兑换的游园券",1033),
+    sub_convert_total("用户积分",1034)
     ;
 
     private String name;

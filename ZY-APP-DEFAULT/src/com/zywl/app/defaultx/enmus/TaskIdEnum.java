@@ -7,7 +7,6 @@ public enum TaskIdEnum {
 
     LOGIN("每日登录","0"),
     SHOP_BUY_NUMBER("商城购买1次道具","1"),
-
     ADD_POWER("补充一次体力","2"),
     DTS("参与一次倩女幽魂","3"),
     LHD("参与一次2选1","4"),
@@ -15,6 +14,8 @@ public enum TaskIdEnum {
     INVITE1("邀请5名好友","6"),
     INVITE2("邀请10名好友","7"),
     INVITE3("邀请20名好友","8"),
+    GREAT_NOVELS("参与四大名著","9"),
+    SEA_HUNT("参与山海狩怪","10"),
     ;
 
     private TaskIdEnum(String name, String value) {

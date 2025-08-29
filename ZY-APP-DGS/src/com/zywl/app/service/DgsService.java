@@ -515,30 +515,31 @@ public class DgsService extends BaseService {
             JSONObject data = new JSONObject();
             if(i!= people_num-1){
                 //赢的人
-                newList.get(i).setProfit(newList.get(i).getBetAmount().add(redPacketList.get(i)));
+                //newList.get(i).setProfit(newList.get(i).getBetAmount().add(redPacketList.get(i)));
+                newList.get(i).setProfit(BigDecimal.ZERO);
                 newList.get(i).setStatus(1);
                 //server用来推送的用户的
-                map.put("winAmount", redPacketList.get(i).add(newList.get(i).getBetAmount()));
+                /*map.put("winAmount", redPacketList.get(i).add(newList.get(i).getBetAmount()));*/
+                map.put("winAmount", 0);
                 map.put("betAmount", newList.get(i).getBetAmount());
-                map.put("isWin", BigDecimal.ONE);
+                map.put("isWin", BigDecimal.ZERO);
+                data.put("type", 1);
                 //manger用来更改资产
-                data.put("amount", redPacketList.get(i).add(newList.get(i).getBetAmount()));
+               /* data.put("amount", redPacketList.get(i).add(newList.get(i).getBetAmount()));
                 data.put("capitalType", UserCapitalTypeEnum.yyb.getValue());
                 data.put("orderNo",newList.get(i).getOrderNo());
                 data.put("em", LogCapitalTypeEnum.dgs_bet.getValue());
-                data.put("type", 1);
-
+                */
             }else{
               //输的人
                 newList.get(i).setProfit(BigDecimal.ZERO);
                 newList.get(i).setStatus(1);
                 map.put("winAmount", 0);
                 map.put("betAmount", newList.get(i).getBetAmount());
-                map.put("isWin", BigDecimal.ZERO);
+                map.put("isWin", BigDecimal.ONE);
                 data.put("orderNo",newList.get(i).getOrderNo());
                 data.put("type", 2);
                 data.put("userId", newList.get(i).getUserId());
-
             }
             if (!BOT_USER.containsKey(String.valueOf(newList.get(i).getUserId()))){
                 jsonObject.put(String.valueOf(newList.get(i).getUserId()),data);

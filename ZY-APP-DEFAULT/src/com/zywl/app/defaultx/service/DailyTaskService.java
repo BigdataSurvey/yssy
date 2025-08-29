@@ -28,6 +28,15 @@ public class DailyTaskService extends DaoService {
 		params.put("type", type);
 		return findList("findByType", params);
 	}
+
+
+//	public List<DailyTask> findDailyTaskById(Long userId) {
+//		Map<String, Object> params = new HashedMap<String, Object>();
+//		params.put("userId", userId);
+//		return findList("selectById", params);
+//	}
+
+
 	
 	
 

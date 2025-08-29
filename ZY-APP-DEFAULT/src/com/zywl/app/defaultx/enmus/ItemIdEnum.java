@@ -4,22 +4,19 @@ package com.zywl.app.defaultx.enmus;
  * 道具ID配置
  **/
 public enum ItemIdEnum {
-
-    PVP_ITEM("挑战令", "3"),
     MONEY_1("银币", "1"),
-    FRIEND("友情点", "7"),
     GOLD("金币", "2"),
     YYQ("游园券", "3"),
-    XLB("小喇叭","40"),
-    DLB("大喇叭", "41"),
+    WFSB("文房四宝","5"),
+    DUST("金刚铃","53"),
+    FRIEND("友情点", "7"),
+    XG("信鸽","31"),
     XXF("小信封","32"),
     DXF("大信封","33"),
-    XG("信鸽","31"),
-    WFSB("文房四宝","5"),
+    XLB("小喇叭","40"),
+    DLB("大喇叭", "12"),
     BUY_WHITE("购买凭证","43"),
-
     MZ_LZ("蒙尘的聊斋残卷","44"),
-
     ;
 
 

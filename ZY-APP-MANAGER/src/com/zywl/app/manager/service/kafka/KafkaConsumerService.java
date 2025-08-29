@@ -168,6 +168,10 @@ public class KafkaConsumerService extends BaseService {
             userDts(data);
         }else if (KafkaEventContext.LHD.equals(eventType)) {
             userLHD(data);
+        }else if(KafkaEventContext.GREAT_NOVELS.equals(eventType)){
+            userGreatNovels(data);
+        }else if(KafkaEventContext.SEA_HUNT.equals(eventType)){
+            userSeaHunt(data);
         }else if (KafkaEventContext.REGIST.equals(eventType)) {
             userRegist(data);
         }
@@ -216,6 +220,19 @@ public class KafkaConsumerService extends BaseService {
     public void userDts(JSONObject data) {
         Long userId = data.getLong("userId");
         checkDailyTaskIsOk(userId, TaskIdEnum.DTS.getValue());
+    }
+
+
+    //TODO
+    public void userGreatNovels(JSONObject data) {
+        Long userId = data.getLong("userId");
+        checkDailyTaskIsOk(userId, TaskIdEnum.GREAT_NOVELS.getValue());
+    }
+
+    //TODO
+    public void userSeaHunt(JSONObject data) {
+        Long userId = data.getLong("userId");
+        checkDailyTaskIsOk(userId, TaskIdEnum.SEA_HUNT.getValue());
     }
 
     public void userLHD(JSONObject data) {

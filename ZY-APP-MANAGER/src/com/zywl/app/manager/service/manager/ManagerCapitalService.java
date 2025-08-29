@@ -586,7 +586,7 @@ public class ManagerCapitalService extends BaseService {
         }
         betUpdateBalanceOrItem(data);
 
-        for (String key : set) {
+       /* for (String key : set) {
             JSONObject o = JSONObject.parse(data.getString(key));
             userId = Long.parseLong(key);
             UserCapital userCapital = userCapitalCacheService.getUserCapitalCacheByType(userId, UserCapitalTypeEnum.yyb.getValue());
@@ -601,7 +601,7 @@ public class ManagerCapitalService extends BaseService {
                 Push.push(PushCode.updateUserCapital, managerSocketService.getServerIdByUserId(userId), pushData);
 
             }
-        }
+        }*/
         return new JSONObject();
     }
 
@@ -619,18 +619,18 @@ public class ManagerCapitalService extends BaseService {
             beforeMoney.put(key, userCapital.getBalance());
             JSONObject o = JSONObject.parse(obj.getString(key));
             if(1==o.getIntValue("type")){
-                map.put("amount", o.get("amount"));
+                /*map.put("amount", o.get("amount"));*/
+                map.put("amount", 0);
                 map.put("id",userCapital.getId());
-                em = LogCapitalTypeEnum.getEm(o.getIntValue("em"));
+                /*em = LogCapitalTypeEnum.getEm(o.getIntValue("em"));*/
                 map.put("capitalType", capitalType);
                 list.add(map);
-
             } else if(2==o.getIntValue("type")){
                 gameService.updateUserBackpack(o.getLong("userId"), "42", +1, LogUserBackpackTypeEnum.zs);
             }
         }
 
-        int a = userCapitalService.updateUserCapital(list);
+       /* int a = userCapitalService.updateUserCapital(list);
         if (a < 1) {
             for (String key : set) {
                 userCapitalCacheService.deltedUserCapitalCache(Long.parseLong(key), UserCapitalTypeEnum.yyb.getValue());
@@ -656,7 +656,7 @@ public class ManagerCapitalService extends BaseService {
                     pushLog(1, Long.parseLong(userId), capitalType, before, occupyBefore, o.getBigDecimal("amount"), em, (String) o.getOrDefault("orderNo", null), null, (String) o.getOrDefault("tableName", null));
                 }
             }
-        }
+        }*/
     }
 
     public void pushLog(int type, Long userId, Integer capitalType, BigDecimal balanceBefore, BigDecimal occupyBalanceBefore, BigDecimal amount, LogCapitalTypeEnum em, String orderNo, Long sourceDataId, String tableName) {

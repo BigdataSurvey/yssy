@@ -23,6 +23,10 @@ public class KafkaEventContext {
 
     public static final String DTS = "DTS";
 
+    public static final String GREAT_NOVELS = "GREAT_NOVELS";
+
+    public static final  String SEA_HUNT = "SEA_HUNT";
+
     public static final String LHD = "LHD";
     public static final String DGS = "DGS";
 

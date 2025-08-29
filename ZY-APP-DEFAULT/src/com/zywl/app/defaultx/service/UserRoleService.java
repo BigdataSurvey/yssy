@@ -80,6 +80,9 @@ public class UserRoleService extends DaoService {
         params.put("userId",userId);
         return findList("findByUserId",params);
     }
+   public List<UserRole> findByUserRole(Long userId){
+        return findList("findByUserRole",userId);
+    }
 
     public UserRole findByIndex(Long userId,int index){
         Map<String,Object> params = new HashMap<>();
@@ -141,7 +144,5 @@ public class UserRoleService extends DaoService {
     public long findFreeRoleNumber(){
         return count("findFreeRoleNumber",null);
     }
-
-
 
 }
