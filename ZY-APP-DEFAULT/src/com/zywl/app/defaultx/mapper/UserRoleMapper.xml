@@ -126,4 +126,10 @@
         select count(1) from t_user_role
         where role_id=6
     </select>
+
+    <select id="findByUserRole" resultType="UserRole">
+        select * from t_user_role
+    </select>
+
+
 </mapper>

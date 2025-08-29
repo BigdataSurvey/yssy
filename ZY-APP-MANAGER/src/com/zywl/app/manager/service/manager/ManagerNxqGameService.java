@@ -96,18 +96,30 @@ public class ManagerNxqGameService extends BaseService {
              * （查询时需要限制一下没有过期的数据，如果查询时跟投入时间相差一个月，赋值状态为已过期）
              * 2.进行累加 并同步到宁采臣信息表中 下次查询直接读取宁采臣的表中的数据饿 重新进行同步累加
              */
-            BigDecimal heartNumber = BigDecimal.ZERO;
             List<InvestDetail> investDetailList = investDetailService.findInvestDetail(params);
             for (InvestDetail investDetail : investDetailList) {
+                BigDecimal heartNumber = BigDecimal.ZERO;
                 if (((System.currentTimeMillis() - investDetail.getEndDate().getTime()) / 1000 / 60 / 60 / 24) > 1) {
                     investDetail.setInvestSealStatus(1);
-                }else {
+                }else if(investDetail.getGenerYyq()==null){
                     heartNumber = heartNumber.add(dicNccList.get(0).getProduction().multiply(BigDecimal.valueOf(investDetail.getInvestNumber())));
+                    investDetail.setUnReceive(heartNumber);
+                }else {
+                    heartNumber = heartNumber.add(investDetail.getUnReceive());
                     investDetail.setUnReceive(heartNumber);
                 }
                 investDetailService.updateInvestDetail(investDetail);
             }
+            investDetailList.removeIf(item -> ((System.currentTimeMillis() - item.getEndDate().getTime()) / 1000 / 60 / 60 / 24) > 1);
+
+            BigDecimal totalAmount = investDetailList.stream()
+                    .map(InvestDetail::getUnReceive)
+                    .reduce(BigDecimal.ZERO, BigDecimal::add);
             jsonObject.put("investDetailList",investDetailList);
+            jsonObject.put("dicNccList",dicNccList);
+            jsonObject.put("returnNum",investDetailList.size());
+            jsonObject.put("receiveAmount",totalAmount);
+            jsonObject.put("30daysReceiveAmount",totalAmount.multiply(BigDecimal.valueOf(30)));
         }
         return jsonObject;
     }
@@ -126,6 +138,10 @@ public class ManagerNxqGameService extends BaseService {
              * 3.奖池中扣掉值
              */
             List<InvestDetail> investDetailList = investDetailService.findInvestDetail(params);
+            //判断收益
+            if(!(investDetailList.size() >0) || investDetailList == null){
+                throwExp("当前没有可领取收益");
+            }
             //当前用户所有投入之后未领取的收益累加进行奖池扣除
             BigDecimal allUnReceive = investDetailList.stream()
                     .map(InvestDetail::getUnReceive)
@@ -135,8 +151,8 @@ public class ManagerNxqGameService extends BaseService {
             dicNccList.get(0).setAmonut(amonut);
             dicJackpotService.update(dicNccList.get(0));
             //领取的收益加钱
-            userCapitalService.addUserBalanceByAddReward(allUnReceive,userId, UserCapitalTypeEnum.currency_2.getValue(), LogCapitalTypeEnum.add_receive_nxq);
-            managerGameBaseService.pushCapitalUpdate(userId, UserCapitalTypeEnum.currency_2.getValue());
+            userCapitalService.addUserBalanceByAddReward(allUnReceive,userId, UserCapitalTypeEnum.yyb.getValue(), LogCapitalTypeEnum.add_receive_nxq);
+            managerGameBaseService.pushCapitalUpdate(userId, UserCapitalTypeEnum.yyb.getValue());
             for (InvestDetail investDetail : investDetailList) {
                 investDetail.setGenerYyq(investDetail.getUnReceive());
                 investDetail.setUnReceive(BigDecimal.ZERO);

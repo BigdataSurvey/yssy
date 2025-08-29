@@ -73,6 +73,8 @@ public class MessageCodeContext {
 
 	public final static String RECORD= "9020";
 	public final static String NXQ= "9021";
+	public final static String ZYT= "9022";
+
 
 
 }
