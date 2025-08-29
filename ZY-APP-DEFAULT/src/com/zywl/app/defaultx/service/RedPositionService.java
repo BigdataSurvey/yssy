@@ -67,6 +67,7 @@ public class RedPositionService extends DaoService {
 
     @Transactional
     public void updatePosition(RedPosition redPosition){
+
         execute("updatePosition",redPosition);
     }
 }

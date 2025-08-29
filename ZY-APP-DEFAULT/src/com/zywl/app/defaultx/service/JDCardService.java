@@ -16,10 +16,7 @@ import java.util.Map;
 @Service
 public class JDCardService extends DaoService {
 
-	public JDCardService() {
-		super("JDCardMapper");
-		// TODO Auto-generated constructor stub
-	}
+	public JDCardService() {super("JDCardMapper");}
 
 
 	private static final Log logger = LogFactory.getLog(JDCardService.class);

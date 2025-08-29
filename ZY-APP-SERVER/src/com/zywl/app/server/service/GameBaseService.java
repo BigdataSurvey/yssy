@@ -558,7 +558,8 @@ public class GameBaseService extends BaseService {
         checkNull(data.get("type"));
         long userId = appSocket.getWsidBean().getUserId();
         data.put("userId", userId);
-        Executer.request(TargetSocketType.manager, CommandBuilder.builder().request("100037", data).build(),
+        Executer.request(TargetSocketType.manager,
+                CommandBuilder.builder().request("100037", data).build(),
                 new RequestManagerListener(command));
         return async();
     }

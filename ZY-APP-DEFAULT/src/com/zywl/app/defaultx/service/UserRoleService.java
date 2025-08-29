@@ -145,6 +145,4 @@ public class UserRoleService extends DaoService {
         return count("findFreeRoleNumber",null);
     }
 
-
-
 }

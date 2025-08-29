@@ -3,6 +3,8 @@ package com.zywl.app.base.constant;
 public class RedisKeyConstant {
 	// ============================================================
 
+	public final static String PRIZE_KEY = "t:app:prize:";
+
 	public final static String IP_USER = "t:app:ip:";
 	public final static String TODAY_CREATE_SW = "t:app:user:todayCreateSw:";
 	public final static String GAME_VERSION = "t:app:config:gameVersion:";

@@ -5,6 +5,7 @@ import com.alibaba.fastjson2.JSONObject;
 import com.zywl.app.base.bean.Activity;
 import com.zywl.app.base.bean.User;
 import com.zywl.app.base.bean.UserCapital;
+import com.zywl.app.base.bean.hongbao.DicPrize;
 import com.zywl.app.base.constant.RedisKeyConstant;
 import com.zywl.app.base.util.DateUtil;
 import com.zywl.app.defaultx.cache.impl.RedisService;
@@ -19,6 +20,7 @@ import javax.annotation.PostConstruct;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
 @Service
@@ -54,6 +56,7 @@ public class GameCacheService extends RedisService {
 
     public static final List<String> LAST_WEEK_USER_IDS = new ArrayList<>();
 
+
     @PostConstruct
     public void _construct() {
         updateLastWeekList();
@@ -88,6 +91,15 @@ public class GameCacheService extends RedisService {
         }
         String key = getRankKey(gameId);
         addZset(key, userId, (double) number);
+    }
+
+    public boolean hasPrizeKey(){
+        String key = RedisKeyConstant.PRIZE_KEY+ DateUtil.format9(DateUtil.getThisWeekBeginDate()) ;
+        return hasKey(key);
+    }
+    public void setPrizeKey(){
+        String key = RedisKeyConstant.PRIZE_KEY+ DateUtil.format9(DateUtil.getThisWeekBeginDate()) ;
+        set(key,1,86400*8);
     }
 
 

@@ -12,6 +12,7 @@ public enum UserCapitalTypeEnum {
 	currency_2("通宝", 2),
 	yyb("游园券",3),
 	rmb("游园币", 4),
+	score("积分",5),
 
 	;
 	

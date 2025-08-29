@@ -11,10 +11,11 @@ import com.live.app.ws.util.CommandBuilder;
 import com.live.app.ws.util.Executer;
 import com.live.app.ws.util.Push;
 import com.zywl.app.base.bean.*;
+import com.zywl.app.base.bean.hongbao.DicPrize;
+import com.zywl.app.base.bean.jingang.BellRecord;
 import com.zywl.app.base.bean.shoop.ShopManager;
 import com.zywl.app.base.bean.vo.SendGiftRecordVo;
 import com.zywl.app.base.bean.vo.UserVo;
-import com.zywl.app.base.constant.RedisKeyConstant;
 import com.zywl.app.base.service.BaseService;
 import com.zywl.app.base.util.*;
 import com.zywl.app.defaultx.annotation.ServiceClass;
@@ -78,11 +79,12 @@ public class ServerUserRoleService extends BaseService {
 
     @Autowired
     private ServerConfigService serverConfigService;
-    @Autowired
-    private RedisTemplate redisTemplate;
-    @Autowired
-    private RedisService redisService;
 
+    @Autowired
+    private KongKimBellService  kongKimBellService;
+
+    @Autowired
+    private DicPrizeService dicPrizeService;
 
     @Autowired
     private ShopManagerService shopManagerService;
@@ -795,11 +797,61 @@ public class ServerUserRoleService extends BaseService {
     @ServiceMethod(code = "020", description = "查询店长列表")
     public Object buyShopManagerList(final AppSocket appSocket, Command appCommand, JSONObject params) {
         List<ShopManager> shopManagers = shopManagerService.queryShopManager();
-        BigDecimal price = serverConfigService.getBigDecimal(Config.SHOP_MANAGER);
         JSONObject result = new JSONObject();
         result.put("shopManagers", shopManagers);
-        result.put("price", price);
+        result.put("price", serverConfigService.getBigDecimal(Config.SHOP_MANAGER));
         return result;
+    }
+
+    @ServiceMethod(code = "021", description = "金刚铃兑换")
+    public Object buyJinGangLing(final AppSocket appSocket, Command appCommand, JSONObject params) {
+        checkNull(params);
+        checkNull(params.get("number"));
+        Long userId = appSocket.getWsidBean().getUserId();
+        params.put("userId", userId);
+        Executer.request(TargetSocketType.manager, CommandBuilder.builder().request("400007", params).build(), new RequestManagerListener(appCommand));
+        return async();
+    }
+
+    @ServiceMethod(code = "022", description = "查询金刚铃兑换记录")
+    public Object buyJinGangLingList(final AppSocket appSocket, Command appCommand, JSONObject params) {
+        checkNull(params);
+        Long userId = appSocket.getWsidBean().getUserId();
+        List<BellRecord> bellRecord = kongKimBellService.findByUserId(userId);
+        JSONObject result = new JSONObject();
+        result.put("bellRecord", bellRecord);
+        result.put("price", serverConfigService.getBigDecimal(Config.CONVERT_TOTAL));
+        return result;
+    }
+
+
+    @ServiceMethod(code = "023", description = "查询奖品")
+    public Object buyJiangPing(final AppSocket appSocket, Command appCommand, JSONObject params) {
+        checkNull(params);
+        Long userId = appSocket.getWsidBean().getUserId();
+        DicPrize dicPrize = dicPrizeService.findByUserId(userId);
+        JSONObject result = new JSONObject();
+        result.put("dicPrize", dicPrize);
+        return result;
+    }
+
+    @ServiceMethod(code = "024", description = "翻牌")
+    public Object getPrizeInfo(AppSocket appSocket, Command command, JSONObject data) {
+        checkNull(data);
+        checkNull(data.get("number"));
+        Long userId = appSocket.getWsidBean().getUserId();
+        data.put("userId",userId);
+        Executer.request(TargetSocketType.manager, CommandBuilder.builder().request("400008", data).build(), new RequestManagerListener(command));
+        return async();
+    }
+
+    @ServiceMethod(code = "025", description = "获取本期奖励剩余的总数量")
+    public Object getPrizeInfoTotal(AppSocket appSocket, Command command, JSONObject data) {
+        checkNull(data);
+        Long userId = appSocket.getWsidBean().getUserId();
+        data.put("userId",userId);
+        Executer.request(TargetSocketType.manager, CommandBuilder.builder().request("400009", data).build(), new RequestManagerListener(command));
+        return async();
     }
 
 

@@ -1191,6 +1191,7 @@ public class ManagerGameBaseService extends BaseService {
                 break;
             }
         }
+
         if (rewards.size()>0){
             gameService.addReward(userId,rewards,LogCapitalTypeEnum.cave_prize_draw);
         }
@@ -1200,8 +1201,6 @@ public class ManagerGameBaseService extends BaseService {
         result.put("id",id);
         return result;
     }
-
-
 
 }
 

@@ -2,6 +2,8 @@ package com.zywl.app.manager.service;
 
 import com.alibaba.fastjson2.JSONObject;
 import com.zywl.app.base.bean.*;
+import com.zywl.app.base.bean.hongbao.DicPrize;
+import com.zywl.app.base.bean.shoop.ShopManager;
 import com.zywl.app.base.service.BaseService;
 import com.zywl.app.base.util.DateUtil;
 import com.zywl.app.base.util.OrderUtil;
@@ -17,11 +19,11 @@ import org.springframework.stereotype.Service;
 
 import javax.annotation.PostConstruct;
 import java.math.BigDecimal;
-import java.util.List;
-import java.util.Map;
-import java.util.Timer;
-import java.util.TimerTask;
+import java.time.DayOfWeek;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+
+import static com.zywl.app.base.util.Constant.key;
 
 @Service
 public class TaskService extends BaseService {
@@ -33,7 +35,6 @@ public class TaskService extends BaseService {
     @Autowired
     private AdminSocketService adminSocketService;
 
-
     @Autowired
     private UserStatisticService userStatisticService;
 
@@ -42,6 +43,9 @@ public class TaskService extends BaseService {
 
     @Autowired
     private GameCacheService gameCacheService;
+
+    @Autowired
+    private DicPrizeService dicPrizeService;
 
     @Autowired
     private UserCacheService userCacheService;
@@ -64,6 +68,9 @@ public class TaskService extends BaseService {
     private DzService dzService;
 
     @Autowired
+    private ShopManagerService shopManagerService;
+
+    @Autowired
     private DzPeriodsService dzPeriodsService;
 
     @Autowired
@@ -75,10 +82,8 @@ public class TaskService extends BaseService {
     @Autowired
     private ManagerConfigService managerConfigService;
 
-
     @Autowired
     private GuildDailyStaticsService guildDailyStaticsService;
-
 
     @Autowired
     private GuildMemberService guildMemberService;
@@ -86,12 +91,8 @@ public class TaskService extends BaseService {
     @Autowired
     private TsgPayOrderCheckService tsgPayOrderCheckService;
 
-
-
     @Autowired
     private PlayGameService gameService;
-
-
 
     public static double ALL_JUNIOR_NUM = 0;
 
@@ -99,9 +100,12 @@ public class TaskService extends BaseService {
 
     public static Map<String, Integer> USER_JUNIOR_NUM = new ConcurrentHashMap<>();
 
-
-
-
+    public static Map<String, DicPrize>  DIC_PRIZE = new ConcurrentHashMap<>();
+    private final ConcurrentHashMap<DayOfWeek, Integer>  DIC_PRICE_MAP = new ConcurrentHashMap<>();
+    @Autowired
+    private UserAchievementService userAchievementService;
+    @Autowired
+    private PlayGameService playGameService;
 
 
     @PostConstruct
@@ -113,97 +117,29 @@ public class TaskService extends BaseService {
         adminSocketService.initWfsbNumber();
         initPrizePool();
 
-        //=========
-     /*   new Timer("检查工作室账号").schedule(new TimerTask() {
-            Admin admin = new Admin("系统风控","系统风控");
 
+        new Timer("每周日24点重置奖品").schedule(new TimerTask() {
+            @Override
             public void run() {
-                try {
-                    List<User> byGZSFK1 = userService.findByGZSFK1();
-                    List<User> byGZSFK2 = userService.findByGZSFK2();
-                    for (User user : byGZSFK1) {
-                        logger.info("检测到工作室账号，userId"+user.getId());
-                        adminMailService.banUser(user.getId(),0,"系统风控",admin);
+                try{
+                    if(!gameCacheService.hasPrizeKey()){
+                        //新的一周
+                        Arrays.stream(DayOfWeek.values())
+                                .forEach(day -> DIC_PRICE_MAP.put(day, 0));
+                        //处理数据
+                        playGameService.updateUserPrize();
+                         for(String key: DIC_PRIZE.keySet()){
+                             DicPrize prizeNum = DIC_PRIZE.get(key);
+                             DIC_PRIZE.put(key, prizeNum);
+                         }
+                        //redis 存数据
+                        gameCacheService.setPrizeKey();
                     }
-                    for (User user : byGZSFK2) {
-                        logger.info("检测到工作室账号，userId"+user.getId());
-                        adminMailService.banUser(user.getId(),0,"系统风控",admin);
-                    }
-                } catch (Exception e) {
+                }catch (Exception e){
                     e.printStackTrace();
                 }
             }
-        }, 1000, 5000);*/
-
-/*
-        new Timer("清空30天未登录数据，LOG记录,计算留存").schedule(new TimerTask() {
-            public void run() {
-                try {
-                    adminSocketService.initKeepAlive();
-
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
-
-                try {
-                    gameService.updateStatic();
-                    PlayGameService.userStatisticMap.clear();
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
-                try {
-                    logger.info("移除前 key map size{}" + LockUtil.lock.size());
-                    Set<String> keys = LockUtil.lock.keySet();
-                    for (String key : keys) {
-                        String value = (String) LockUtil.lock.get(key);
-                        String[] split = value.split("---");
-                        if (split != null) {
-                            Long timer = Long.parseLong(split[1]);
-                            if (System.currentTimeMillis() - timer > 1000 * 60) {
-                                LockUtil.lock.remove(key);
-                            }
-                        }
-                    }
-                    logger.info("移除后key map size{}" + LockUtil.lock.size());
-
-
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
-
-            }
-        }, DateUtil.getTaskNeed(), 1000 * 60 * 60 * 24);
-*/
-
-
-    /*    new Timer("定时增加每日报表数据").schedule(new TimerTask() {
-            public void run() {
-                try {
-                    logger.info("增加每日报表数据开始");
-                    long time = System.currentTimeMillis();
-                    List<GuildMember> allGuildMember = guildMemberService.findAllGuildMember();
-                    JSONArray array = new JSONArray();
-                    for (GuildMember member : allGuildMember) {
-                        JSONObject object = new JSONObject();
-                        object.put("userId", member.getUserId());
-                        object.put("guildId", member.getGuildId());
-                        object.put("ymd", DateUtil.format9(DateUtil.getDateByM(60 * 10)));
-                        object.put("number", 0);
-                        object.put("revenue", 0);
-                        object.put("expend", 0);
-                        array.add(object);
-                    }
-                    if (array.size() > 0) {
-                        guildDailyStaticsService.batchInsertStatics(array);
-                    }
-                    logger.info("增加每日报表数据用时【" + (System.currentTimeMillis() - time) + "】ms");
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
-
-            }
-        }, DateUtil.getAddStaticsDate(), 1000 * 60 * 60 * 24);*/
-
+        },DateUtil.getActivityNeed(),1000L * 60 * 60 * 24);
 
         new Timer("排行榜数据更新,后台数据更新").schedule(new TimerTask() {
             public void run() {
@@ -229,6 +165,19 @@ public class TaskService extends BaseService {
                 }
             }
         }, 1000, 60000 );
+
+
+        new Timer("每晚0点执行店长推送金刚铃价格增值币66").schedule(new TimerTask() {
+            public void run() {
+                try {
+                    shopManagerService.queryShopList();
+                    logger.info("每晚0点执行成为店长推送金刚铃价格增值币66");
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+        }, DateUtil.getActivityNeed(), 1000 * 60 * 60 * 24);
+
 
 
         new Timer("计算奖池信息").schedule(new TimerTask() {
