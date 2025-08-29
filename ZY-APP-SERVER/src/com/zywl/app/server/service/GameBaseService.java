@@ -18,6 +18,8 @@ import com.zywl.app.base.constant.RedisKeyConstant;
 import com.zywl.app.base.exp.AppException;
 import com.zywl.app.base.service.BaseService;
 import com.zywl.app.base.util.Async;
+import com.zywl.app.base.util.DateUtil;
+import com.zywl.app.base.util.OrderUtil;
 import com.zywl.app.defaultx.annotation.ServiceClass;
 import com.zywl.app.defaultx.annotation.ServiceMethod;
 import com.zywl.app.defaultx.cache.*;
@@ -91,6 +93,18 @@ public class GameBaseService extends BaseService {
     @Autowired
     private CardGameCacheService cardGameCacheService;
 
+    @Autowired
+    private GameCacheService gameCacheService;
+
+    @Autowired
+    private Activity3Service activity3Service;
+    @Autowired
+    private Activity2Service activity2Service;
+    @Autowired
+    private ActivityService activity1Service;
+
+    @Autowired
+    private CashRecordService cashRecordService;
 
 
     @Autowired
@@ -100,7 +114,6 @@ public class GameBaseService extends BaseService {
     private static AtomicInteger i = new AtomicInteger(3);
 
     private static WordTree tree = new WordTree();
-
 
 
     public void checkAdUser(Long userId) {
@@ -113,9 +126,69 @@ public class GameBaseService extends BaseService {
         }
     }
 
+    public void aa() {
+        try {
+            logger.info("判断限时活动是否需要插入提现订单开始");
+            Activity activityByTime = activity1Service.findActivityByTime();
+            Activity activity = activity1Service.findById(activityByTime.getId() - 1);
+            List<JSONObject> lastActiveTopList = gameCacheService.getLastActiveTopList(activity);
+            for (JSONObject info : lastActiveTopList) {
+                Long userId = info.getLong("userId");
+                User user = userCacheService.getUserInfoById(userId);
+                BigDecimal rewardAmount = info.getBigDecimal("rewardAmount");
+                int isAutoPay = serverConfigService.getInteger(Config.IS_AUTO_PAY);
+                BigDecimal chunk = serverConfigService.getBigDecimal(Config.ALIPAY_ONE_MONEY);
+                BigDecimal remaining = rewardAmount;
+                while (remaining.compareTo(BigDecimal.ZERO) > 0) {
+                    String orderNo = OrderUtil.getOrder5Number();
+                    BigDecimal current = remaining.min(chunk);
+                    cashRecordService.addCashOrder(user.getOpenId(), userId, user.getUserNo(), user.getName(), user.getRealName(), orderNo,
+                            current, 2, user.getPhone(), isAutoPay);
+                    System.out.println("取出: " + current);
+                    remaining = remaining.subtract(current);
+
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+    }
+
+    public void bb() {
+        try {
+            logger.info("判断限时活动是否需要插入提现订单开始");
+            Activity activityByTime = activity2Service.findActivity2ByTime();
+            Activity activity = activity2Service.findById(activityByTime.getId() - 1);
+            List<JSONObject> lastActiveTopList = gameCacheService.getLastActiveTopList2(activity);
+            for (JSONObject info : lastActiveTopList) {
+                Long userId = info.getLong("userId");
+                User user = userCacheService.getUserInfoById(userId);
+                BigDecimal rewardAmount = info.getBigDecimal("rewardAmount");
+                int isAutoPay = serverConfigService.getInteger(Config.IS_AUTO_PAY);
+                BigDecimal chunk = serverConfigService.getBigDecimal(Config.ALIPAY_ONE_MONEY);
+                BigDecimal remaining = rewardAmount;
+                while (remaining.compareTo(BigDecimal.ZERO) > 0) {
+                    String orderNo = OrderUtil.getOrder5Number();
+                    BigDecimal current = remaining.min(chunk);
+                    cashRecordService.addCashOrder(user.getOpenId(), userId, user.getUserNo(), user.getName(), user.getRealName(), orderNo,
+                            current, 2, user.getPhone(), isAutoPay);
+                    System.out.println("取出: " + current);
+                    remaining = remaining.subtract(current);
+
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+    }
+
 
     @PostConstruct
     public void _ManagerCapitalService() {
+        aa();
+        bb();
         initItemMap();
         loadDict();
         Push.addPushSuport(PushCode.updateUserCapital, new DefaultPushHandler());
@@ -368,10 +441,10 @@ public class GameBaseService extends BaseService {
         Long ap = cardGameCacheService.getUserDtAp(userId);
         Long userTodaySign = cardGameCacheService.getUserTodaySign(userId);
         result.put("taskList", list1);
-        result.put("isSign",userTodaySign);
+        result.put("isSign", userTodaySign);
         result.put("signReward", JSONArray.parseArray(serverConfigService.getString(Config.SIGN_REWARD)));
-        result.put("signNow",list2.size());
-        result.put("signAll",5);
+        result.put("signNow", list2.size());
+        result.put("signAll", 5);
         return result;
     }
 
@@ -387,18 +460,18 @@ public class GameBaseService extends BaseService {
     public Async userSign(AppSocket appSocket, Command command, JSONObject data) {
         checkNull(data);
         long userId = appSocket.getWsidBean().getUserId();
-        data.put("userId",userId);
+        data.put("userId", userId);
         JSONObject result = new JSONObject();
         Map userTask = cardGameCacheService.getUserTask(userId);
         Collection values = userTask.values();
         for (Object value : values) {
             UserDailyTaskVo vo = (UserDailyTaskVo) value;
-            if (vo.getId()<=5 && vo.getStatus() != 2) {
+            if (vo.getId() <= 5 && vo.getStatus() != 2) {
                 throwExp("请完成全部每日任务并领取奖励后进行签到");
             }
         }
         Long userTodaySign = cardGameCacheService.getUserTodaySign(userId);
-        if (userTodaySign==1){
+        if (userTodaySign == 1) {
             throwExp("今天已经签到过啦");
         }
         Executer.request(TargetSocketType.manager, CommandBuilder.builder().request("1001151", data).build(),
@@ -536,11 +609,11 @@ public class GameBaseService extends BaseService {
     @ServiceMethod(code = "035", description = "商城购买")
     public Object buy(AppSocket appSocket, Command command, JSONObject data) {
         checkNull(data);
-        checkNull(data.get("type"),data.get("id"),data.get("number"));
+        checkNull(data.get("type"), data.get("id"), data.get("number"));
         long userId = appSocket.getWsidBean().getUserId();
         data.put("userId", userId);
         int number = data.getIntValue("number");
-        if (number<1 || number>9999){
+        if (number < 1 || number > 9999) {
             throwExp("非法请求");
         }
         Executer.request(TargetSocketType.manager, CommandBuilder.builder().request("100035", data).build(),
@@ -568,8 +641,6 @@ public class GameBaseService extends BaseService {
     }
 
 
-
-
     @ServiceMethod(code = "038", description = "一键领取收益")
     public Object receiveAdIncome(AppSocket appSocket, Command command, JSONObject data) {
         Long userId = appSocket.getWsidBean().getUserId();
@@ -595,13 +666,12 @@ public class GameBaseService extends BaseService {
     }*/
 
 
-
     @ServiceMethod(code = "051", description = "修改昵称")
     public Object updateName(AppSocket appSocket, Command command, JSONObject data) {
         Long userId = appSocket.getWsidBean().getUserId();
         data.put("userId", userId);
         String name = data.getString("name");
-        if (tree.isMatch(name)){
+        if (tree.isMatch(name)) {
             throwExp("包含敏感字符");
         }
         Executer.request(TargetSocketType.manager, CommandBuilder.builder().request("100045", data).build(),
@@ -624,7 +694,7 @@ public class GameBaseService extends BaseService {
 
             URL resource = this.getClass().getResource("/dict.txt");
             InputStream inputStream = new FileInputStream(resource.getPath());
-            BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream,"UTF-8"));
+            BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream, "UTF-8"));
             String line;
             while ((line = reader.readLine()) != null) {
                 tree.addWord(line.trim());
@@ -636,15 +706,15 @@ public class GameBaseService extends BaseService {
 
     @ServiceMethod(code = "syn", description = "syn")
     public Object syn(AppSocket appSocket, Command command, JSONObject data) {
-        checkNull(data.get("itemId"),data.get("number"));
+        checkNull(data.get("itemId"), data.get("number"));
         Long userId = appSocket.getWsidBean().getUserId();
-        data.put("userId",userId);
+        data.put("userId", userId);
         int number = data.getIntValue("number");
-        if (number<1 || number>999){
+        if (number < 1 || number > 999) {
             throwExp("请输入合理的数量");
         }
         String itemId = data.getString("itemId");
-        if (!itemMap.containsKey(itemId)){
+        if (!itemMap.containsKey(itemId)) {
             throwExp("道具不存在");
         }
         Executer.request(TargetSocketType.manager, CommandBuilder.builder().request("100046", data).build(),
@@ -656,27 +726,29 @@ public class GameBaseService extends BaseService {
     public Object donateItem(AppSocket appSocket, Command command, JSONObject data) {
         checkNull(data.get("num"));
         Long userId = appSocket.getWsidBean().getUserId();
-        data.put("userId",userId);
+        data.put("userId", userId);
         int number = data.getIntValue("num");
-        if (number<1 || number>9999){
+        if (number < 1 || number > 9999) {
             throwExp("请输入合理的数量");
         }
         Executer.request(TargetSocketType.manager, CommandBuilder.builder().request("100047", data).build(),
                 new RequestManagerListener(command));
         return async();
     }
+
     @ServiceMethod(code = "054", description = "使用道具(靓号)")
     public Object selectItem(AppSocket appSocket, Command command, JSONObject data) {
         Long userId = appSocket.getWsidBean().getUserId();
-        data.put("userId",userId);
+        data.put("userId", userId);
         Executer.request(TargetSocketType.manager, CommandBuilder.builder().request("100048", data).build(),
                 new RequestManagerListener(command));
         return async();
     }
+
     @ServiceMethod(code = "055", description = "选择靓号")
     public Object useGoodNoItem(AppSocket appSocket, Command command, JSONObject data) {
         Long userId = appSocket.getWsidBean().getUserId();
-        data.put("userId",userId);
+        data.put("userId", userId);
         Executer.request(TargetSocketType.manager, CommandBuilder.builder().request("100049", data).build(),
                 new RequestManagerListener(command));
         return async();
@@ -686,13 +758,13 @@ public class GameBaseService extends BaseService {
     @ServiceMethod(code = "056", description = "世界聊天")
     public Object chat(AppSocket appSocket, Command command, JSONObject data) {
         Long userId = appSocket.getWsidBean().getUserId();
-        data.put("userId",userId);
-        int type= data.getIntValue("type");
-        if (type!=1 && type!=2){
+        data.put("userId", userId);
+        int type = data.getIntValue("type");
+        if (type != 1 && type != 2) {
             throwExp("非法请求");
         }
         String text = data.getString("text");
-        if (tree.isMatch(text)){
+        if (tree.isMatch(text)) {
             throwExp("包含敏感字符");
         }
         Executer.request(TargetSocketType.manager, CommandBuilder.builder().request("100056", data).build(),
@@ -704,7 +776,7 @@ public class GameBaseService extends BaseService {
     @ServiceMethod(code = "057", description = "获取抽奖详情")
     public Object getPrizeInfo(AppSocket appSocket, Command command, JSONObject data) {
         Long userId = appSocket.getWsidBean().getUserId();
-        data.put("userId",userId);
+        data.put("userId", userId);
         Executer.request(TargetSocketType.manager, CommandBuilder.builder().request("100057", data).build(),
                 new RequestManagerListener(command));
         return async();
@@ -713,7 +785,7 @@ public class GameBaseService extends BaseService {
     @ServiceMethod(code = "058", description = "获取抽奖详情")
     public Object prize(AppSocket appSocket, Command command, JSONObject data) {
         Long userId = appSocket.getWsidBean().getUserId();
-        data.put("userId",userId);
+        data.put("userId", userId);
         Executer.request(TargetSocketType.manager, CommandBuilder.builder().request("100058", data).build(),
                 new RequestManagerListener(command));
         return async();

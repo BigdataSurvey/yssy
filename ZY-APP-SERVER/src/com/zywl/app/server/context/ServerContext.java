@@ -20,7 +20,7 @@ public class ServerContext implements ServletContextListener {
 	
 	public void contextInitialized(ServletContextEvent contextEvent) {
 		APP.run();
-		Thread t = new Thread(() -> {
+		/*Thread t = new Thread(() -> {
 			SpringUtil.getService(ServerManagerService.class).connectManager();
 		}, "connectManagerServer");
 		t.start();
@@ -43,7 +43,7 @@ public class ServerContext implements ServletContextListener {
 		Thread t9 = new Thread(() -> {
 			SpringUtil.getService(ServerManagerService.class).connectSgServer();
 		}, "connectSgServer");
-		t9.start();
+		t9.start();*/
 
 		/*Thread t9 = new Thread(() -> {
 			SpringUtil.getService(ServerManagerService.class).connectBattleRoyaleServer();
