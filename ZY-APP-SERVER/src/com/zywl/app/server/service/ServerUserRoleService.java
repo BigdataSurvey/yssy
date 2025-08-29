@@ -848,7 +848,6 @@ public class ServerUserRoleService extends BaseService {
     @ServiceMethod(code = "025", description = "获取本期奖励剩余的总数量")
     public Object getPrizeInfoTotal(AppSocket appSocket, Command command, JSONObject data) {
         checkNull(data);
-        checkNull(data.get("number"));
         Long userId = appSocket.getWsidBean().getUserId();
         data.put("userId",userId);
         Executer.request(TargetSocketType.manager, CommandBuilder.builder().request("400009", data).build(), new RequestManagerListener(command));
