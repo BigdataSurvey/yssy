@@ -405,7 +405,7 @@ public class PlayGameService extends BaseService {
             List<DicPrize> list = new ArrayList<>();
             DIC_PRIZE.values().stream().forEach(e -> list.add(e));
             DIC_PRIZE.clear();
-            logger.info("用户成就数据更新完成，用时：" + (System.currentTimeMillis() - time) + ",条数：" + list.size());
+            logger.info("数据更新完成，用时：" + (System.currentTimeMillis() - time) + ",条数：" + list.size());
         } catch (Exception e) {
             logger.info(e);
         }
