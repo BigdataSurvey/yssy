@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.zywl.app.defaultx.mapper.ZytRecord">
+
+    <insert id="insert" parameterType="ZytRecord" useGeneratedKeys="true" keyProperty="id" keyColumn="id">
+        insert into r_zyt_record
+        (
+            `user_id`,
+            `order_no`,
+            `receive_time`,
+            `number`,
+            `crte_time`
+
+        )
+        values
+            (
+                #{userId},
+                #{orderNo},
+                #{receiveTime},
+                #{number},
+                #{crteTime}
+            )
+    </insert>
+
+    <update id="update" parameterType="ZytRecord">
+        update r_zyt_record
+        <set>
+            <if test="orderNo!=null">
+                order_no = #{orderNo},
+            </if>
+            <if test="receiveTime!=null">
+                receive_time = #{receiveTime},
+            </if>
+            <if test="number!=null">
+            number = #{number},
+            </if>
+            <if test="crteTime!=null">
+                crte_time = #{crteTime},
+            </if>
+        </set>
+        where  user_id= #{userId}
+    </update>
+
+
+
+    <select id="findAll" resultType="ZytRecord">
+        select * from r_zyt_record
+    </select>
+
+
+</mapper>

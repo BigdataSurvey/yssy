@@ -1,12 +1,17 @@
 package com.zywl.app.manager.servlet;
 
+import com.alibaba.fastjson2.JSONArray;
+import com.alibaba.fastjson2.JSONObject;
 import com.zywl.app.base.bean.User;
+import com.zywl.app.base.bean.UserRole;
 import com.zywl.app.base.bean.UserStatistic;
 import com.zywl.app.base.servlet.BaseServlet;
 import com.zywl.app.defaultx.cache.UserCacheService;
+import com.zywl.app.defaultx.service.UserRoleService;
 import com.zywl.app.defaultx.service.UserService;
 import com.zywl.app.defaultx.service.UserStatisticService;
 import com.zywl.app.defaultx.util.SpringUtil;
+import com.zywl.app.manager.service.PlayGameService;
 import com.zywl.app.manager.service.TaskService;
 import org.apache.commons.logging.Log;
 
@@ -31,14 +36,35 @@ public class TestServlet extends BaseServlet {
 
 	private UserStatisticService userStatisticService;
 
+	private UserRoleService userRoleService;
+
 	public TestServlet(){
 		taskService = SpringUtil.getService(TaskService.class);
 		userService = SpringUtil.getService(UserService.class);
 		userCacheService = SpringUtil.getService(UserCacheService.class);
 		userStatisticService = SpringUtil.getService(UserStatisticService.class);
 	}
-
 	public Object doProcess(HttpServletRequest request, HttpServletResponse response, String ip) throws Exception {
+		List<UserRole> byUserRole = userRoleService.findByUserRole(1L);
+		for (UserRole userRole : byUserRole) {
+			for (Object o : userRole.getUnReceive()) {
+				JSONObject reward = (JSONObject) o;
+				Integer itemId = reward.getIntValue("id");
+				if(itemId == 34){
+					reward.put("id",50);
+				}else if(itemId == 35){
+					reward.put("id",51);
+				}
+				else if(itemId == 36){
+					reward.put("id",52);
+				}
+			}
+		}
+		userRoleService.batchUpdateUserRole(byUserRole);
+		return null;
+	}
+
+	/*public Object doProcess(HttpServletRequest request, HttpServletResponse response, String ip) throws Exception {
 		request.getSession().invalidate();
 		Long userId = Long.valueOf(request.getParameter("userId"));
 		List<Long> list = new ArrayList<>();
@@ -69,7 +95,7 @@ public class TestServlet extends BaseServlet {
 			all = all.add(byId.getCreateAnima());
 		}
 		return stringBuffer;
-	}
+	}*/
 
 	@Override
 	protected Log logger() {
