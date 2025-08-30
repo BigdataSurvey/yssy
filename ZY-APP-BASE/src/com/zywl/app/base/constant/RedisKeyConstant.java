@@ -354,6 +354,7 @@ public class RedisKeyConstant {
 
 	public final static String GAME_LAST_WEEK_TOP_LIST_DGS ="t:app:dgs:lastWeekList:";
 	public final static String GAME_LAST_WEEK_TOP_LIST_NCC ="t:app:ncc:lastWeekList:";
+	public final static String GAME_HEART_WEEK_TOP_LIST_NCC ="t:app:nxq:lastWeekList:";
 
 
 	public final static String KILL_RANK_LIST="t:app:game:killRankList";
@@ -403,6 +404,6 @@ public class RedisKeyConstant {
 
 	public final static String POINT_RANK_LIST_LAST_3="t:app:lastPointList3:";
 	public final static String HEART_LIST_LAST_3="t:app:lastHeartList3:";
-	public final static String GAME_HEART_WEEK_TOP_LIST_NCC ="t:app:nxq:lastWeekList:";
+
 }
 

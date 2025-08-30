@@ -44,14 +44,16 @@ public class InvestDetailService extends DaoService {
         return update(investDetail);
     }
 
-    public long batchUpdateInvestDetail(List<InvestDetail> investDetailList) {
+    public long batchUpdateInvestDetail(List<InvestDetail> list) {
 
-        return execute("batchUpdateInvestDetail",investDetailList);
+        return execute("batchUpdateInvestDetail",list);
     }
 
     public List<InvestDetail> getReceiveRecord(JSONObject params) {
         Map<String, Object> param = new HashedMap<>();
         param.put("userId", params.getLong("userId"));
+        param.put("start", params.getIntValue("page")*params.getIntValue("num"));
+        param.put("limit",  params.getIntValue("num"));
         return findList("getReceiveRecord", param);
 
     }

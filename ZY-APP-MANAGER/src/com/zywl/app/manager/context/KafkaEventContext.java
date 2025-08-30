@@ -29,6 +29,7 @@ public class KafkaEventContext {
 
     public static final String LHD = "LHD";
     public static final String DGS = "DGS";
+    public static final String NXQ = "NXQ";
 
     public static final String DAILY_TASK = "100";
 

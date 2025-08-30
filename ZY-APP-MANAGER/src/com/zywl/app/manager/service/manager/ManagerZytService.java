@@ -126,7 +126,7 @@ public class ManagerZytService extends BaseService {
     }
 
     @Transactional
-    @ServiceMethod(code = "003", description = "进入页面")
+    @ServiceMethod(code = "004", description = "进入页面")
     public Object see(ManagerSocketServer adminSocketServer, JSONObject params) {
         checkNull(params);
         Long userId = params.getLong("userId");

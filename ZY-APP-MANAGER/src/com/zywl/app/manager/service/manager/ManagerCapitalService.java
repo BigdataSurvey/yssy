@@ -381,6 +381,23 @@ public class ManagerCapitalService extends BaseService {
         return new JSONObject();
     }
     @Transactional
+    @ServiceMethod(code = "901", description = "聂小倩修改内存")
+    public JSONObject updateCacheByNxq(ManagerDTS2SocketServer adminSocketServer, JSONObject data) throws InterruptedException {
+        checkNull(data);
+        checkNull(data.get("betArray"));
+        JSONArray betArray = data.getJSONArray("betArray");
+        for (Object o : betArray) {
+            try {
+                JSONObject orderInfo = (JSONObject) o;
+                gameService.updateNxqData(null,orderInfo);
+            } catch (Exception e) {
+                logger.error(e);
+                e.printStackTrace();
+            }
+        }
+        return new JSONObject();
+    }
+    @Transactional
     @ServiceMethod(code = "808", description = "打怪兽修改内存")
     public JSONObject updateCacheByDgs( JSONObject data) throws InterruptedException {
         checkNull(data);
@@ -403,6 +420,24 @@ public class ManagerCapitalService extends BaseService {
     @Transactional
     @ServiceMethod(code = "811", description = "2选1投入修改内存")
     public JSONObject updateCacheByDts(ManagerLhdSocketServer lhdSocketServer, JSONObject data) throws InterruptedException {
+        checkNull(data);
+        checkNull(data.get("betArray"));
+        JSONArray betArray = data.getJSONArray("betArray");
+        for (Object o : betArray) {
+            try {
+                JSONObject orderInfo = (JSONObject) o;
+                gameService.updateLhdData(null,orderInfo);
+            } catch (Exception e) {
+                logger.error(e);
+                e.printStackTrace();
+            }
+        }
+        return new JSONObject();
+    }
+
+    @Transactional
+    @ServiceMethod(code = "911", description = "2选1投入修改内存")
+    public JSONObject updateCacheByNxq(JSONObject data) throws InterruptedException {
         checkNull(data);
         checkNull(data.get("betArray"));
         JSONArray betArray = data.getJSONArray("betArray");

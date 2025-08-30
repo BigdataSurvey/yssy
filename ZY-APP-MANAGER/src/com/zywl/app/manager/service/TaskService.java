@@ -129,8 +129,7 @@ public class TaskService extends BaseService {
                         //处理数据
                         playGameService.updateUserPrize();
                          for(String key: DIC_PRIZE.keySet()){
-                             DicPrize prizeNum = DIC_PRIZE.get(key);
-                             DIC_PRIZE.put(key, prizeNum);
+                             DIC_PRIZE.compute(key, (k, prizeNum) -> prizeNum);
                          }
                         //redis 存数据
                         gameCacheService.setPrizeKey();

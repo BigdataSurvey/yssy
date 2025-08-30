@@ -280,6 +280,12 @@ public class UserCacheService extends RedisService {
         expire(key, 86400);
     }
 
+  public void addNxqUserPlayCount(Long userId) {
+        String key = RedisKeyConstant.GAME_HEART_WEEK_TOP_LIST_NCC + DateUtil.format2(new Date()) + ":" + userId + "-";
+        incr(key, 1L);
+        expire(key, 86400);
+    }
+
 
 
 
