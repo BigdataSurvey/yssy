@@ -55,6 +55,10 @@ public class ManagerGameBaseService extends BaseService {
     @Autowired
     private AuthService authService;
 
+
+    @Autowired
+    private UserPickGoodsService userPickGoodsService;
+
     @Autowired
     private ConvertIncomeRecordService convertIncomeRecordService;
 
@@ -120,6 +124,12 @@ public class ManagerGameBaseService extends BaseService {
     private BackpackService backpackService;
     @Autowired
     private UserDonateItemRecordService userDonateItemRecordService;
+
+    @Autowired
+    private UserHandbookService userHandbookService;
+
+    @Autowired
+    private HandBookRewardRecordService handBookRewardRecordService;
 
     public static final LinkedList<JSONObject> CHAT_LIST = new LinkedList<>();
 
@@ -251,7 +261,7 @@ public class ManagerGameBaseService extends BaseService {
     @Transactional
     @ServiceMethod(code = "100", description = "获取用户信息")
     @KafkaProducer(topic = KafkaTopicContext.RED_POINT, event = KafkaEventContext.LOGIN, sendParams = true)
-    public JSONObject getInfo(ManagerSocketServer adminSocketServer, JSONObject params) {
+    public JSONObject getInfo(ManagerSocketServer managerSocketServer, JSONObject params) {
         checkNull(params);
         checkNull(params.get("userId"));
         Long userId = params.getLong("userId");
@@ -276,10 +286,10 @@ public class ManagerGameBaseService extends BaseService {
             result.put("notice", managerConfigService.getString(Config.HOME_POPUP));
             result.put("exLim", managerConfigService.getDouble(Config.TRAD_MIN));
             result.put("exMax", managerConfigService.getDouble(Config.TRAD_MAX));
-            result.put("isShowTopList",managerConfigService.getInteger(Config.SHOW_TOP_LIST));
-            result.put("isShowActive1",managerConfigService.getInteger(Config.ACTIVE1));
-            result.put("isShowActive2",managerConfigService.getInteger(Config.ACTIVE2));
-            result.put("isShowActive3",managerConfigService.getInteger(Config.ACTIVE3));
+            result.put("isShowTopList", managerConfigService.getInteger(Config.SHOW_TOP_LIST));
+            result.put("isShowActive1", managerConfigService.getInteger(Config.ACTIVE1));
+            result.put("isShowActive2", managerConfigService.getInteger(Config.ACTIVE2));
+            result.put("isShowActive3", managerConfigService.getInteger(Config.ACTIVE3));
             result.put("serverTime", System.currentTimeMillis());
             result.put("tableInfo", syncTableInfo(params));
             result.put("version", authService.getVersion().getVersionName());
@@ -295,7 +305,7 @@ public class ManagerGameBaseService extends BaseService {
 
     @Transactional
     @ServiceMethod(code = "400", description = "查看排行榜信息")
-    public JSONObject getTop(ManagerSocketServer adminSocketServer, JSONObject params) {
+    public JSONObject getTop(ManagerSocketServer managerSocketServer, JSONObject params) {
         checkNull(params);
         checkNull(params.get("type"));
         Long userId = params.getLong("userId");
@@ -327,7 +337,7 @@ public class ManagerGameBaseService extends BaseService {
 
     @Transactional
     @ServiceMethod(code = "600", description = "用户修改基础设置")
-    public JSONObject userUpdateSetting(ManagerSocketServer adminSocketServer, JSONObject params) {
+    public JSONObject userUpdateSetting(ManagerSocketServer managerSocketServer, JSONObject params) {
         checkNull(params);
         checkNull(params.get("userId"), params.get("audio"), params.get("music"));
         userConfigService.updateUserSoundsSetting(params.getLong("userId"), params.getIntValue("audio"),
@@ -342,7 +352,7 @@ public class ManagerGameBaseService extends BaseService {
 
     @Transactional
     @ServiceMethod(code = "018", description = "抽奖详情")
-    public JSONObject prizeDrawInfo(ManagerSocketServer adminSocketServer, JSONObject params) {
+    public JSONObject prizeDrawInfo(ManagerSocketServer managerSocketServer, JSONObject params) {
         checkNull(params);
         checkNull(params.get("userId"));
         String userId = params.getString("userId");
@@ -380,7 +390,7 @@ public class ManagerGameBaseService extends BaseService {
 
     @Transactional
     @ServiceMethod(code = "110", description = "背包")
-    public JSONObject backpack(ManagerSocketServer adminSocketServer, JSONObject params) {
+    public JSONObject backpack(ManagerSocketServer managerSocketServer, JSONObject params) {
         checkNull(params);
         checkNull(params.get("userId"));
         Long userId = params.getLong("userId");
@@ -396,7 +406,7 @@ public class ManagerGameBaseService extends BaseService {
 
     @Transactional
     @ServiceMethod(code = "111", description = "出售给系统")
-    public Object sellItemToSys(ManagerSocketServer adminSocketServer, JSONObject params) {
+    public Object sellItemToSys(ManagerSocketServer managerSocketServer, JSONObject params) {
         checkNull(params);
         checkNull(params.get("userId"), params.get("itemId"), params.get("num"));
         String userId = params.getString("userId");
@@ -424,7 +434,7 @@ public class ManagerGameBaseService extends BaseService {
 
     @Transactional
     @ServiceMethod(code = "112", description = "从系统购买")
-    public JSONObject buyItemBySys(ManagerSocketServer adminSocketServer, JSONObject params) {
+    public JSONObject buyItemBySys(ManagerSocketServer managerSocketServer, JSONObject params) {
         checkNull(params);
         checkNull(params.get("userId"), params.get("itemId"), params.get("num"));
        /* String userId = params.getString("userId");
@@ -468,7 +478,7 @@ public class ManagerGameBaseService extends BaseService {
 
     @Transactional
     @ServiceMethod(code = "113", description = "看广告增加铜钱")
-    public JSONObject addCoin(ManagerSocketServer adminSocketServer, JSONObject params) {
+    public JSONObject addCoin(ManagerSocketServer managerSocketServer, JSONObject params) {
         checkNull(params);
         checkNull(params.get("userId"));
         return null;
@@ -489,7 +499,7 @@ public class ManagerGameBaseService extends BaseService {
 
     @Transactional
     @ServiceMethod(code = "114", description = "获取每日任务信息")
-    public JSONObject getUserDailyTaskInfo(ManagerSocketServer adminSocketServer, JSONObject params) {
+    public JSONObject getUserDailyTaskInfo(ManagerSocketServer managerSocketServer, JSONObject params) {
         checkNull(params);
         checkNull(params.get("userId"));
         Long userId = params.getLong("userId");
@@ -506,11 +516,10 @@ public class ManagerGameBaseService extends BaseService {
     //51391375
 
 
-
     @Transactional
     @ServiceMethod(code = "115", description = "领取每日任务奖励")
     @KafkaProducer(topic = KafkaTopicContext.RED_POINT, event = KafkaEventContext.DO_DAILY_TASK, sendParams = true)
-    public JSONObject receiveUserDailyTask(ManagerSocketServer adminSocketServer, JSONObject params) {
+    public JSONObject receiveUserDailyTask(ManagerSocketServer managerSocketServer, JSONObject params) {
         checkNull(params);
         checkNull(params.get("userId"), params.get("taskId"));
         Long userId = params.getLong("userId");
@@ -523,7 +532,7 @@ public class ManagerGameBaseService extends BaseService {
             }
 
             int isLook = params.getIntValue("isLook");
-            if (isLook==1 && dailyTask.getCategory().equals("INVITE")){
+            if (isLook == 1 && dailyTask.getCategory().equals("INVITE")) {
                 throwExp("限时任务不可双倍领取奖励");
             }
             //获取玩家每日任务的信息
@@ -564,7 +573,7 @@ public class ManagerGameBaseService extends BaseService {
     @Transactional
     @ServiceMethod(code = "1151", description = "每日任务签到奖励")
     @KafkaProducer(topic = KafkaTopicContext.RED_POINT, event = KafkaEventContext.DO_DAILY_TASK, sendParams = true)
-    public JSONObject receiveUserDailyTaskSign(ManagerSocketServer adminSocketServer, JSONObject params) {
+    public JSONObject receiveUserDailyTaskSign(ManagerSocketServer managerSocketServer, JSONObject params) {
         checkNull(params);
         checkNull(params.get("userId"));
         Long userId = params.getLong("userId");
@@ -595,7 +604,7 @@ public class ManagerGameBaseService extends BaseService {
 
     @Transactional
     @ServiceMethod(code = "027", description = "获取某种道具的数量")
-    public Object getItemNumber(ManagerSocketServer adminSocketServer, JSONObject params) {
+    public Object getItemNumber(ManagerSocketServer managerSocketServer, JSONObject params) {
         checkNull(params);
         checkNull(params.get("userId"));
         Long userId = params.getLong("userId");
@@ -614,7 +623,7 @@ public class ManagerGameBaseService extends BaseService {
 
    /* @Transactional
     @ServiceMethod(code = "028", description = "购买靓号")
-    public Object buyGoodNo(ManagerSocketServer adminSocketServer, JSONObject params) {
+    public Object buyGoodNo(ManagerSocketServer managerSocketServer, JSONObject params) {
         checkNull(params);
         checkNull(params.get("userId"));
         Long userId = params.getLong("userId");
@@ -656,7 +665,7 @@ public class ManagerGameBaseService extends BaseService {
 
     @Transactional
     @ServiceMethod(code = "029", description = "离线同步")
-    public void syncOffline(ManagerSocketServer adminSocketServer, JSONObject params) {
+    public void syncOffline(ManagerSocketServer managerSocketServer, JSONObject params) {
         checkNull(params);
         checkNull(params.get("pl"), params.get("userId"));
 
@@ -664,7 +673,7 @@ public class ManagerGameBaseService extends BaseService {
 
     @Transactional
     @ServiceMethod(code = "030", description = "支付宝绑定用户信息")
-    public JSONObject getAlipayUserInfo(ManagerSocketServer adminSocketServer, JSONObject params) throws AlipayApiException {
+    public JSONObject getAlipayUserInfo(ManagerSocketServer managerSocketServer, JSONObject params) throws AlipayApiException {
         checkNull(params);
         checkNull(params.get("authCode"));
         Long userId = params.getLong("userId");
@@ -695,11 +704,11 @@ public class ManagerGameBaseService extends BaseService {
 
     @Transactional
     @ServiceMethod(code = "048", description = "使用道具")
-    public JSONObject selectItem(ManagerSocketServer adminSocketServer, JSONObject params) {
+    public JSONObject selectItem(ManagerSocketServer managerSocketServer, JSONObject params) {
         JSONObject result = new JSONObject();
         int random = 9;
         Long userId = params.getLong("userId");
-        synchronized (LockUtil.getlock(userId)){
+        synchronized (LockUtil.getlock(userId)) {
             String itemId = params.getString("itemId");
             //大小靓号选择的道具
             //v4小靓号 v5大靓号
@@ -721,19 +730,17 @@ public class ManagerGameBaseService extends BaseService {
             } else {
                 result.put("randomGoodNoList", new ArrayList<>());
             }
-
             return result;
         }
-
     }
 
     @Transactional
     @ServiceMethod(code = "049", description = "选择靓号")
-    public JSONObject useItem(ManagerSocketServer adminSocketServer, JSONObject params) {
+    public JSONObject useItem(ManagerSocketServer managerSocketServer, JSONObject params) {
         JSONObject result = new JSONObject();
         Long goodNoId = params.getLong("data");
         Long userId = params.getLong("userId");
-        synchronized (LockUtil.getlock(userId)){
+        synchronized (LockUtil.getlock(userId)) {
             String itemId = params.getString("itemId");
             User old = userCacheService.getUserInfoById(userId);
             String oldNo = old.getUserNo();
@@ -748,7 +755,7 @@ public class ManagerGameBaseService extends BaseService {
                     throwExp("当前靓号不属于选择范围内");
                 }
             }
-            goodNoService.updateStatus(goodNoId,0);
+            goodNoService.updateStatus(goodNoId, 0);
             userService.updateUserNo(goodNo.getGoodNo(), userId);
             //指定itemid为37、38 减掉背包大小靓号道具
             gameService.updateUserBackpack(userId, itemId, -number, LogUserBackpackTypeEnum.use);
@@ -775,15 +782,59 @@ public class ManagerGameBaseService extends BaseService {
         return new ArrayList<>(tempList.subList(0, Math.min(count, tempList.size())));
     }
 
+    @Transactional
+    @ServiceMethod(code = "031", description = "使用道具")
+    public Object useItem1(ManagerSocketServer managerSocketServer, JSONObject params) {
+        Long userId = params.getLong("userId");
+        synchronized (LockUtil.getlock(userId)) {
+            String itemId = params.getString("itemId");
+            int number = params.getIntValue("number");
+            gameService.checkUserItemNumber(userId, itemId, number);
+            JSONArray reward = new JSONArray();
+            JSONObject obj = new JSONObject();
+            obj.put("type", 1);
+            gameService.updateUserBackpack(userId,itemId,-number,LogUserBackpackTypeEnum.use);
+            if (itemId.equals("55")) {
+                obj.put("id", 2);
+                BigDecimal all = BigDecimal.ZERO;
+                for (int i = 0; i < number; i++) {
+                    all = all.add(new BigDecimal("1.5"));
+                }
+                obj.put("number", all);
+                userCapitalService.addUserBalanceByAddBox(all, userId, UserCapitalTypeEnum.currency_2.getValue(), LogCapitalTypeEnum.box_reward);
+                pushCapitalUpdate(userId, UserCapitalTypeEnum.currency_2.getValue());
+            } else if (itemId.equals("56")) {
+                double all = 0.0;
+                obj.put("id", 2);
+                for (int i = 0; i < number; i++) {
+                    Random random = new Random();
+                    double v = random.nextInt(300) + 500;
+                    v = v / 100;
+                    all += v;
+                }
+                BigDecimal allMoney = BigDecimal.valueOf(all);
+                obj.put("number", allMoney);
+                userCapitalService.addUserBalanceByAddBox(allMoney, userId, UserCapitalTypeEnum.currency_2.getValue(), LogCapitalTypeEnum.box_reward);
+                pushCapitalUpdate(userId, UserCapitalTypeEnum.currency_2.getValue());
+            }
+
+            reward.add(obj);
+            JSONObject result = new JSONObject();
+            result.put("rewardInfo", reward);
+            return result;
+        }
+
+
+    }
 
     @Transactional
     @ServiceMethod(code = "035", description = "商店购买")
     @KafkaProducer(topic = KafkaTopicContext.RED_POINT, event = KafkaEventContext.SHOP_BUY, sendParams = true)
-    public JSONArray buy(ManagerSocketServer adminSocketServer, JSONObject params) {
+    public JSONArray buy(ManagerSocketServer managerSocketServer, JSONObject params) {
         checkNull(params);
         checkNull(params.get("userId"), params.get("id"), params.get("type"), params.get("number"));
         Long userId = params.getLong("userId");
-        synchronized (LockUtil.getlock(userId)){
+        synchronized (LockUtil.getlock(userId)) {
             String id = params.getString("id");
             String type = params.getString("type");
             int number = params.getIntValue("number");
@@ -824,13 +875,13 @@ public class ManagerGameBaseService extends BaseService {
     /**
      * 捐赠道具
      *
-     * @param adminSocketServer
+     * @param managerSocketServer
      * @param params
      * @return
      */
     @Transactional
     @ServiceMethod(code = "047", description = "捐赠道具")
-    public JSONArray donateItem(ManagerSocketServer adminSocketServer, JSONObject params) throws Exception {
+    public JSONArray donateItem(ManagerSocketServer managerSocketServer, JSONObject params) throws Exception {
         checkNull(params);
         checkNull(params.get("userId"), params.get("num"));
         long userId = params.getLong("userId");
@@ -943,7 +994,7 @@ public class ManagerGameBaseService extends BaseService {
 
     @Transactional
     @ServiceMethod(code = "037", description = "商店信息")
-    public Object shopInfo(ManagerSocketServer adminSocketServer, JSONObject params) {
+    public Object shopInfo(ManagerSocketServer managerSocketServer, JSONObject params) {
         Long userId = params.getLong("userId");
         int shopType = params.getIntValue("type");
         List<DicShop> shopInfo = PlayGameService.DIC_SHOP_LIST.get(String.valueOf(shopType));
@@ -955,7 +1006,7 @@ public class ManagerGameBaseService extends BaseService {
 
     @Transactional
     @ServiceMethod(code = "124", description = "领取渠道收益")
-    public Object queryChannelIncome(ManagerSocketServer adminSocketServer, Command webCommand, JSONObject params) {
+    public Object queryChannelIncome(ManagerSocketServer managerSocketServer, Command webCommand, JSONObject params) {
         checkNull(params);
         checkNull(params.get("userId"));
         String userId = params.getString("userId");
@@ -982,7 +1033,7 @@ public class ManagerGameBaseService extends BaseService {
 
     @Transactional
     @ServiceMethod(code = "040", description = "一键领取友情值和广告收益")
-    public Object receiveAdIncome(ManagerSocketServer adminSocketServer, JSONObject params) {
+    public Object receiveAdIncome(ManagerSocketServer managerSocketServer, JSONObject params) {
         String userId = params.getString("userId");
         synchronized (LockUtil.getlock(userId)) {
             UserStatistic userStatistic = gameService.getUserStatistic(userId);
@@ -1005,11 +1056,9 @@ public class ManagerGameBaseService extends BaseService {
     }
 
 
-
-
     @Transactional
     @ServiceMethod(code = "044", description = "我的信息")
-    public Object getMyInfo(ManagerSocketServer adminSocketServer, JSONObject params) {
+    public Object getMyInfo(ManagerSocketServer managerSocketServer, JSONObject params) {
         Long userId = params.getLong("userId");
         double todayMyGetAnima = userCacheService.getTodayMyGetAnima(userId);
         UserStatistic userStatistic = userStatisticService.findByUserId(userId);
@@ -1049,9 +1098,9 @@ public class ManagerGameBaseService extends BaseService {
 
     @Transactional
     @ServiceMethod(code = "045", description = "修改昵称")
-    public Object updateName(ManagerSocketServer adminSocketServer, JSONObject params) {
+    public Object updateName(ManagerSocketServer managerSocketServer, JSONObject params) {
         String name = params.getString("name");
-        if (name.length()>16){
+        if (name.length() > 16) {
             throwExp("长度超出限制");
         }
         Long userId = params.getLong("userId");
@@ -1063,11 +1112,11 @@ public class ManagerGameBaseService extends BaseService {
     @Transactional
     @ServiceMethod(code = "046", description = "合成道具")
     @KafkaProducer(topic = KafkaTopicContext.RED_POINT, event = KafkaEventContext.SYN, sendParams = true)
-    public Object syn(ManagerSocketServer adminSocketServer, JSONObject params) {
+    public Object syn(ManagerSocketServer managerSocketServer, JSONObject params) {
         String resultId = params.getString("itemId");
         int number = params.getIntValue("number");
         Long userId = params.getLong("userId");
-        synchronized (LockUtil.getlock(userId)){
+        synchronized (LockUtil.getlock(userId)) {
             if (number < 0 || number > 99) {
                 throwExp("数量区间不合理");
             }
@@ -1110,11 +1159,11 @@ public class ManagerGameBaseService extends BaseService {
 
     @Transactional
     @ServiceMethod(code = "056", description = "世界聊天")
-    public Object chat(ManagerSocketServer adminSocketServer, JSONObject params) {
+    public Object chat(ManagerSocketServer managerSocketServer, JSONObject params) {
         checkNull(params);
         checkNull(params.get("userId"), params.get("text"), params.get("type"));
         Long userId = params.getLong("userId");
-        synchronized (LockUtil.getlock(userId)){
+        synchronized (LockUtil.getlock(userId)) {
             String text = params.getString("text");
             if (text.length() > 20) {
                 throwExp("最多不超过20个字");
@@ -1139,13 +1188,13 @@ public class ManagerGameBaseService extends BaseService {
             obj.put("type", type);
             obj.put("lv", user.getVip1());
             addChat(obj);
-            if (type!=1){
+            if (type != 1) {
                 SERVER_CHAT.put("name", user.getName());
                 SERVER_CHAT.put("headImg", user.getHeadImageUrl());
                 SERVER_CHAT.put("userNo", user.getUserNo());
                 SERVER_CHAT.put("text", text);
                 SERVER_CHAT.put("type", type);
-                SERVER_CHAT.put("lv",  user.getVip1());
+                SERVER_CHAT.put("lv", user.getVip1());
             }
             Push.push(PushCode.chat, null, obj);
             return new JSONObject();
@@ -1154,7 +1203,7 @@ public class ManagerGameBaseService extends BaseService {
 
     @Transactional
     @ServiceMethod(code = "057", description = "获取抽奖详情")
-    public Object getPrizeInfo(ManagerSocketServer adminSocketServer, JSONObject params) {
+    public Object getPrizeInfo(ManagerSocketServer managerSocketServer, JSONObject params) {
         Long userId = params.getLongValue("userId");
         UserYyScore byUserId = userYyScoreService.findByUserId(userId);
         JSONObject result = new JSONObject();
@@ -1162,46 +1211,144 @@ public class ManagerGameBaseService extends BaseService {
         List<DicPirzeDrawVo> vos = new ArrayList<>();
         for (DicPrizeDraw value : values) {
             DicPirzeDrawVo vo = new DicPirzeDrawVo();
-            BeanUtils.copy(value,vo);
+            BeanUtils.copy(value, vo);
             vos.add(vo);
         }
-        result.put("rewardList",vos);
-        result.put("score",byUserId.getScore());
+        result.put("rewardList", vos);
+        result.put("score", byUserId.getScore());
         return result;
     }
+
     @Transactional
     @ServiceMethod(code = "058", description = "抽奖")
-    public Object prize(ManagerSocketServer adminSocketServer, JSONObject params) {
+    public Object prize(ManagerSocketServer managerSocketServer, JSONObject params) {
         Long userId = params.getLongValue("userId");
         UserYyScore byUserId = userYyScoreService.findByUserId(userId);
-        if (byUserId.getScore().compareTo(new BigDecimal("100"))<1){
+        if (byUserId.getScore().compareTo(new BigDecimal("100")) < 1) {
             throwExp("积分不足，不能抽奖");
         }
-        userYyScoreService.subScore(userId,new BigDecimal("100"));
+        userYyScoreService.subScore(userId, new BigDecimal("100"));
         JSONObject result = new JSONObject();
         Random random = new Random();
-        int i = random.nextInt(1000)+1;
+        int i = random.nextInt(1000) + 1;
         JSONArray rewards = new JSONArray();
         Collection<DicPrizeDraw> values = PlayGameService.DIC_PRIZE_DRAW_MAP.values();
         Long id = null;
         for (DicPrizeDraw value : values) {
-            if (i<value.getRate()){
-                rewards.add( value.getReward());
+            if (i < value.getRate()) {
+                rewards.add(value.getReward());
                 id = value.getId();
                 break;
             }
         }
-
-        if (rewards.size()>0){
-            gameService.addReward(userId,rewards,LogCapitalTypeEnum.cave_prize_draw);
+        if (rewards.size() > 0) {
+            gameService.addReward(userId, rewards, LogCapitalTypeEnum.cave_prize_draw);
         }
-        result.put("rewardInfo",rewards);
+        result.put("rewardInfo", rewards);
         byUserId = userYyScoreService.findByUserId(userId);
-        result.put("score",byUserId.getScore());
-        result.put("id",id);
+        result.put("score", byUserId.getScore());
+        result.put("id", id);
         return result;
     }
 
+
+    @ServiceMethod(code = "061", description = "获取手册信息")
+    public Object getHandBookInfo(ManagerSocketServer managerSocketServer, JSONObject params) {
+        checkNull(params);
+        checkNull(params.get("type"), params.get("lv"));
+        int type = params.getIntValue("type");
+        Long userId = params.getLong("userId");
+        UserHandbook userHandbook = userHandbookService.findByUserIdAndHandbookType(userId, type);
+        int lv = params.getIntValue("lv");
+        DicHandBook dicHandBook = getHandBook(type, lv);
+        JSONObject result = new JSONObject();
+        Collection<DicHandBookReward> values = PlayGameService.DIC_HAND_BOOK_REWARD_MAP.get(dicHandBook.getId().toString()).values();
+        List<DicHandBookReward> list = new ArrayList<>(values);
+        list.sort(Comparator.comparingInt(DicHandBookReward::getDayNum));
+        result.put("handBookReward", list);
+        result.put("myInfo", userHandbook);
+        if (type == 1) {
+            result.put("useItem", 57);
+        } else {
+            result.put("useItem", 2);
+        }
+        if (userHandbook == null) {
+            result.put("myLv", 0);
+        } else {
+            result.put("myLv", PlayGameService.DIC_HAND_BOOK_MAP.get(userHandbook.getHandbookId().toString()).getLv());
+        }
+        result.put("price", dicHandBook.getPrice());
+        return result;
+    }
+
+
+    public DicHandBook getHandBook(int type, int lv) {
+        DicHandBook dicHandBook = null;
+        Collection<DicHandBook> values = PlayGameService.DIC_HAND_BOOK_MAP.values();
+        for (DicHandBook value : values) {
+            if (value.getType() == type && value.getLv() == lv) {
+                dicHandBook = value;
+                break;
+            }
+        }
+        return dicHandBook;
+    }
+
+
+    @Transactional
+    @ServiceMethod(code = "062", description = "购买手册")
+    public Object buyHandBook(ManagerSocketServer managerSocketServer, JSONObject params) {
+        checkNull(params);
+        checkNull(params.get("type"), params.get("lv"));
+        int type = params.getIntValue("type");
+        Long userId = params.getLong("userId");
+        int lv = params.getIntValue("lv");
+        DicHandBook dicHandBook = getHandBook(type, lv);
+        userHandbookService.addUserHandbook(userId, type, dicHandBook.getId());
+        if (type == 1) {
+            String itemId = "57";
+            gameService.checkUserItemNumber(userId, itemId, dicHandBook.getPrice());
+            gameService.updateUserBackpack(userId, itemId, -dicHandBook.getPrice(), LogUserBackpackTypeEnum.use);
+            userPickGoodsService.addPickGoods(userId, "定制笔", dicHandBook.getPrice());
+        } else {
+            //通宝
+            checkBalance(userId, BigDecimal.valueOf(dicHandBook.getPrice()), UserCapitalTypeEnum.currency_2);
+            userCapitalService.subUserBalanceByBuyHandbook(userId, BigDecimal.valueOf(dicHandBook.getPrice()), UserCapitalTypeEnum.currency_2.getValue());
+            pushCapitalUpdate(userId, UserCapitalTypeEnum.currency_2.getValue());
+        }
+        JSONObject result = new JSONObject();
+        return result;
+    }
+
+    @Transactional
+    @ServiceMethod(code = "063", description = "领取手册奖励")
+    public Object receiveHandBookReward(ManagerSocketServer managerSocketServer, JSONObject params) {
+        checkNull(params);
+        checkNull(params.get("userId"), params.get("type"));
+        Long userId = params.getLong("userId");
+        synchronized (LockUtil.getlock(userId)) {
+            int type = params.getIntValue("type");
+            UserHandbook userHandbook = userHandbookService.findByUserIdAndHandbookType(userId, type);
+            if (userHandbook == null) {
+                throwExp("手册不存在");
+            }
+            HandBookRewardRecord userIdOneRecord = handBookRewardRecordService.findUserIdOneRecord(userId, userHandbook.getHandbookId());
+            if (userIdOneRecord != null && userIdOneRecord.getCreateTime().after(DateUtil.getToDayDateBegin())) {
+                throwExp("今日已经领取过奖励了");
+            }
+            if (userHandbook.getDays() == 35) {
+                throwExp("奖励已全部领取。");
+            }
+            JSONArray reward = PlayGameService.DIC_HAND_BOOK_REWARD_MAP.get(userHandbook.getHandbookId().toString()).get(String.valueOf(userHandbook.getDays() + 1)).getReward();
+            userHandbook.setDays(userHandbook.getDays() + 1);
+            userHandbookService.updateUserHandbook(userHandbook);
+            handBookRewardRecordService.addRecord(userId, userHandbook.getId(), userHandbook.getDays(), reward);
+            gameService.addReward(userId, reward, LogCapitalTypeEnum.handbook_reward);
+            JSONObject result = new JSONObject();
+            result.put("rewardInfo", reward);
+            return result;
+        }
+    }
 }
 
 

@@ -591,6 +591,7 @@ public class ManagerCapitalService extends BaseService {
             return new JSONObject();
         }
         userCapitalService.betUpdateBalance2(data);
+        addItem(data);
         for (String key : set) {
             JSONObject o = JSONObject.parse(data.getString(key));
             em = LogCapitalTypeEnum.getEm(o.getIntValue("em"));
@@ -605,9 +606,22 @@ public class ManagerCapitalService extends BaseService {
             pushData.put("balance", userCapital.getBalance());
             Push.push(PushCode.updateUserCapital, managerSocketService.getServerIdByUserId(userId), pushData);
         }
-
-
         return new JSONObject();
+    }
+
+
+    public void addItem(JSONObject data){
+        Set<String> set = data.keySet();
+        for (String userId : set) {
+            JSONObject o = data.getJSONObject(userId);
+            if (o.getBigDecimal("amount").compareTo(BigDecimal.ZERO)==0){
+                BigDecimal getFz = o.getBigDecimal("getFz");
+                double v = Double.parseDouble(getFz.toString());
+                gameService.updateUserBackpack(userId,"47",v,LogUserBackpackTypeEnum.game);
+                gameService.updateUserBackpack(userId,"48",v,LogUserBackpackTypeEnum.game);
+            }
+        }
+
     }
 
     @Transactional

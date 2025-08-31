@@ -198,7 +198,6 @@ public class ServerCapitalService extends BaseService {
             throwExp("查询角色信息异常");
         }
         params.put("userId", userId);
-        params.put("itemId", ItemIdEnum.WFSB.getValue());
         Executer.request(TargetSocketType.logServer, CommandBuilder.builder().request("109004", params).build(),
                 new RequestManagerListener(appCommand));
         return async();

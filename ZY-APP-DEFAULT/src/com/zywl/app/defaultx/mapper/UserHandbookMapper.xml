@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.zywl.app.defaultx.mapper.UserHandbookMapper">
+
+
+    <insert id="insert" parameterType="UserHandbook" useGeneratedKeys="true" keyProperty="id" keyColumn="id">
+        insert into t_user_handbook
+        (user_id,
+         handbook_type,
+         handbook_id,
+         buy_time,
+         end_time,
+         days,
+         `status`,
+         create_time,
+         update_time)
+        values (#{userId},
+                #{handbookType},
+                    #{handbookId},
+                #{buyTime},
+                #{endTime},
+                #{days},
+                #{status},
+                #{createTime},
+                #{updateTime})
+    </insert>
+
+    <update id="update" parameterType="UserHandbook">
+        update t_user_handbook
+        <set>
+            <if test="days != null">
+                days=#{days},
+            </if>
+            <if test="status != null">
+                `status`= #{status},
+            </if>
+
+        </set>
+        where id= #{id}
+    </update>
+
+    <delete id="delete">
+        delete
+        from t_user_handbook
+        where id = #{id}
+    </delete>
+
+    <select id="findOne" resultType="UserHandbook">
+        select *
+        from t_user_handbook
+        where id = #{id}
+    </select>
+
+    <select id="findByUserId" resultType="UserHandbook">
+        select *
+        from t_user_handbook
+        where user_id = #{userId}
+    </select>
+
+    <select id="findByUserIdAndHandbookType" resultType="UserHandbook">
+        select *
+        from t_user_handbook
+        where user_id = #{userId}
+          and handbook_type = #{type}  and status=1
+    </select>
+
+    <select id="findAll" resultType="UserHandbook">
+        select *
+        from t_user_handbook
+    </select>
+
+
+</mapper>

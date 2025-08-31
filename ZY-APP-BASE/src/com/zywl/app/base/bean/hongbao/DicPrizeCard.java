@@ -8,7 +8,7 @@ import java.math.BigDecimal;
 
 
 @Data
-public class DicPrize extends BaseBean {
+public class DicPrizeCard extends BaseBean {
 
     private Long id;
 

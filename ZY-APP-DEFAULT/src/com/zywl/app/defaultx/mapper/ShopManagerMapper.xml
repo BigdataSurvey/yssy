@@ -102,6 +102,10 @@
     </select>
 
 
+    <select id="findAllShopManager" resultType="ShopManager">
+        select  * from r_shop_manager where status = 1
+    </select>
+
     <select id="queryShopList" resultType="ShopManager">
         select * from r_shop_manager where status = 1
     </select>

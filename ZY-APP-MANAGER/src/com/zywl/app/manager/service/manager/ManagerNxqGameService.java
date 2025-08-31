@@ -160,7 +160,9 @@ public class ManagerNxqGameService extends BaseService {
                 }
                 newInvestDetailList.add(investDetail);
             }
-            investDetailService.batchUpdateInvestDetail(newInvestDetailList);
+            if (newInvestDetailList.size()>0){
+                investDetailService.batchUpdateInvestDetail(newInvestDetailList);
+            }
             investDetailList.removeIf(item -> ((System.currentTimeMillis() - item.getEndDate().getTime()) / 1000 / 60 / 60 / 24) > 1);
 
             BigDecimal totalAmount = investDetailList.stream()

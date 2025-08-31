@@ -20,6 +20,7 @@ import com.zywl.app.defaultx.annotation.ServiceClass;
 import com.zywl.app.defaultx.annotation.ServiceMethod;
 import com.zywl.app.defaultx.cache.*;
 import com.zywl.app.defaultx.enmus.ItemIdEnum;
+import com.zywl.app.defaultx.enmus.LogCapitalTypeEnum;
 import com.zywl.app.defaultx.enmus.UserCapitalTypeEnum;
 import com.zywl.app.defaultx.service.*;
 import com.zywl.app.defaultx.service.card.UserMineService;
@@ -53,6 +54,9 @@ public class AdminMailService extends BaseService {
     private ApplyForService applyForService;
     @Autowired
     private GameCacheService gameCacheService;
+
+    @Autowired
+    private PlayGameService gameService;
     @Autowired
     private UserCacheService userCacheService;
     @Autowired
@@ -407,26 +411,28 @@ public class AdminMailService extends BaseService {
         checkNull(params);
         checkNull(params.get("userId"), params.get("status"));
         checkAuth(adminSocketServer);
-
         Long userId = params.getLongValue("userId", -1);
         int status = params.getIntValue("status", -1);
 
         Map<String, Object> findCondition = new HashMap<>();
         findCondition.put("userId", userId);
-        findCondition.put("status", 0);
+        findCondition.put("status", 2);
         try {
             if (shopManagerService.findOne(findCondition) == null) {
                 throwExp("未找到数据！");
             }
-
             Map<String, Object> condition = new HashMap();
             condition.put("userId", userId);
             condition.put("status", status);
             shopManagerService.execute("pass", condition);
-            Map<String, Object> upCondition = new HashMap<>();
-            upCondition.put("userId", userId);
-            shopManagerService.execute("updateShopManagerInfo", upCondition);
-            userCacheService.removeUserInfoCache(userId);
+
+            //赠送100张卡
+            JSONArray reward = JSONArray.parseArray(managerConfigService.getString(Config.SHOP_MANAGER_REWARD));
+            gameService.addReward(userId,reward,null);
+            //Map<String, Object> upCondition = new HashMap<>();
+            //upCondition.put("userId", userId);
+            //shopManagerService.execute("updateShopManagerInfo", upCondition);
+            //userCacheService.removeUserInfoCache(userId);
             adminLogService.addAdminLog(adminSocketServer.getAdmin(), "modifyChannelApply", new JSONObject(condition));
         } catch (Exception e) {
             throwExp("执行出错！" + e.toString());

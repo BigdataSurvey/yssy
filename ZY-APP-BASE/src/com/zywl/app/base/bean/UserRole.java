@@ -14,7 +14,7 @@ public class UserRole extends BaseBean {
 
     private int index;
 
-    private int hp;
+    private double hp;
 
     private int maxHp;
 
@@ -54,11 +54,11 @@ public class UserRole extends BaseBean {
         this.roleId = roleId;
     }
 
-    public int getHp() {
+    public double getHp() {
         return hp;
     }
 
-    public void setHp(int hp) {
+    public void setHp(double hp) {
         this.hp = hp;
     }
 

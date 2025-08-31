@@ -110,6 +110,8 @@ public class LhdSocket extends BaseClientSocket {
                                 result.put("betAmount",map.get(userId).get("betAmount"));
                                 //0 输  1 赢
                                 result.put("roomResult", map.get(userId).get("isWin"));
+                                result.put("getFz",map.get(userId).getOrDefault("getFz", "0"));
+                                result.put("getJp",map.get(userId).getOrDefault("getJp", "0"));
                             }else {
                                 result.put("roomResult", 2);
                             }

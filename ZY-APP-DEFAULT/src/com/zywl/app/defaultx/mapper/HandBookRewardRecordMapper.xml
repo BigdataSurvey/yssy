@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.zywl.app.defaultx.mapper.HandBookRewardRecordMapper">
+
+   <insert id="insert" parameterType="HandBookRewardRecord" useGeneratedKeys="true" keyProperty="id" keyColumn="id">
+		insert into r_handbook_reward_record
+		(
+               `user_id`,
+               `handbook_id`,
+               `dayNum`,
+                `reward`,
+             	`create_time`
+		)
+		values
+		(
+               #{userId},
+               #{handbookId},
+                #{dayNum},
+               #{reward},
+               #{createTime}
+
+             
+             
+		)
+	</insert>
+	
+	<select id="findByUserId" resultType="HandBookRewardRecord">
+        select * from r_handbook_reward_record where user_id = #{userId}
+    </select>
+
+
+
+
+    <select id="findUserIdOneRecord" resultType="HandBookRewardRecord">
+        select * from r_handbook_reward_record where user_id = #{userId} and handbook_id=#{handbookId} order by create_time desc limit 1
+    </select>
+</mapper>

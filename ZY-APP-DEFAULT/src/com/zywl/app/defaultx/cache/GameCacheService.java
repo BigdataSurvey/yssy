@@ -5,7 +5,6 @@ import com.alibaba.fastjson2.JSONObject;
 import com.zywl.app.base.bean.Activity;
 import com.zywl.app.base.bean.User;
 import com.zywl.app.base.bean.UserCapital;
-import com.zywl.app.base.bean.hongbao.DicPrize;
 import com.zywl.app.base.constant.RedisKeyConstant;
 import com.zywl.app.base.util.DateUtil;
 import com.zywl.app.defaultx.cache.impl.RedisService;

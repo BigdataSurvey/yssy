@@ -101,7 +101,7 @@ public class ServerMineService extends BaseService {
             int hour = 24;
             vo.setHour(hour);
             vo.setUseItem(Long.parseLong(DIC_MINE.get(userMine.getMineId().toString()).getMiningItem()));
-            int useNumber = 10;
+            double useNumber = DIC_MINE.get(userMine.getMineId().toString()).getMiningItemCount();
             vo.setUseNumber(useNumber);
             if (userMine.getCount()==0 && userMine.getIsMining()==0 && userMine.getOutput()==0){
                 Map<String,Object> map = new HashMap<>();

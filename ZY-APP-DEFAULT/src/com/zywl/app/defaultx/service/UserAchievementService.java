@@ -3,7 +3,6 @@ package com.zywl.app.defaultx.service;
 import com.alibaba.fastjson2.JSONArray;
 import com.zywl.app.base.bean.Achievement;
 import com.zywl.app.base.bean.UserAchievement;
-import com.zywl.app.base.bean.hongbao.DicPrize;
 import com.zywl.app.base.bean.vo.AchievementVo;
 import com.zywl.app.base.util.BeanUtils;
 import com.zywl.app.defaultx.dbutil.DaoService;
@@ -73,22 +72,6 @@ public class UserAchievementService extends DaoService {
 
     }
 
-    public void batchUpdatePrize(List<DicPrize> dicPrizeList) {
-        if (dicPrizeList != null) {
-            List<DicPrize> newList = new ArrayList<>();
-            for (int i = 0; i < dicPrizeList.size(); i++) {
-                newList.add(dicPrizeList.get(i));
-                if (i % 5000 == 0) {
-                    execute("updateList", newList);
-                    newList.clear();
-                }
-            }
-            if (!newList.isEmpty()) {
-                execute("updateList", newList);
-            }
-        }
-
-    }
 
 
     @Transactional

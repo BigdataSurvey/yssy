@@ -1,22 +1,17 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
-<mapper namespace="com.zywl.app.defaultx.mapper.DicPrizeMapper">
+<mapper namespace="com.zywl.app.defaultx.mapper.DicPrizeDrawMapper">
 
 
-	<select id="findAll" resultType="DicPrize">
-	    select * from dic_prize
+	<select id="findAll" resultType="DicPrizeDraw">
+	    select * from dic_prize_draw
 	</select>
 
 
-	<select id="findByUserId" resultType="DicPrize">
-		select * from dic_prize
+	<select id="findByUserId" resultType="DicPrizeDraw">
+		select * from dic_prize_draw
 	</select>
 
-	<update id="updatePosition" parameterType="RedPosition">
-		UPDATE dic_prize
-		SET num_total = total
-		WHERE id = #{id}
-	</update>
-	
+
 
 </mapper>

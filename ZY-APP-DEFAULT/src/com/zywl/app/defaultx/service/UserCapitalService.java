@@ -180,9 +180,12 @@ public class UserCapitalService extends DaoService {
         for (String key : set) {
             Map<String, Object> map = new HashedMap<>();
             map.put("userId", key);
+            JSONObject o = JSONObject.parse(obj.getString(key));
+            if (o.getBigDecimal("amount").compareTo(BigDecimal.ZERO)==0){
+                continue;
+            }
             UserCapital userCapital = userCapitalCacheService.getUserCapitalCacheByType(Long.parseLong(key), UserCapitalTypeEnum.yyb.getValue());
             beforeMoney.put(key, userCapital.getBalance());
-            JSONObject o = JSONObject.parse(obj.getString(key));
             map.put("amount", o.get("amount"));
             map.put("id",userCapital.getId());
             em = LogCapitalTypeEnum.getEm(o.getIntValue("em"));
@@ -449,6 +452,15 @@ public class UserCapitalService extends DaoService {
 
 
     public void addUserBalanceByAddReward(BigDecimal amount, Long userId,int capitalType,LogCapitalTypeEnum em) {
+        UserCapital userCapital = userCapitalCacheService.getUserCapitalCacheByType(userId, capitalType);
+        int a = addUserBalance(amount, userId, capitalType,userCapital.getBalance(), userCapital.getOccupyBalance(), null, null, em, null);
+        if (a < 1) {
+            userCapitalCacheService.deltedUserCapitalCache(userId,  capitalType);
+            throwExp("领取失败");
+        }
+    }
+
+    public void addUserBalanceByAddBox(BigDecimal amount, Long userId,int capitalType,LogCapitalTypeEnum em) {
         UserCapital userCapital = userCapitalCacheService.getUserCapitalCacheByType(userId, capitalType);
         int a = addUserBalance(amount, userId, capitalType,userCapital.getBalance(), userCapital.getOccupyBalance(), null, null, em, null);
         if (a < 1) {
@@ -889,6 +901,19 @@ public class UserCapitalService extends DaoService {
             int b = subUserBalance(amount, userId, capitalType, userCapital.getBalance(), userCapital.getOccupyBalance(), null, null, LogCapitalTypeEnum.update_idCard, null);
             if (b < 1) {
                 throwExp("修改实名失败，请稍后重试");
+            }
+        }
+    }
+
+    public void subUserBalanceByBuyHandbook(Long userId, BigDecimal amount, int capitalType) {
+        UserCapital userCapital = userCapitalCacheService.getUserCapitalCacheByType(userId, capitalType);
+        int a = subUserBalance(amount, userId, capitalType, userCapital.getBalance(), userCapital.getOccupyBalance(), null, null, LogCapitalTypeEnum.buy_handbook, null);
+        if (a < 1) {
+            userCapitalCacheService.deltedUserCapitalCache(userId, capitalType);
+            userCapital = userCapitalCacheService.getUserCapitalCacheByType(userId, capitalType);
+            int b = subUserBalance(amount, userId, capitalType, userCapital.getBalance(), userCapital.getOccupyBalance(), null, null, LogCapitalTypeEnum.buy_handbook, null);
+            if (b < 1) {
+                throwExp("购买失败，请稍后重试");
             }
         }
     }

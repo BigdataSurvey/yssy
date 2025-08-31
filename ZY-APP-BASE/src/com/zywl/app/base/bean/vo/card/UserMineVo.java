@@ -22,7 +22,7 @@ public class UserMineVo extends BaseBean {
 
     private int isMining;
 
-    private int oneReward;
+    private double oneReward;
 
     private Long minEndTime;
 
@@ -40,13 +40,13 @@ public class UserMineVo extends BaseBean {
 
     private Long useItem;
 
-    private int useNumber;
+    private double useNumber;
 
-    public int getUseNumber() {
+    public double getUseNumber() {
         return useNumber;
     }
 
-    public void setUseNumber(int useNumber) {
+    public void setUseNumber(double useNumber) {
         this.useNumber = useNumber;
     }
 
@@ -171,11 +171,11 @@ public class UserMineVo extends BaseBean {
         this.allOutput = allOutput;
     }
 
-    public int getOneReward() {
+    public double getOneReward() {
         return oneReward;
     }
 
-    public void setOneReward(int oneReward) {
+    public void setOneReward(double oneReward) {
         this.oneReward = oneReward;
     }
 }

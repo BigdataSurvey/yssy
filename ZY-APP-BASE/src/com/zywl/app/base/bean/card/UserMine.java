@@ -19,7 +19,7 @@ public class UserMine extends BaseBean {
 
     private int allOutput;
 
-    private int oneReward;
+    private double oneReward;
 
     private int output;
 
@@ -145,11 +145,11 @@ public class UserMine extends BaseBean {
         this.output = output;
     }
 
-    public int getOneReward() {
+    public double getOneReward() {
         return oneReward;
     }
 
-    public void setOneReward(int oneReward) {
+    public void setOneReward(double oneReward) {
         this.oneReward = oneReward;
     }
 }

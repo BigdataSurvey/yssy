@@ -110,7 +110,10 @@ if(!window.CtrlFn_${menuId}){
             ACTIVE3:"是否显示限时活动3",
             RED_RATE:"红包消耗比例",
             SHOP_MANAGER:"店长申请通宝余额",
-            CONVERT_TOTAL:"金刚铃兑换单价"
+            CONVERT_TOTAL:"金刚铃兑换单价",
+            YYB_CONVERT_RATE:"翻卡游戏单价",
+            SHOP_MANAGER_REWARD:"店长开通奖励",
+            XQ_XW_RATE:"小倩信物比例（消耗多少给1个信物）"
         };
         /*初始化表格*/
         function initTable() {

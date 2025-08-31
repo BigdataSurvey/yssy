@@ -7,6 +7,11 @@ import java.util.List;
 
 public class Config extends BaseBean {
 
+
+	public static final String XQ_XW_RATE = "XQ_XW_RATE";
+	public static final String SHOP_MANAGER_REWARD = "SHOP_MANAGER_REWARD";
+
+	public static final String APP_SHOP_MANAGER = "APP_SHOP_MANAGER";
 	public static final String ACTIVE1 = "ACTIVE1";
 	public static final String ACTIVE2 = "ACTIVE2";
 	public static final String ACTIVE3 = "ACTIVE3";

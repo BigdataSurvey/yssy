@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.zywl.app.defaultx.mapper.DicPrizeCardMapper">
+
+
+	<select id="findAll" resultType="DicPrizeCard">
+	    select * from dic_prize_card
+	</select>
+
+
+	<select id="findByUserId" resultType="DicPrizeCard">
+		select * from dic_prize_card
+	</select>
+
+	<update id="initPrize" parameterType="DicPrizeCard">
+		UPDATE dic_prize_card
+		SET num_total = total
+	</update>
+
+
+	<update id="updatePrizeTotal" parameterType="DicPrizeCard">
+		UPDATE dic_prize_card
+		SET num_total = num_total-1 where id=#{id}
+	</update>
+
+
+
+</mapper>

@@ -148,7 +148,10 @@ public enum LogCapitalTypeEnum {
     sub_red_zd("鞭炮踩雷",1031),
     sub_shop_manager("申请成为店长",1032),
     add_receive_nxq("领取信物兑换的游园券",1033),
-    sub_convert_total("用户积分",1034)
+    sub_convert_total("用户积分",1034),
+    buy_handbook("购买手册",1035),
+    handbook_reward("手册奖励",1036),
+    box_reward("宝箱奖励",1037)
     ;
 
     private String name;

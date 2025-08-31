@@ -13,7 +13,7 @@ import com.zywl.app.base.bean.card.Card;
 import com.zywl.app.base.bean.card.DicMine;
 import com.zywl.app.base.bean.card.DicShop;
 import com.zywl.app.base.bean.card.JDCard;
-import com.zywl.app.base.bean.hongbao.DicPrize;
+import com.zywl.app.base.bean.hongbao.DicPrizeCard;
 import com.zywl.app.base.constant.RedisKeyConstant;
 import com.zywl.app.base.service.BaseService;
 import com.zywl.app.base.util.LockUtil;
@@ -70,6 +70,9 @@ public class PlayGameService extends BaseService {
     public static Map<String, Item> itemMap = new ConcurrentHashMap<>();
     public final static Map<String, DicVip> DIC_VIP_MAP = new ConcurrentHashMap<>();
 
+    public final static Map<String, DicHandBook> DIC_HAND_BOOK_MAP = new ConcurrentHashMap<>();
+
+    public final static Map<String, Map<String,DicHandBookReward>> DIC_HAND_BOOK_REWARD_MAP= new ConcurrentHashMap<>();
 
     public static Map<String, PrizeDrawReward> prizeDrawRewardInfo = new ConcurrentHashMap<>();
 
@@ -87,7 +90,7 @@ public class PlayGameService extends BaseService {
 
     public static Map<String,DicPrizeDraw>  DIC_PRIZE_DRAW_MAP = new ConcurrentHashMap<>();
 
-    public static Map<String, DicPrize>  DIC_PRIZE = new ConcurrentHashMap<>();
+    public static Map<String, DicPrizeCard>  DIC_PRIZE = new ConcurrentHashMap<>();
 
     public static Map<String,DicPit>  DIC_PIT = new ConcurrentHashMap<>();
 
@@ -97,6 +100,8 @@ public class PlayGameService extends BaseService {
     public static Map<String, List<DicShop>> DIC_SHOP_LIST = new ConcurrentHashMap<>();
     public static Map<String, UserAchievement> userAchievementMap = new ConcurrentHashMap<>();
 
+    public static final LinkedList<Long> PRIZE_IDS = new LinkedList<>();
+
 
     @Autowired
     private UserAchievementService userAchievementService;
@@ -104,6 +109,16 @@ public class PlayGameService extends BaseService {
 
     @Autowired
     private UserCapitalService userCapitalService;
+
+
+    @Autowired
+    private DicPrizeDrawService dicPrizeDrawService;
+
+    @Autowired
+    private DicHandBookService dicHandBookService;
+
+    @Autowired
+    private DicHandBookRewardService dicHandBookRewardService;
 
     @Autowired
     private GameCacheService gameCacheService;
@@ -153,7 +168,7 @@ public class PlayGameService extends BaseService {
     @Autowired
     private ProductService productService;
     @Autowired
-    private DicPrizeService dicPrizeService;
+    private DicPrizeCardService dicPrizeCardService;
 
     @Autowired
     private DicPitService dicPitService;
@@ -285,7 +300,10 @@ public class PlayGameService extends BaseService {
         initMine();
         initShop();
         initRole();
+        initPrizeDraw();
         initDicVip();
+        initDicHandBook();
+        initDicHandBookReward();
     }
 
 
@@ -325,14 +343,39 @@ public class PlayGameService extends BaseService {
         allVip.forEach(e -> DIC_VIP_MAP.put(String.valueOf(e.getLv()), e));
     }
 
+    public void initDicHandBook() {
+        List<DicHandBook> allHandBook = dicHandBookService.findAllHandBook();
+        allHandBook.forEach(e -> DIC_HAND_BOOK_MAP.put(String.valueOf(e.getId()), e));
+    }
+
+    public void initDicHandBookReward() {
+        List<DicHandBookReward> allHandBookReward = dicHandBookRewardService.findAllHandBookReward();
+        for (DicHandBookReward dicHandBookReward : allHandBookReward) {
+            Map<String,DicHandBookReward> map = DIC_HAND_BOOK_REWARD_MAP.getOrDefault(dicHandBookReward.getHandbookId().toString(), new HashMap<>());
+            map.put(String.valueOf(dicHandBookReward.getDayNum()),dicHandBookReward);
+            if (!DIC_HAND_BOOK_REWARD_MAP.containsKey(dicHandBookReward.getHandbookId().toString())){
+                DIC_HAND_BOOK_REWARD_MAP.put(dicHandBookReward.getHandbookId().toString(),map);
+            }
+        }
+    }
+
     public void initProduct() {
         List<Product> allProduct = productService.findAllProduct();
         allProduct.forEach(e -> productMap.put(e.getId().toString(), e));
     }
 
+
     public void initPrize() {
-        List<DicPrize> allPrizeRecord = dicPrizeService.findAllPrize();
+        DIC_PRIZE.clear();
+        List<DicPrizeCard> allPrizeRecord = dicPrizeCardService.findAllPrize();
         allPrizeRecord.forEach(e -> DIC_PRIZE.put(e.getId().toString(), e));
+        for (DicPrizeCard dicPrizeCard : allPrizeRecord) {
+            int total = dicPrizeCard.getTotal();
+            for (int i = 0; i < total; i++) {
+                PRIZE_IDS.add(dicPrizeCard.getId());
+            }
+        }
+        Collections.shuffle(PRIZE_IDS);
     }
 
     public void initPit() {
@@ -340,6 +383,10 @@ public class PlayGameService extends BaseService {
         allPit.forEach(e -> DIC_PIT.put(e.getId().toString(), e));
     }
 
+    public void initPrizeDraw() {
+        List<DicPrizeDraw> allPrizeDraw = dicPrizeDrawService.findAllPrizeDraw();
+        allPrizeDraw.forEach(e -> DIC_PRIZE_DRAW_MAP.put(e.getId().toString(), e));
+    }
 
     public void initDailyTask() {
         dailyTaskInfo.clear();
@@ -402,7 +449,7 @@ public class PlayGameService extends BaseService {
         try {
             long time = System.currentTimeMillis();
             logger.info("=========更新奖池的数据==========");
-            List<DicPrize> list = new ArrayList<>();
+            List<DicPrizeCard> list = new ArrayList<>();
             DIC_PRIZE.values().stream().forEach(e -> list.add(e));
             DIC_PRIZE.clear();
             logger.info("数据更新完成，用时：" + (System.currentTimeMillis() - time) + ",条数：" + list.size());
@@ -862,7 +909,7 @@ public class PlayGameService extends BaseService {
         addRankCache(id, Integer.parseInt(amount.setScale(0).toString()),GameTypeEnum.dgs.getValue());
     }
 
-    public void checkUserItemNumber(String userId, String itemId, int number) {
+    public void checkUserItemNumber(String userId, String itemId, double number) {
         Map<String, Backpack> userBackpack = getUserBackpack(userId);
         if (!userBackpack.containsKey(itemId) || userBackpack.get(itemId).getItemNumber() < number) {
             throwExp(itemMap.get(itemId).getName() + "数量不足");

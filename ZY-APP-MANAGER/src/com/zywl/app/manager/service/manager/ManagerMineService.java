@@ -110,7 +110,7 @@ public class ManagerMineService extends BaseService {
                 int number = item.getIntValue("number");
                 gameService.updateUserBackpack(userId, id, -number, LogUserBackpackTypeEnum.open_mine);
             }
-            UserMine userMine = userMineService.addUserMine(userId, dicMine.getId(), dicMine.getCount(), index, dicMine.getReward().getJSONObject(0).getIntValue("number"));
+            UserMine userMine = userMineService.addUserMine(userId, dicMine.getId(), dicMine.getCount(), index, dicMine.getReward().getJSONObject(0).getDoubleValue("number"));
             managerGameBaseService.pushCapitalUpdate(userId, UserCapitalTypeEnum.currency_2.getValue());
             User user = userCacheService.getUserInfoById(userId);
             UserMineVo vo = new UserMineVo();
@@ -193,8 +193,8 @@ public class ManagerMineService extends BaseService {
                 throwExp("当前正在探索，无需重复探索");
             }
             String useItemId = PlayGameService.DIC_MINE.get(userMine.getMineId().toString()).getMiningItem();
-            int number = PlayGameService.DIC_MINE.get(userMine.getMineId().toString()).getMiningItemCount();
-            gameService.checkUserItemNumber(userId,useItemId,number);
+            double number = PlayGameService.DIC_MINE.get(userMine.getMineId().toString()).getMiningItemCount();
+            gameService.checkUserItemNumber(userId.toString(),useItemId,number);
             gameService.updateUserBackpack(userId,useItemId,-number,LogUserBackpackTypeEnum.use);
             userMine.setIsMining(1);
             userMine.setLastMineTime(new Date());

@@ -7,7 +7,7 @@ if(!window.CtrlFn_${menuId}){
         var $formImg = $('#${menuId}_form_img');
         var cropperImg = false;
         var cropperOption = {
-            aspectRatio: 3 / 1,
+            aspectRatio: 3 / 3,
             minContainerWidth: 760,
             minContainerHeight: 360,
             autoCropArea: 1,
@@ -25,13 +25,15 @@ if(!window.CtrlFn_${menuId}){
                         return setting.row + 1;
                     }},
                     {data: "title", title: '标题', render: datatableUtil.renderNormal},
-                    {data: "url", title: '链接', render: function(data, type, row, setting){
+                    {data: "img3_1", title: '链接', render: datatableUtil.renderNormal},
+                    {data: "context", title: '描述', render: datatableUtil.renderNormal},
+                   /* {data: "url", title: '链接', render: function(data, type, row, setting){
                         var _html = null;
                         if(data) {
                             _html = '<a class="text-primary" target="_blank" href="' + data + '">' + data + '</a>';
                         }
                         return _html || '-';
-                    }},
+                    }},*/
                     {data: "img3_1", title: '图片', render: function(data, type, row, setting){
                         return data == null ? '-' : '<a href="' + data + '" data-toggle="lightbox" data-title="轮播图" data-lightbox="scale"><img src="' + data + '" class="td-img"></a>';
                     }},
@@ -80,7 +82,7 @@ if(!window.CtrlFn_${menuId}){
             baseTable.ajax.reload();
         };
         me.createRow = function(){
-            me.currentTpl = {_title: '新增轮播图', img3_1: null};
+            me.currentTpl = {_title: '新增店长道具', img3_1: null};
             me.currentTpl.$type = 'add';
             $('#${menuId}_formEdit').find('input[name],select[name]').val('').trigger('change');
             $('#${menuId}_form_photo').val('').trigger('change');
@@ -96,7 +98,7 @@ if(!window.CtrlFn_${menuId}){
             var record = dataList[index];
             if(record) {
                 me.currentTpl = record;
-                me.currentTpl._title = '编辑轮播图';
+                me.currentTpl._title = '编辑店长道具';
                 me.currentTpl._errorMsg = null;
                 me.currentTpl._index = index;
                 me.currentTpl.$type = 'edit';

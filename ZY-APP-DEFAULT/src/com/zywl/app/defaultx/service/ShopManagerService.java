@@ -34,6 +34,11 @@ public class ShopManagerService extends DaoService {
         return (ShopManager) findOne("findByUserId", params);
     }
 
+    public List<ShopManager> findAllShopManager() {
+
+        return findList("findAllShopManager",null);
+    }
+
     public List<ShopManager> queryShopManager() {
 
         return findList("queryShopManager",null);

@@ -62,6 +62,8 @@ public class GameBaseService extends BaseService {
     @Autowired
     private UserCacheService userCacheService;
 
+    @Autowired
+    private UserService userService;
 //    @Autowired
 //    private DailyTaskService dailyTaskService;
 
@@ -98,6 +100,9 @@ public class GameBaseService extends BaseService {
 
     @Autowired
     private GameCacheService gameCacheService;
+
+    @Autowired
+    private UserPickGoodsService userPickGoodsService;
 
     @Autowired
     private Activity3Service activity3Service;
@@ -595,19 +600,19 @@ public class GameBaseService extends BaseService {
     }*/
 
 
-/*    @ServiceMethod(code = "031", description = "使用道具")
+    @ServiceMethod(code = "031", description = "使用道具")
     public Object useItem(AppSocket appSocket, Command command, JSONObject data) {
         checkNull(data);
         long userId = appSocket.getWsidBean().getUserId();
         data.put("userId", userId);
-        int number = data.getIntValue("useNumber");
+        int number = data.getIntValue("number");
         if (number<1){
             throwExp("非法请求");
         }
         Executer.request(TargetSocketType.manager, CommandBuilder.builder().request("100031", data).build(),
                 new RequestManagerListener(command));
         return async();
-    }*/
+    }
 
     //TODO
     @ServiceMethod(code = "035", description = "商城购买")
@@ -786,6 +791,19 @@ public class GameBaseService extends BaseService {
                 new RequestManagerListener(command));
         return async();
     }
+    @ServiceMethod(code = "009", description = "修改收获地址信息")
+    public Object updateCourier(AppSocket appSocket, Command command, JSONObject data) {
+        checkNull(data);
+        checkNull( data.get("courierName"), data.get("courierPhone"), data.get("courierAddress"));
+        long userId = appSocket.getWsidBean().getUserId();
+        User user = userCacheService.getUserInfoById(userId);
+        if (user == null) {
+            throwExp("用户信息异常");
+        }
+        data.put("userId",userId);
+        userService.updateUserCourierInfo(userId,data.getString("courierName"),data.getString("courierPhone"),data.getString("courierAddress"));
+        return data;
+    }
 
     @ServiceMethod(code = "058", description = "获取抽奖详情")
     public Object prize(AppSocket appSocket, Command command, JSONObject data) {
@@ -796,4 +814,63 @@ public class GameBaseService extends BaseService {
         return async();
     }
 
+
+    @ServiceMethod(code = "060", description = "获取店长道具信息")
+    public Object getShopManagerProductInfo(AppSocket appSocket, Command command, JSONObject data) {
+        return JSONArray.parseArray( serverConfigService.getString(Config.APP_SHOP_MANAGER));
+    }
+
+    @ServiceMethod(code = "061", description = "获取手册信息")
+    public Object getHandBookInfo(AppSocket appSocket, Command command, JSONObject data) {
+        checkNull(data.get("type"),data.get("lv"));
+        Long userId = appSocket.getWsidBean().getUserId();
+        data.put("userId", userId);
+        Executer.request(TargetSocketType.manager, CommandBuilder.builder().request("100061", data).build(),
+                new RequestManagerListener(command));
+        return async();
+    }
+
+    @ServiceMethod(code = "062", description = "开通手册")
+    public Object buyHandBook(AppSocket appSocket, Command command, JSONObject data) {
+        checkNull(data.get("type"),data.get("lv"));
+        Long userId = appSocket.getWsidBean().getUserId();
+        data.put("userId", userId);
+        Executer.request(TargetSocketType.manager, CommandBuilder.builder().request("100062", data).build(),
+                new RequestManagerListener(command));
+        return async();
+    }
+
+    @ServiceMethod(code = "063", description = "领取手册奖励")
+    public Object receiveHandBookReward(AppSocket appSocket, Command command, JSONObject data) {
+        checkNull(data.get("type"));
+        Long userId = appSocket.getWsidBean().getUserId();
+        data.put("userId", userId);
+        Executer.request(TargetSocketType.manager, CommandBuilder.builder().request("100063", data).build(),
+                new RequestManagerListener(command));
+        return async();
+    }
+
+    @ServiceMethod(code = "064", description = "查看提货详情")
+    public Object lookPickGoodInfo(AppSocket appSocket, Command command, JSONObject data) {
+        Long userId = appSocket.getWsidBean().getUserId();
+        List<UserPickGoods> byUserId = userPickGoodsService.findByUserId(userId);
+        return byUserId;
+    }
+
+    @ServiceMethod(code = "065", description = "提货")
+    public Object pickGood(AppSocket appSocket, Command command, JSONObject data) {
+        checkNull(data.get("id"));
+        Long id = data.getLongValue("id");
+        Long userId = appSocket.getWsidBean().getUserId();
+        User user = userCacheService.getUserInfoById(userId);
+        if (user.getCourierName()==null || user.getCourierPhone()==null || user.getCourierAddress()==null){
+            throwExp("请补充收货信息后再进行提货。");
+        }
+        UserPickGoods byId = userPickGoodsService.findById(id);
+        if (byId==null || !Objects.equals(byId.getUserId(), userId)){
+            throwExp("提货失败");
+        }
+        userPickGoodsService.pickGoods(id,user.getCourierName(),user.getCourierPhone(),user.getCourierAddress());
+        return new JSONObject();
+    }
 }

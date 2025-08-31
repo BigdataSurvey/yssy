@@ -21,7 +21,7 @@ public class UserMineService extends DaoService {
     }
 
     @Transactional
-    public UserMine addUserMine(Long userId,Long mineId,int days,int index,int oneReward) {
+    public UserMine addUserMine(Long userId,Long mineId,int days,int index,double oneReward) {
         UserMine userMine = new UserMine();
         userMine.setUserId(userId);
         userMine.setMineId(mineId);

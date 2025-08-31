@@ -11,7 +11,7 @@ import com.live.app.ws.util.CommandBuilder;
 import com.live.app.ws.util.Executer;
 import com.live.app.ws.util.Push;
 import com.zywl.app.base.bean.*;
-import com.zywl.app.base.bean.hongbao.DicPrize;
+import com.zywl.app.base.bean.hongbao.DicPrizeCard;
 import com.zywl.app.base.bean.jingang.BellRecord;
 import com.zywl.app.base.bean.shoop.ShopManager;
 import com.zywl.app.base.bean.vo.SendGiftRecordVo;
@@ -84,7 +84,7 @@ public class ServerUserRoleService extends BaseService {
     private KongKimBellService  kongKimBellService;
 
     @Autowired
-    private DicPrizeService dicPrizeService;
+    private DicPrizeCardService dicPrizeService;
 
     @Autowired
     private ShopManagerService shopManagerService;
@@ -485,7 +485,7 @@ public class ServerUserRoleService extends BaseService {
             int oneHourCostHp = dicRole.getCost();
             if (userRole.getHp() < oneHourCostHp * hour) {
                 //剩余体力不够
-                hour = userRole.getHp() / oneHourCostHp;
+                hour = (long) (userRole.getHp() / oneHourCostHp);
             }
             //实际消耗体力
             if (hour >= 1) {
@@ -828,10 +828,9 @@ public class ServerUserRoleService extends BaseService {
     @ServiceMethod(code = "023", description = "查询奖品")
     public Object buyJiangPing(final AppSocket appSocket, Command appCommand, JSONObject params) {
         checkNull(params);
-        Long userId = appSocket.getWsidBean().getUserId();
-        DicPrize dicPrize = dicPrizeService.findByUserId(userId);
+        List<DicPrizeCard> allPrize = dicPrizeService.findAllPrize();
         JSONObject result = new JSONObject();
-        result.put("dicPrize", dicPrize);
+        result.put("prizeInfo", allPrize);
         return result;
     }
 

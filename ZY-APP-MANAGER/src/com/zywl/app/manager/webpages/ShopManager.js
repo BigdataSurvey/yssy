@@ -6,7 +6,7 @@ if(!window.CtrlFn_${menuId}){
         let dataMap = {};
         let baseTable = null;
 
-        let statusDic = {'-1':'全部', '0':'未审核', '1': '通过', '2': '拒绝'};
+        let statusDic = {'-1':'全部', '0':'拒绝', '1': '通过', '2': '未审核'};
         let statusColorDic = {'0': 'text-gray', '1': 'text-success', '2': 'text-danger'};
         /*初始化表格*/
         function initTable() {
@@ -29,7 +29,7 @@ if(!window.CtrlFn_${menuId}){
                             return '<span class="' + statusColorDic[data] + '">' + (statusDic[data] || '-') + '</span>';
                         }},
                     {data: "id", title: '操作', width: '160px', render: function(data, type, row, setting) {
-                        if(row.status != "0") {
+                        if(row.status != "2") {
                             return null;
                         }
                         var _opearHtml = '<button class="btn waves-effect waves-light btn-primary btn-sm mr-2" ng-click="${menuId}.updateRow(\'' + row.id + '\',1)"><i class="ti-slice"></i>通过</button>'

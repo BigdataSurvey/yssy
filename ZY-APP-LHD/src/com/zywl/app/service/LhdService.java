@@ -32,6 +32,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import javax.annotation.PostConstruct;
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -92,6 +93,8 @@ public class LhdService extends BaseService {
 
     public static int CAPITAL_TYPE;
 
+    //小倩信物比例
+    public static BigDecimal xqXwRate;
 
     public static int PERIODS_NUM;
 
@@ -189,6 +192,15 @@ public class LhdService extends BaseService {
         BOT_MONEY.add(new BigDecimal("29"));
         initKillRate();
         initRealMoney();
+        initXqXwRate();
+    }
+
+    public void initXqXwRate(){
+        Config config = configService.getConfigByKey(Config.XQ_XW_RATE);
+        if (config != null) {
+            String value = config.getValue();
+            xqXwRate = new BigDecimal(value);
+        }
     }
 
     public void initRealMoney(){
@@ -744,25 +756,41 @@ public class LhdService extends BaseService {
             map.put("isWin", BigDecimal.ONE);
             settleInfo.put(uid, map);
         }
+        BigDecimal loseMoney = ALL_PRIZE.subtract(allWinAmount);
         for (String uid : loseMap.keySet()) {
-            userDtsAmountService.addDtsAmount(Long.valueOf(uid), ROOM_LIST.get(loseRoom).get(uid).getBigDecimal("betAmount").multiply(new BigDecimal("0.05")));
-            userYyScoreService.addYyScore(Long.valueOf(uid), ROOM_LIST.get(loseRoom).get(uid).getBigDecimal("betAmount").multiply(new BigDecimal("0.1")));
+            JSONObject o = new JSONObject();
+            BigDecimal myBetAmount = ROOM_LIST.get(loseRoom).get(uid).getBigDecimal("betAmount");
+            //投入的百分之4 除比例
+            BigDecimal allXw = myBetAmount.multiply(new BigDecimal("0.04")).divide(xqXwRate, 4, RoundingMode.DOWN);
+            userDtsAmountService.addDtsAmount(Long.valueOf(uid), myBetAmount.multiply(new BigDecimal("0.05")));
+            userYyScoreService.addYyScore(Long.valueOf(uid), myBetAmount.multiply(new BigDecimal("0.1")));
             JSONObject record = new JSONObject();
             record.put("winAmount", 0);
             record.put("lotteryResult", result);
             record.put("betInfo", loseRoom);
             record.put("winOrLose", 0);
+            o.put("amount", BigDecimal.ZERO);
+            o.put("capitalType", UserCapitalTypeEnum.yyb.getValue());
+            o.put("orderNo", userOrders.get(uid).getOrderNo());
+            o.put("em", LogCapitalTypeEnum.game_bet_win_nh.getValue());
+            o.put("getFz",allXw);
+            o.put("getJp",allXw);
+            if (!BOT_USER.containsKey(uid)) {
+                data.put(uid, o);
+            }
             updateRecord.put(userOrders.get(uid).getOrderNo(), record);
             Map<String, BigDecimal> map = new HashMap<>();
             map.put("winAmount", BigDecimal.ZERO);
-            map.put("betAmount", ROOM_LIST.get(loseRoom).get(uid).getBigDecimal("betAmount"));
+            map.put("betAmount", myBetAmount);
             map.put("roomResult", BigDecimal.ZERO);
             map.put("isWin", BigDecimal.ZERO);
+            map.put("getFz",allXw);
+            map.put("getJp",allXw);
             settleInfo.put(uid, map);
         }
         ROOM_MONEY.clear();
         gameLotteryResultService.drawLottery(5L, String.valueOf(PERIODS_NUM == 0 ? 1 : PERIODS_NUM),
-                String.valueOf(result), ALL_PRIZE, allWinAmount, ALL_PRIZE.subtract(allWinAmount), BET_USERS.size(), winMap.size(), loseMap.size());
+                String.valueOf(result), ALL_PRIZE, allWinAmount, loseMoney, BET_USERS.size(), winMap.size(), loseMap.size());
         logger.info("期号："+PERIODS_NUM+",LIST:"+ROOM_LIST);
         requestMangerService.requestManagerBet(data, new Listener() {
             public void handle(BaseClientSocket clientSocket, Command command) {

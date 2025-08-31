@@ -1,8 +1,10 @@
 package com.zywl.app.manager.service;
 
+import com.alibaba.fastjson2.JSONArray;
 import com.alibaba.fastjson2.JSONObject;
 import com.zywl.app.base.bean.*;
-import com.zywl.app.base.bean.hongbao.DicPrize;
+import com.zywl.app.base.bean.hongbao.DicPrizeCard;
+import com.zywl.app.base.bean.hongbao.RedPosition;
 import com.zywl.app.base.bean.shoop.ShopManager;
 import com.zywl.app.base.service.BaseService;
 import com.zywl.app.base.util.DateUtil;
@@ -19,6 +21,7 @@ import org.springframework.stereotype.Service;
 
 import javax.annotation.PostConstruct;
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.DayOfWeek;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
@@ -45,7 +48,7 @@ public class TaskService extends BaseService {
     private GameCacheService gameCacheService;
 
     @Autowired
-    private DicPrizeService dicPrizeService;
+    private DicPrizeCardService dicPrizeService;
 
     @Autowired
     private UserCacheService userCacheService;
@@ -92,6 +95,9 @@ public class TaskService extends BaseService {
     private TsgPayOrderCheckService tsgPayOrderCheckService;
 
     @Autowired
+    private AdminMailService adminMailService;
+
+    @Autowired
     private PlayGameService gameService;
 
     public static double ALL_JUNIOR_NUM = 0;
@@ -100,12 +106,32 @@ public class TaskService extends BaseService {
 
     public static Map<String, Integer> USER_JUNIOR_NUM = new ConcurrentHashMap<>();
 
-    public static Map<String, DicPrize>  DIC_PRIZE = new ConcurrentHashMap<>();
-    private final ConcurrentHashMap<DayOfWeek, Integer>  DIC_PRICE_MAP = new ConcurrentHashMap<>();
+    public static Map<String, DicPrizeCard> DIC_PRIZE = new ConcurrentHashMap<>();
+    private final ConcurrentHashMap<DayOfWeek, Integer> DIC_PRICE_MAP = new ConcurrentHashMap<>();
     @Autowired
     private UserAchievementService userAchievementService;
     @Autowired
     private PlayGameService playGameService;
+
+    //店长每日奖励
+    public void shopManagerReward(Long userId) {
+        //添加余额资产  改为发邮件
+        JSONArray userIdArr = new JSONArray();
+        User user = userCacheService.getUserInfoById(userId);
+        userIdArr.add(user.getUserNo());
+        JSONObject params = new JSONObject();
+        params.put("userArr", userIdArr);
+        params.put("title", "店长每日奖励");
+        params.put("context", "店长每日奖励发放");
+        params.put("mailType", 1);
+        JSONArray itemArr = new JSONArray();
+        JSONObject itemInfo = new JSONObject();
+        itemInfo.put("itemId", 53);
+        itemInfo.put("itemNum", 66);
+        itemArr.add(itemInfo);
+        params.put("itemArr", itemArr);
+        adminMailService.sendMail(null, params, null);
+    }
 
 
     @PostConstruct
@@ -117,28 +143,36 @@ public class TaskService extends BaseService {
         adminSocketService.initWfsbNumber();
         initPrizePool();
 
-
         new Timer("每周日24点重置奖品").schedule(new TimerTask() {
             @Override
             public void run() {
-                try{
-                    if(!gameCacheService.hasPrizeKey()){
-                        //新的一周
-                        Arrays.stream(DayOfWeek.values())
-                                .forEach(day -> DIC_PRICE_MAP.put(day, 0));
-                        //处理数据
-                        playGameService.updateUserPrize();
-                         for(String key: DIC_PRIZE.keySet()){
-                             DIC_PRIZE.compute(key, (k, prizeNum) -> prizeNum);
-                         }
-                        //redis 存数据
+                try {
+                    if (!gameCacheService.hasPrizeKey()) {
+                        //新的一周 处理数据
+                        dicPrizeService.initPrize();
+                        playGameService.initPrize();
                         gameCacheService.setPrizeKey();
                     }
-                }catch (Exception e){
+                } catch (Exception e) {
                     e.printStackTrace();
                 }
             }
-        },DateUtil.getActivityNeed(),1000L * 60 * 60 * 24);
+        }, DateUtil.getActivityNeed(), 1000L * 60 * 60 * 24);
+
+
+        new Timer("每晚给店长赠送66个金刚铃").schedule(new TimerTask() {
+            @Override
+            public void run() {
+                try {
+                    List<ShopManager> allShopManager = shopManagerService.findAllShopManager();
+                    for (ShopManager shopManager : allShopManager) {
+                        shopManagerReward(shopManager.getUserId());
+                    }
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+        }, DateUtil.getActivityNeed(), 1000L * 60 * 60 * 24);
 
         new Timer("排行榜数据更新,后台数据更新").schedule(new TimerTask() {
             public void run() {
@@ -163,7 +197,7 @@ public class TaskService extends BaseService {
                     e.printStackTrace();
                 }
             }
-        }, 1000, 60000 );
+        }, 1000, 60000);
 
 
         new Timer("每晚0点执行店长推送金刚铃价格增值币66").schedule(new TimerTask() {
@@ -176,7 +210,6 @@ public class TaskService extends BaseService {
                 }
             }
         }, DateUtil.getActivityNeed(), 1000 * 60 * 60 * 24);
-
 
 
         new Timer("计算奖池信息").schedule(new TimerTask() {
@@ -227,8 +260,8 @@ public class TaskService extends BaseService {
                     Activity activityByTime = activityService.findActivityByTime();
                     Activity lastActive = activityService.findById(activityByTime.getId() - 1);
                     long activeTime = activityByTime.getBeginTime().getTime();
-                    logger.info("本期活动开启时间"+activeTime);
-                    if ((System.currentTimeMillis() - activeTime)/1000 <10 ){
+                    logger.info("本期活动开启时间" + activeTime);
+                    if ((System.currentTimeMillis() - activeTime) / 1000 < 10) {
                         //本期活动刚开启还不到10秒  证明上一期刚结束
                         List<JSONObject> lastActiveTopList = gameCacheService.getLastActiveTopList(lastActive);
                         for (JSONObject info : lastActiveTopList) {
@@ -242,7 +275,7 @@ public class TaskService extends BaseService {
                                 String orderNo = OrderUtil.getOrder5Number();
                                 BigDecimal current = remaining.min(chunk);
                                 cashRecordService.addCashOrder(user.getOpenId(), userId, user.getUserNo(), user.getName(), user.getRealName(), orderNo,
-                                        current, 2, user.getPhone(),isAutoPay);
+                                        current, 2, user.getPhone(), isAutoPay);
                                 System.out.println("取出: " + current);
                                 remaining = remaining.subtract(current);
 
@@ -253,8 +286,8 @@ public class TaskService extends BaseService {
                     Activity activityByTime2 = activityService2.findActivity2ByTime();
                     Activity lastActive2 = activityService2.findById(activityByTime2.getId() - 1);
                     long activeTime2 = activityByTime2.getBeginTime().getTime();
-                    logger.info("本期活动2开启时间"+activeTime2);
-                    if ((System.currentTimeMillis() - activeTime2)/1000 <10 ){
+                    logger.info("本期活动2开启时间" + activeTime2);
+                    if ((System.currentTimeMillis() - activeTime2) / 1000 < 10) {
                         //本期活动刚开启还不到10秒  证明上一期刚结束
                         List<JSONObject> lastActiveTopList = gameCacheService.getLastActiveTopList2(lastActive2);
                         for (JSONObject info : lastActiveTopList) {
@@ -267,9 +300,9 @@ public class TaskService extends BaseService {
                             while (remaining.compareTo(BigDecimal.ZERO) > 0) {
                                 String orderNo = OrderUtil.getOrder5Number();
                                 BigDecimal current = remaining.min(chunk);
-                                if (current.compareTo(BigDecimal.ZERO)>0){
+                                if (current.compareTo(BigDecimal.ZERO) > 0) {
                                     cashRecordService.addCashOrder(user.getOpenId(), userId, user.getUserNo(), user.getName(), user.getRealName(), orderNo,
-                                            current, 2, user.getPhone(),isAutoPay);
+                                            current, 2, user.getPhone(), isAutoPay);
                                 }
                                 System.out.println("取出: " + current);
                                 remaining = remaining.subtract(current);
@@ -293,8 +326,8 @@ public class TaskService extends BaseService {
                     Activity activity3ByTime = activity3Service.findActivity3ByTime();
                     Activity activity = activity3Service.findById(activity3ByTime.getId() - 1);
                     long activeTime2 = activity3ByTime.getBeginTime().getTime();
-                    logger.info("本期活动3开启时间"+activeTime2);
-                    if ((System.currentTimeMillis() - activeTime2)/1000 <10 ){
+                    logger.info("本期活动3开启时间" + activeTime2);
+                    if ((System.currentTimeMillis() - activeTime2) / 1000 < 10) {
                         //本期活动刚开启还不到10秒  证明上一期刚结束
                         List<JSONObject> lastActiveTopList = gameCacheService.getLastActiveTopList3(activity);
                         for (JSONObject info : lastActiveTopList) {
@@ -308,7 +341,7 @@ public class TaskService extends BaseService {
                                 String orderNo = OrderUtil.getOrder5Number();
                                 BigDecimal current = remaining.min(chunk);
                                 cashRecordService.addCashOrder(user.getOpenId(), userId, user.getUserNo(), user.getName(), user.getRealName(), orderNo,
-                                        current, 2, user.getPhone(),isAutoPay);
+                                        current, 2, user.getPhone(), isAutoPay);
                                 System.out.println("取出: " + current);
                                 remaining = remaining.subtract(current);
 
@@ -343,7 +376,6 @@ public class TaskService extends BaseService {
             USER_RECEIVE_PRIZE_MAP.put(userStatistic.getUserId().toString(), canReceive);
         }
     }
-
 
 
     public void dzTask() {

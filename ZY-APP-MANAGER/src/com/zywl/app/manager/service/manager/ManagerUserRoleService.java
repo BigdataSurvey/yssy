@@ -3,7 +3,7 @@ package com.zywl.app.manager.service.manager;
 import com.alibaba.fastjson2.JSONArray;
 import com.alibaba.fastjson2.JSONObject;
 import com.zywl.app.base.bean.*;
-import com.zywl.app.base.bean.hongbao.DicPrize;
+import com.zywl.app.base.bean.hongbao.DicPrizeCard;
 import com.zywl.app.base.bean.jingang.BellRecord;
 import com.zywl.app.base.bean.shoop.ShopManager;
 import com.zywl.app.base.service.BaseService;
@@ -61,7 +61,7 @@ public class ManagerUserRoleService extends BaseService {
     private GameCacheService gameCacheService;
 
     @Autowired
-    private DicPrizeService  dicPrizeService;
+    private DicPrizeCardService  dicPrizeCardService;
 
     @Autowired
     private ShopManagerService shopManagerService;
@@ -79,14 +79,18 @@ public class ManagerUserRoleService extends BaseService {
     @KafkaProducer(topic = KafkaTopicContext.RED_POINT, event = KafkaEventContext.ADD_HP, sendParams = true)
     public  JSONObject addHp(ManagerSocketServer adminSocketServer,  JSONObject data) {
         checkNull(data);
-        checkNull(data.get("userId"),data.get("userRoleId"),data.get("number"));
+        checkNull(data.get("userId"),data.get("userRoleId"),data.get("number"),data.get("itemId"));
         Long userId = data.getLong("userId");
         synchronized (LockUtil.getlock(userId)){
             Long userRoleId = data.getLong("userRoleId");
             int number = data.getIntValue("number");
-            gameService.checkUserItemNumber(userId,"5",number);
-            int oneItemAddHp = managerConfigService.getInteger(Config.ADD_HP_WFSB);
-            int allHp = oneItemAddHp*number;
+            String itemId = data.getString("itemId");
+            if (!itemId.equals("50") && !itemId.equals("51") && !itemId.equals("52")  ){
+                throwExp("道具id有误");
+            }
+            gameService.checkUserItemNumber(userId,itemId,number);
+            double oneItemAddHp = managerConfigService.getDouble(Config.ADD_HP_WFSB);
+            double allHp = oneItemAddHp*number;
             UserRole userRole = userRoleService.findByUserIdAndRoleId(userId,userRoleId);
             if (userRole==null){
                 throwExp("未查询到角色信息");
@@ -97,7 +101,7 @@ public class ManagerUserRoleService extends BaseService {
             if (userRole.getEndTime().getTime()<System.currentTimeMillis()){
                 throwExp("角色已到期，请重新激活礼包");
             }
-            gameService.updateUserBackpack(userId,"5",-number, LogUserBackpackTypeEnum.addHp);
+            gameService.updateUserBackpack(userId,itemId,-number, LogUserBackpackTypeEnum.addHp);
             if (userRole.getHp()==0){
                 userRole.setLastReceiveTime(new Date());
             }
@@ -269,8 +273,11 @@ public class ManagerUserRoleService extends BaseService {
         synchronized (LockUtil.getlock(userId)){
             String url = data.getString("url");
             ShopManager userEntity = shopManagerService.findByUserId(userId);
-            if (userEntity!=null){
-                throwExp("申请成为店长,请耐心等待审核！");
+            if (userEntity!=null && userEntity.getStatus()==2){
+                throwExp("已申请成为店长,请耐心等待审核！");
+            }
+            if (userEntity!=null && userEntity.getStatus()==1){
+                throwExp("已经是店长啦，无需重复申请");
             }
             BigDecimal price = managerConfigService.getBigDecimal(Config.SHOP_MANAGER);
             //获取账户余额
@@ -324,15 +331,22 @@ public class ManagerUserRoleService extends BaseService {
     }
 
 
-    LinkedList <Long> desk;
+
+
+
 
     @Transactional
     @ServiceMethod(code = "008", description = "翻拍游戏")
     public  JSONObject buyFanPai(ManagerSocketServer adminSocketServer,  JSONObject data) {
         checkNull(data.get("userId"));
-        Long id = data.getLongValue("id");
         Long userId = data.getLong("userId");
         int number = data.getInteger("number");
+        if (number!=1 && number!=12){
+            throwExp("参数异常");
+        }
+        if (PlayGameService.PRIZE_IDS.size()<number){
+            throwExp("奖池奖品数量不足");
+        }
         //游园卷兑换比例
         BigDecimal price = managerConfigService.getBigDecimal(Config.YYB_CONVERT_RATE);
         //判断余额够不够
@@ -340,18 +354,17 @@ public class ManagerUserRoleService extends BaseService {
         //扣除金额
         userCapitalService.subFanPai(price.multiply(BigDecimal.valueOf(number)), userId, null, null);
         JSONObject object = new JSONObject();
-        Collections.shuffle(desk);
-        List<DicPrize> prizeList = new ArrayList<>();
+        List<DicPrizeCard> prizeList = new ArrayList<>();
         for (int i = 0; i < number; i++) {
-          Long num = desk.remove(0);
+          Long num = PlayGameService.PRIZE_IDS.remove(0);
           prizeList.add(PlayGameService.DIC_PRIZE.get(num.toString()));
             //更改数据库的当前数量
-            dicPrizeService.updatePrizeTotal(id);
+            dicPrizeCardService.updatePrizeTotal(num);
             //获取完奖品id之后  要扣除奖池数量
             PlayGameService.DIC_PRIZE.get(num.toString()).setNumTotal(PlayGameService.DIC_PRIZE.get(num.toString()).getNumTotal()-1);
         }
         BigDecimal priceNum =  BigDecimal.ZERO;
-        for (DicPrize prize : prizeList) {
+        for (DicPrizeCard prize : prizeList) {
             priceNum=priceNum.add(prize.getType());
         }
         userCapitalService.addUseeBalancePrize(priceNum,userId,null,null,UserCapitalTypeEnum.yyb.getValue());

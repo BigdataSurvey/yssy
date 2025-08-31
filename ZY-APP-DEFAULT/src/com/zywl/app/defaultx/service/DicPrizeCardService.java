@@ -1,6 +1,6 @@
 package com.zywl.app.defaultx.service;
 
-import com.zywl.app.base.bean.hongbao.DicPrize;
+import com.zywl.app.base.bean.hongbao.DicPrizeCard;
 import com.zywl.app.defaultx.dbutil.DaoService;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -11,19 +11,19 @@ import java.util.List;
 import java.util.Map;
 
 @Service
-public class DicPrizeService extends DaoService {
+public class DicPrizeCardService extends DaoService {
 
-	public DicPrizeService() {
-		super("DicPrizeMapper");
+	public DicPrizeCardService() {
+		super("DicPrizeCardMapper");
 		// TODO Auto-generated constructor stub
 	}
 
 
 
-	private static final Log logger = LogFactory.getLog(DicPrizeService.class);
+	private static final Log logger = LogFactory.getLog(DicPrizeCardService.class);
 
 	
-	public List<DicPrize> findAllPrize() {
+	public List<DicPrizeCard> findAllPrize() {
 		return findAll();
 	}
 
@@ -38,9 +38,13 @@ public class DicPrizeService extends DaoService {
 		execute("updatePrizeTotal",map);
 	}
 
-	public DicPrize findByUserId(Long userId) {
+	public DicPrizeCard findByUserId(Long userId) {
 		Map<String, Object> params = new HashMap<>();
 		params.put("userId", userId);
-		return (DicPrize) findOne("findByUserId", params);
+		return (DicPrizeCard) findOne("findByUserId", params);
+	}
+
+	public void initPrize(){
+		execute("initPrize",null);
 	}
 }

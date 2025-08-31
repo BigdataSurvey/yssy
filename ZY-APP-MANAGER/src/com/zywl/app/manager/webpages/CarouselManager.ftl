@@ -9,7 +9,7 @@
             <div class="row align-items-center">
                 <div class="col-md-8">
                     <div class="page-header-title">
-                        <h5 class="m-b-10">轮播图管理</h5>
+                        <h5 class="m-b-10">店长道具管理</h5>
                         <!--<p class="m-b-0">Welcome to Material Able</p>-->
                     </div>
                 </div>
@@ -17,7 +17,7 @@
                     <ul class="breadcrumb">
                         <li class="breadcrumb-item"> <a href="javascript:;"><i class="fa fa-home"></i> </a> </li>
                         <li class="breadcrumb-item"><a href="javascript:;">系统管理</a> </li>
-                        <li class="breadcrumb-item"><a href="javascript:;">轮播图管理</a> </li>
+                        <li class="breadcrumb-item"><a href="javascript:;">店长道具管理</a> </li>
                     </ul>
                 </div>
             </div>
@@ -32,7 +32,7 @@
                 <div class="page-body">
                     <div class="card">
                         <div class="card-header">
-                            <h5>轮播图管理</h5>
+                            <h5>店长道具管理</h5>
                             <div class="card-header-right"> 
                                 <ul class="list-unstyled">
                                     <li class="d-inline"><i class="fa fa-plus" ng-click="${menuId}.createRow()"></i></li> 
@@ -73,6 +73,23 @@
                                         <span class="input-group-text">标题：</span>
                                     </div>
                                     <input type="text" class="form-control" placeholder="标题" name="title">
+                                </div>
+                            </div>
+                            <div class="col-md-12">
+                                <div class="input-group input-group-danger">
+                                    <div class="input-group-prepend col-min-7-5">
+                                        <span class="input-group-text">描述：</span>
+                                    </div>
+                                    <input type="text" class="form-control" placeholder="描述" name="context">
+                                </div>
+                            </div>
+
+                            <div class="col-md-12">
+                                <div class="input-group input-group-danger">
+                                    <div class="input-group-prepend col-min-7-5">
+                                        <span class="input-group-text">价格：</span>
+                                    </div>
+                                    <input type="text" class="form-control" placeholder="价格" name="price">
                                 </div>
                             </div>
                             <div class="col-md-12">
