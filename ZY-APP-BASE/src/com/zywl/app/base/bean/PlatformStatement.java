@@ -108,6 +108,8 @@ public class PlatformStatement extends BaseBean {
 
     private BigDecimal subRedGame = BigDecimal.ZERO;
 
+    private BigDecimal subHandbook = BigDecimal.ZERO;
+
     private BigDecimal subRedZd = BigDecimal.ZERO;
 
     private BigDecimal addDtsRebate = BigDecimal.ZERO;
@@ -1152,5 +1154,13 @@ public class PlatformStatement extends BaseBean {
 
     public void setAddPit(BigDecimal addPit) {
         this.addPit = addPit;
+    }
+
+    public BigDecimal getSubHandbook() {
+        return subHandbook;
+    }
+
+    public void setSubHandbook(BigDecimal subHandbook) {
+        this.subHandbook = subHandbook;
     }
 }

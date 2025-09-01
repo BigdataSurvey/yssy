@@ -80,8 +80,8 @@ public class UserRoleService extends DaoService {
         params.put("userId",userId);
         return findList("findByUserId",params);
     }
-   public List<UserRole> findByUserRole(Long userId){
-        return findList("findByUserRole",userId);
+   public List<UserRole> findByUserRole(){
+        return findList("findByUserRole",null);
     }
 
     public UserRole findByIndex(Long userId,int index){

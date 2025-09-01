@@ -36,6 +36,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import javax.annotation.PostConstruct;
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -1244,6 +1245,12 @@ public class ManagerGameBaseService extends BaseService {
         if (rewards.size() > 0) {
             gameService.addReward(userId, rewards, LogCapitalTypeEnum.cave_prize_draw);
         }
+        Activity activity = gameCacheService.getActivity();
+        if (activity!=null){
+            if (activity.getAddPointEvent()==5){
+                gameCacheService.addPointMySelf(userId,10);
+            }
+        }
         result.put("rewardInfo", rewards);
         byUserId = userYyScoreService.findByUserId(userId);
         result.put("score", byUserId.getScore());
@@ -1262,7 +1269,12 @@ public class ManagerGameBaseService extends BaseService {
         int lv = params.getIntValue("lv");
         DicHandBook dicHandBook = getHandBook(type, lv);
         JSONObject result = new JSONObject();
-        Collection<DicHandBookReward> values = PlayGameService.DIC_HAND_BOOK_REWARD_MAP.get(dicHandBook.getId().toString()).values();
+        Collection<DicHandBookReward> values;
+        if (userHandbook!=null){
+            values = PlayGameService.DIC_HAND_BOOK_REWARD_MAP.get(userHandbook.getHandbookId().toString()).values();
+        }else {
+            values = PlayGameService.DIC_HAND_BOOK_REWARD_MAP.get(dicHandBook.getId().toString()).values();
+        }
         List<DicHandBookReward> list = new ArrayList<>(values);
         list.sort(Comparator.comparingInt(DicHandBookReward::getDayNum));
         result.put("handBookReward", list);
@@ -1305,16 +1317,49 @@ public class ManagerGameBaseService extends BaseService {
         int lv = params.getIntValue("lv");
         DicHandBook dicHandBook = getHandBook(type, lv);
         userHandbookService.addUserHandbook(userId, type, dicHandBook.getId());
+        Activity activity3 = gameCacheService.getActivity3();
+        User user = userCacheService.getUserInfoById(userId);
         if (type == 1) {
             String itemId = "57";
             gameService.checkUserItemNumber(userId, itemId, dicHandBook.getPrice());
             gameService.updateUserBackpack(userId, itemId, -dicHandBook.getPrice(), LogUserBackpackTypeEnum.use);
             userPickGoodsService.addPickGoods(userId, "定制笔", dicHandBook.getPrice());
+            if (activity3!=null){
+                if (activity3.getAddPointEvent()==6){
+                    double score = 0.0;
+                    if (lv==1){
+                        score = 1;
+                    } else if (lv==2) {
+                        score = 5;
+                    } else if (lv==3) {
+                        score=10;
+                    }else {
+                        score=20;
+                    }
+                    gameCacheService.addPointMySelf3(user.getParentId(),score);
+                }
+            }
+
         } else {
             //通宝
             checkBalance(userId, BigDecimal.valueOf(dicHandBook.getPrice()), UserCapitalTypeEnum.currency_2);
             userCapitalService.subUserBalanceByBuyHandbook(userId, BigDecimal.valueOf(dicHandBook.getPrice()), UserCapitalTypeEnum.currency_2.getValue());
             pushCapitalUpdate(userId, UserCapitalTypeEnum.currency_2.getValue());
+            if (activity3!=null){
+                if (activity3.getAddPointEvent()==6){
+                    double score = 0.0;
+                    if (lv==1){
+                        score = 2;
+                    } else if (lv==2) {
+                        score = 10;
+                    } else if (lv==3) {
+                        score=20;
+                    }else {
+                        score=40;
+                    }
+                    gameCacheService.addPointMySelf3(user.getParentId(),score);
+                }
+            }
         }
         JSONObject result = new JSONObject();
         return result;
@@ -1327,6 +1372,7 @@ public class ManagerGameBaseService extends BaseService {
         checkNull(params.get("userId"), params.get("type"));
         Long userId = params.getLong("userId");
         synchronized (LockUtil.getlock(userId)) {
+            User user = userCacheService.getUserInfoById(userId);
             int type = params.getIntValue("type");
             UserHandbook userHandbook = userHandbookService.findByUserIdAndHandbookType(userId, type);
             if (userHandbook == null) {
@@ -1342,10 +1388,34 @@ public class ManagerGameBaseService extends BaseService {
             JSONArray reward = PlayGameService.DIC_HAND_BOOK_REWARD_MAP.get(userHandbook.getHandbookId().toString()).get(String.valueOf(userHandbook.getDays() + 1)).getReward();
             userHandbook.setDays(userHandbook.getDays() + 1);
             userHandbookService.updateUserHandbook(userHandbook);
-            handBookRewardRecordService.addRecord(userId, userHandbook.getId(), userHandbook.getDays(), reward);
+            handBookRewardRecordService.addRecord(userId, userHandbook.getHandbookId(), userHandbook.getDays(), reward);
             gameService.addReward(userId, reward, LogCapitalTypeEnum.handbook_reward);
             JSONObject result = new JSONObject();
             result.put("rewardInfo", reward);
+            BigDecimal parentMoney = BigDecimal.ZERO;
+            if (userHandbook.getHandbookId()==1){
+                parentMoney = new BigDecimal("0.3");
+            } else if (userHandbook.getHandbookId()==2) {
+                parentMoney = new BigDecimal("1.5");
+            } else if (userHandbook.getHandbookId()==3) {
+                parentMoney = new BigDecimal("3");
+            } else if (userHandbook.getHandbookId()==4) {
+                parentMoney = new BigDecimal("6");
+            } else if (userHandbook.getHandbookId()==5) {
+                parentMoney = new BigDecimal("0.56");
+            }else if (userHandbook.getHandbookId()==6) {
+                parentMoney = new BigDecimal("2.8");
+            }else if (userHandbook.getHandbookId()==7) {
+                parentMoney = new BigDecimal("5.6");
+            }else if (userHandbook.getHandbookId()==8) {
+                parentMoney = new BigDecimal("11.2");
+            }
+            if (user.getParentId()!=null){
+                gameService.addParentGetAnima(userId,user.getParentId().toString(),parentMoney);
+            }
+            if (user.getGrandfaId()!=null){
+                gameService.addGrandfaGetAnima(userId,user.getGrandfaId().toString(),parentMoney.divide(new BigDecimal("4"),2, RoundingMode.DOWN));
+            }
             return result;
         }
     }

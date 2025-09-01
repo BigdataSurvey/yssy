@@ -382,10 +382,19 @@ public class GameCacheService extends RedisService {
                     rate = new BigDecimal("30");
                 }
                 BigDecimal amount = BigDecimal.valueOf(score).multiply(rate);
-                BigDecimal rewardAmount = getMoney3(rank, amount);
+                BigDecimal rewardAmount = getLastMoney(rank, amount);
                 jsonObject.put("rewardAmount", rewardAmount);
             }
         }
+
+        for (JSONObject jsonObject : list) {
+            Double score = jsonObject.getDouble("score");
+            long rank = jsonObject.getLong("rank");
+            BigDecimal nowScore = BigDecimal.ZERO;
+            BigDecimal rewardScore  = getLastScore(rank, nowScore);
+            jsonObject.put("rewardScore", rewardScore);
+        }
+
         String lastActiveKey = RedisKeyConstant.POINT_RANK_LIST_LAST;
         set(lastActiveKey, list, 86400 * 7);
         return list;
@@ -470,6 +479,15 @@ public class GameCacheService extends RedisService {
                 jsonObject.put("rewardAmount", rewardAmount);
             }
         }
+
+        for (JSONObject jsonObject : list) {
+            Double score = jsonObject.getDouble("score");
+            long rank = jsonObject.getLong("rank");
+            BigDecimal nowScore = BigDecimal.ZERO;
+            BigDecimal rewardScore  = getLastScore(rank, nowScore);
+            jsonObject.put("rewardScore", rewardScore);
+        }
+
         String lastActiveKey = RedisKeyConstant.POINT_RANK_LIST_LAST_2;
         set(lastActiveKey, list, 86400 * 7);
         return list;
@@ -555,6 +573,15 @@ public class GameCacheService extends RedisService {
                 jsonObject.put("rewardAmount", rewardAmount);
             }
         }
+
+        for (JSONObject jsonObject : list) {
+            Double score = jsonObject.getDouble("score");
+            long rank = jsonObject.getLong("rank");
+            BigDecimal nowScore = BigDecimal.ZERO;
+            BigDecimal rewardScore  = getLastScore(rank, nowScore);
+            jsonObject.put("rewardScore", rewardScore);
+        }
+
         String lastActiveKey = RedisKeyConstant.POINT_RANK_LIST_LAST_3;
         set(lastActiveKey, list, 86400 * 7);
         return list;
@@ -955,6 +982,18 @@ public class GameCacheService extends RedisService {
     public BigDecimal getLastMoney(long rank, BigDecimal amount) {
 
         String topMoney = activityService.findById( getActivity().getId()-1).getTopMoney();
+        String[] split = topMoney.split(",");
+        for (int i = 1; i <= split.length; i++) {
+            if (i == rank) {
+                amount = amount.add(new BigDecimal(split[i-1]));
+            }
+        }
+        return amount;
+    }
+
+    public BigDecimal getLastScore(long rank, BigDecimal amount) {
+
+        String topMoney = activityService.findById( getActivity().getId()-1).getTopScore();
         String[] split = topMoney.split(",");
         for (int i = 1; i <= split.length; i++) {
             if (i == rank) {

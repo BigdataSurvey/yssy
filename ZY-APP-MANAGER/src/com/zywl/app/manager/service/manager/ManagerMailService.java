@@ -177,11 +177,7 @@ public class ManagerMailService extends BaseService {
         checkNull(data.get("toUserId"), data.get("userId"));
         String itemId = data.getString("itemId");//道具id
         JSONArray array = new JSONArray();
-
-        //第一个是赠送的文房四宝
         JSONObject detail = new JSONObject();
-
-        //第二个是根据等级额外获得的信封道具
         long userId = data.getLongValue("userId");
         synchronized (LockUtil.getlock(userId)) {
             long toUserId = data.getLongValue("toUserId");
@@ -191,18 +187,12 @@ public class ManagerMailService extends BaseService {
             if (number < 0) {
                 throwExp("数值异常");
             }
-
-            //  String itemId = ItemIdEnum.WFSB.getValue();
             String useItemId = ItemIdEnum.XG.getValue();
-            String smallItemId = ItemIdEnum.XXF.getValue();
-            String bigItemId = ItemIdEnum.DXF.getValue();
             String title = data.getString("title");//赠送的好友
             User user = userCacheService.getUserInfoById(userId);
             gameService.checkUserItemNumber(userId, itemId, number);
             //根据userId查询出当前用户的vip等级
              UserVip uservip = userVipService.findRechargeAmountByUserId(userId);
-            //  UserVip toUservip = userVipService.findRechargeAmountByUserId(toUserId);
-            // if(uservip.getVipLevel()<4 ){
             if (itemId.equals(ItemIdEnum.WFSB.getValue())){
                 if (uservip.getVipLevel()<4){
                     //需要消耗一个信鸽
@@ -211,31 +201,6 @@ public class ManagerMailService extends BaseService {
                     gameService.updateUserBackpack(userId, useItemId, -number, LogUserBackpackTypeEnum.use);
                 }
             }
-            if(itemId.equals(ItemIdEnum.DUST.getValue())){
-                shopManagerSend(userId,toUserNo);
-            }
-            // }
-            /*if(uservip.getVipLevel()<4 && toUservip.getVipLevel() == 4){
-                //收件人将获得一个小信封
-                //修改该用户的道具
-                //gameService.updateUserBackpack(toUserId, smallItemId,number, LogUserBackpackTypeEnum.use);
-                JSONObject detail1 = new JSONObject();
-                detail1.put("type", 1);
-                detail1.put("id", smallItemId);
-                detail1.put("number", number);
-                detail1.put("channel", MailGoldTypeEnum.FRIEND.getValue());
-                detail1.put("fromUserId",user.getUserNo());
-                array.add(detail1);
-            }else if(uservip.getVipLevel()<4 && toUservip.getVipLevel() > 4){
-                //gameService.updateUserBackpack(toUserId, bigItemId,number, LogUserBackpackTypeEnum.use);
-                JSONObject detail1 = new JSONObject();
-                detail1.put("type", 1);
-                detail1.put("id", bigItemId);
-                detail1.put("number", number);
-                detail1.put("channel", MailGoldTypeEnum.FRIEND.getValue());
-                detail1.put("fromUserId",user.getUserNo());
-                array.add(detail1);
-            }*/
             if (title == null) {
                 title = "好友赠送";
             }

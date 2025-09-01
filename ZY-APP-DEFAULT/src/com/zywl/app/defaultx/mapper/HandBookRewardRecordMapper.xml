@@ -7,7 +7,7 @@
 		(
                `user_id`,
                `handbook_id`,
-               `dayNum`,
+               `day_num`,
                 `reward`,
              	`create_time`
 		)

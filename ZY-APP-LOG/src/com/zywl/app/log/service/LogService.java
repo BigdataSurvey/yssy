@@ -404,6 +404,8 @@ public class LogService extends BaseService {
             params.put("addPrize",amount);
         }else if (type == LogCapitalTypeEnum.sub_red_zd.getValue()){
             params.put("subRedZd",amount);
+        }else if (type == LogCapitalTypeEnum.buy_handbook.getValue()){
+            params.put("subHandbook",amount);
         }
         platformStatementService.updateStatement(params);
     }

@@ -43,10 +43,18 @@ public class TestServlet extends BaseServlet {
 		userService = SpringUtil.getService(UserService.class);
 		userCacheService = SpringUtil.getService(UserCacheService.class);
 		userStatisticService = SpringUtil.getService(UserStatisticService.class);
+		userRoleService = SpringUtil.getService(UserRoleService.class);
 	}
 	public Object doProcess(HttpServletRequest request, HttpServletResponse response, String ip) throws Exception {
-		List<UserRole> byUserRole = userRoleService.findByUserRole(1L);
+		List<UserRole> byUserRole = userRoleService.findByUserRole();
+		List<UserRole> needUpdate = new ArrayList<>();
 		for (UserRole userRole : byUserRole) {
+			if (userRole.getUnReceive().size()>0){
+				needUpdate.add(userRole);
+			}
+		}
+
+		for (UserRole userRole : needUpdate) {
 			for (Object o : userRole.getUnReceive()) {
 				JSONObject reward = (JSONObject) o;
 				Integer itemId = reward.getIntValue("id");
@@ -60,7 +68,7 @@ public class TestServlet extends BaseServlet {
 				}
 			}
 		}
-		userRoleService.batchUpdateUserRole(byUserRole);
+		userRoleService.batchUpdateUserRole(needUpdate);
 		return null;
 	}
 

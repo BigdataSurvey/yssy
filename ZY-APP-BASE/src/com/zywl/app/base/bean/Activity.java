@@ -25,6 +25,8 @@ public class Activity extends BaseBean {
 
     private String topMoney;
 
+    private String topScore;
+
     private int addPointEvent;
 
     private BigDecimal onePointMoney;
@@ -155,5 +157,13 @@ public class Activity extends BaseBean {
 
     public void setTopMoney(String topMoney) {
         this.topMoney = topMoney;
+    }
+
+    public String getTopScore() {
+        return topScore;
+    }
+
+    public void setTopScore(String topScore) {
+        this.topScore = topScore;
     }
 }

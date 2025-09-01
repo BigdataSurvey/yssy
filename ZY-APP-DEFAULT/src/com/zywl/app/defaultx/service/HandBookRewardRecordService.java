@@ -28,6 +28,7 @@ public class HandBookRewardRecordService extends DaoService{
 		record.setHandbookId(handbookId);
 		record.setDayNum(dayNum);
 		record.setReward(reward);
+		save(record);
 		return record.getId();
 	}
 	

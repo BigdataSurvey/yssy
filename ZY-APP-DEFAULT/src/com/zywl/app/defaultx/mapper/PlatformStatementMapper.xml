@@ -135,6 +135,8 @@
             <if test="subPit != null">`sub_pit` =sub_pit+ #{subPit},</if>
             <if test="addPit != null">`add_pit` =add_pit+ #{addPit},</if>
             <if test="subRedZd != null">`sub_red_zd` = sub_red_zd+ #{subRedZd},</if>
+            <if test="subHandbook != null">`sub_handbook` = sub_handbook+ #{subHandbook},</if>
+
         </set>
         where ymd = #{ymd}
     </update>

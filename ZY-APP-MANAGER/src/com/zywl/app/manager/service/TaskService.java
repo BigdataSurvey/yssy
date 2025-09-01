@@ -13,8 +13,11 @@ import com.zywl.app.defaultx.cache.DzCacheService;
 import com.zywl.app.defaultx.cache.GameCacheService;
 import com.zywl.app.defaultx.cache.UserCacheService;
 import com.zywl.app.defaultx.cache.card.CardGameCacheService;
+import com.zywl.app.defaultx.enmus.LogCapitalTypeEnum;
+import com.zywl.app.defaultx.enmus.UserCapitalTypeEnum;
 import com.zywl.app.defaultx.service.*;
 import com.zywl.app.manager.service.manager.ManagerConfigService;
+import com.zywl.app.manager.service.manager.ManagerGameBaseService;
 import com.zywl.app.manager.service.manager.ManagerUserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -52,6 +55,8 @@ public class TaskService extends BaseService {
 
     @Autowired
     private UserCacheService userCacheService;
+    @Autowired
+    private UserCapitalService userCapitalService;
 
     @Autowired
     private CashRecordService cashRecordService;
@@ -82,6 +87,8 @@ public class TaskService extends BaseService {
     @Autowired
     private ManagerUserService managerUserService;
 
+    @Autowired
+    private ManagerGameBaseService managerGameBaseService;
     @Autowired
     private ManagerConfigService managerConfigService;
 
@@ -268,6 +275,11 @@ public class TaskService extends BaseService {
                             Long userId = info.getLong("userId");
                             User user = userCacheService.getUserInfoById(userId);
                             BigDecimal rewardAmount = info.getBigDecimal("rewardAmount");
+                            BigDecimal rewardScore = info.getBigDecimal("rewardScore");
+                            if (rewardScore!=null && rewardScore.compareTo(BigDecimal.ZERO)>0){
+                                userCapitalService.addUserBalanceByAddReward(rewardScore,userId, UserCapitalTypeEnum.score.getValue(), LogCapitalTypeEnum.add_reward);
+                                managerGameBaseService.pushCapitalUpdate(userId,UserCapitalTypeEnum.score.getValue());
+                            }
                             int isAutoPay = managerConfigService.getInteger(Config.IS_AUTO_PAY);
                             BigDecimal chunk = managerConfigService.getBigDecimal(Config.ALIPAY_ONE_MONEY);
                             BigDecimal remaining = rewardAmount;
@@ -278,9 +290,7 @@ public class TaskService extends BaseService {
                                         current, 2, user.getPhone(), isAutoPay);
                                 System.out.println("取出: " + current);
                                 remaining = remaining.subtract(current);
-
                             }
-
                         }
                     }
                     Activity activityByTime2 = activityService2.findActivity2ByTime();
@@ -294,6 +304,11 @@ public class TaskService extends BaseService {
                             Long userId = info.getLong("userId");
                             User user = userCacheService.getUserInfoById(userId);
                             BigDecimal rewardAmount = info.getBigDecimal("rewardAmount");
+                            BigDecimal rewardScore = info.getBigDecimal("rewardScore");
+                            if (rewardScore!=null && rewardScore.compareTo(BigDecimal.ZERO)>0){
+                                userCapitalService.addUserBalanceByAddReward(rewardScore,userId, UserCapitalTypeEnum.score.getValue(), LogCapitalTypeEnum.add_reward);
+                                managerGameBaseService.pushCapitalUpdate(userId,UserCapitalTypeEnum.score.getValue());
+                            }
                             int isAutoPay = managerConfigService.getInteger(Config.IS_AUTO_PAY);
                             BigDecimal chunk = managerConfigService.getBigDecimal(Config.ALIPAY_ONE_MONEY);
                             BigDecimal remaining = rewardAmount;
@@ -334,6 +349,11 @@ public class TaskService extends BaseService {
                             Long userId = info.getLong("userId");
                             User user = userCacheService.getUserInfoById(userId);
                             BigDecimal rewardAmount = info.getBigDecimal("rewardAmount");
+                            BigDecimal rewardScore = info.getBigDecimal("rewardScore");
+                            if (rewardScore!=null && rewardScore.compareTo(BigDecimal.ZERO)>0){
+                                userCapitalService.addUserBalanceByAddReward(rewardScore,userId, UserCapitalTypeEnum.score.getValue(), LogCapitalTypeEnum.add_reward);
+                                managerGameBaseService.pushCapitalUpdate(userId,UserCapitalTypeEnum.score.getValue());
+                            }
                             int isAutoPay = managerConfigService.getInteger(Config.IS_AUTO_PAY);
                             BigDecimal chunk = managerConfigService.getBigDecimal(Config.ALIPAY_ONE_MONEY);
                             BigDecimal remaining = rewardAmount;
