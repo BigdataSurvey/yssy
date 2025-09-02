@@ -834,7 +834,7 @@ public class PlayGameService extends BaseService {
         Integer number = orderInfo.getIntValue("number");
         addRankCache(id, number,GameTypeEnum.nxq.getValue());
     }
-
+    @KafkaProducer(topic = KafkaTopicContext.RED_POINT, event = KafkaEventContext.DGS, sendParams = true)
     public void updateDgsData(String a,JSONObject orderInfo){
         String id = orderInfo.getString("userId");
         String orderNo = orderInfo.getString("orderNo");

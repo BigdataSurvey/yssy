@@ -337,13 +337,11 @@ public class ManagerUserRoleService extends BaseService {
 
     @Transactional
     @ServiceMethod(code = "008", description = "翻拍游戏")
+    @KafkaProducer(topic = KafkaTopicContext.RED_POINT,event = KafkaEventContext.QSHJ,sendParams = true)
     public  JSONObject buyFanPai(ManagerSocketServer adminSocketServer,  JSONObject data) {
         checkNull(data.get("userId"));
         Long userId = data.getLong("userId");
         int number = data.getInteger("number");
-        if (number!=1 && number!=12){
-            throwExp("参数异常");
-        }
         if (PlayGameService.PRIZE_IDS.size()<number){
             throwExp("奖池奖品数量不足");
         }
@@ -378,7 +376,7 @@ public class ManagerUserRoleService extends BaseService {
     @ServiceMethod(code = "009", description = "当前总数量")
     public  Object buyFanPaiToal(ManagerSocketServer adminSocketServer,  JSONObject data) {
         checkNull(data.get("userId"));
-        return PlayGameService.DIC_PRIZE;
+        return PlayGameService.DIC_PRIZE.values();
     }
 
 

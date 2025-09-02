@@ -800,7 +800,7 @@ public class ManagerUserService extends BaseService {
             if (user.getGrandfaId() != null) {
                 User grandfa = userCacheService.getUserInfoById(user.getGrandfaId());
                 if (grandfa != null) {
-                    BigDecimal grandfaAmount = amount.multiply(rate.divide(new BigDecimal("2")).setScale(2, RoundingMode.HALF_UP));
+                    BigDecimal grandfaAmount = amount.multiply(rate.divide(new BigDecimal("2")).setScale(2, RoundingMode.DOWN));
                     gameService.addGrandfaGetAnima(user.getId(), user.getGrandfaId().toString(), grandfaAmount);
                 }
             }

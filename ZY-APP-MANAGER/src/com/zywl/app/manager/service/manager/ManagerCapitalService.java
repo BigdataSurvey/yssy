@@ -444,7 +444,7 @@ public class ManagerCapitalService extends BaseService {
         for (Object o : betArray) {
             try {
                 JSONObject orderInfo = (JSONObject) o;
-                gameService.updateLhdData(null,orderInfo);
+                gameService.updateNXQData(null,orderInfo);
             } catch (Exception e) {
                 logger.error(e);
                 e.printStackTrace();

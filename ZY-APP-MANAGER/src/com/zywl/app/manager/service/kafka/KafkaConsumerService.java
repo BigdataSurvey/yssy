@@ -137,7 +137,7 @@ public class KafkaConsumerService extends BaseService {
             readMail(data);
         } else if (KafkaEventContext.ADD_HP.equals(eventType)) {
             //恢复一次体力
-            userAddHp(data);
+          //  userAddHp(data);
         }else if (KafkaEventContext.ADD_REWARD.equals(eventType)) {
             Long time = System.currentTimeMillis();
             //获取奖励时的红点判断
@@ -160,14 +160,18 @@ public class KafkaConsumerService extends BaseService {
         } else if (KafkaEventContext.DO_DAILY_TASK.equals(eventType)) {
             userReceiveDailyTask(data);
         }  else if (KafkaEventContext.SHOP_BUY.equals(eventType)) {
-            checkAchievement(data, AchievementGroupEnum.SHOP_BUY.getValue());
-            userBuyShop(data);
+            //checkAchievement(data, AchievementGroupEnum.SHOP_BUY.getValue());
+           // userBuyShop(data);
         } else if (KafkaEventContext.SYN.equals(eventType)) {
-            userSyn(data);
+         //   userSyn(data);
         }else if (KafkaEventContext.DTS.equals(eventType)) {
             userDts(data);
+        }else if (KafkaEventContext.QSHJ.equals(eventType)) {
+            userfK(data);
         }else if (KafkaEventContext.LHD.equals(eventType)) {
             userLHD(data);
+        }else if (KafkaEventContext.DGS.equals(eventType)) {
+            userDgs(data);
         }else if(KafkaEventContext.GREAT_NOVELS.equals(eventType)){
             userGreatNovels(data);
         }else if(KafkaEventContext.SEA_HUNT.equals(eventType)){
@@ -205,16 +209,16 @@ public class KafkaConsumerService extends BaseService {
 
     public void userBuyShop(JSONObject data) {
         Long userId = data.getLong("userId");
-        checkDailyTaskIsOk(userId, TaskIdEnum.SHOP_BUY_NUMBER.getValue());
+       // checkDailyTaskIsOk(userId, TaskIdEnum.SHOP_BUY_NUMBER.getValue());
     }
     public void userSyn(JSONObject data) {
         Long userId = data.getLong("userId");
-        checkDailyTaskIsOk(userId, TaskIdEnum.SYN.getValue());
+       // checkDailyTaskIsOk(userId, TaskIdEnum.SYN.getValue());
     }
 
     public void userAddHp(JSONObject data) {
         Long userId = data.getLong("userId");
-        checkDailyTaskIsOk(userId, TaskIdEnum.ADD_POWER.getValue());
+      //  checkDailyTaskIsOk(userId, TaskIdEnum.ADD_POWER.getValue());
     }
 
     public void userDts(JSONObject data) {
@@ -222,6 +226,10 @@ public class KafkaConsumerService extends BaseService {
         checkDailyTaskIsOk(userId, TaskIdEnum.DTS.getValue());
     }
 
+    public void userfK(JSONObject data) {
+        Long userId = data.getLong("userId");
+        checkDailyTaskIsOk(userId, TaskIdEnum.DTS.getValue());
+    }
 
     //TODO
     public void userGreatNovels(JSONObject data) {
@@ -238,6 +246,11 @@ public class KafkaConsumerService extends BaseService {
     public void userLHD(JSONObject data) {
         Long userId = data.getLong("userId");
         checkDailyTaskIsOk(userId, TaskIdEnum.LHD.getValue());
+    }
+
+    public void userDgs(JSONObject data) {
+        Long userId = data.getLong("userId");
+        checkDailyTaskIsOk(userId, TaskIdEnum.SHSG.getValue());
     }
 
     public void userRegist(JSONObject data) {

@@ -21,6 +21,8 @@ public class KafkaEventContext {
 
     public static final String SYN = "SYN";
 
+    public static final String QSHJ = "QSHJ";
+
     public static final String DTS = "DTS";
 
     public static final String GREAT_NOVELS = "GREAT_NOVELS";
@@ -31,6 +33,7 @@ public class KafkaEventContext {
     public static final String DGS = "DGS";
     public static final String NXQ = "NXQ";
 
+    public static final String SDMZ = "SDMZ";
     public static final String DAILY_TASK = "100";
 
 
