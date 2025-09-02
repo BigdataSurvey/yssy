@@ -522,7 +522,7 @@ public class DgsService extends BaseService {
                 /*map.put("winAmount", redPacketList.get(i).add(newList.get(i).getBetAmount()));*/
                 map.put("winAmount", 0);
                 map.put("betAmount", newList.get(i).getBetAmount());
-                map.put("isWin", BigDecimal.ZERO);
+                map.put("isWin", BigDecimal.ONE);
                 data.put("type", 1);
                 //manger用来更改资产
                /* data.put("amount", redPacketList.get(i).add(newList.get(i).getBetAmount()));
@@ -536,10 +536,11 @@ public class DgsService extends BaseService {
                 newList.get(i).setStatus(1);
                 map.put("winAmount", 0);
                 map.put("betAmount", newList.get(i).getBetAmount());
-                map.put("isWin", BigDecimal.ONE);
+                map.put("isWin", BigDecimal.ZERO);
                 data.put("orderNo",newList.get(i).getOrderNo());
                 data.put("type", 2);
                 data.put("userId", newList.get(i).getUserId());
+                data.put("monsterType", monsterType);
             }
             if (!BOT_USER.containsKey(String.valueOf(newList.get(i).getUserId()))){
                 jsonObject.put(String.valueOf(newList.get(i).getUserId()),data);

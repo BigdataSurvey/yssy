@@ -675,7 +675,15 @@ public class ManagerCapitalService extends BaseService {
                 map.put("capitalType", capitalType);
                 list.add(map);
             } else if(2==o.getIntValue("type")){
-                gameService.updateUserBackpack(o.getLong("userId"), "42", +1, LogUserBackpackTypeEnum.zs);
+                Integer monsterType = o.getIntValue("monsterType");
+                if(1==monsterType){
+                    gameService.updateUserBackpack(o.getLong("userId"), "42", +1, LogUserBackpackTypeEnum.zs);
+                }else if(10 ==  monsterType){
+                    gameService.updateUserBackpack(o.getLong("userId"), "42", +10, LogUserBackpackTypeEnum.zs);
+                }
+                else if(100 ==  monsterType){
+                    gameService.updateUserBackpack(o.getLong("userId"), "42", +100, LogUserBackpackTypeEnum.zs);
+                }
             }
         }
 

@@ -56,6 +56,7 @@ public class ManagerNxqGameService extends BaseService {
 
     private static final String JP = "47";
     private static final String FZ = "48";
+    private static final String XQDXW = "54";
     public static String key = DateUtil.getCurrent5();
 
     public static List<DicJackpot> dicNccList  = new ArrayList<>();
@@ -113,14 +114,14 @@ public class ManagerNxqGameService extends BaseService {
              * 2.投入信物需要查询当前玩家背包中是否足够投入当前数量
              * 3.如果足够直接插入
              */
-            double JPNumber = gameService.getUserItemNumber(userId, JP);
-            double FZNumber = gameService.getUserItemNumber(userId, FZ);
-            if(JPNumber < betAmount || FZNumber < betAmount){
-                throwExp("晶魄或者发簪数量不足");
+            /*double JPNumber = gameService.getUserItemNumber(userId, JP);
+            double FZNumber = gameService.getUserItemNumber(userId, FZ);*/
+            double XQDXWNumber = gameService.getUserItemNumber(userId, XQDXW);
+            if(XQDXWNumber < betAmount){
+                throwExp("小倩的信物数量不足");
             }
             long i  = investDetailService.addInvestDetail(userId, betAmount);
-            backpackService.subItemNumberByDts(userId, Long.valueOf(JP), betAmount);
-            backpackService.subItemNumberByDts(userId, Long.valueOf(FZ), betAmount);
+            backpackService.subItemNumberByDts(userId, Long.valueOf(XQDXW), betAmount);
             gameCacheService.addRankCache(String.valueOf(userId),betAmount,11);
             return i;
         }
