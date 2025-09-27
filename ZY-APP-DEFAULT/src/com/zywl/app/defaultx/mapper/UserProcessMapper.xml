@@ -1,44 +1,51 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
-<mapper namespace="com.zywl.app.defaultx.mapper.UserProcess">
+<mapper namespace="com.zywl.app.defaultx.mapper.UserProcessMapper">
 
-   <insert id="insert" parameterType="UserProcess" useGeneratedKeys="true" keyProperty="id" keyColumn="id">
-		insert into t_user_process
-		(
-               `user_id`,
-               `curr_process_number`,
-               `high_num`
-		)
-		values
-		(
-               #{userId},
-               #{currProcessNumber},
-               #{highNum}
-		)
-	</insert>
-	
-	<update id="update" parameterType="UserProcess">
-		update t_user_process
-		<set>
-		
-		<if test="currProcessNumber!=null">
-			curr_process_number = #{currProcessNumber},
-		</if>
-		<if test="highNum!=null">
-			high_num = #{highNum},
-		</if>
-		</set>
-		where  user_id= #{userId}
-	</update>
+    <insert id="insert" parameterType="UserProcess" useGeneratedKeys="true" keyProperty="id" keyColumn="id">
+        insert into t_user_process
+        (`user_id`,
+         `curr_process_number`,
+         `high_num`,
+         `activa_status`,
+         `updt_time`)
+        values (#{userId},
+                #{currProcessNumber},
+                #{highNum},
+                #{activaStatus},
+                #{updtTime})
+    </insert>
 
-	
-	
-	<select id="findAll" resultType="UserProcess">
-	    select * from t_user_process
-	</select>
+    <update id="update" parameterType="UserProcess">
+        update t_user_process
+        <set>
 
-	<select id="findByUserId" resultType="UserProcess">
-		select * from t_user_process where user_id = #{userId}
-	</select>
+            <if test="currProcessNumber!=null">
+                curr_process_number = #{currProcessNumber},
+            </if>
+            <if test="highNum!=null">
+                high_num = #{highNum},
+            </if>
+            <if test="activaStatus!=null">
+            activa_status = #{activaStatus},
+            </if>
+            <if test="updtTime!=null">
+                updt_time = #{updtTime},
+            </if>
+        </set>
+        where user_id= #{userId}
+    </update>
+
+
+    <select id="findUserCurrProcess" resultType="UserProcess">
+        select *
+        from t_user_process
+    </select>
+
+    <select id="findByUserId" resultType="UserProcess">
+        select *
+        from t_user_process
+        where user_id = #{userId}
+    </select>
 
 </mapper>

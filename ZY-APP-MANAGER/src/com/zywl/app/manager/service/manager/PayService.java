@@ -90,7 +90,7 @@ public class PayService {
     }
 
     public static void main(String[] args) {
-        makeUrl1("471Un250729174423680035338");
+        makeUrl("H6439727270");
     }
 
     public  String order(String name, String idCard) {

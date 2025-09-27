@@ -8,6 +8,9 @@
 	<select id="findAll" resultType="java.util.Map">
 	    select high_num as highNum, progress as progress from dic_zyt
 	</select>
+	<select id="findZyt" resultType="DicZyt">
+	    select * from dic_zyt
+	</select>
 
 
 </mapper>
