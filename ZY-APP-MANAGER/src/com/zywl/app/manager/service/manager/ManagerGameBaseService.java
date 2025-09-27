@@ -1228,6 +1228,7 @@ public class ManagerGameBaseService extends BaseService {
         if (byUserId.getScore().compareTo(new BigDecimal("100")) < 1) {
             throwExp("积分不足，不能抽奖");
         }
+        //扣掉100积分
         userYyScoreService.subScore(userId, new BigDecimal("100"));
         JSONObject result = new JSONObject();
         Random random = new Random();

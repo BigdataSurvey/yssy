@@ -2,29 +2,31 @@ package com.zywl.app.base.bean;
 
 import com.zywl.app.base.BaseBean;
 
+import java.math.BigDecimal;
 import java.util.Date;
 
 public class ZytRecord  extends BaseBean {
 
-    private Integer userId;
-    private Integer orderNo;
+    private long userId;
+    private String orderNo;
     private Date receiveTime;
-    private Integer number;
+    private BigDecimal amount;
     private Date crteTime;
 
-    public Integer getUserId() {
+
+    public long getUserId() {
         return userId;
     }
 
-    public void setUserId(Integer userId) {
+    public void setUserId(long userId) {
         this.userId = userId;
     }
 
-    public Integer getOrderNo() {
+    public String getOrderNo() {
         return orderNo;
     }
 
-    public void setOrderNo(Integer orderNo) {
+    public void setOrderNo(String orderNo) {
         this.orderNo = orderNo;
     }
 
@@ -36,12 +38,12 @@ public class ZytRecord  extends BaseBean {
         this.receiveTime = receiveTime;
     }
 
-    public Integer getNumber() {
-        return number;
+    public BigDecimal getAmount() {
+        return amount;
     }
 
-    public void setNumber(Integer number) {
-        this.number = number;
+    public void setAmount(BigDecimal amount) {
+        this.amount = amount;
     }
 
     public Date getCrteTime() {

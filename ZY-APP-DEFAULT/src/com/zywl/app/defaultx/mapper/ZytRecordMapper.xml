@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
-<mapper namespace="com.zywl.app.defaultx.mapper.ZytRecord">
+<mapper namespace="com.zywl.app.defaultx.mapper.ZytRecordMapper">
 
     <insert id="insert" parameterType="ZytRecord" useGeneratedKeys="true" keyProperty="id" keyColumn="id">
         insert into r_zyt_record
@@ -8,7 +8,7 @@
             `user_id`,
             `order_no`,
             `receive_time`,
-            `number`,
+            `amount`,
             `crte_time`
 
         )
@@ -17,11 +17,18 @@
                 #{userId},
                 #{orderNo},
                 #{receiveTime},
-                #{number},
+                #{amount},
                 #{crteTime}
             )
     </insert>
 
+    <insert id="batchInsert" parameterType="java.util.List">
+        INSERT INTO r_zyt_record (user_id, order_no,receive_time,amount,crte_time)
+        VALUES
+        <foreach collection="list" item="item" separator=",">
+            (#{item.userId}, #{item.orderNo}, #{item.receiveTime}, #{item.amount}, #{item.crteTime})
+        </foreach>
+    </insert>
     <update id="update" parameterType="ZytRecord">
         update r_zyt_record
         <set>
@@ -31,8 +38,8 @@
             <if test="receiveTime!=null">
                 receive_time = #{receiveTime},
             </if>
-            <if test="number!=null">
-            number = #{number},
+            <if test="amount!=null">
+                amount = #{amount},
             </if>
             <if test="crteTime!=null">
                 crte_time = #{crteTime},
@@ -41,10 +48,20 @@
         where  user_id= #{userId}
     </update>
 
+    <update id="batchUpdate" parameterType="java.util.List">
+
+        <foreach collection="list" item="item" index="index" open="" close="" separator=";">
+            update r_zyt_record
+            <set>
+                order_no=#{item.orderNo},receive_time=#{item.receiveTime},amount=#{item.amount},crte_time = #{item.crteTime}
+            </set>
+            where user_id= #{item.userId}
+        </foreach>
+    </update>
 
 
-    <select id="findAll" resultType="ZytRecord">
-        select * from r_zyt_record
+    <select id="findByConditions" resultType="ZytRecord">
+        select * from r_zyt_record  where user_id =#{userId}
     </select>
 
 

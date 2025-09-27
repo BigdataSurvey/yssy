@@ -151,7 +151,8 @@ public enum LogCapitalTypeEnum {
     sub_convert_total("用户积分",1034),
     buy_handbook("购买手册",1035),
     handbook_reward("手册奖励",1036),
-    box_reward("宝箱奖励",1037)
+    box_reward("宝箱奖励",1037),
+    zyt_receive("镇妖塔收益领取",1038)
     ;
 
     private String name;
