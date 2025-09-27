@@ -453,7 +453,7 @@ public class GameBaseService extends BaseService {
         result.put("isSign", userTodaySign);
         result.put("signReward", JSONArray.parseArray(serverConfigService.getString(Config.SIGN_REWARD)));
         result.put("signNow", list2.size());
-        result.put("signAll", 5);
+        result.put("signAll", list1.size());
         return result;
     }
 

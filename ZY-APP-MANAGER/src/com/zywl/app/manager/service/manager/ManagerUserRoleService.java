@@ -102,7 +102,7 @@ public class ManagerUserRoleService extends BaseService {
                 throwExp("角色已到期，请重新激活礼包");
             }
             gameService.updateUserBackpack(userId,itemId,-number, LogUserBackpackTypeEnum.addHp);
-            if (userRole.getHp()==0){
+            if (userRole.getHp()<10){
                 userRole.setLastReceiveTime(new Date());
             }
             DicRole dicRole = PlayGameService.DIC_ROLE.get(userRole.getRoleId().toString());
@@ -114,10 +114,10 @@ public class ManagerUserRoleService extends BaseService {
             }
             User user = userCacheService.getUserInfoById(userId);
             if (user.getParentId()!=null){
-                gameService.addParentGetAnima(userId,user.getParentId().toString(),new BigDecimal("0.25").multiply(new BigDecimal(number)));
+                gameService.addParentGetAnima(userId,user.getParentId().toString(),new BigDecimal("0.011").multiply(new BigDecimal(number)));
             }
             if (user.getGrandfaId()!=null){
-                gameService.addGrandfaGetAnima(userId,user.getGrandfaId().toString(),new BigDecimal("0.15").multiply(new BigDecimal(number)));
+                gameService.addGrandfaGetAnima(userId,user.getGrandfaId().toString(),new BigDecimal("0.006").multiply(new BigDecimal(number)));
             }
             userRoleService.updateUserRole(userRole);
             JSONObject result = new JSONObject();

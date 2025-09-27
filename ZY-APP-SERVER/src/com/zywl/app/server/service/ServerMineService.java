@@ -139,7 +139,7 @@ public class ServerMineService extends BaseService {
                 for (Object o : reward) {
                     JSONObject item = (JSONObject) o;
                     String id = item.getString("id");
-                    int number = item.getIntValue("number");
+                    double number = item.getDoubleValue("number");
                     JSONObject add = new JSONObject();
                     add.put("type", item.getIntValue("type"));
                     add.put("id", id);

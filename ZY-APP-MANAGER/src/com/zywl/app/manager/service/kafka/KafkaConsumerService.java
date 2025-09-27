@@ -172,7 +172,7 @@ public class KafkaConsumerService extends BaseService {
             userLHD(data);
         }else if (KafkaEventContext.DGS.equals(eventType)) {
             userDgs(data);
-        }else if(KafkaEventContext.GREAT_NOVELS.equals(eventType)){
+        }else if(KafkaEventContext.SDMZ.equals(eventType)){
             userGreatNovels(data);
         }else if(KafkaEventContext.SEA_HUNT.equals(eventType)){
             userSeaHunt(data);
@@ -228,7 +228,7 @@ public class KafkaConsumerService extends BaseService {
 
     public void userfK(JSONObject data) {
         Long userId = data.getLong("userId");
-        checkDailyTaskIsOk(userId, TaskIdEnum.DTS.getValue());
+        checkDailyTaskIsOk(userId, TaskIdEnum.KF.getValue());
     }
 
     //TODO

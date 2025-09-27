@@ -72,7 +72,7 @@ public class PlayGameService extends BaseService {
 
     public final static Map<String, DicHandBook> DIC_HAND_BOOK_MAP = new ConcurrentHashMap<>();
 
-    public final static Map<String, Map<String,DicHandBookReward>> DIC_HAND_BOOK_REWARD_MAP= new ConcurrentHashMap<>();
+    public final static Map<String, Map<String, DicHandBookReward>> DIC_HAND_BOOK_REWARD_MAP = new ConcurrentHashMap<>();
 
     public static Map<String, PrizeDrawReward> prizeDrawRewardInfo = new ConcurrentHashMap<>();
 
@@ -88,11 +88,11 @@ public class PlayGameService extends BaseService {
 
     public static Map<String, Product> productMap = new ConcurrentHashMap<>();
 
-    public static Map<String,DicPrizeDraw>  DIC_PRIZE_DRAW_MAP = new ConcurrentHashMap<>();
+    public static Map<String, DicPrizeDraw> DIC_PRIZE_DRAW_MAP = new ConcurrentHashMap<>();
 
-    public static Map<String, DicPrizeCard>  DIC_PRIZE = new ConcurrentHashMap<>();
+    public static Map<String, DicPrizeCard> DIC_PRIZE = new ConcurrentHashMap<>();
 
-    public static Map<String,DicPit>  DIC_PIT = new ConcurrentHashMap<>();
+    public static Map<String, DicPit> DIC_PIT = new ConcurrentHashMap<>();
 
     public static Map<String, Achievement> achievementMap = new ConcurrentHashMap<>();
 
@@ -351,10 +351,10 @@ public class PlayGameService extends BaseService {
     public void initDicHandBookReward() {
         List<DicHandBookReward> allHandBookReward = dicHandBookRewardService.findAllHandBookReward();
         for (DicHandBookReward dicHandBookReward : allHandBookReward) {
-            Map<String,DicHandBookReward> map = DIC_HAND_BOOK_REWARD_MAP.getOrDefault(dicHandBookReward.getHandbookId().toString(), new HashMap<>());
-            map.put(String.valueOf(dicHandBookReward.getDayNum()),dicHandBookReward);
-            if (!DIC_HAND_BOOK_REWARD_MAP.containsKey(dicHandBookReward.getHandbookId().toString())){
-                DIC_HAND_BOOK_REWARD_MAP.put(dicHandBookReward.getHandbookId().toString(),map);
+            Map<String, DicHandBookReward> map = DIC_HAND_BOOK_REWARD_MAP.getOrDefault(dicHandBookReward.getHandbookId().toString(), new HashMap<>());
+            map.put(String.valueOf(dicHandBookReward.getDayNum()), dicHandBookReward);
+            if (!DIC_HAND_BOOK_REWARD_MAP.containsKey(dicHandBookReward.getHandbookId().toString())) {
+                DIC_HAND_BOOK_REWARD_MAP.put(dicHandBookReward.getHandbookId().toString(), map);
             }
         }
     }
@@ -377,6 +377,14 @@ public class PlayGameService extends BaseService {
         }
         Collections.shuffle(PRIZE_IDS);
     }
+
+
+    public void initPirzeCard(){
+        DIC_PRIZE.clear();
+        List<DicPrizeCard> allPrizeRecord = dicPrizeCardService.findAllPrize();
+        allPrizeRecord.forEach(e -> DIC_PRIZE.put(e.getId().toString(), e));
+    }
+
 
     public void initPit() {
         List<DicPit> allPit = dicPitService.findAllPit();
@@ -548,8 +556,8 @@ public class PlayGameService extends BaseService {
         updateUserBackpack(userId.toString(), itemId, number, em);
     }
 
-    public void updateUserBackpack(Long userId, String itemId, double number, LogUserBackpackTypeEnum em,String otherUserId) {
-        updateUserBackpack(userId.toString(), itemId, number, em,otherUserId);
+    public void updateUserBackpack(Long userId, String itemId, double number, LogUserBackpackTypeEnum em, String otherUserId) {
+        updateUserBackpack(userId.toString(), itemId, number, em, otherUserId);
     }
 
 
@@ -605,7 +613,7 @@ public class PlayGameService extends BaseService {
         }
     }
 
-    public void updateUserBackpack(String userId, String itemId, double number, LogUserBackpackTypeEnum em,String otherUserId) {
+    public void updateUserBackpack(String userId, String itemId, double number, LogUserBackpackTypeEnum em, String otherUserId) {
         synchronized (LockUtil.getlock(userId)) {
             Map<String, Backpack> map = getUserBackpack(userId);
             int type = 0;
@@ -620,9 +628,9 @@ public class PlayGameService extends BaseService {
             }
             int result;
             if (number < 0) {
-                result = backpackService.subItemNumber(Long.parseLong(userId), Long.parseLong(itemId), -number, em, beforeNumber, id,otherUserId);
+                result = backpackService.subItemNumber(Long.parseLong(userId), Long.parseLong(itemId), -number, em, beforeNumber, id, otherUserId);
             } else {
-                result = backpackService.addItemNumber(Long.parseLong(userId), Long.parseLong(itemId), number, em, type, beforeNumber, id,otherUserId);
+                result = backpackService.addItemNumber(Long.parseLong(userId), Long.parseLong(itemId), number, em, type, beforeNumber, id, otherUserId);
             }
             if (result < 1) {
                 userCapitalCacheService.deltedUserCapitalCache(Long.parseLong(userId), UserCapitalTypeEnum.currency_2.getValue());
@@ -758,7 +766,7 @@ public class PlayGameService extends BaseService {
     }
 
     public UserAchievement getUserAchievement(String userId) {
-        UserAchievement userAchievement= userAchievementService.findUserAchievement(Long.parseLong(userId));
+        UserAchievement userAchievement = userAchievementService.findUserAchievement(Long.parseLong(userId));
         return userAchievement;
     }
 
@@ -788,10 +796,10 @@ public class PlayGameService extends BaseService {
                 } else {
                     //正常道具
                     if (!id.equals("1001")) {
-                        if ( em!=null && em.getValue()==LogCapitalTypeEnum.mail.getValue()){
+                        if (em != null && em.getValue() == LogCapitalTypeEnum.mail.getValue()) {
                             //邮件
-                            updateUserBackpack(userId, id, number, LogUserBackpackTypeEnum.zs,reward.getString("fromUserId"));
-                        }else{
+                            updateUserBackpack(userId, id, number, LogUserBackpackTypeEnum.zs, reward.getString("fromUserId"));
+                        } else {
                             updateUserBackpack(userId, id, number, LogUserBackpackTypeEnum.game);
                         }
 
@@ -808,13 +816,13 @@ public class PlayGameService extends BaseService {
         }
     }
 
-    public void addRankCache(String id, int number,int gameType) {
+    public void addRankCache(String id, int number, int gameType) {
         gameCacheService.addGameRankCache(gameType, id, number);
     }
 
     //TODO 参与五次倩女幽魂
     @KafkaProducer(topic = KafkaTopicContext.RED_POINT, event = KafkaEventContext.DTS, sendParams = true)
-    public void updateDtsData(String a,JSONObject orderInfo){
+    public void updateDtsData(String a, JSONObject orderInfo) {
         String id = orderInfo.getString("userId");
         String orderNo = orderInfo.getString("orderNo");
         Long dataId = orderInfo.getLong("dataId");
@@ -824,18 +832,19 @@ public class PlayGameService extends BaseService {
         userCapitalCacheService.sub(Long.parseLong(id), UserCapitalTypeEnum.yyb.getValue(), amount, BigDecimal.ZERO);
         userCapital = userCapitalCacheService.getUserCapitalCacheByType(Long.parseLong(id), UserCapitalTypeEnum.yyb.getValue());
         userCapitalService.pushLog(1, Long.parseLong(id), UserCapitalTypeEnum.yyb.getValue(), userCapital.getBalance(), userCapital.getOccupyBalance(), amount.negate(), LogCapitalTypeEnum.game_bet_dts2, orderNo, dataId, null);
-        managerGameBaseService.pushCapitalUpdate(Long.valueOf(id),UserCapitalTypeEnum.yyb.getValue());
-        addRankCache(id, Integer.parseInt(amount.setScale(0).toString()),GameTypeEnum.battleRoyale.getValue());
+        managerGameBaseService.pushCapitalUpdate(Long.valueOf(id), UserCapitalTypeEnum.yyb.getValue());
+        addRankCache(id, Integer.parseInt(amount.setScale(0).toString()), GameTypeEnum.battleRoyale.getValue());
     }
 
     @KafkaProducer(topic = KafkaTopicContext.RED_POINT, event = KafkaEventContext.NXQ, sendParams = true)
-    public void updateNxqData(String a,JSONObject orderInfo){
+    public void updateNxqData(String a, JSONObject orderInfo) {
         String id = orderInfo.getString("userId");
         Integer number = orderInfo.getIntValue("number");
-        addRankCache(id, number,GameTypeEnum.nxq.getValue());
+        addRankCache(id, number, GameTypeEnum.nxq.getValue());
     }
+
     @KafkaProducer(topic = KafkaTopicContext.RED_POINT, event = KafkaEventContext.DGS, sendParams = true)
-    public void updateDgsData(String a,JSONObject orderInfo){
+    public void updateDgsData(String a, JSONObject orderInfo) {
         String id = orderInfo.getString("userId");
         String orderNo = orderInfo.getString("orderNo");
         Long dataId = orderInfo.getLong("dataId");
@@ -845,13 +854,13 @@ public class PlayGameService extends BaseService {
         userCapitalCacheService.sub(Long.parseLong(id), UserCapitalTypeEnum.yyb.getValue(), amount, BigDecimal.ZERO);
         userCapital = userCapitalCacheService.getUserCapitalCacheByType(Long.parseLong(id), UserCapitalTypeEnum.yyb.getValue());
         userCapitalService.pushLog(1, Long.parseLong(id), UserCapitalTypeEnum.yyb.getValue(), userCapital.getBalance(), userCapital.getOccupyBalance(), amount.negate(), LogCapitalTypeEnum.dgs_join, orderNo, dataId, null);
-        managerGameBaseService.pushCapitalUpdate(Long.valueOf(id),UserCapitalTypeEnum.yyb.getValue());
-        addRankCache(id, Integer.parseInt(amount.setScale(0).toString()),GameTypeEnum.battleRoyale.getValue());
+        managerGameBaseService.pushCapitalUpdate(Long.valueOf(id), UserCapitalTypeEnum.yyb.getValue());
+        addRankCache(id, Integer.parseInt(amount.setScale(0).toString()), GameTypeEnum.battleRoyale.getValue());
     }
 
 
     @KafkaProducer(topic = KafkaTopicContext.RED_POINT, event = KafkaEventContext.NXQ, sendParams = true)
-    public  void updateNXQData(String a,JSONObject orderInfo){
+    public void updateNXQData(String a, JSONObject orderInfo) {
         String id = orderInfo.getString("userId");
         String orderNo = orderInfo.getString("orderNo");
         Long dataId = orderInfo.getLong("dataId");
@@ -861,11 +870,25 @@ public class PlayGameService extends BaseService {
         userCapitalCacheService.sub(Long.parseLong(id), UserCapitalTypeEnum.yyb.getValue(), amount, BigDecimal.ZERO);
         userCapital = userCapitalCacheService.getUserCapitalCacheByType(Long.parseLong(id), UserCapitalTypeEnum.yyb.getValue());
         userCapitalService.pushLog(1, Long.parseLong(id), UserCapitalTypeEnum.yyb.getValue(), userCapital.getBalance(), userCapital.getOccupyBalance(), amount.negate(), LogCapitalTypeEnum.game_bet_nh, orderNo, dataId, null);
-        managerGameBaseService.pushCapitalUpdate(Long.valueOf(id),UserCapitalTypeEnum.yyb.getValue());
-        addRankCache(id, Integer.parseInt(amount.setScale(0).toString()),GameTypeEnum.nxq.getValue());
+        managerGameBaseService.pushCapitalUpdate(Long.valueOf(id), UserCapitalTypeEnum.yyb.getValue());
+        addRankCache(id, Integer.parseInt(amount.setScale(0).toString()), GameTypeEnum.nxq.getValue());
     }
+
+    @KafkaProducer(topic = KafkaTopicContext.RED_POINT, event = KafkaEventContext.SDMZ, sendParams = true)
+    public void updateSg(String a, JSONObject orderInfo) {
+        String id = orderInfo.getString("userId");
+        String orderNo = orderInfo.getString("orderNo");
+        Long dataId = orderInfo.getLong("dataId");
+        BigDecimal amount = orderInfo.getBigDecimal("betAmount");
+        userCacheService.addTodayUserPlayCount(Long.valueOf(id));
+        userCapitalCacheService.sub(Long.parseLong(id), UserCapitalTypeEnum.yyb.getValue(), amount, BigDecimal.ZERO);
+        UserCapital userCapital = userCapitalCacheService.getUserCapitalCacheByType(Long.parseLong(id), UserCapitalTypeEnum.yyb.getValue());
+        userCapitalService.pushLog(1, Long.parseLong(id), UserCapitalTypeEnum.yyb.getValue(), userCapital.getBalance(), userCapital.getOccupyBalance(), amount.negate(), LogCapitalTypeEnum.game_bet_sg, orderNo, dataId, null);
+        managerGameBaseService.pushCapitalUpdate(Long.parseLong(id), UserCapitalTypeEnum.yyb.getValue());
+    }
+
     @KafkaProducer(topic = KafkaTopicContext.RED_POINT, event = KafkaEventContext.LHD, sendParams = true)
-    public  void updateLhdData(String a,JSONObject orderInfo){
+    public void updateLhdData(String a, JSONObject orderInfo) {
         String id = orderInfo.getString("userId");
         String orderNo = orderInfo.getString("orderNo");
         Long dataId = orderInfo.getLong("dataId");
@@ -875,27 +898,14 @@ public class PlayGameService extends BaseService {
         userCapitalCacheService.sub(Long.parseLong(id), UserCapitalTypeEnum.yyb.getValue(), amount, BigDecimal.ZERO);
         userCapital = userCapitalCacheService.getUserCapitalCacheByType(Long.parseLong(id), UserCapitalTypeEnum.yyb.getValue());
         userCapitalService.pushLog(1, Long.parseLong(id), UserCapitalTypeEnum.yyb.getValue(), userCapital.getBalance(), userCapital.getOccupyBalance(), amount.negate(), LogCapitalTypeEnum.game_bet_nh, orderNo, dataId, null);
-        managerGameBaseService.pushCapitalUpdate(Long.valueOf(id),UserCapitalTypeEnum.yyb.getValue());
-        addRankCache(id, Integer.parseInt(amount.setScale(0).toString()),GameTypeEnum.nh.getValue());
+        managerGameBaseService.pushCapitalUpdate(Long.valueOf(id), UserCapitalTypeEnum.yyb.getValue());
+        addRankCache(id, Integer.parseInt(amount.setScale(0).toString()), GameTypeEnum.nh.getValue());
     }
 
-    @KafkaProducer(topic = KafkaTopicContext.RED_POINT, event = KafkaEventContext.GREAT_NOVELS, sendParams = true)
-    public  void updateGreatNovelsData(String a,JSONObject orderInfo){
-        String id = orderInfo.getString("userId");
-        String orderNo = orderInfo.getString("orderNo");
-        Long dataId = orderInfo.getLong("dataId");
-        BigDecimal amount = orderInfo.getBigDecimal("betAmount");
-        UserCapital userCapital = userCapitalCacheService.getUserCapitalCacheByType(Long.parseLong(id), UserCapitalTypeEnum.currency_2.getValue());
-        userCacheService.addTodayUserPlayCount(Long.valueOf(id));
-        userCapitalCacheService.sub(Long.parseLong(id), UserCapitalTypeEnum.yyb.getValue(), amount, BigDecimal.ZERO);
-        userCapital = userCapitalCacheService.getUserCapitalCacheByType(Long.parseLong(id), UserCapitalTypeEnum.yyb.getValue());
-        userCapitalService.pushLog(1, Long.parseLong(id), UserCapitalTypeEnum.yyb.getValue(), userCapital.getBalance(), userCapital.getOccupyBalance(), amount.negate(), LogCapitalTypeEnum.game_bet_sg, orderNo, dataId, null);
-        managerGameBaseService.pushCapitalUpdate(Long.valueOf(id),UserCapitalTypeEnum.yyb.getValue());
-        addRankCache(id, Integer.parseInt(amount.setScale(0).toString()),GameTypeEnum.sg.getValue());
-    }
+
 
     @KafkaProducer(topic = KafkaTopicContext.RED_POINT, event = KafkaEventContext.SEA_HUNT, sendParams = true)
-    public  void updateSeaMononokeData(String a,JSONObject orderInfo){
+    public void updateSeaMononokeData(String a, JSONObject orderInfo) {
         String id = orderInfo.getString("userId");
         String orderNo = orderInfo.getString("orderNo");
         Long dataId = orderInfo.getLong("dataId");
@@ -905,8 +915,8 @@ public class PlayGameService extends BaseService {
         userCapitalCacheService.sub(Long.parseLong(id), UserCapitalTypeEnum.yyb.getValue(), amount, BigDecimal.ZERO);
         userCapital = userCapitalCacheService.getUserCapitalCacheByType(Long.parseLong(id), UserCapitalTypeEnum.yyb.getValue());
         userCapitalService.pushLog(1, Long.parseLong(id), UserCapitalTypeEnum.yyb.getValue(), userCapital.getBalance(), userCapital.getOccupyBalance(), amount.negate(), LogCapitalTypeEnum.dgs_join, orderNo, dataId, null);
-        managerGameBaseService.pushCapitalUpdate(Long.valueOf(id),UserCapitalTypeEnum.yyb.getValue());
-        addRankCache(id, Integer.parseInt(amount.setScale(0).toString()),GameTypeEnum.dgs.getValue());
+        managerGameBaseService.pushCapitalUpdate(Long.valueOf(id), UserCapitalTypeEnum.yyb.getValue());
+        addRankCache(id, Integer.parseInt(amount.setScale(0).toString()), GameTypeEnum.dgs.getValue());
     }
 
     public void checkUserItemNumber(String userId, String itemId, double number) {

@@ -495,20 +495,8 @@ public class ManagerCapitalService extends BaseService {
         for (Object o : betArray) {
             try {
                 JSONObject orderInfo = (JSONObject) o;
-                String id = orderInfo.getString("userId");
-                String orderNo = orderInfo.getString("orderNo");
-                Long dataId = orderInfo.getLong("dataId");
-                BigDecimal amount = orderInfo.getBigDecimal("betAmount");
-                userCacheService.addTodayUserPlayCount(Long.valueOf(id));
-                userCapitalCacheService.sub(Long.parseLong(id), UserCapitalTypeEnum.yyb.getValue(), amount, BigDecimal.ZERO);
-                UserCapital userCapital = userCapitalCacheService.getUserCapitalCacheByType(Long.parseLong(id), UserCapitalTypeEnum.yyb.getValue());
-                userCapitalService.pushLog(1, Long.parseLong(id), UserCapitalTypeEnum.yyb.getValue(), userCapital.getBalance(), userCapital.getOccupyBalance(), amount.negate(), LogCapitalTypeEnum.game_bet_sg, orderNo, dataId, null);
-                JSONObject pushData = new JSONObject();
-                pushData.put("userId", id);
-                pushData.put("capitalType", UserCapitalTypeEnum.yyb.getValue());
-                pushData.put("balance", userCapital.getBalance());
-                Push.push(PushCode.updateUserCapital, managerSocketService.getServerIdByUserId(id), pushData);
-            } catch (Exception e) {
+                gameService.updateSg(null,orderInfo);
+                 } catch (Exception e) {
                 logger.error(e);
                 e.printStackTrace();
             }

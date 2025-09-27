@@ -12,10 +12,8 @@ import com.zywl.app.defaultx.annotation.ServiceClass;
 import com.zywl.app.defaultx.annotation.ServiceMethod;
 import com.zywl.app.defaultx.cache.AppConfigCacheService;
 import com.zywl.app.defaultx.cache.UserCacheService;
-import com.zywl.app.defaultx.enmus.ItemIdEnum;
-import com.zywl.app.defaultx.enmus.LogCapitalTypeEnum;
-import com.zywl.app.defaultx.enmus.LogUserBackpackTypeEnum;
-import com.zywl.app.defaultx.enmus.MailGoldTypeEnum;
+import com.zywl.app.defaultx.cache.UserCapitalCacheService;
+import com.zywl.app.defaultx.enmus.*;
 import com.zywl.app.defaultx.service.*;
 import com.zywl.app.manager.context.KafkaEventContext;
 import com.zywl.app.manager.context.KafkaTopicContext;
@@ -27,6 +25,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import javax.annotation.PostConstruct;
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Timer;
@@ -48,6 +47,9 @@ public class ManagerMailService extends BaseService {
 
     @Autowired
     private PlayGameService gameService;
+
+    @Autowired
+    private UserCapitalCacheService userCapitalCacheService;
 
 
     @Autowired
@@ -180,6 +182,10 @@ public class ManagerMailService extends BaseService {
         JSONObject detail = new JSONObject();
         long userId = data.getLongValue("userId");
         synchronized (LockUtil.getlock(userId)) {
+            UserCapital userCapital = userCapitalCacheService.getUserCapitalCacheByType(userId, UserCapitalTypeEnum.currency_2.getValue());
+            if (userCapital.getBalance().compareTo(BigDecimal.ZERO)<0){
+                throwExp("通宝小于0时不可赠送道具");
+            }
             long toUserId = data.getLongValue("toUserId");
             String toUserNo = data.getString("toUserNo");
             String context = data.getString("context");//赠送的内容

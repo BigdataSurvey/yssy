@@ -207,6 +207,9 @@ public class ManagerConfigService extends BaseService {
 		}
 		else if (key.equals(Config.ITEM_VERSION)) {
 			gameService.initItem();
+			gameService.initDicHandBook();
+			gameService.initDicHandBookReward();
+			gameService.initPrize();
 			appConfigCacheService.removeKey(RedisKeyConstant.APP_CONFIG_VERSION_ITEM);
 			itemCacheService.removeAllItemCache();
 			List<Item> items = new ArrayList<>(PlayGameService.itemMap.values());

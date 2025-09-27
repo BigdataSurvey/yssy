@@ -809,7 +809,7 @@ public class ManagerGameBaseService extends BaseService {
                 obj.put("id", 2);
                 for (int i = 0; i < number; i++) {
                     Random random = new Random();
-                    double v = random.nextInt(300) + 500;
+                    double v = random.nextInt(50) + 500;
                     v = v / 100;
                     all += v;
                 }
@@ -1247,7 +1247,7 @@ public class ManagerGameBaseService extends BaseService {
         }
         Activity activity = gameCacheService.getActivity();
         if (activity!=null){
-            if (activity.getAddPointEvent()==5){
+            if (activity.getAddPointEvent()==6){
                 gameCacheService.addPointMySelf(userId,10);
             }
         }
