@@ -6,7 +6,9 @@ import lombok.Data;
 
 import java.math.BigDecimal;
 
-
+/**
+ * 奖品配置表
+ * **/
 @Data
 public class DicPrizeCard extends BaseBean {
 

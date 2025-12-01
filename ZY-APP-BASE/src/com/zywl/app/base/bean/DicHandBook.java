@@ -3,7 +3,7 @@ package com.zywl.app.base.bean;
 import com.zywl.app.base.BaseBean;
 
 import java.util.Date;
-
+/**手册基础信息**/
 public class DicHandBook extends BaseBean {
 
     private Long id;

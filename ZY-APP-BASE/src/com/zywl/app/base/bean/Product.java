@@ -3,11 +3,13 @@ package com.zywl.app.base.bean;
 import com.zywl.app.base.BaseBean;
 
 import java.math.BigDecimal;
-
+/**
+ * 增值产品表
+ * **/
 public class Product extends BaseBean {
 
     private Long id;
-
+    //增值产品定义 周卡、月卡、季度会员、年卡
     private String productName;
 
     private String icon;

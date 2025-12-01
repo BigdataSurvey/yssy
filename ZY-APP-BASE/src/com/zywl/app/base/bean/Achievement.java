@@ -2,7 +2,7 @@ package com.zywl.app.base.bean;
 
 import com.alibaba.fastjson2.JSONArray;
 import com.zywl.app.base.BaseBean;
-
+/**成就表**/
 public class Achievement extends BaseBean{
 	
 	private Long id;

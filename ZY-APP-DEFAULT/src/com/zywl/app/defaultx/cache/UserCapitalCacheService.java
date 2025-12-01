@@ -59,6 +59,26 @@ public class UserCapitalCacheService extends RedisService {
     }
 
 
+    //得到用户所有资产
+    public List<UserCapitalVo> getAllUserCapitalCache(Long userId) {
+        //拿到所有资产类型
+        UserCapitalTypeEnum[] es = UserCapitalTypeEnum.values();
+        List<UserCapitalVo> result = new ArrayList<UserCapitalVo>();
+        for (UserCapitalTypeEnum userCapitalTypeEnum : es) {
+            //拿每一个资产类型去看用户有没有
+            UserCapital userCapital = getUserCapitalCacheByType(userId, userCapitalTypeEnum.getValue());
+            if (userCapital != null) {
+                UserCapitalVo vo = new UserCapitalVo();
+                BeanUtils.copy(userCapital, vo);
+                result.add(vo);
+            }
+        }
+        return result;
+    }
+
+    /**
+     * 按照用户、资产类型获取用户资产缓存；如果缓存没有再走DB;DB也没有就自动插入一条0越的记录之后再返回;顺便把成功获取的结果写到缓存,,
+     * **/
     public UserCapital getUserCapitalCacheByType(Long userId, int capitalType) {
         UserCapitalTypeEnum e = getCapitalEnum(capitalType);
         if (e == null) {
@@ -88,19 +108,7 @@ public class UserCapitalCacheService extends RedisService {
         return userCapital == null ? new UserCapital() : userCapital;
     }
 
-    public List<UserCapitalVo> getAllUserCapitalCache(Long userId) {
-        UserCapitalTypeEnum[] es = UserCapitalTypeEnum.values();
-        List<UserCapitalVo> result = new ArrayList<UserCapitalVo>();
-        for (UserCapitalTypeEnum userCapitalTypeEnum : es) {
-            UserCapital userCapital = getUserCapitalCacheByType(userId, userCapitalTypeEnum.getValue());
-            if (userCapital != null) {
-                UserCapitalVo vo = new UserCapitalVo();
-                BeanUtils.copy(userCapital, vo);
-                result.add(vo);
-            }
-        }
-        return result;
-    }
+
 
     //删除某种资产
     public void deltedUserCapitalCache(Long userId, Integer capitalType) {

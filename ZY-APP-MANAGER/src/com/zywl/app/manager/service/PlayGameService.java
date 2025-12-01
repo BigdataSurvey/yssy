@@ -1,6 +1,4 @@
 package com.zywl.app.manager.service;
-
-import com.alibaba.fastjson2.JSON;
 import com.alibaba.fastjson2.JSONArray;
 import com.alibaba.fastjson2.JSONObject;
 import com.live.app.ws.bean.PushBean;
@@ -33,7 +31,6 @@ import com.zywl.app.manager.service.manager.ManagerGameBaseService;
 import com.zywl.app.manager.socket.ManagerSocketServer;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-
 import javax.annotation.PostConstruct;
 import java.math.BigDecimal;
 import java.util.*;
@@ -41,157 +38,135 @@ import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * 初始化游戏数据
- *
+ * 加载静态配置，维护玩家缓存，给玩家发奖励，做上下级分层
+ * 负责把数据库的静态配置表加载进内存Map
  * @author 1
  */
 @Service
 public class PlayGameService extends BaseService {
-
-
-    public static Map<String, Card> CARD_INFO = new ConcurrentHashMap<>();
-
-    public static Set<String> ARTIFACT_ID = new HashSet<>();
-
-
-    public static Map<String, DicMine> DIC_MINE = new ConcurrentHashMap<>();
-
-    public static final Map<String, DicRole> DIC_ROLE = new ConcurrentHashMap<>();
-
-
-    public static Map<String, UserCapital> playercoins = new ConcurrentHashMap<>();
-    public static Map<String, User> channelUser = new ConcurrentHashMap<>();
-
-
-    //玩家背包信息
-    public static Map<String, Map<String, Backpack>> playerItems = new ConcurrentHashMap<>();
-
-
-    //道具信息
-    public static Map<String, Item> itemMap = new ConcurrentHashMap<>();
-    public final static Map<String, DicVip> DIC_VIP_MAP = new ConcurrentHashMap<>();
-
-    public final static Map<String, DicHandBook> DIC_HAND_BOOK_MAP = new ConcurrentHashMap<>();
-
-    public final static Map<String, Map<String, DicHandBookReward>> DIC_HAND_BOOK_REWARD_MAP = new ConcurrentHashMap<>();
-
-    public static Map<String, PrizeDrawReward> prizeDrawRewardInfo = new ConcurrentHashMap<>();
-
-    public static Map<String, DailyTask> dailyTaskInfo = new ConcurrentHashMap<>();
-
-    public static Map<String, ChannelIncome> channelIncomeMap = new ConcurrentHashMap<>();
-
-    public static Map<String, GiveParentIncome> parentIncomeMap = new ConcurrentHashMap<>();
-
-    public static Map<String, GiveGrandfaIncome> grandfaIncomeMap = new ConcurrentHashMap<>();
-
-    public static Map<String, UserStatistic> userStatisticMap = new ConcurrentHashMap<>();
-
-    public static Map<String, Product> productMap = new ConcurrentHashMap<>();
-
-    public static Map<String, DicPrizeDraw> DIC_PRIZE_DRAW_MAP = new ConcurrentHashMap<>();
-
-    public static Map<String, DicPrizeCard> DIC_PRIZE = new ConcurrentHashMap<>();
-
-    public static Map<String, DicPit> DIC_PIT = new ConcurrentHashMap<>();
-
-    public static Map<String, Achievement> achievementMap = new ConcurrentHashMap<>();
-
-    public static Map<String, Map<String, DicShop>> DIC_SHOP_MAP = new ConcurrentHashMap<>();
-    public static Map<String, List<DicShop>> DIC_SHOP_LIST = new ConcurrentHashMap<>();
-    public static Map<String, UserAchievement> userAchievementMap = new ConcurrentHashMap<>();
-
-    public static final LinkedList<Long> PRIZE_IDS = new LinkedList<>();
-
-
     @Autowired
     private UserAchievementService userAchievementService;
-
-
     @Autowired
     private UserCapitalService userCapitalService;
-
-
     @Autowired
     private DicPrizeDrawService dicPrizeDrawService;
-
     @Autowired
     private DicHandBookService dicHandBookService;
-
     @Autowired
     private DicHandBookRewardService dicHandBookRewardService;
-
     @Autowired
     private GameCacheService gameCacheService;
-
-
     @Autowired
     private ItemService itemService;
-
     @Autowired
     private AchievementService achievementService;
-
     @Autowired
     private DicDrawProbabilityService dicDrawProbabilityService;
-
     @Autowired
     private DicShopService dicShopService;
     @Autowired
     private DicVipService dicVipService;
-
     @Autowired
     private AppConfigCacheService appConfigCacheService;
-
-
     @Autowired
     private BackpackService backpackService;
-
-
     @Autowired
     private UserCacheService userCacheService;
-
     @Autowired
     private DailyTaskService dailyTaskService;
     @Autowired
     private UserCapitalCacheService userCapitalCacheService;
-
-
     @Autowired
     private UserStatisticService userStatisticService;
-
     @Autowired
     private ManagerGameBaseService managerGameBaseService;
-
-
     @Autowired
     private UserService userService;
-
     @Autowired
     private ProductService productService;
     @Autowired
     private DicPrizeCardService dicPrizeCardService;
-
     @Autowired
     private DicPitService dicPitService;
-
     @Autowired
     private GiveParentIncomeService giveParentIncomeService;
-
     @Autowired
     private ChannelIncomeService channelIncomeService;
-
     @Autowired
     private GiveGrandfaIncomeService giveGrandfaIncomeService;
-
-
     @Autowired
     private DicMineService dicMineService;
-
     @Autowired
     private DicRoleService dicRoleService;
-
-
     @Autowired
     private JDCardService jdCardService;
+    /**
+     * 系统初始化缓存配置
+     * 系统启动通过@PostConstruct配置的_InitGameInfoService方法一次性把各种表加载进静态 Map：
+     * **/
+    //道具信息配置缓存
+    public static Map<String, Item> itemMap = new ConcurrentHashMap<>();
+    //增值产品缓存
+    public static Map<String, Product> productMap = new ConcurrentHashMap<>();
+    //奖品配置缓存
+    public static Map<String, DicPrizeCard> DIC_PRIZE = new ConcurrentHashMap<>();
+    //矿场配置缓存
+    public static Map<String, DicPit> DIC_PIT = new ConcurrentHashMap<>();
+    //每日任务配置缓存
+    public static Map<String, DailyTask> dailyTaskInfo = new ConcurrentHashMap<>();
+    //分成配置缓存
+    public static Map<String, GiveParentIncome> parentIncomeMap = new ConcurrentHashMap<>();
+    public static Map<String, GiveGrandfaIncome> grandfaIncomeMap = new ConcurrentHashMap<>();
+    public static Map<String, ChannelIncome> channelIncomeMap = new ConcurrentHashMap<>();
+    //成就配置缓存
+    public static Map<String, Achievement> achievementMap = new ConcurrentHashMap<>();
+    //矿场配置缓存
+    public static Map<String, DicMine> DIC_MINE = new ConcurrentHashMap<>();
+    //商店配置缓存
+    public static Map<String, Map<String, DicShop>> DIC_SHOP_MAP = new ConcurrentHashMap<>();
+    public static Map<String, List<DicShop>> DIC_SHOP_LIST = new ConcurrentHashMap<>();
+
+    //角色配置缓存
+    public static final Map<String, DicRole> DIC_ROLE = new ConcurrentHashMap<>();
+    //抽奖规则缓存
+    public static Map<String, DicPrizeDraw> DIC_PRIZE_DRAW_MAP = new ConcurrentHashMap<>();
+    //VIP配置缓存
+    public final static Map<String, DicVip> DIC_VIP_MAP = new ConcurrentHashMap<>();
+    //手册基础信息配置缓存
+    public final static Map<String, DicHandBook> DIC_HAND_BOOK_MAP = new ConcurrentHashMap<>();
+    //手册每日奖励信息配置缓存
+    public final static Map<String, Map<String, DicHandBookReward>> DIC_HAND_BOOK_REWARD_MAP = new ConcurrentHashMap<>();
+
+
+    /**
+     * 非系统初始化的 业务缓存型Map
+     *
+     */
+
+    //玩家背包缓存
+    public static Map<String, Map<String, Backpack>> playerItems = new ConcurrentHashMap<>();
+
+    //玩家资产缓存
+    public static Map<String, UserCapital> playercoins = new ConcurrentHashMap<>();
+
+    //渠道号缓存
+    public static Map<String, User> channelUser = new ConcurrentHashMap<>();
+
+    //玩家统计数据缓存
+    public static Map<String, UserStatistic> userStatisticMap = new ConcurrentHashMap<>();
+
+    //用户成就缓存
+    public static Map<String, UserAchievement> userAchievementMap = new ConcurrentHashMap<>();
+
+    //抽奖奖励缓存
+    public static Map<String, PrizeDrawReward> prizeDrawRewardInfo = new ConcurrentHashMap<>();
+
+    //卡牌配置缓存
+    public static Map<String, Card> CARD_INFO = new ConcurrentHashMap<>();
+
+
+    public static Set<String> ARTIFACT_ID = new HashSet<>();
+    public static final LinkedList<Long> PRIZE_IDS = new LinkedList<>();
 
     @PostConstruct
     public void _InitGameInfoService() {
@@ -306,7 +281,9 @@ public class PlayGameService extends BaseService {
         initDicHandBookReward();
     }
 
-
+    /**
+     * 初始化商店配置表
+     * **/
     public void initShop() {
         List<DicShop> allShop = dicShopService.findAllShop();
         for (DicShop dicShop : allShop) {
@@ -329,25 +306,38 @@ public class PlayGameService extends BaseService {
         achievements.forEach(e -> achievementMap.put(e.getId().toString(), e));
     }
 
+    /**分成配置**/
     public void initIncome() {
+        //一代(上级)分成配置
         List<GiveParentIncome> allIncome = giveParentIncomeService.findAllIncome();
         allIncome.forEach(e -> parentIncomeMap.put(e.getId().toString(), e));
+        //二代(上上级)分成配置
         List<GiveGrandfaIncome> allIncome2 = giveGrandfaIncomeService.findAllIncome();
         allIncome2.forEach(e -> grandfaIncomeMap.put(e.getId().toString(), e));
+        //按照渠道的层级配置分层
         List<ChannelIncome> allIncome3 = channelIncomeService.findAllChannelIncome();
         allIncome3.forEach(e -> channelIncomeMap.put(String.valueOf(e.getTier()), e));
     }
 
+    /**
+     * 初始化VIP配置
+     * **/
     public void initDicVip() {
         List<DicVip> allVip = dicVipService.findAllVip();
         allVip.forEach(e -> DIC_VIP_MAP.put(String.valueOf(e.getLv()), e));
     }
 
+    /**
+     * 初始化手册基础信息
+     * **/
     public void initDicHandBook() {
         List<DicHandBook> allHandBook = dicHandBookService.findAllHandBook();
         allHandBook.forEach(e -> DIC_HAND_BOOK_MAP.put(String.valueOf(e.getId()), e));
     }
 
+    /**
+     * 初始化手册每日奖励信息
+     * **/
     public void initDicHandBookReward() {
         List<DicHandBookReward> allHandBookReward = dicHandBookRewardService.findAllHandBookReward();
         for (DicHandBookReward dicHandBookReward : allHandBookReward) {
@@ -358,13 +348,17 @@ public class PlayGameService extends BaseService {
             }
         }
     }
-
+    /**
+     * 初始化增值产品配置
+     * **/
     public void initProduct() {
         List<Product> allProduct = productService.findAllProduct();
         allProduct.forEach(e -> productMap.put(e.getId().toString(), e));
     }
 
-
+    /**
+     * 初始化奖品配置
+     * **/
     public void initPrize() {
         DIC_PRIZE.clear();
         List<DicPrizeCard> allPrizeRecord = dicPrizeCardService.findAllPrize();
@@ -385,30 +379,37 @@ public class PlayGameService extends BaseService {
         allPrizeRecord.forEach(e -> DIC_PRIZE.put(e.getId().toString(), e));
     }
 
-
+    /**
+     * 初始化矿场配置
+     * **/
     public void initPit() {
         List<DicPit> allPit = dicPitService.findAllPit();
         allPit.forEach(e -> DIC_PIT.put(e.getId().toString(), e));
     }
-
+    /**
+     * 初始化矿场规则配置
+     * **/
     public void initPrizeDraw() {
         List<DicPrizeDraw> allPrizeDraw = dicPrizeDrawService.findAllPrizeDraw();
         allPrizeDraw.forEach(e -> DIC_PRIZE_DRAW_MAP.put(e.getId().toString(), e));
     }
 
+    /**初始化每日任务配置**/
     public void initDailyTask() {
         dailyTaskInfo.clear();
         List<DailyTask> allDailyTask = dailyTaskService.findAllDailyTask();
         allDailyTask.forEach(e -> dailyTaskInfo.put(e.getId().toString(), e));
     }
-
+    /**
+     * 初始化道具
+     * **/
     public void initItem() {
         itemMap.clear();
         List<Item> items = itemService.findAll();
         items.forEach(e -> itemMap.put(e.getId().toString(), e));
     }
 
-
+    /**初始化矿产信息**/
     public void initMine() {
         DIC_MINE.clear();
         logger.info("初始化矿产相关信息");
@@ -417,6 +418,9 @@ public class PlayGameService extends BaseService {
         logger.info("初始化矿产信息完成,加载数据数量：" + DIC_MINE.size());
     }
 
+    /**
+     * 初始化角色信息
+     * **/
     public void initRole() {
         DIC_ROLE.clear();
         logger.info("初始化角色相关信息");
@@ -425,7 +429,9 @@ public class PlayGameService extends BaseService {
         logger.info("初始化角色信息完成,加载数据数量：" + DIC_MINE.size());
     }
 
-
+    /**
+     * 用户统计数据更新至数据库
+     * **/
     public void updateStatic() {
         try {
             long time = System.currentTimeMillis();
@@ -481,7 +487,9 @@ public class PlayGameService extends BaseService {
         }, 1000, 1000 * 60 * 30);
     }
 
-
+    /**
+     * 根据渠道号获取用户
+     * **/
     public User getUserByChannelNo(String channelNo) {
         User user;
         if (channelUser.containsKey(channelNo)) {
@@ -522,7 +530,9 @@ public class PlayGameService extends BaseService {
     public Map<String, Backpack> getUserBackpack(Long userId) {
         return getUserBackpack(userId.toString());
     }
-
+    /**
+     * 把玩家背包从 DB 拉进内存缓存
+     * **/
     public Map<String, Backpack> getUserBackpack(String userId) {
         if (!playerItems.containsKey(userId)) {
             List<Backpack> list = backpackService.getBackpackByUserId(Long.parseLong(userId));
@@ -655,27 +665,45 @@ public class PlayGameService extends BaseService {
         }
     }
 
+    /**
+     * 得到用户背包中道具信息
+     */
     public List<JSONObject> getReturnPack(Long userId) {
+        // 通过userId拿到放入playerItems缓存中得背包信息 itemId -> Backpack
         Map<String, Backpack> map = getUserBackpack(userId.toString());
-        Set<String> ids = map.keySet();
-        JSONArray array = new JSONArray();
-        for (String id : ids) {
-            if (map.get(id).getItemNumber() == 0) {
+        List<JSONObject> list = new ArrayList<>(map.size());
+
+        for (Map.Entry<String, Backpack> entry : map.entrySet()) {
+            Backpack backpack = entry.getValue();
+            if (backpack.getItemNumber() == 0) {
                 continue;
             }
+            Long itemId = backpack.getItemId();
+
+            // 从物品配置缓存中拿到 Item
+            Item item = PlayGameService.itemMap.get(String.valueOf(itemId));
+            if (item == null) {
+                continue;
+            }
+
             JSONObject obj = new JSONObject();
-            Long itemId = map.get(id).getItemId();
-            obj.put("id", itemId);
-            obj.put("number", map.get(id).getItemNumber());
-            obj.put("type", PlayGameService.itemMap.get(itemId.toString()).getType());
-            array.add(obj);
+            obj.put("id", itemId);                   // 道具ID
+            obj.put("number", backpack.getItemNumber()); // 道具数量
+            obj.put("type", item.getType());         // 道具大类
+
+            list.add(obj);
         }
-        List<JSONObject> list = JSON.parseArray(array.toJSONString(), JSONObject.class);
-        list.stream().sorted(Comparator.comparingLong(a -> a.getLongValue("itemId")));
+
+        // 按道具ID升序排序
+        list.sort(Comparator.comparingLong(o -> o.getLongValue("id")));
+
         return list;
     }
 
 
+    /**
+     * 获取用户统计数据
+     * **/
     public UserStatistic getUserStatistic(String userId) {
         if (userId == null) {
             return null;
@@ -765,6 +793,7 @@ public class PlayGameService extends BaseService {
         userStatisticMap.get(userId).setGetAllIncome(userStatisticMap.get(userId).getGetAllIncome().add(income));
     }
 
+    //得到玩家成就
     public UserAchievement getUserAchievement(String userId) {
         UserAchievement userAchievement = userAchievementService.findUserAchievement(Long.parseLong(userId));
         return userAchievement;

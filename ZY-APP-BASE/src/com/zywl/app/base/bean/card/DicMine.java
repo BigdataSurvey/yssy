@@ -5,7 +5,9 @@ import com.alibaba.fastjson2.JSONObject;
 import com.zywl.app.base.BaseBean;
 
 import java.math.BigDecimal;
-
+/**
+ * 矿场配置表
+ * **/
 public class DicMine extends BaseBean {
 
     private Long id;

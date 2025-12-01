@@ -2,7 +2,9 @@ package com.zywl.app.base.bean;
 
 import com.alibaba.fastjson2.JSONArray;
 import com.zywl.app.base.BaseBean;
-
+/**
+ * 手册每日奖励信息
+ * **/
 public class DicHandBookReward extends BaseBean {
 
 

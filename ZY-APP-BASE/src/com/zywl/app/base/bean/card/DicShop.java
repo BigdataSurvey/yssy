@@ -3,7 +3,9 @@ package com.zywl.app.base.bean.card;
 import com.zywl.app.base.BaseBean;
 
 import java.math.BigDecimal;
-
+/**
+ * 商店配置表
+ * **/
 public class DicShop extends BaseBean {
 
     private Long id;

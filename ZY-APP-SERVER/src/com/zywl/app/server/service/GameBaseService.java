@@ -195,8 +195,9 @@ public class GameBaseService extends BaseService {
 
     @PostConstruct
     public void _ManagerCapitalService() {
-        aa();
-        bb();
+        // todo:该项目无自动发奖
+//        aa();
+//        bb();
         initItemMap();
         loadDict();
         Push.addPushSuport(PushCode.updateUserCapital, new DefaultPushHandler());
@@ -299,10 +300,16 @@ public class GameBaseService extends BaseService {
         if (user == null) {
             throwExp("用户信息异常");
         }
+        Command managerCmd = CommandBuilder.builder()
+                .request("100100", params)
+                .build();
+        Executer.request(
+                TargetSocketType.manager,
+                managerCmd,
+                new RequestManagerListener(appCommand)
+        );
 
-        Executer.request(TargetSocketType.manager, CommandBuilder.builder().request("100100", params).build(), new RequestManagerListener(appCommand));
         return async();
-
     }
 
 

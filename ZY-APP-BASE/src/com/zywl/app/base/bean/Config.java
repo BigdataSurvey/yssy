@@ -131,7 +131,7 @@ public class Config extends BaseBean {
 	// 排行榜显示数量
 	public static final String TOP_NUMBER = "TOP_NUMBER";
 
-	// 物品表版本
+	// 道具表版本
 	public static final String ITEM_VERSION = "VERSION_ITEM";
 
 	public static final String SHOP_VERSION = "VERSION_SHOP";

@@ -210,15 +210,26 @@ public class ManagerGameBaseService extends BaseService {
 
     public static final Object obj = new Object();
 
-
+    /**
+     * todo:写下来别再忘了..
+     * 同步表信息
+     * 客户端在请求参数里带上自己当前持有的表版本,服务端对比当前配置中心里的版本号
+     * 如果客户端没带某个表或者版本号不一致；就把对应的那张表的完整数据塞进 tableInfos 返回。
+     * 这样这个方法就不维护任何缓存，也不用读数据库，只读两个现成的内存源；
+     * 一个是 版本号源：ManagerConfigService.CONFIG
+     * 一个是 数据源：PlayGameService 里对应的静态 Map
+     * **/
     public JSONObject syncTableInfo(JSONObject params) {
         JSONObject tableInfos = new JSONObject();
+        //从配置中心拿当前版本号
         String itemV = managerConfigService.getString(Config.ITEM_VERSION);
         String mineV = managerConfigService.getString(Config.MINE_VERSION);
         String roleV = managerConfigService.getString(Config.ROLE_VERSION);
+        // 客户端传上来的 tableInfo
         JSONObject tableInfo = params.getJSONObject("tableInfo");
-        if (tableInfo != null
-                && (!tableInfo.containsKey("itemTable") || !itemV.equals(tableInfo.getString("itemTable")))) {
+
+        // 道具表
+        if (tableInfo != null  && (!tableInfo.containsKey("itemTable") || !itemV.equals(tableInfo.getString("itemTable")))) {
             // 需要同步物品表
             List<Item> items = new ArrayList<>(PlayGameService.itemMap.values());
             List<ItemVo> vos = new ArrayList<>();
@@ -231,13 +242,11 @@ public class ManagerGameBaseService extends BaseService {
             obj.put("version", itemV);
             obj.put("data", vos);
             tableInfos.put("itemTable", obj);
-
         }
 
-
-        if (tableInfo != null
-                && (!tableInfo.containsKey("mineTable") || !mineV.equals(tableInfo.getString("mineTable")))) {
-            // 需要同步装备表
+        // 矿表
+        if (tableInfo != null  && (!tableInfo.containsKey("mineTable") || !mineV.equals(tableInfo.getString("mineTable")))) {
+            // 挖矿相关配置
             List<DicMine> dicMines = new ArrayList<>(PlayGameService.DIC_MINE.values());
             JSONObject obj = new JSONObject();
             obj.put("version", mineV);
@@ -245,9 +254,9 @@ public class ManagerGameBaseService extends BaseService {
             tableInfos.put("mineTable", obj);
         }
 
-        if (tableInfo != null
-                && (!tableInfo.containsKey("roleTable") || !roleV.equals(tableInfo.getString("roleTable")))) {
-            // 需要同步装备表
+        // 角色表
+        if (tableInfo != null && (!tableInfo.containsKey("roleTable") || !roleV.equals(tableInfo.getString("roleTable")))) {
+            // 角色/装备配置
             List<DicRole> dicRoles = new ArrayList<>(PlayGameService.DIC_ROLE.values());
             JSONObject obj = new JSONObject();
             obj.put("version", roleV);
@@ -268,35 +277,53 @@ public class ManagerGameBaseService extends BaseService {
         Long userId = params.getLong("userId");
         synchronized (LockUtil.getlock(userId)) {
             JSONObject result = new JSONObject();
+            //用户基础信息
             User user = userCacheService.getUserInfoById(userId);
             UserVo vo = new UserVo();
             BeanUtils.copy(user, vo);
+            result.put("userInfo", vo);
+
+            //货币资产
             List<UserCapitalVo> userCapitals = userCapitalCacheService.getAllUserCapitalCache(userId);
             if (managerConfigService.getInteger(Config.IP_LOGIN_RISK) == 1) {
+                //如果开启了IP风控就对当前登录IP做一次风控校验，然后把IP和用户记录下来
                 String lastLoginIp = user.getLastLoginIp();
                 userCacheService.canLogin(lastLoginIp, userId);
                 userCacheService.addIpUser(lastLoginIp, userId);
             }
-            UserVip userVipByUserId = userVipService.findUserVipByUserId(userId);
-            gameService.getUserAchievement(String.valueOf(userId));
-            result.put("userInfo", vo);
-            result.put("vipLv", userVipByUserId == null ? 0 : userVipByUserId.getVipLevel());
-            result.put("parentId", user.getParentId() == null ? "" : user.getParentId());
             result.put("userCapitals", userCapitals);
+
+            //用户VIP信息,如果用户没有VIP就默认创建一条；
+            UserVip userVipByUserId = userVipService.findUserVipByUserId(userId);
+            result.put("vipLv", userVipByUserId == null ? 0 : userVipByUserId.getVipLevel());
+
+            result.put("achievement",gameService.getUserAchievement(String.valueOf(userId)));
+            //用户上级
+            result.put("parentId", user.getParentId() == null ? "" : user.getParentId());
+            //用户绑定信息
             result.put("alipayAuth", user.getAlipayId() == null ? 0 : 1);
+            //公告
             result.put("notice", managerConfigService.getString(Config.HOME_POPUP));
+            //交易限制 下浮比例 上浮比例
             result.put("exLim", managerConfigService.getDouble(Config.TRAD_MIN));
             result.put("exMax", managerConfigService.getDouble(Config.TRAD_MAX));
+            //排行榜 活动展示
             result.put("isShowTopList", managerConfigService.getInteger(Config.SHOW_TOP_LIST));
             result.put("isShowActive1", managerConfigService.getInteger(Config.ACTIVE1));
             result.put("isShowActive2", managerConfigService.getInteger(Config.ACTIVE2));
             result.put("isShowActive3", managerConfigService.getInteger(Config.ACTIVE3));
-            result.put("serverTime", System.currentTimeMillis());
-            result.put("tableInfo", syncTableInfo(params));
-            result.put("version", authService.getVersion().getVersionName());
+            //玩法
             result.put("sy1", managerConfigService.getInteger(Config.PLAYGAME_1_STATUS));
             result.put("sy2", managerConfigService.getInteger(Config.PLAYGAME_2_STATUS));
+            //服务器时间
+            result.put("serverTime", System.currentTimeMillis());
+            //配置表版本与静态表同步
+            result.put("tableInfo", syncTableInfo(params));
+            //版本号
+            result.put("version", authService.getVersion().getVersionName());
+            //背包信息
             result.put("backpackInfo", gameService.getReturnPack(userId));
+            //聊天信息
             result.put("chatInfo", getRecent(10));
             result.put("serverChat", SERVER_CHAT);
             return result;
@@ -360,6 +387,7 @@ public class ManagerGameBaseService extends BaseService {
         return getRewardList(userId);
 
     }
+
 
     public JSONArray getNewRewardList(String userId) {
         List<String> idList = new ArrayList<>();

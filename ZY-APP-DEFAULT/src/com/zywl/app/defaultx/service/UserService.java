@@ -624,7 +624,9 @@ public class UserService extends DaoService {
         userCacheService.removeUserInfoCache(userId);
     }
 
-
+    /**
+     * 通过channel_no得到用户
+     * **/
     public User findUserByChannelNo(String channelNo) {
         Map<String, Object> params = new HashMap<>();
         params.put("channelNo", channelNo);

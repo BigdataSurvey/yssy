@@ -37,6 +37,8 @@ public class UserAchievementService extends DaoService {
         save(userAchievement);
     }
 
+
+    //得到玩家所有成就
     public UserAchievement findUserAchievement(Long userId) {
         Map<String, Object> params = new HashedMap<String, Object>();
         params.put("userId", userId);

@@ -76,7 +76,9 @@ public class AuthService extends BaseService {
 	private WSService wsService;
 	
 	public static  Version version;
-	
+	/**
+	 * 获取版本号
+	 * **/
 	public Version getVersion() {
 		if (version == null) {
 			List<Version> versions = versionService.getReleaseVersions(1);

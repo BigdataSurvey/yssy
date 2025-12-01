@@ -5,7 +5,9 @@ import com.zywl.app.base.BaseBean;
 
 import java.math.BigDecimal;
 import java.util.Date;
-
+/**
+ * 物品道具表
+ * **/
 public class Item extends BaseBean{
 	
 	private Long id;

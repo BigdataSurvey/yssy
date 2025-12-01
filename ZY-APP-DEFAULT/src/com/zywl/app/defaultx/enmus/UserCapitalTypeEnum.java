@@ -2,9 +2,6 @@ package com.zywl.app.defaultx.enmus;
 
 /**
  *  用户资产类型
- * 
- * @author DOE
- *
  */
 public enum UserCapitalTypeEnum {
 

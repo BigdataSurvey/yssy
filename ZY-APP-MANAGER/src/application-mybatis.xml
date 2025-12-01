@@ -1,59 +1,38 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<beans  xmlns="http://www.springframework.org/schema/beans"
-	xmlns:flex="http://www.springframework.org/schema/flex" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
- 	xmlns:aop="http://www.springframework.org/schema/aop" xmlns:context="http://www.springframework.org/schema/context"
- 	xmlns:tx="http://www.springframework.org/schema/tx" xmlns:task="http://www.springframework.org/schema/task"
-	xmlns:p="http://www.springframework.org/schema/p"
-	xsi:schemaLocation="http://www.springframework.org/schema/beans 
-		http://www.springframework.org/schema/beans/spring-beans-4.3.xsd       
-		http://www.springframework.org/schema/flex 
-		http://www.springframework.org/schema/flex/spring-flex-1.0.xsd       
-		http://www.springframework.org/schema/context 
-		http://www.springframework.org/schema/context/spring-context-4.3.xsd       
-		http://www.springframework.org/schema/aop 
-		http://www.springframework.org/schema/aop/spring-aop-4.3.xsd       
-		http://www.springframework.org/schema/tx 
-		http://www.springframework.org/schema/tx/spring-tx-4.3.xsd 
-		http://www.springframework.org/schema/task
-		http://www.springframework.org/schema/task/spring-task-3.1.xsd">
+<beans xmlns="http://www.springframework.org/schema/beans"
+	   xmlns:tx="http://www.springframework.org/schema/tx"
+	   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	   xsi:schemaLocation="
+         http://www.springframework.org/schema/beans
+           http://www.springframework.org/schema/beans/spring-beans-4.3.xsd
+         http://www.springframework.org/schema/tx
+           http://www.springframework.org/schema/tx/spring-tx-4.3.xsd">
 
-	<!-- 创建SqlSessionFactory，同时指定数据源 -->
-	<bean id="sqlSessionFactory" class="org.mybatis.spring.SqlSessionFactoryBean">
-		<property name="configLocation" value="classpath:sqlMapConfig.xml" />
-		<property name="dataSource" ref="dataSource" />
-		<!-- mapper和resultmap配置路径 -->
-		<property name="mapperLocations">
-			<list>
-				<value>classpath:com/zywl/app/defaultx/mapper/*Mapper.xml</value>
-			</list>
-		</property>
-	</bean>
+<!-- SqlSessionFactoryBean，只指定 configLocation 与 dataSource -->
+<bean id="sqlSessionFactory" class="org.mybatis.spring.SqlSessionFactoryBean">
+	<property name="configLocation" value="classpath:sqlMapConfig.xml"/>
+	<property name="dataSource" ref="dataSource"/>
+	<property name="mapperLocations">
+		<list>
+			<value>classpath:com/zywl/app/defaultx/mapper/*Mapper.xml</value>
+		</list>
+	</property>
+</bean>
 
-	<bean id="transactionManager" class="org.springframework.jdbc.datasource.DataSourceTransactionManager">
-		<property name="dataSource">
-			<ref bean="dataSource" />
-		</property>
-	</bean>
-	
-	<!-- 需要事物支持的方法自行使用@Transactional注解 -->
-	<tx:annotation-driven transaction-manager="transactionManager" />
+<!-- 事务管理器 -->
+<bean id="transactionManager" class="org.springframework.jdbc.datasource.DataSourceTransactionManager">
+	<property name="dataSource" ref="dataSource"/>
+</bean>
+<tx:annotation-driven transaction-manager="transactionManager"/>
 
-	<!-- 声明式事务优先级低于注解事务，传播类型为SUPPORTS(有事务则支持,没有事务则不支持) 
-	<aop:config proxy-target-class="true">
-		<aop:advisor advice-ref="txAdvice" pointcut="execution(* com.zywl.app.*.service..*.*(..))" order="11" />
-	</aop:config>
-	<tx:advice id="txAdvice" transaction-manager="transactionManager">
-		<tx:attributes>
-            <tx:method name="*" propagation="SUPPORTS" />
-		</tx:attributes>
-	</tx:advice>-->
-	
-	<bean id="myBatisDao" class="com.zywl.app.defaultx.dbutil.MyBatisDaoImpl">
-		<property name="sqlSession">
-			<bean class="org.mybatis.spring.SqlSessionTemplate" scope="prototype">
-				<constructor-arg index="0" ref="sqlSessionFactory" />
-			</bean>
-		</property>
-	</bean>
-	
+<!-- MyBatis Dao -->
+<bean id="myBatisDao" class="com.zywl.app.defaultx.dbutil.MyBatisDaoImpl">
+	<property name="sqlSession">
+		<bean class="org.mybatis.spring.SqlSessionTemplate" scope="prototype">
+			<constructor-arg index="0" ref="sqlSessionFactory"/>
+		</bean>
+	</property>
+</bean>
 </beans>
+
+

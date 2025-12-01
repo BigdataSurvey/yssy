@@ -37,6 +37,7 @@ public class ServerZytService  extends BaseService {
     public Object draw(final AppSocket appSocket, Command appCommand, JSONObject params) {
         checkNull(params);
         params.put("userId", appSocket.getWsidBean().getUserId());
+        throwExp("即将开放");
         Executer.request(TargetSocketType.manager, CommandBuilder.builder().request("9022002", params).build(),
                 new RequestManagerListener(appCommand));
         return async();

@@ -3,7 +3,9 @@ package com.zywl.app.base.bean;
 import com.zywl.app.base.BaseBean;
 
 import java.math.BigDecimal;
-
+/**
+ * 玩家个人统计表
+ * **/
 public class UserStatistic extends BaseBean{
 	
 	

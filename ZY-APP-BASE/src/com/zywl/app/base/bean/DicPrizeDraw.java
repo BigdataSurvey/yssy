@@ -3,6 +3,9 @@ package com.zywl.app.base.bean;
 import com.alibaba.fastjson2.JSONArray;
 import com.alibaba.fastjson2.JSONObject;
 import com.zywl.app.base.BaseBean;
+/**
+ * 抽奖规则
+ * **/
 public class DicPrizeDraw extends BaseBean {
 
 

@@ -46,7 +46,9 @@ public class BackpackService extends DaoService {
         return save(params);
 
     }
-
+    /**
+     * 得到用户背包信息
+     * **/
     public List<Backpack> getBackpackByUserId(Long userId) {
         Map<String, Object> map = new HashedMap<String, Object>();
         map.put("userId", userId);

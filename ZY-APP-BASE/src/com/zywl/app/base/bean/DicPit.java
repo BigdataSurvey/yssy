@@ -3,7 +3,9 @@ package com.zywl.app.base.bean;
 import com.zywl.app.base.BaseBean;
 
 import java.math.BigDecimal;
-
+/**
+ * 矿场配置
+ * **/
 public class DicPit extends BaseBean {
 
     private Integer id;

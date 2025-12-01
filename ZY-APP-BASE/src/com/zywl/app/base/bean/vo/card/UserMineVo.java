@@ -1,12 +1,12 @@
 package com.zywl.app.base.bean.vo.card;
-
 import com.alibaba.fastjson2.JSONArray;
 import com.zywl.app.base.BaseBean;
 import com.zywl.app.base.bean.card.DicMine;
-
 import java.math.BigDecimal;
 import java.util.Date;
-
+/**
+ * 玩家矿场表
+ * **/
 public class UserMineVo extends BaseBean {
 
 

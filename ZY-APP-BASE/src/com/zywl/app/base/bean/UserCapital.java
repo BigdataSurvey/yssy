@@ -1,11 +1,12 @@
 package com.zywl.app.base.bean;
-
 import com.zywl.app.base.BaseBean;
 import com.zywl.app.base.util.DateUtil;
 
 import java.math.BigDecimal;
 import java.util.Date;
-
+/**
+ * 玩家资产配置
+ * **/
 public class UserCapital extends BaseBean{
 	
 	public static final  String tablePrefix = "t_user_capital";

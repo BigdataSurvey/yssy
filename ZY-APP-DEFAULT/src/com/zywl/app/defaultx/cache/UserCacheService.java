@@ -16,11 +16,11 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
+/**
+ * 用户缓存服务
+ * **/
 @Service
 public class UserCacheService extends RedisService {
 
@@ -53,6 +53,28 @@ public class UserCacheService extends RedisService {
     @Autowired
     private VersionService versionService;
 
+    /**
+     * @Author: lzx
+     * @Create: 2025-06-30
+     * 批量加载并校验一组用户
+     */
+    public Map<Long, User> loadUsers(Long... userIds) {
+        if (userIds == null || userIds.length == 0) {
+            throwExp("至少要传入一个 userId");
+        }
+        Map<Long, User> result = new LinkedHashMap<>();
+        for (Long uid : userIds) {
+            if (uid == null) {
+                throwExp("userId 不能为空");
+            }
+            User u = getUserInfoById(uid);
+            if (u == null) {
+                throwExp("用户不存在，userId=" + uid);
+            }
+            result.put(uid, u);
+        }
+        return result;
+    }
 
     public User getUserInfoById(Long userId) {
         String key = RedisKeyConstant.APP_USER_INFO + userId + "-";

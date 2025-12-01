@@ -2,7 +2,9 @@ package com.zywl.app.base.bean;
 
 import com.alibaba.fastjson2.JSONArray;
 import com.zywl.app.base.BaseBean;
-
+/**
+ * 每日任务表
+ * **/
 public class DailyTask extends BaseBean{
 	
 	private Long id;
