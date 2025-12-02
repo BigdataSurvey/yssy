@@ -261,7 +261,6 @@ public class GameBaseService extends BaseService {
         Push.doAddPush(appSocket, new PushBean(PushCode.updateRoleCard, user.getId().toString()));
         Push.doAddPush(appSocket, new PushBean(PushCode.updateRoleCardAll, user.getId().toString()));
         Push.doAddPush(appSocket, new PushBean(PushCode.caidengmi, user.getId().toString()));
-
     }
 
     public void unregistLoginPush(AppSocket appSocket) {
