@@ -15,55 +15,55 @@ ZY-KEYFACTORY：用于生成和管理 wsid（WebSocket ID）等密钥的模块�
 
 该项目的登录流程概述：
 1.yssy 登录流程概述：
-1.1.客户端向 ZY-APP-MANAGER 发送登录请求：客户端首先向 ZY-APP-MANAGER 发送一个 HTTP 请求，请求路径为 /getServer，用于获取服务器信息、版本号和登录 URL。
+1.1.客户端向 ZY-APP-MANAGER 发送登录请求：客户端首先向 ZY-APP-MANAGER 发送一个 HTTP 请求，请求路径为 /afdagfwae，用于获取服务器信息、版本号和登录 URL。
 1.2.服务器响应并返回登录地址：ZY-APP-MANAGER 响应包含版本号和 loginUrl（登录地址），然后客户端根据 loginUrl 继续访问 微信登录接口。
 1.3.客户端调用 /wxLoginOauth 完成用户登录：客户端向 ZY-APP-MANAGER 的 /wxLoginOauth 接口发起登录请求，携带如 openId、gameToken 等参数，用于身份验证和注册/登录。
 1.4.服务器根据用户信息生成 wsid：服务器验证用户信息后，会生成一个 wsid（WebSocket ID），并将其作为响应返回给客户端。
 1.5.WebSocket 连接：客户端使用获取到的 wsid 和 wsPrivateKey 通过 WebSocket 与 ZY-APP-SERVER 建立连接。连接建立后，服务器可以根据 wsid 获取用户信息，并推送用户数据。
 
 2.详细登录流程：
-2.1 客户端调用 /getServer 接口
-	客户端向 ZY-APP-MANAGER 发起 GET 请求：
-		GET http://localhost:8080/ZY-APP-MANAGER/getServer
-	请求参数：versionCode（版本号），deviceId（设备号），clientType（客户端类型，Web/App）
-	返回内容（JSON）：
-		{
-			"version": "1.0.0",
-			"loginUrl": "http://localhost:8080/ZY-APP-MANAGER/wxLoginOauth",
-			"wsid": "some_generated_wsid"
-		}
-	version: 当前服务版本。
-	loginUrl: 后续登录的 HTTP 路径，客户端需要通过该 URL 完成微信登录。
-	wsid: WebSocket 会话 ID，客户端需要在后续与服务器建立 WebSocket 连接时使用。
+2.1 客户端调用 /afdagfwae 接口
+客户端向 ZY-APP-MANAGER 发起 GET 请求：
+GET http://localhost:8080/ZY-APP-MANAGER/afdagfwae
+请求参数：versionCode（版本号），deviceId（设备号），clientType（客户端类型，Web/App）
+返回内容（JSON）：
+{
+"version": "1.0.0",
+"loginUrl": "http://localhost:8080/ZY-APP-MANAGER/wxLoginOauth",
+"wsid": "some_generated_wsid"
+}
+version: 当前服务版本。
+loginUrl: 后续登录的 HTTP 路径，客户端需要通过该 URL 完成微信登录。
+wsid: WebSocket 会话 ID，客户端需要在后续与服务器建立 WebSocket 连接时使用。
 
 2.2 客户端调用 /wxLoginOauth 完成登录
-客户端使用从 /getServer 获取到的 loginUrl，发起 POST 请求到 ZY-APP-MANAGER 的 /wxLoginOauth：
+客户端使用从 /afdagfwae 获取到的 loginUrl，发起 POST 请求到 ZY-APP-MANAGER 的 /wxLoginOauth：
 POST http://localhost:8080/ZY-APP-MANAGER/wxLoginOauth
 
 请求参数（示例）：
 {
-  "openId": "user_openid",
-  "gameToken": "game_token", 
-  "deviceId": "device123",
-  "versionId": "1.0.0",
-  "inviteCode": "invite_code"
+"openId": "user_openid",
+"gameToken": "game_token",
+"deviceId": "device123",
+"versionId": "1.0.0",
+"inviteCode": "invite_code"
 }
 返回内容（JSON）：
 {
-  "wsid": "generated_wsid",
-  "userInfo": {
-    "userId": "user123",
-    "nickname": "Player123",
-    "avatar": "http://avatar.com/image.jpg"
-  }
+"wsid": "generated_wsid",
+"userInfo": {
+"userId": "user123",
+"nickname": "Player123",
+"avatar": "http://avatar.com/image.jpg"
+}
 }
 wsid: 用户会话 ID（WebSocket ID），用来与服务器建立 WebSocket 连接。
 userInfo: 返回用户基本信息，包括 userId、nickname 和 avatar 等
 
 2.3服务器生成 wsid 并返回
 服务器接收到客户端的登录请求后，会根据 openId 和 gameToken 来验证用户：
-	如果是新用户，进行 注册，并生成 wsid。
-	如果是老用户，直接验证其身份，生成 wsid。
+如果是新用户，进行 注册，并生成 wsid。
+如果是老用户，直接验证其身份，生成 wsid。
 服务器会根据客户端传来的 deviceId、versionId 等信息，生成一个 唯一的会话 ID (wsid)。
 
 2.4客户端建立 WebSocket 连接
@@ -77,17 +77,17 @@ ws://127.0.0.1:8083/ZY-APP-SERVER/LogServer?wsid=some_generated_wsid&pk=private_
 通过 wsid，服务器可以将 用户信息 和 会话 绑定，保证后续通信的正常进行。
 
 3. 整体流程图（登录流程简化版）
-客户端 → 发送 GET /getServer  →  服务器（ZY-APP-MANAGER）  
+   客户端 → 发送 GET /afdagfwae  →  服务器（ZY-APP-MANAGER）  
    ↓                                 ↓  
-  获取版本与登录 URL  ← 返回版本、登录 URL、wsid  
+   获取版本与登录 URL  ← 返回版本、登录 URL、wsid  
    ↓                                 ↑  
-客户端 → 发送 POST /wxLoginOauth →  服务器（ZY-APP-MANAGER）  
+   客户端 → 发送 POST /wxLoginOauth →  服务器（ZY-APP-MANAGER）  
    ↓                                 ↓  
-  发送 openId 和 gameToken        返回 wsid 和 userInfo  
+   发送 openId 和 gameToken        返回 wsid 和 userInfo  
    ↓                                 ↑  
-客户端 → 使用 wsid 与服务器 WebSocket 连接  
+   客户端 → 使用 wsid 与服务器 WebSocket 连接  
    ↓                                 ↓  
-连接建立成功   ← 通过 WebSocket 获取用户数据  
+   连接建立成功   ← 通过 WebSocket 获取用户数据
 
 
 有一个很重要的概念：
@@ -127,10 +127,10 @@ updateGameKey 是“服务已经跑起来以后，当配表/Config 被修改时�
 2.2:getInfo 中调用了 result.put("tableInfo", syncTableInfo(params));
 2.3:syncTableInfo 从CONFIG 里读：itemV = managerConfigService.getString(Config.ITEM_VERSION)，得到 "3"；之后比较客户端的"2"和服务器的"3",不想等就需要同步; 用 new ArrayList<>(PlayGameService.itemMap.values()) 拿到最新 Item 列表,就可以返回：
 "tableInfo": {
-  "itemTable": {
-    "version": "3",
-    "data": [ /* 全量 Item 数据 */ ]
-  }
+"itemTable": {
+"version": "3",
+"data": [ /* 全量 Item 数据 */ ]
+}
 }
 2.4:客户端收到后把本地的itemTable更新成这份data、把本地的itemTableVersion更新为"3"、下次登录就带"3",如果服务器还是"3",那么就不会再发这张表;
 3:运维修改了物品表(比如增加了一个道具)
@@ -140,3 +140,46 @@ updateGameKey 是“服务已经跑起来以后，当配表/Config 被修改时�
 
 此时已在线玩家通过 push 收到 "itemTable" 的新表，可立即更新;
 之后新登录玩家：通过 syncTableInfo 比对 "4"，决定是否下发表。
+
+
+下面是常用的服务,需要你仔细检查和分析,保存在记忆当中
+
+用户资产缓存服务：
+yssy\ZY-APP-DEFAULT\src\com\zywl\app\defaultx\cache\UserCapitalCacheService.java
+用户缓存服务：
+yssy\ZY-APP-DEFAULT\src\com\zywl\app\defaultx\cache\UserCacheService.java
+用户资产类型
+yssy\ZY-APP-DEFAULT\src\com\zywl\app\defaultx\enmus\UserCapitalTypeEnum.java
+用户配置服务
+yssy\ZY-APP-MANAGER\src\com\zywl\app\manager\service\manager\ManagerConfigService.java
+VIP用户服务
+yssy\ZY-APP-DEFAULT\src\com\zywl\app\defaultx\service\UserVipService.java
+
+
+下面是一些常用写法,请你一定仔细检查和分析,保存在记忆当中;
+
+//校验用户
+Map<Long, User> users = userCacheService.loadUsers(userId);
+查询用户的VIP信息
+userVipService.findUserVipByUserId(userId);
+
+拿到配置表某个配置
+managerConfigService.getInteger(Config.IP_LOGIN_RISK) 或者getString;
+修改配置表某个配置
+
+用户背包信息
+gameService.getReturnPack(userId)
+推送背包最新状态
+managerGameBaseService.pushBackpackUpdate(Long.parseLong(userId), itemId,number,1);
+
+
+
+
+
+
+游戏货币暂定金币和小丑币
+道具，暂定3个类型的种子，建议是可配置的，数值现在还不能确定，也是建议可配置的
+这个种子后台把它当做一个矿机去做就行，每天都要产出，类似逆天灵兽
+
+小丑币就是玩游戏的
+积分就是金币吧
