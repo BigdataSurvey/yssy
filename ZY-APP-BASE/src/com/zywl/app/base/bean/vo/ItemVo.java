@@ -4,79 +4,108 @@ import com.alibaba.fastjson2.JSONArray;
 import com.zywl.app.base.BaseBean;
 
 import java.math.BigDecimal;
+import java.util.Date;
 
 public class ItemVo extends BaseBean{
 
-	
+	/** 主键ID */
 	private Long id;
-	
+
+	/** 道具名称 */
 	private String name;
-	
+
+	/** 道具数量 */
 	private Integer number;
 
-	private Integer canSyn;
-
-	private JSONArray synUse;
-
-	private Integer synRate;
-	
+	/** 描述 */
 	private String context;
 
-	private Integer isUse;
-
-	private Integer isSend;
-
-
-	private Integer synNumber;
-	private BigDecimal tradPrice;
-	
-	private BigDecimal shopPrice;
-	
-	//品质
-	private Integer quality;
-
+	/** 是否是书 */
 	private int isBook;
 
+	/** 书的奖励 */
 	private BigDecimal bookReward;
-	
+
+	/** 品质（1=普通，2=稀有） */
+	private Integer quality;
+
+	/** 可使用（1=可用，0=不可用） */
+	private Integer isUse;
+
+	/** 是否可叠加（1=可叠加，0=不可叠加） */
 	private Integer isOverlap;
-	
+
+	/** 是否可出售（1=可出售，0=不可出售） */
 	private Integer isSell;
-	
+
+	/** 是否可赠送（1=可赠送，0=不可赠送） */
+	private Integer isSend;
+
+	/** 同步数量 */
+	private Integer synNumber;
+
+	/** 同步可否（1=可同步，0=不可同步） */
+	private Integer canSyn;
+
+	/** 同步使用 */
+	private JSONArray synUse;
+
+	/** 同步概率 */
+	private Integer synRate;
+
+	/** 同步结果ID */
+	private String synResultId;
+
+
 	private Integer currencyType;
-	
+
+	/** 出售价格 */
 	private BigDecimal price;
 
-	private BigDecimal magicPrice;
+	/** 交易价格 */
+	private BigDecimal tradPrice;
 
-	private BigDecimal shopMagicPrice;
-	
-	
+	/** 售价价格 */
+	private BigDecimal shopPrice;
+
+	/** 可交易（1=可以，0=不可以） */
 	private Integer isTrading;
-	
+
+	/** 是否有冷却/持续时间 */
 	private Integer isDuration;
-	
+
+	/** 持续时间 */
 	private Integer durationDays;
-	
-	
+
+	/** 类型（1=货币，2=消耗品） */
 	private Integer type;
-	
-	//位置
+
+	/** 客户端展示位置（1=货币栏，2=道具栏） */
 	private Integer positon;
-	
+
+	/** 图标资源名 */
 	private String icon;
-	
+
+	/** 状态（1=有效，0=下架） */
 	private Integer status;
-	
+
+	/** 创建时间 */
+	private Date createTime;
+	/** 更新时间 */
+	private Date updateTime;
+	/** 获取途径 */
 	private String getWay;
-
-
+	/** 魔法值价格 */
+	private BigDecimal magicPrice;
+	/** 商城魔法值价格 */
+	private BigDecimal shopMagicPrice;
+	/** 仙门基金价格 */
 	private BigDecimal fund;
-
+	/** 需要的仙门贡献值 */
 	private BigDecimal contribution;
-
-
+	/** 效果数值（果实类道具恢复体力量） */
 	private Integer power;
+
 
 	public BigDecimal getFund() {
 		return fund;
@@ -258,7 +287,7 @@ public class ItemVo extends BaseBean{
 	public void setShopPrice(BigDecimal shopPrice) {
 		this.shopPrice = shopPrice;
 	}
-	
+
 	public BigDecimal getShopPrice() {
 		return this.shopPrice;
 	}
