@@ -31,7 +31,7 @@ public class Item extends BaseBean{
 	/** 书的奖励 */
 	private BigDecimal bookReward;
 
-	/** 品质（1=普通，2=稀有） */
+	/** 品质（1白 2绿 3蓝 4紫 5橙） */
 	private Integer quality;
 
 	/** 可使用（1=可用，0=不可用） */
@@ -82,10 +82,10 @@ public class Item extends BaseBean{
 	/** 持续时间 */
 	private Integer durationDays;
 
-	/** 类型（1=货币，2=消耗品） */
+	/** 类型 1材料 / 2种子&基础道具 / 3功能道具 / 4货币 / 5礼包(预留) */
 	private Integer type;
 
-	/** 客户端展示位置（1=货币栏，2=道具栏） */
+	/** 客户端展示位置 1货币栏 / 2道具背包 */
 	private Integer positon;
 
 	/** 图标资源名 */

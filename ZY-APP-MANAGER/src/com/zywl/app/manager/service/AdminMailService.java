@@ -39,6 +39,9 @@ import java.math.BigDecimal;
 import java.util.*;
 import java.util.stream.Collectors;
 
+/**
+ * @author Administrator
+ */
 @Service
 @ServiceClass(code = MessageCodeContext.ADMIN_EMAIL_SERVER)
 public class AdminMailService extends BaseService {
@@ -87,14 +90,12 @@ public class AdminMailService extends BaseService {
     private ManagerTradingService managerTradingService;
     @Autowired
     private ManagerSocketService managerSocketService;
-
     @Autowired
     private ManagerConfigService managerConfigService;
     @Autowired
     private CashRecordService cashRecordService;
     @Autowired
     private RechargeOrderService rechargeOrderService;
-
     @Autowired
     private AdminLogService adminLogService;
     @Autowired
@@ -109,11 +110,8 @@ public class AdminMailService extends BaseService {
     private UserBanRecordService userBanRecordService;
     @Autowired
     private CashCacheService cashCacheService;
-
-
     @Autowired
     private UserMineService userMineService;
-
     @Autowired
     private ShopManagerService shopManagerService;
 

@@ -8,9 +8,9 @@ var LIVEAPP = angular.module('LIVE-APP', [
     'ui.router',
     'oc.lazyLoad',
     'toastr'
-    ], function($controllerProvider){
-        controllerProvider = $controllerProvider;
-    });
+], function($controllerProvider){
+    controllerProvider = $controllerProvider;
+});
 LIVEAPP.config(function(toastrConfig) {
     angular.extend(toastrConfig, {
         closeButton : false,
@@ -35,8 +35,8 @@ angular.module('LIVE-APP')
     }]);
 var menuTree = [{id: 'Home', name: '代理数据', icon: 'ti-home'},
     {id: 'Business', name: '业务管理', icon: 'ti-view-grid', hasChild: true, children: [
-        {id: 'SubAgentManager', name: '下级管理'}
-    ]}
+            {id: 'SubAgentManager', name: '下级管理'}
+        ]}
 ];
 window._defualtMenuId = menuTree[0].id;
 angular.module('LIVE-APP').constant('menuTree', menuTree);
