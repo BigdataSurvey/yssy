@@ -1138,41 +1138,242 @@ public class ManagerGameBaseService extends BaseService {
     }
 
 
+    /**
+     * 046 合成道具
+     * 种子合成：3合1 + 主/副 + 暗概率 + 奖池
+     * 配表 dic_item：
+     *  syn_use  = [主种子ID, 副种子ID1, 副种子ID2]
+     *  syn_rate = 明概率; 策划说只展示不计算，
+     *  price    = 当前目标种子的价值，单位=核心积分 用于奖池计算；
+     *
+     *主/副消耗规则（单次尝试）：
+     * - 成功：主种子1 + 两个副种子共2  ==> 共消耗3颗当前等级种子，获得1颗高一级种子
+     * - 失败：主种子不消耗，两个副种子各1  ==> 共消耗2颗当前等级种子，保底留1颗主种子
+     *
+     * 奖池规则（按本次总成功/失败次数集中结算）：
+     * SeedValue = 目标种子的 price
+     * failCount = 失败次数
+     * successCount = 成功次数
+     *
+     *  奖池增加值 =  SeedValue * FailRate * failCount
+     *  奖池减少值 =  SeedValue * successCount
+     *  newPool   =  oldPool + 奖池增加值 - 奖池减少值
+     *
+     *  假设：
+     *  maxNeedPerItem 是主材料大消耗值
+     *  subCountForMain 是主材料在副材料中的数量；
+     *  number 合成次数
+     *
+     *  syn_use = 1101、1101、1101; number =10;
+     *  10次都合成的最大消耗值: maxNeedPerItem = [（1+ subCountForMain=2 ）* number=10 ] = 30; 这是最大的消耗数 30也是主+副的全部;
+     *
+     *  syn_use = 1101、1102、1102; number =10;
+     *  10次都合成的最大消耗值: maxNeedPerItem = [（1+ subCountForMain=0 ）* number=10 ] = 10;
+     **/
     @Transactional
     @ServiceMethod(code = "046", description = "合成道具")
     @KafkaProducer(topic = KafkaTopicContext.RED_POINT, event = KafkaEventContext.SYN, sendParams = true)
     public Object syn(ManagerSocketServer managerSocketServer, JSONObject params) {
         String resultId = params.getString("itemId");
-        int number = params.getIntValue("number");
-        Long userId = params.getLong("userId");
+        int    number   = params.getIntValue("number");
+        Long   userId   = params.getLong("userId");
+        checkNull(resultId, number, userId);
+        Map<Long, User> users = userCacheService.loadUsers(userId);
+
         synchronized (LockUtil.getlock(userId)) {
-            if (number < 0 || number > 99) {
+
+            if (number < 1 || number > 999) {
                 throwExp("数量区间不合理");
             }
-            if (!PlayGameService.itemMap.containsKey(resultId) || PlayGameService.itemMap.get(resultId).getCanSyn() == 0) {
+
+            Item resultItem = PlayGameService.itemMap.get(resultId);
+            if (resultItem == null || resultItem.getCanSyn() == null || resultItem.getCanSyn() == 0) {
                 throwExp("道具ID有误");
             }
-            JSONArray synUse = PlayGameService.itemMap.get(resultId).getSynUse();
-            int finalNumber = 0;
+
+            JSONArray synUse = resultItem.getSynUse();
+            if (synUse == null || synUse.isEmpty()) {
+                throwExp("该道具未配置合成材料");
+            }
+            if (synUse.size() != 3) {
+                throwExp("合成配方配置错误，必须为3个材料（1主2副）");
+            }
+
+            //主种子ID
+            String mainItemId = synUse.get(0).toString();
+
+            // 统计副材料列表中每个道具出现的次数 syn_use = [1101,1101,1101] -> subUseCount = {"1101": 2}
+            Map<String, Integer> subUseCount = new HashMap<>();
+            for (int i = 1; i < synUse.size(); i++) {
+                String sid = synUse.get(i).toString();
+                subUseCount.merge(sid, 1, Integer::sum);
+            }
+
+            // 主种子在“副材料列表”里出现了几次 [1101,1101,1101] -> subCountForMain = 2；[1101,1102,1102] -> subCountForMain = 0
+            int subCountForMain = subUseCount.getOrDefault(mainItemId, 0);
+
+            /**
+             * 计算最大消耗(合成)的情况下的消耗量 背包里抗不抗得住；
+             * **/
+            Map<String, Integer> maxNeedPerItem = new HashMap<>();
+
+            // 主种子最大需求量 = 1个主种子 + (主种子在副种子中的数量) * N
+            maxNeedPerItem.put(mainItemId, (1 + subCountForMain) * number);
+
+            // 其他副材料最大需求量
+            for (Map.Entry<String, Integer> entry : subUseCount.entrySet()) {
+                String sid = entry.getKey();
+                //如果主材料和辅材料一样就跳过；因为前面算过了；
+                if (sid.equals(mainItemId)) {
+                    continue;
+                }
+                maxNeedPerItem.put(sid, entry.getValue() * number);
+            }
+
+            // 背包中检查每种材料必须 >= 最大需求量
+            for (Map.Entry<String, Integer> entry : maxNeedPerItem.entrySet()) {
+                gameService.checkUserItemNumber(userId, entry.getKey(), entry.getValue());
+            }
+
+            //明
+            int realRate = resultItem.getSynRate() == null ? 0 : resultItem.getSynRate();
+
+            //暗的开关,如果策划想搞可以设置为1让所有合成失败
+            String darkSwitch = managerConfigService.getString(Config.SEED_SYN_DARK_SWITCH);
+
+            // 根据不同种子的品质，映射不同的暗滤
+            String darkKey = null;
+            Integer quality = resultItem.getQuality();
+            if (quality != null) {
+                switch (quality) {
+                    case 2: darkKey = Config.SEED_SYN_DARK_RATE_LV2; break;
+                    case 3: darkKey = Config.SEED_SYN_DARK_RATE_LV3; break;
+                    case 4: darkKey = Config.SEED_SYN_DARK_RATE_LV4; break;
+                    case 5: darkKey = Config.SEED_SYN_DARK_RATE_LV5; break;
+                    default: break;
+                }
+            }
+
+            // 如果开关开启且有配置暗概率，则用暗概率覆盖真实成功率
+            if (!"0".equals(darkSwitch) && darkKey != null) {
+                Integer darkRate = managerConfigService.getInteger(darkKey);
+                if (darkRate != null && darkRate >= 0 && darkRate <= 100) {
+                    realRate = darkRate;
+                }
+            }
+
+            //根据真是成功率和合并次数来计算出 成功次数和失败次数
+            int successCount = 0;
             Random random = new Random();
             for (int i = 0; i < number; i++) {
                 int k = random.nextInt(100) + 1;
-                if (k <= PlayGameService.itemMap.get(resultId).getSynRate()) {
-                    finalNumber++;
+                if (k <= realRate) {
+                    successCount++;
                 }
             }
-            for (Object o : synUse) {
-                Long useId = Long.parseLong(o.toString());
-                gameService.checkUserItemNumber(userId, String.valueOf(useId), number);
-                gameService.updateUserBackpack(userId, String.valueOf(useId), -number, LogUserBackpackTypeEnum.use);
+            int failCount = number - successCount;
+
+
+            /*
+             * 单次规则：
+             *   成功：主1 + 副全部各1  => 共3颗当前等级
+             *   失败：主0 + 副全部各1  => 共2颗当前等级（保底主不掉）
+             */
+
+            //主种子扣除
+            int mainUse = subCountForMain * number + successCount;
+            if (mainUse > 0) {
+                gameService.updateUserBackpack(
+                        userId,
+                        mainItemId,
+                        -mainUse,
+                        LogUserBackpackTypeEnum.use
+                );
             }
-            gameService.updateUserBackpack(userId, resultId, finalNumber, LogUserBackpackTypeEnum.syn);
+
+            //副材料扣除
+            for (Map.Entry<String, Integer> entry : subUseCount.entrySet()) {
+                String sid = entry.getKey();
+                //主种子已经处理过
+                if (sid.equals(mainItemId)) {
+                    continue;
+                }
+                // 这个sid在副列表出现次数
+                int countInSubList = entry.getValue();
+                // 总共要扣多少
+                int subUse = countInSubList * number;
+                if (subUse > 0) {
+                    gameService.updateUserBackpack(
+                            userId,
+                            sid,
+                            -subUse,
+                            LogUserBackpackTypeEnum.use
+                    );
+                }
+            }
+
+            // 合成结果
+            if (successCount > 0) {
+                gameService.updateUserBackpack(
+                        userId,
+                        resultId,
+                        successCount,
+                        LogUserBackpackTypeEnum.syn
+                );
+            }
+
+            try {
+                // 种子价值
+                BigDecimal seedValue = resultItem.getPrice();
+                if (seedValue == null) {
+                    seedValue = BigDecimal.ZERO;
+                }
+
+                // 当前奖池值
+                String poolStr = managerConfigService.getString(Config.SEED_SYN_POOL);
+                if (poolStr == null || poolStr.trim().isEmpty()) {
+                    poolStr = "0";
+                }
+                BigDecimal pool = new BigDecimal(poolStr);
+
+                // 失败注入比例
+                String failRateStr = managerConfigService.getString(Config.SEED_SYN_FAIL_POOL_RATE);
+                if (failRateStr == null || failRateStr.trim().isEmpty()) {
+                    failRateStr = "0.2";
+                }
+                BigDecimal failRate = new BigDecimal(failRateStr);
+
+                // 失败累计增加的奖池：种子价值 * 失败次数 * 失败注入比例
+                BigDecimal failAdd = seedValue
+                        .multiply(failRate)
+                        .multiply(BigDecimal.valueOf(failCount));
+
+                // 成功累计扣减的奖池：种子价值 * 成功次数
+                BigDecimal successSub = seedValue
+                        .multiply(BigDecimal.valueOf(successCount));
+
+                // 新奖池 = 旧奖池 + 失败注入 - 成功扣减
+                BigDecimal newPool = pool.add(failAdd).subtract(successSub);
+
+                // 回写到奖池
+                managerConfigService.updateConfigData(
+                        Config.SEED_SYN_POOL,
+                        newPool.toPlainString()
+                );
+            } catch (Exception e) {
+                logger.error("更新种子合成奖池失败", e);
+            }
+
             JSONObject result = new JSONObject();
-            result.put("number", finalNumber);
             result.put("itemId", resultId);
+            result.put("successCount", successCount);
+            result.put("failCount", failCount);
+
             return result;
         }
     }
+
+
 
     public void checkBalance(String userId, BigDecimal price, UserCapitalTypeEnum em) {
         checkBalance(Long.parseLong(userId), price, em);

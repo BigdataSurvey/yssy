@@ -834,7 +834,7 @@ public class AdminMailService extends BaseService {
         checkNull(params);
         int page = params.getIntValue("page", 0);
         int limit = params.getIntValue("limit", 10);
-        String itemId = ItemIdEnum.WFSB.getValue();
+        String itemId = null;
         List<BackpackVo> backpackTopList = backpackService.getBackpackTopList(itemId);
         backpackTopList.sort(((o1, o2) -> (o1.getNumber() - o2.getNumber()) < 0 ? 1 : -1));
         List<?> objects = subListJava8(backpackTopList, limit, page);

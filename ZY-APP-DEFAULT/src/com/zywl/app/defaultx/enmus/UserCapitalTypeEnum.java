@@ -10,7 +10,8 @@ public enum UserCapitalTypeEnum {
 	yyb("游园券",3),
 	rmb("游园币", 4),
 	score("积分",5),
-
+	hxjf("核心积分",6),
+	xxxhhb("游戏消耗货币",7)
 	;
 	
 	private String name;

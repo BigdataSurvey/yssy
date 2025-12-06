@@ -64,38 +64,52 @@ public class ServerMailService extends BaseService{
 		return getMailInfo(userId,page,num);
 	}
 
-	@ServiceMethod(code = "002", description = "发送邮件")
+	@ServiceMethod(code = "002", description = "发送邮件 (转增)")
 	public Async sendMail(final AppSocket appSocket, Command appCommand, JSONObject params) {
 		checkNull(params);
 		checkNull(params.get("toUserNo"));
+		checkNull(params.get("amount"));
+		checkNull(params.get("itemId"));
 		long userId = appSocket.getWsidBean().getUserId();
 		params.put("userId", userId);
+
+		//收件人账号校验
 		String toUserNo = params.getString("toUserNo");
 		User toUser = userCacheService.getUserInfoByUserNo(toUserNo);
-		if (toUser==null){
+		if (toUser == null) {
 			throwExp("玩家不存在");
 		}
 		params.put("toUserId", toUser.getId());
+
 		User user = userCacheService.getUserInfoById(userId);
-		if ((System.currentTimeMillis() - user.getRegistTime().getTime())/1000<86400){
-			List<ActiveGiftRecord> byUserId = activeGiftRecordService.findByUserId(userId, 2);
-			if (byUserId==null||byUserId.size()==0){
-				throwExp("注册24小时后解锁赠送道具功能。");
-			}
-		}
-		if (user.getRisk()==1){
-			throwExp("账号存在风险，请联系客服进行核实。");
-		}
-		UserMail userMail = userMailService.findUserReadMailInfo(userId);
-		if (userMail == null || user==null ) {
+		if (user == null) {
 			throwExp("玩家信息有误");
 		}
+
 		if (user.getUserNo().equals(toUserNo)) {
-			throwExp("不能给自己赠送");
+			throwExp("不能给自己转赠");
 		}
-		Executer.request(TargetSocketType.manager,CommandBuilder.builder().request("800200", params).build(), new RequestManagerListener(appCommand));
+
+		// 注册24小时内且未达成指定条件，禁止转赠
+		if ((System.currentTimeMillis() - user.getRegistTime().getTime()) / 1000 < 86400) {
+			List<ActiveGiftRecord> records = activeGiftRecordService.findByUserId(userId, 2);
+			if (records == null || records.isEmpty()) {
+				throwExp("注册24小时后解锁转赠功能");
+			}
+		}
+
+		if (user.getRisk() == 1) {
+			throwExp("账号存在风险，请联系客服进行核实");
+		}
+
+		Executer.request(
+				TargetSocketType.manager,
+				CommandBuilder.builder().request("800200", params).build(),
+				new RequestManagerListener(appCommand)
+		);
 		return async();
 	}
+
 
 	public JSONObject getMailInfo(Long userId,int page,int num){
 		User user = userCacheService.getUserInfoById(userId);

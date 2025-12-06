@@ -46,21 +46,20 @@ public class Item extends BaseBean{
 	/** 是否可赠送（1=可赠送，0=不可赠送） */
 	private Integer isSend;
 
-	/** 同步数量 */
+	/** 合成数量 */
 	private Integer synNumber;
 
-	/** 同步可否（1=可同步，0=不可同步） */
+	/** 是否可以合成（1=可以合成，0=不可以合成） */
 	private Integer canSyn;
 
-	/** 同步使用 */
+	/** 合成用到哪些材料 */
 	private JSONArray synUse;
 
-	/** 同步概率 */
+	/** 合成的概率 */
 	private Integer synRate;
 
-	/** 同步结果ID */
+	/** 合成结果ID */
 	private String synResultId;
-
 
 	private Integer currencyType;
 
