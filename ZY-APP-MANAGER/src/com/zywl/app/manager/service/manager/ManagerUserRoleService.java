@@ -317,7 +317,7 @@ public class ManagerUserRoleService extends BaseService {
             //扣除金额
             userCapitalService.subJingGangLing(price.multiply(BigDecimal.valueOf(number)), userId, null, bellRecord.getId());
             //增加玩家道具
-            gameService.updateUserBackpack(userId, ItemIdEnum.DUST.getValue(), number, LogUserBackpackTypeEnum.use);
+            gameService.updateUserBackpack(userId, ItemIdEnum.GOLD.getValue(), number, LogUserBackpackTypeEnum.use);
             //积分推送
             managerGameBaseService.pushCapitalUpdate(userId,UserCapitalTypeEnum.score.getValue());
             //插兑换记录

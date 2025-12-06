@@ -41,6 +41,8 @@ public class ManagerMailService extends BaseService {
     @Autowired
     private UserMailService userMailService;
 
+    @Autowired
+    private ManagerConfigService managerConfigService;
 
     @Autowired
     private UserCacheService userCacheService;
@@ -169,69 +171,109 @@ public class ManagerMailService extends BaseService {
     }
 
 
-
-
     @Transactional
     @ServiceMethod(code = "200", description = "玩家发送邮件（转赠功能）")
     @KafkaProducer(topic = KafkaTopicContext.RED_POINT, event = KafkaEventContext.SEND_MAIL, sendParams = true)
     public JSONObject sendMail(ManagerSocketServer adminSocketServer, JSONObject data) {
         checkNull(data);
-        checkNull(data.get("toUserId"), data.get("userId"));
-        String itemId = data.getString("itemId");//道具id
-        JSONArray array = new JSONArray();
-        JSONObject detail = new JSONObject();
+        checkNull(data.get("toUserId"), data.get("userId"));checkNull(data.get("amount"));
+        //道具ID
+        String itemId = data.getString("itemId");
+        //用户ID
         long userId = data.getLongValue("userId");
-        synchronized (LockUtil.getlock(userId)) {
-            UserCapital userCapital = userCapitalCacheService.getUserCapitalCacheByType(userId, UserCapitalTypeEnum.currency_2.getValue());
-            if (userCapital.getBalance().compareTo(BigDecimal.ZERO)<0){
-                throwExp("通宝小于0时不可赠送道具");
-            }
-            long toUserId = data.getLongValue("toUserId");
-            String toUserNo = data.getString("toUserNo");
-            String context = data.getString("context");//赠送的内容
-            int number = data.getIntValue("amount");//赠送的数量
-            if (number < 0) {
-                throwExp("数值异常");
-            }
-            String useItemId = ItemIdEnum.XG.getValue();
-            String title = data.getString("title");//赠送的好友
-            User user = userCacheService.getUserInfoById(userId);
-            gameService.checkUserItemNumber(userId, itemId, number);
-            //根据userId查询出当前用户的vip等级
-             UserVip uservip = userVipService.findRechargeAmountByUserId(userId);
-            if (itemId.equals(ItemIdEnum.WFSB.getValue())){
-                if (uservip.getVipLevel()<4){
-                    //需要消耗一个信鸽
-                    gameService.checkUserItemNumber(userId, useItemId, number);
-                    //修改该用户的道具
-                    gameService.updateUserBackpack(userId, useItemId, -number, LogUserBackpackTypeEnum.use);
-                }
-            }
-            if (title == null) {
-                title = "好友赠送";
-            }
-            if (context == null) {
-                context = user.getName() + "(" + user.getUserNo() + ")赠送" + PlayGameService.itemMap.get(itemId).getName()
-                        + ":" + number;
-            }
-
-            detail.put("type", 1);
-            detail.put("id", itemId);
-            detail.put("number", number);
-            detail.put("channel", MailGoldTypeEnum.FRIEND.getValue());
-            detail.put("fromUserId", user.getUserNo());
-
-            //添加邮件记录
-            int isAttachments = 1;
-            array.add(detail);
-            Long mailId = mailService.sendMail(userId, toUserId, title, context, null, isAttachments, array);
-            String orderNo = OrderUtil.getOrder5Number();
-            //如果是赠送   则再扣除赠送的金额  增加流水  赠送记录
-            gameService.updateUserBackpack(userId, itemId, -number, LogUserBackpackTypeEnum.zsg, String.valueOf(toUserNo));
-            return null;
+        //被转赠用户ID
+        long   toUserId = data.getLongValue("toUserId");
+        //被转赠用户号
+        String toUserNo = data.getString("toUserNo");
+        //转赠数量
+        int    amount   = data.getIntValue("amount");
+        if (amount <= 0) {
+            throwExp("转赠数量必须大于0");
         }
 
+        if (!ItemIdEnum.CORE_POINT.getValue().equals(itemId)) {
+            throwExp("当前仅支持核心积分转赠");
+        }
+
+        // 发送人与接收人
+        User fromUser = userCacheService.getUserInfoById(userId);
+        if (fromUser == null) {
+            throwExp("发送人信息有误");
+        }
+        User toUser = userCacheService.getUserInfoById(toUserId);
+        if (toUser == null) {
+            throwExp("收件人不存在");
+        }
+        if (fromUser.getUserNo().equals(toUserNo)) {
+            throwExp("不能给自己转赠");
+        }
+
+        Integer sill = null;
+        try {
+            sill = managerConfigService.getInteger(Config.TRANSFER_SILL);
+        } catch (Exception ignore) {
+        }
+        if (sill != null && sill > 0 && amount < sill) {
+            throwExp("转赠数量不能低于" + sill);
+        }
+
+        String costItemId = managerConfigService.getString(Config.TRANSFER_COST_ITEM_ID);
+        if (costItemId == null || costItemId.trim().isEmpty()) {
+            throwExp("转赠消耗道具未配置");
+        }
+        Integer costNum;
+        try {
+            costNum = managerConfigService.getInteger(Config.TRANSFER_COST_ITEM_NUM);
+        } catch (Exception e) {
+            costNum = 1;
+        }
+        if (costNum == null || costNum <= 0) {
+            costNum = 1;
+        }
+
+        synchronized (LockUtil.getlock(userId)) {
+            // 核心积分库存是否足够
+            gameService.checkUserItemNumber(userId, itemId, amount);
+            // 手续费道具库存是否足够
+            gameService.checkUserItemNumber(userId, costItemId, costNum);
+
+            String title   = data.getString("title");
+            String context = data.getString("context");
+            if (title == null || title.trim().isEmpty()) {
+                title = "好友转赠核心积分";
+            }
+            if (context == null || context.trim().isEmpty()) {
+                context = fromUser.getName()
+                        + "(" + fromUser.getUserNo() + ")转赠你核心积分：" + amount;
+            }
+
+            JSONArray array   = new JSONArray();
+            JSONObject detail = new JSONObject();
+            detail.put("type", 1);
+            detail.put("id", itemId);
+            detail.put("number", amount);
+            // 好友转赠渠道
+            detail.put("channel", MailGoldTypeEnum.FRIEND.getValue());
+            // 记录赠送人账号
+            detail.put("fromUserNo", fromUser.getUserNo());
+            array.add(detail);
+
+            int  isAttachments = 1;
+            Long mailId  = mailService.sendMail(userId, toUserId, title, context, null, isAttachments, array);
+            // 手续费道具
+            gameService.updateUserBackpack(userId, costItemId, -costNum, LogUserBackpackTypeEnum.use);
+            // 更新背包中的道具
+            gameService.updateUserBackpack(userId, itemId, -amount, LogUserBackpackTypeEnum.zsg, String.valueOf(toUserNo));
+
+            JSONObject result = new JSONObject();
+            result.put("mailId", mailId);
+            result.put("amount", amount);
+            result.put("itemId", itemId);
+            return result;
+        }
     }
+
+
 
     @Transactional
     @ServiceMethod(code = "300", description = "查询玩家信息")

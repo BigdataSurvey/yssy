@@ -720,23 +720,6 @@ public class GameBaseService extends BaseService {
         }
     }
 
-    @ServiceMethod(code = "syn", description = "syn")
-    public Object syn(AppSocket appSocket, Command command, JSONObject data) {
-        checkNull(data.get("itemId"), data.get("number"));
-        Long userId = appSocket.getWsidBean().getUserId();
-        data.put("userId", userId);
-        int number = data.getIntValue("number");
-        if (number < 1 || number > 999) {
-            throwExp("请输入合理的数量");
-        }
-        String itemId = data.getString("itemId");
-        if (!itemMap.containsKey(itemId)) {
-            throwExp("道具不存在");
-        }
-        Executer.request(TargetSocketType.manager, CommandBuilder.builder().request("100046", data).build(),
-                new RequestManagerListener(command));
-        return async();
-    }
 
     @ServiceMethod(code = "053", description = "捐赠")
     public Object donateItem(AppSocket appSocket, Command command, JSONObject data) {
@@ -878,5 +861,23 @@ public class GameBaseService extends BaseService {
         }
         userPickGoodsService.pickGoods(id,user.getCourierName(),user.getCourierPhone(),user.getCourierAddress());
         return new JSONObject();
+    }
+
+    @ServiceMethod(code = "066", description = "syn")
+    public Object syn(AppSocket appSocket, Command command, JSONObject data) {
+        checkNull(data.get("itemId"), data.get("number"));
+        Long userId = appSocket.getWsidBean().getUserId();
+        data.put("userId", userId);
+        int number = data.getIntValue("number");
+        if (number < 1 || number > 999) {
+            throwExp("请输入合理的数量");
+        }
+        String itemId = data.getString("itemId");
+        if (!itemMap.containsKey(itemId)) {
+            throwExp("道具不存在");
+        }
+        Executer.request(TargetSocketType.manager, CommandBuilder.builder().request("100046", data).build(),
+                new RequestManagerListener(command));
+        return async();
     }
 }

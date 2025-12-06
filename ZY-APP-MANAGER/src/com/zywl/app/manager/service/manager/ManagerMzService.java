@@ -155,7 +155,7 @@ public class ManagerMzService extends BaseService {
             JSONArray array = new JSONArray();
             JSONObject info = new JSONObject();
             info.put("type", 1);
-            info.put("id", ItemIdEnum.MZ_LZ.getValue());
+            info.put("id", ItemIdEnum.GOLD.getValue());
             info.put("number", 1);
             array.add(info);
             return array;

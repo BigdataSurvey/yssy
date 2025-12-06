@@ -209,6 +209,29 @@ public class Config extends BaseBean {
 
 	public static final String CASH_LIMIT_TIPS = "CASH_LIMIT_TIPS";
 
+	// 种子合成：按照目标等级的暗概率
+	public static final String SEED_SYN_DARK_RATE_LV2 = "SEED_SYN_DARK_RATE_LV2";
+	public static final String SEED_SYN_DARK_RATE_LV3 = "SEED_SYN_DARK_RATE_LV3";
+	public static final String SEED_SYN_DARK_RATE_LV4 = "SEED_SYN_DARK_RATE_LV4";
+	public static final String SEED_SYN_DARK_RATE_LV5 = "SEED_SYN_DARK_RATE_LV5";
+
+	// 种子合成奖池；单位：核心积分
+	public static final String SEED_SYN_POOL = "SEED_SYN_POOL";
+
+	// 失败时向奖池注入的比例
+	public static final String SEED_SYN_FAIL_POOL_RATE = "SEED_SYN_FAIL_POOL_RATE";
+
+	// 是否启用暗概率 1是0否
+	public static final String SEED_SYN_DARK_SWITCH = "SEED_SYN_DARK_SWITCH";
+
+	/*好友转赠相关配置*/
+	// 起赠门槛
+	public static final String TRANSFER_SILL  = "TRANSFER_SILL";
+	// 每次转赠消耗的道具ID
+	public static final String TRANSFER_COST_ITEM_ID  = "TRANSFER_COST_ITEM_ID";
+	// 每次转赠消耗的道具数量
+	public static final String TRANSFER_COST_ITEM_NUM = "TRANSFER_COST_ITEM_NUM";
+
 
 	private String key;
 

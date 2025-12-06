@@ -449,8 +449,6 @@ public class UserCapitalService extends DaoService {
     }
 
 
-
-
     public void addUserBalanceByAddReward(BigDecimal amount, Long userId,int capitalType,LogCapitalTypeEnum em) {
         UserCapital userCapital = userCapitalCacheService.getUserCapitalCacheByType(userId, capitalType);
         int a = addUserBalance(amount, userId, capitalType,userCapital.getBalance(), userCapital.getOccupyBalance(), null, null, em, null);

@@ -1,6 +1,7 @@
 我向你上传了一个"yssy.zip"这个文件,是一个压缩包；这个压缩包下的游戏项目,叫"小丑大逃杀"的后端代码,请你解压之后详细分析,深度分析每一个文件的作用,以及各个模块之间的关系,请详细分析并给出你的答案;
 
-这个后端项目采用分模块的分布式架构,主要划分为不同的模块,各自职责明确;具体不同模块之间的说明在我上传的"《修仙》后端项目架构与代码分析.pdf"中可以看到,这个PDF是同框架的另一个游戏的说明文档,你可以参考,请你深度分析该PDF;
+这个后端项目采用分模块的分布式架构,主要划分为不同的模块,各自职责明确;具体不同模块之间的说明在我上传的"YSSY后端核心模块架构与功能详解.pdf"中可以参考,请你深度分析该PDF;
+我同时上传了"yssy-Tree_20251203102409.txt"该项目的目录树,来供你参考；
 
 我简单说一下,
 其中ZY-APP-BASE、ZY-APP-DEFAULT、ZY-APP-WS、ZY-APP-SERVER、ZY-APP-MANAGER、ZY-APP-LOG、ZY-KEYFACTORY为核心模块;
@@ -12,8 +13,7 @@ ZY-APP-MANAGER：核心服务模块，处理游戏的核心业务逻辑，提供
 ZY-APP-LOG：用于日志记录，跟踪用户的资产变动、操作记录等。
 ZY-KEYFACTORY：用于生成和管理 wsid（WebSocket ID）等密钥的模块。
 
-我目前重新升级了tomcat为tomcat-9.0.105版本,并且只配置了ZY-APP-MANAGER、 ZY-APP-SERVER、ZY-KEYFACTORY 这三个项目,这三个启动后项目就算是跑起来了;
-
+我目前重新升级了 tomcat为tomcat-9.0.105 版本,并且只配置了ZY-KEYFACTORY、ZY-APP-LOG、ZY-APP-MANAGER、 ZY-APP-SERVER这4个项目,这4个启动后项目就算是跑起来了;
 
 该项目的登录流程概述：
 1.yssy 登录流程概述：
@@ -139,10 +139,9 @@ updateGameKey 是“服务已经跑起来以后，当配表/Config 被修改时�
 3.1:运维通过后台管理系统修改Item表数据并把 Config.ITEM_VERSION 改为 "4"; 这个时候就会操作触发 Admin WebSocket 请求，调用 ManagerConfigService.updateConfigData(code=002)。
 3.2:updateConfigData(key="ITEM_VERSION", value="4");那么这个方法就会去更新DB中的Config表、CONFIG.put("ITEM_VERSION", "4")、Push.updateConfig 给所有客户端（一般游戏端可以不用理它）;
 3.3:updateGameKey("ITEM_VERSION", "4") 这个方法会调用gameService.initItem()，从 DB 把 Item 新表读进 itemMap、同时还会有initDicHandBook/initDicHandBookReward/initPrize 等等联动；之后调 Push.push(PushCode.updateTableVersion, null, tableInfo)，把新表推给所有当前在线玩家；
+此时已在线玩家通过 push 收到 "itemTable" 的新表，可立即更新;之后新登录玩家：通过 syncTableInfo 比对 "4"，决定是否下发表。
 
-此时已在线玩家通过 push 收到 "itemTable" 的新表，可立即更新;
-之后新登录玩家：通过 syncTableInfo 比对 "4"，决定是否下发表。
-
+在你在认真的分析完框架代码后永久保留在记忆当中；之后我向你继续提供需要分析的模块和需求；
 
 下面是常用的服务,需要你仔细检查和分析,保存在记忆当中
 
