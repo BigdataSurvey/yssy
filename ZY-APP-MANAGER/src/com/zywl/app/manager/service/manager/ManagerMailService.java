@@ -56,6 +56,8 @@ public class ManagerMailService extends BaseService {
 
     @Autowired
     private UserVipService userVipService;
+    @Autowired
+    private UserCapitalService userCapitalService;
 
 
 
@@ -176,26 +178,24 @@ public class ManagerMailService extends BaseService {
     @KafkaProducer(topic = KafkaTopicContext.RED_POINT, event = KafkaEventContext.SEND_MAIL, sendParams = true)
     public JSONObject sendMail(ManagerSocketServer adminSocketServer, JSONObject data) {
         checkNull(data);
-        checkNull(data.get("toUserId"), data.get("userId"));checkNull(data.get("amount"));
-        //道具ID
-        String itemId = data.getString("itemId");
-        //用户ID
-        long userId = data.getLongValue("userId");
-        //被转赠用户ID
+        checkNull(data.get("toUserId"), data.get("userId"));
+        checkNull(data.get("amount"));
+        //需要转赠的道具ID
+        String itemId   = data.getString("itemId");
+        long   userId   = data.getLongValue("userId");
         long   toUserId = data.getLongValue("toUserId");
-        //被转赠用户号
         String toUserNo = data.getString("toUserNo");
-        //转赠数量
         int    amount   = data.getIntValue("amount");
+
         if (amount <= 0) {
             throwExp("转赠数量必须大于0");
         }
 
-        if (!ItemIdEnum.CORE_POINT.getValue().equals(itemId)) {
-            throwExp("当前仅支持核心积分转赠");
-        }
+        boolean isCapitalItem =
+                ItemIdEnum.CORE_POINT.getValue().equals(itemId)
+                        || ItemIdEnum.GAME_CONSUME_COIN.getValue().equals(itemId);
 
-        // 发送人与接收人
+
         User fromUser = userCacheService.getUserInfoById(userId);
         if (fromUser == null) {
             throwExp("发送人信息有误");
@@ -208,67 +208,128 @@ public class ManagerMailService extends BaseService {
             throwExp("不能给自己转赠");
         }
 
+        // 转赠门槛
         Integer sill = null;
         try {
             sill = managerConfigService.getInteger(Config.TRANSFER_SILL);
-        } catch (Exception ignore) {
-        }
+        } catch (Exception ignore) {}
         if (sill != null && sill > 0 && amount < sill) {
             throwExp("转赠数量不能低于" + sill);
         }
 
-        String costItemId = managerConfigService.getString(Config.TRANSFER_COST_ITEM_ID);
-        if (costItemId == null || costItemId.trim().isEmpty()) {
-            throwExp("转赠消耗道具未配置");
-        }
-        Integer costNum;
+        // 手续费配置
+        Integer feeNum;
         try {
-            costNum = managerConfigService.getInteger(Config.TRANSFER_COST_ITEM_NUM);
+            feeNum = managerConfigService.getInteger(Config.TRANSFER_COST_ITEM_NUM);
         } catch (Exception e) {
-            costNum = 1;
+            feeNum = 0;
         }
-        if (costNum == null || costNum <= 0) {
-            costNum = 1;
+        if (feeNum == null || feeNum < 0) {
+            feeNum = 0;
         }
 
         synchronized (LockUtil.getlock(userId)) {
-            // 核心积分库存是否足够
-            gameService.checkUserItemNumber(userId, itemId, amount);
-            // 手续费道具库存是否足够
-            gameService.checkUserItemNumber(userId, costItemId, costNum);
+            if (isCapitalItem) {
+                //如果是资产性校验资产是否充足
+                BigDecimal transferAmount = BigDecimal.valueOf(amount);
+                int capitalType = Integer.parseInt(itemId);
+
+                UserCapital capital = userCapitalService
+                        .findUserCapitalByUserIdAndCapitalType(userId, capitalType);
+                if (capital == null || capital.getBalance().compareTo(transferAmount) < 0) {
+                    throwExp("资产不足");
+                }
+            } else {
+                //普通道具走背包检查资产是否充足
+                gameService.checkUserItemNumber(userId, itemId, amount);
+            }
+
+
+            //手续费统一为核心积分走资产表校验
+            BigDecimal feeAmount = BigDecimal.ZERO;
+            if (feeNum > 0) {
+                feeAmount = BigDecimal.valueOf(feeNum);
+
+                UserCapital feeCapital = userCapitalService
+                        .findUserCapitalByUserIdAndCapitalType(userId, UserCapitalTypeEnum.hxjf.getValue());
+                if (feeCapital == null || feeCapital.getBalance().compareTo(feeAmount) < 0) {
+                    throwExp("手续费核心积分不足");
+                }
+            }
+
 
             String title   = data.getString("title");
             String context = data.getString("context");
             if (title == null || title.trim().isEmpty()) {
-                title = "好友转赠核心积分";
+                title = "好友转赠";
+                if (ItemIdEnum.CORE_POINT.getValue().equals(itemId)) {
+                    title = "好友转赠核心积分";
+                }
             }
             if (context == null || context.trim().isEmpty()) {
                 context = fromUser.getName()
-                        + "(" + fromUser.getUserNo() + ")转赠你核心积分：" + amount;
+                        + "(" + fromUser.getUserNo() + ") 转赠你 "
+                        + amount + " 个 [" + itemId + "]";
             }
 
-            JSONArray array   = new JSONArray();
+
+            JSONArray attachments = new JSONArray();
             JSONObject detail = new JSONObject();
             detail.put("type", 1);
             detail.put("id", itemId);
             detail.put("number", amount);
-            // 好友转赠渠道
             detail.put("channel", MailGoldTypeEnum.FRIEND.getValue());
-            // 记录赠送人账号
+            detail.put("fromUserId", String.valueOf(userId));
             detail.put("fromUserNo", fromUser.getUserNo());
-            array.add(detail);
+            attachments.add(detail);
 
-            int  isAttachments = 1;
-            Long mailId  = mailService.sendMail(userId, toUserId, title, context, null, isAttachments, array);
-            // 手续费道具
-            gameService.updateUserBackpack(userId, costItemId, -costNum, LogUserBackpackTypeEnum.use);
-            // 更新背包中的道具
-            gameService.updateUserBackpack(userId, itemId, -amount, LogUserBackpackTypeEnum.zsg, String.valueOf(toUserNo));
+            //发送邮件
+            Long mailId = mailService.sendMail( userId,toUserId, title, context, null, 1, attachments );
+
+            //扣费 资产走资产扣减；普通道具走背包扣减
+            String orderNo = OrderUtil.getOrder5Number();
+            if (isCapitalItem) {
+                BigDecimal transferAmount = BigDecimal.valueOf(amount);
+                int capitalType = Integer.parseInt(itemId);
+                userCapitalService.subUserBalanceBySendMail(
+                        userId,
+                        transferAmount,
+                        capitalType,
+                        orderNo,
+                        mailId,
+                        LogCapitalTypeEnum.friend_transfer
+                );
+            } else {
+                gameService.updateUserBackpack(
+                        userId,
+                        itemId,
+                        -amount,
+                        LogUserBackpackTypeEnum.zsg,
+                        String.valueOf(toUserNo)
+                );
+            }
+
+            //扣除手续费
+            if (feeAmount.compareTo(BigDecimal.ZERO) > 0) {
+                String feeOrderNo = OrderUtil.getOrder5Number();
+                userCapitalService.subUserBalanceBySendMail(
+                        userId,
+                        feeAmount,
+                        UserCapitalTypeEnum.hxjf.getValue(),
+                        feeOrderNo,
+                        mailId,
+                        LogCapitalTypeEnum.send_mail
+                );
+            }
 
             JSONObject result = new JSONObject();
             result.put("mailId", mailId);
             result.put("amount", amount);
             result.put("itemId", itemId);
+            result.put("toUserId", toUserId);
+            result.put("toUserNo", toUserNo);
+            result.put("isCapitalItem", isCapitalItem);
+            result.put("fee", feeNum);
             return result;
         }
     }

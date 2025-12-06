@@ -174,6 +174,12 @@ gameService.getReturnPack(userId)
 managerGameBaseService.pushBackpackUpdate(Long.parseLong(userId), itemId,number,1);
 
 
+背包中道具是否充足
+PlayGameService.checkUserItemNumber
+检查资产是否充足
+UserCapitalService.findUserCapitalByUserIdAndCapitalType
+
+
 
 GiveParentIncome 这个是干嘛的
 

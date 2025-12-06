@@ -109,8 +109,7 @@ public class UserCapitalCacheService extends RedisService {
     }
 
 
-
-    //删除某种资产
+    //删除用户资产缓存
     public void deltedUserCapitalCache(Long userId, Integer capitalType) {
         synchronized (LockUtil.getlock(userId.toString())) {
             String key = getKey(userId, capitalType);
@@ -139,7 +138,7 @@ public class UserCapitalCacheService extends RedisService {
         }
     }
 
-
+    //在内存缓存里把用户的资产的balance / occupyBalance 做减法更新
     public void sub(Long userId, int capitalType, BigDecimal amount, BigDecimal occupyAmonut) {
         synchronized (LockUtil.getlock(userId.toString() + "money")) {
             String key = getKey(userId, capitalType);
@@ -169,8 +168,6 @@ public class UserCapitalCacheService extends RedisService {
             data.put("userCapitals", userCapitals);
         }
     }
-
-
 
     //删除全部资产
     public void deletedUserAllCapitalCache(Long userId) {

@@ -75,6 +75,9 @@ public class UserCapitalService extends DaoService {
 
     }
 
+    /**
+     * 检查资产是否重组
+     * **/
     public UserCapital findUserCapitalByUserIdAndCapitalType(Long userId, Integer capitalType) {
         Map<String,Object> parameters = new HashedMap<>();
         parameters.put("userId", userId);
@@ -785,19 +788,56 @@ public class UserCapitalService extends DaoService {
         }
     }
 
+
+    //扣除用户资产并清理缓存
     @Transactional
-    public void subUserBalanceBySendMail(Long userId, BigDecimal amount, String orderNo, Long sourceDataId) {
-        UserCapital userCapital = userCapitalCacheService.getUserCapitalCacheByType(userId, UserCapitalTypeEnum.currency_2.getValue());
-        int a = subUserBalance(amount, userId, UserCapitalTypeEnum.currency_2.getValue(), userCapital.getBalance(), userCapital.getOccupyBalance(), orderNo, sourceDataId, LogCapitalTypeEnum.send_mail, TableNameConstant.MAIL);
+    public void subUserBalanceBySendMail(Long userId,BigDecimal amount, Integer capitalType,String orderNo,Long sourceDataId,LogCapitalTypeEnum logType) {
+        // 默认资产类型为核心积分
+        if (capitalType == null) {
+            capitalType = UserCapitalTypeEnum.hxjf.getValue();
+        }
+        // 默认日志类型为send_mail
+        if (logType == null) {
+            logType = LogCapitalTypeEnum.send_mail;
+        }
+        //从缓存获取用户资产
+        UserCapital userCapital = userCapitalCacheService.getUserCapitalCacheByType(userId, capitalType);
+
+        int a = subUserBalance(
+                amount,
+                userId,
+                capitalType,
+                userCapital.getBalance(),
+                userCapital.getOccupyBalance(),
+                orderNo,
+                sourceDataId,
+                logType,
+                TableNameConstant.MAIL
+        );
         if (a < 1) {
-            userCapitalCacheService.deltedUserCapitalCache(userId, UserCapitalTypeEnum.currency_2.getValue());
-            userCapital = userCapitalCacheService.getUserCapitalCacheByType(userId, UserCapitalTypeEnum.currency_2.getValue());
-            int b = subUserBalance(amount, userId, UserCapitalTypeEnum.currency_2.getValue(), userCapital.getBalance(), userCapital.getOccupyBalance(), orderNo, sourceDataId, LogCapitalTypeEnum.send_mail, TableNameConstant.MAIL);
+            // 清理缓存后重试一次
+            userCapitalCacheService.deltedUserCapitalCache(userId, capitalType);
+            userCapital = userCapitalCacheService
+                    .getUserCapitalCacheByType(userId, capitalType);
+            int b = subUserBalance(
+                    amount,
+                    userId,
+                    capitalType,
+                    userCapital.getBalance(),
+                    userCapital.getOccupyBalance(),
+                    orderNo,
+                    sourceDataId,
+                    logType,
+                    TableNameConstant.MAIL
+            );
             if (b < 1) {
-                throwExp("扣除手续费失败，请稍后重试");
+                throwExp("扣除资产失败，请稍后重试");
             }
         }
     }
+
+
+
     @Transactional
     public void subUserBalanceByVip(Long userId, BigDecimal amount, Long dataId) {
         int capitalType = UserCapitalTypeEnum.currency_2.getValue();
@@ -1277,6 +1317,10 @@ public class UserCapitalService extends DaoService {
         return a;
     }
 
+
+    /**
+     * 扣除用户资产;
+     * **/
     @Transactional
     public int subUserBalance(BigDecimal amount, Long userId, Integer capitalType, BigDecimal balanceBefore, BigDecimal occupyBalanceBefore, String orderNo, Long sourceDataId, LogCapitalTypeEnum em, String tableName) {
         if (amount.compareTo(BigDecimal.ZERO) == -1) {
@@ -1302,7 +1346,7 @@ public class UserCapitalService extends DaoService {
     }
 
     @Transactional
-    private int subUserBalance2(BigDecimal amount, Long userId, Integer capitalType) {
+    public int subUserBalance2(BigDecimal amount, Long userId, Integer capitalType) {
         if (amount.compareTo(BigDecimal.ZERO) == -1) {
             throwExp("扣除不能小于0");
         }

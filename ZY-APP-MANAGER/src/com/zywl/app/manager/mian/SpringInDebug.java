@@ -240,7 +240,7 @@ public class SpringInDebug {
         //sellItemToSysTest();;
 
         //发送邮件
-        //sendMailTest();
+        sendMailTest();
         //{"mailId":133,"amount":100,"itemId":"1001"}
 
         //领取全部邮件
