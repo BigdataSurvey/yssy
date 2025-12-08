@@ -174,31 +174,11 @@ gameService.getReturnPack(userId)
 managerGameBaseService.pushBackpackUpdate(Long.parseLong(userId), itemId,number,1);
 
 
-
-GiveParentIncome 这个是干嘛的
-
-
-
-游戏货币暂定金币和小丑币
-道具，暂定3个类型的种子，建议是可配置的，数值现在还不能确定，也是建议可配置的
-这个种子后台把它当做一个矿机去做就行，每天都要产出，类似逆天灵兽
-
-小丑币就是玩游戏的
-积分就是金币吧
-
-
-
-"
-背包有3个类型的种子，每个类型种子有5个等级，3个类型的种子产出来的材料也就是3个类型
-1级种来源是会员每日给的还有商城可以购买
-2-5级是要合成出来的
-后续可能会放到礼包里面卖
-货币类型是两个类型的货币
-一个是消耗游戏玩货币
-一个是材料背包回收获得核心积分
-核心积分可以购买商城道具，也已交易所购买其他东西，也可以转增
-消耗游戏的货币是通过 核心积分购买一个道具，这个道具可以在游戏里面有个按钮转换成消耗游戏货币获得的
-发布任务大厅也是需要核心积分发布
-"
+背包中道具是否充足
+PlayGameService.checkUserItemNumber
+检查资产是否充足
+UserCapitalService.findUserCapitalByUserIdAndCapitalType
+扣除用户资产
+UserCapitalService.subUserBalance
 
 
