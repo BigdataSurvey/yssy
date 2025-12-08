@@ -30,3 +30,31 @@ hs_err_pid*
 *.iml
 /.idea/
 ZY-APP-MANAGER/web/
+
+# 构建输出、错误日志
+/out/
+/hs_err_pid*.log
+
+# 库 / 词典 / IP 库文件
+/ZY-APP-BASE/lib/
+/ZY-GAME-BT/src/ipipfree.ipdb
+/ZY-APP-LOG/src/ipipfree.ipdb
+/ZY-APP-MANAGER/src/ipipfree.ipdb
+/ZY-APP-SERVER/src/dict.txt
+
+#  web
+/ZY-APP-MANAGER/web/
+/ZY-APP-LOG/web/
+/ZY-APP-LHD/web/
+/ZY-APP-FOOD/web/
+/ZY-APP-DTS/web/
+/ZY-APP-DGS/web/
+/ZY-APP-DTS2/web/
+/web/
+
+
+/ZY-APP-MANAGER/src/com/zywl/app/manager/webpages/
+/ZY-APP-MANAGER/src/com/zywl/app/manager/webpages_agent/
+
+# IDE 配置
+/.idea/
