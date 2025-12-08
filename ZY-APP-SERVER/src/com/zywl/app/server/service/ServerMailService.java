@@ -52,9 +52,6 @@ public class ServerMailService extends BaseService{
 
 
 
-	
-	
-	
 	@ServiceMethod(code = "001", description = "查看邮件列表")
 	public JSONObject getMailInfo(final AppSocket appSocket, Command appCommand, JSONObject params) {
 		checkNull(params);
@@ -64,7 +61,7 @@ public class ServerMailService extends BaseService{
 		return getMailInfo(userId,page,num);
 	}
 
-	@ServiceMethod(code = "002", description = "发送邮件 (转增)")
+	@ServiceMethod(code = "002", description = "发送邮件 (转赠)")
 	public Async sendMail(final AppSocket appSocket, Command appCommand, JSONObject params) {
 		checkNull(params);
 		checkNull(params.get("toUserNo"));
