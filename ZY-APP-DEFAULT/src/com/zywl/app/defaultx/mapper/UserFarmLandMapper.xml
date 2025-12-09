@@ -41,12 +41,17 @@
     </select>
 
     <!-- 按 userId 查询全部土地 -->
-    <select id="findByUserId" parameterType="map" resultMap="BaseResultMap">
-        select
-        <include refid="Base_Column_List"/>
-        from t_user_farm_land
-        where user_id = #{userId}
-        order by land_index asc
+    <select id="findListByUserId" parameterType="map" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM t_user_farm_land
+        WHERE user_id = #{userId}
+        ORDER BY land_index ASC
+    </select>
+
+    <select id="findOneByUserAndIndex" parameterType="map" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM t_user_farm_land
+        WHERE user_id = #{userId} AND land_index = #{landIndex}
     </select>
 
     <!-- 新增土地记录：insertSelective -->
@@ -151,5 +156,31 @@
             </if>
         </where>
     </select>
+
+    <insert id="plantLand" parameterType="com.zywl.app.base.bean.UserFarmLand">
+        INSERT INTO t_user_farm_land
+        (user_id, land_index, seed_item_id, crop_item_id, start_time, end_time, status, create_time, update_time)
+        VALUES
+            (#{userId}, #{landIndex}, #{seedItemId}, #{cropItemId}, #{startTime}, #{endTime}, #{status}, NOW(), NOW())
+            ON DUPLICATE KEY UPDATE
+                                 seed_item_id = VALUES(seed_item_id),
+                                 crop_item_id = VALUES(crop_item_id),
+                                 start_time = VALUES(start_time),
+                                 end_time = VALUES(end_time),
+                                 status = VALUES(status),
+                                 update_time = NOW()
+    </insert>
+
+    <update id="harvestLand" parameterType="map">
+        UPDATE t_user_farm_land
+        SET
+            seed_item_id = 0,
+            crop_item_id = 0,
+            start_time = NULL,
+            end_time = NULL,
+            status = 0,
+            update_time = NOW()
+        WHERE user_id = #{userId} AND land_index = #{landIndex}
+    </update>
 
 </mapper>

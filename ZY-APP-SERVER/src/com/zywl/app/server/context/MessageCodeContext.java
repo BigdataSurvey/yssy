@@ -45,5 +45,7 @@ public class MessageCodeContext {
 	public final  static String RED_RECORD="082";
 	public final  static String NXQ="083";
 	public final  static String ZYT="084";
+	//用户种地管理
+	public final  static String USER_FARM="085";
 
 }
