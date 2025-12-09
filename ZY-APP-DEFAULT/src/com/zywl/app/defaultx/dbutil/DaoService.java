@@ -22,7 +22,7 @@ import com.zywl.app.base.service.BaseService;
  */
 public abstract class DaoService extends BaseService {
 
-	private String mapperSpace;
+	protected String mapperSpace;
 	
 	@Resource(name = "myBatisDao")
 	public BaseDao baseDao;

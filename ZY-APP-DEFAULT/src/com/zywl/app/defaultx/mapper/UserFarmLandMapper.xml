@@ -1,0 +1,155 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.zywl.app.defaultx.mapper.UserFarmLandMapper">
+
+    <!-- 通用字段映射 -->
+    <resultMap id="BaseResultMap" type="com.zywl.app.base.bean.UserFarmLand">
+        <id     column="id"          property="id"/>
+        <result column="user_id"     property="userId"/>
+        <result column="land_index"  property="landIndex"/>
+        <result column="seed_item_id" property="seedItemId"/>
+        <result column="crop_item_id" property="cropItemId"/>
+        <result column="start_time"  property="startTime"/>
+        <result column="end_time"    property="endTime"/>
+        <result column="status"      property="status"/>
+        <result column="create_time" property="createTime"/>
+        <result column="update_time" property="updateTime"/>
+    </resultMap>
+
+    <!-- 通用列 -->
+    <sql id="Base_Column_List">
+        id,
+        user_id,
+        land_index,
+        seed_item_id,
+        crop_item_id,
+        start_time,
+        end_time,
+        status,
+        create_time,
+        update_time
+    </sql>
+
+    <!-- 主键查询：findOneById -->
+    <select id="selectByPrimaryKey" parameterType="long" resultMap="BaseResultMap">
+        select
+        <include refid="Base_Column_List"/>
+        from t_user_farm_land
+        where id = #{id}
+    </select>
+
+    <!-- 按 userId 查询全部土地 -->
+    <select id="findByUserId" parameterType="map" resultMap="BaseResultMap">
+        select
+        <include refid="Base_Column_List"/>
+        from t_user_farm_land
+        where user_id = #{userId}
+        order by land_index asc
+    </select>
+
+    <!-- 新增土地记录：insertSelective -->
+    <insert id="insertSelective"
+            parameterType="com.zywl.app.base.bean.UserFarmLand"
+            useGeneratedKeys="true"
+            keyProperty="id">
+        insert into t_user_farm_land
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="userId != null">user_id,</if>
+            <if test="landIndex != null">land_index,</if>
+            <if test="seedItemId != null">seed_item_id,</if>
+            <if test="cropItemId != null">crop_item_id,</if>
+            <if test="startTime != null">start_time,</if>
+            <if test="endTime != null">end_time,</if>
+            <if test="status != null">status,</if>
+            <if test="createTime != null">create_time,</if>
+            <if test="updateTime != null">update_time,</if>
+        </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            <if test="userId != null">#{userId},</if>
+            <if test="landIndex != null">#{landIndex},</if>
+            <if test="seedItemId != null">#{seedItemId},</if>
+            <if test="cropItemId != null">#{cropItemId},</if>
+            <if test="startTime != null">#{startTime},</if>
+            <if test="endTime != null">#{endTime},</if>
+            <if test="status != null">#{status},</if>
+            <if test="createTime != null">#{createTime},</if>
+            <if test="updateTime != null">#{updateTime},</if>
+        </trim>
+    </insert>
+
+    <!-- 更新土地 -->
+    <update id="updateByPrimaryKeySelective"
+            parameterType="com.zywl.app.base.bean.UserFarmLand">
+        update t_user_farm_land
+        <set>
+            <if test="userId != null">user_id = #{userId},</if>
+            <if test="landIndex != null">land_index = #{landIndex},</if>
+            <if test="seedItemId != null">seed_item_id = #{seedItemId},</if>
+            <if test="cropItemId != null">crop_item_id = #{cropItemId},</if>
+            <if test="startTime != null">start_time = #{startTime},</if>
+            <if test="endTime != null">end_time = #{endTime},</if>
+            <if test="status != null">status = #{status},</if>
+            <if test="createTime != null">create_time = #{createTime},</if>
+            <if test="updateTime != null">update_time = #{updateTime},</if>
+        </set>
+        where id = #{id}
+    </update>
+
+    <!-- 分页查询-->
+    <select id="findByConditions" parameterType="map" resultMap="BaseResultMap">
+        select
+        <include refid="Base_Column_List"/>
+        from t_user_farm_land
+        <where>
+            <if test="id != null">
+                and id = #{id}
+            </if>
+            <if test="userId != null">
+                and user_id = #{userId}
+            </if>
+            <if test="landIndex != null">
+                and land_index = #{landIndex}
+            </if>
+            <if test="status != null">
+                and status = #{status}
+            </if>
+            <!-- 可选：按起止时间做筛选，后台列表会方便一点 -->
+            <if test="minStartTime != null">
+                and start_time &gt;= #{minStartTime}
+            </if>
+            <if test="maxStartTime != null">
+                and start_time &lt;= #{maxStartTime}
+            </if>
+        </where>
+        order by user_id asc, land_index asc
+    </select>
+
+    <!-- 统计总数-->
+    <select id="countByConditions" parameterType="map" resultType="int">
+        select count(1)
+        from t_user_farm_land
+        <where>
+            <if test="id != null">
+                and id = #{id}
+            </if>
+            <if test="userId != null">
+                and user_id = #{userId}
+            </if>
+            <if test="landIndex != null">
+                and land_index = #{landIndex}
+            </if>
+            <if test="status != null">
+                and status = #{status}
+            </if>
+            <if test="minStartTime != null">
+                and start_time &gt;= #{minStartTime}
+            </if>
+            <if test="maxStartTime != null">
+                and start_time &lt;= #{maxStartTime}
+            </if>
+        </where>
+    </select>
+
+</mapper>
