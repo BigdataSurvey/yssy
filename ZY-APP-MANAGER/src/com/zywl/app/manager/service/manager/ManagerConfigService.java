@@ -290,6 +290,17 @@ public class ManagerConfigService extends BaseService {
 			JSONObject tableInfo = new JSONObject();
 			tableInfo.put("mineTable", obj);
 			Push.push(PushCode.updateTableVersion, null, tableInfo);
+		}else if (key.equals(Config.FARM_TABLE_VERSION)) {
+			//重置玩家矿场表后重新推送给在线客户端
+			gameService.initFarm();
+			List<DicFarm> farms = new ArrayList<>(PlayGameService.DIC_FARM.values());
+			JSONObject obj = new JSONObject();
+			obj.put("version", value);
+			obj.put("data", farms);
+			JSONObject tableInfo = new JSONObject();
+			tableInfo.put("farmTable", obj);
+			//推送给在线客户端
+			Push.push(PushCode.updateTableVersion, null, tableInfo);
 		} else if (key.equals(Config.ROLE_VERSION)) {
 			//重新玩家角色表后推送给在线客户端
 			gameService.initRole();

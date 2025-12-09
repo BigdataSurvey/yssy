@@ -35,6 +35,8 @@ import javax.annotation.PostConstruct;
 import java.math.BigDecimal;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import com.zywl.app.base.bean.card.DicFarm;
+import com.zywl.app.defaultx.service.card.DicFarmService;
 
 /**
  * 初始化游戏数据
@@ -100,6 +102,10 @@ public class PlayGameService extends BaseService {
     private DicRoleService dicRoleService;
     @Autowired
     private JDCardService jdCardService;
+    /*种地配置*/
+    @Autowired
+    private DicFarmService dicFarmService;
+
     /**
      * 系统初始化缓存配置
      * 系统启动通过@PostConstruct配置的_InitGameInfoService方法一次性把各种表加载进静态 Map：
@@ -136,6 +142,8 @@ public class PlayGameService extends BaseService {
     public final static Map<String, DicHandBook> DIC_HAND_BOOK_MAP = new ConcurrentHashMap<>();
     //手册每日奖励信息配置缓存
     public final static Map<String, Map<String, DicHandBookReward>> DIC_HAND_BOOK_REWARD_MAP = new ConcurrentHashMap<>();
+    // 农场种地配置
+    public static final Map<String, DicFarm> DIC_FARM = new ConcurrentHashMap<>();
 
 
     /**
@@ -279,6 +287,8 @@ public class PlayGameService extends BaseService {
         initDicVip();
         initDicHandBook();
         initDicHandBookReward();
+        //农场配置
+        initFarm();
     }
 
     /**
@@ -428,6 +438,21 @@ public class PlayGameService extends BaseService {
         allRole.forEach(e -> DIC_ROLE.put(e.getId().toString(), e));
         logger.info("初始化角色信息完成,加载数据数量：" + DIC_MINE.size());
     }
+
+    /**
+     * 初始化农场种地配置
+     */
+    public void initFarm() {
+        DIC_FARM.clear();
+        logger.info("初始化农场种地配置 dic_farm");
+
+        List<DicFarm> list = dicFarmService.findAll();
+        if (list == null || list.isEmpty())
+        { logger.warn("dic_farm 表为空，未加载到任何农场配置");return;}
+        list.forEach(e -> DIC_FARM.put(e.getSeedItemId().toString(), e));
+        logger.info("初始化农场种地配置完成，加载数量：{}"+ DIC_FARM.size());
+    }
+
 
     /**
      * 用户统计数据更新至数据库
