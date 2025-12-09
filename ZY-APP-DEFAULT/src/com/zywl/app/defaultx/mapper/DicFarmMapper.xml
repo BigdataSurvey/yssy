@@ -1,0 +1,119 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.zywl.app.defaultx.mapper.DicFarmMapper">
+
+    <!-- 通用字段映射 -->
+    <resultMap id="BaseResultMap" type="com.zywl.app.base.bean.card.DicFarm">
+        <id     column="id"            property="id"/>
+        <result column="seed_item_id"  property="seedItemId"/>
+        <result column="crop_item_id"  property="cropItemId"/>
+        <result column="grow_seconds"  property="growSeconds"/>
+        <result column="output_num"    property="outputNum"/>
+        <result column="status"        property="status"/>
+        <result column="create_time"   property="createTime"/>
+        <result column="update_time"   property="updateTime"/>
+    </resultMap>
+
+    <!-- 通用列 -->
+    <sql id="Base_Column_List">
+        id,
+        seed_item_id,
+        crop_item_id,
+        grow_seconds,
+        output_num,
+        status,
+        create_time,
+        update_time
+    </sql>
+
+    <!-- 主键查询：DicFarmService.findOneById -->
+    <select id="selectByPrimaryKey" parameterType="long" resultMap="BaseResultMap">
+        select
+        <include refid="Base_Column_List"/>
+        from dic_farm
+        where id = #{id}
+    </select>
+
+    <!-- 查询全部配置：PlayGameService.initFarmSeed 用 -->
+    <!-- 当前习惯一般只加载启用状态，可按需改成去掉 where -->
+    <select id="findAll" resultMap="BaseResultMap">
+        select
+        <include refid="Base_Column_List"/>
+        from dic_farm
+        where status = 1
+        order by seed_item_id asc
+    </select>
+
+    <!-- 按种子ID查配置 -->
+    <select id="findBySeedItemId" parameterType="int" resultMap="BaseResultMap">
+        select
+        <include refid="Base_Column_List"/>
+        from dic_farm
+        where seed_item_id = #{seedItemId}
+        limit 1
+    </select>
+
+    <!-- 条件统计：DicFarmService.countByConditions -->
+    <select id="countByConditions" parameterType="map" resultType="int">
+        select count(1)
+        from dic_farm
+        <where>
+            <if test="id != null">
+                and id = #{id}
+            </if>
+            <if test="seedItemId != null">
+                and seed_item_id = #{seedItemId}
+            </if>
+            <if test="cropItemId != null">
+                and crop_item_id = #{cropItemId}
+            </if>
+            <if test="status != null">
+                and status = #{status}
+            </if>
+        </where>
+    </select>
+
+
+    <insert id="insertSelective"
+            parameterType="com.zywl.app.base.bean.card.DicFarm"
+            useGeneratedKeys="true"
+            keyProperty="id">
+        insert into dic_farm
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="seedItemId != null">seed_item_id,</if>
+            <if test="cropItemId != null">crop_item_id,</if>
+            <if test="growSeconds != null">grow_seconds,</if>
+            <if test="outputNum != null">output_num,</if>
+            <if test="status != null">status,</if>
+            <if test="createTime != null">create_time,</if>
+            <if test="updateTime != null">update_time,</if>
+        </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            <if test="seedItemId != null">#{seedItemId},</if>
+            <if test="cropItemId != null">#{cropItemId},</if>
+            <if test="growSeconds != null">#{growSeconds},</if>
+            <if test="outputNum != null">#{outputNum},</if>
+            <if test="status != null">#{status},</if>
+            <if test="createTime != null">#{createTime},</if>
+            <if test="updateTime != null">#{updateTime},</if>
+        </trim>
+    </insert>
+
+    <update id="updateByPrimaryKeySelective"
+            parameterType="com.zywl.app.base.bean.card.DicFarm">
+        update dic_farm
+        <set>
+            <if test="seedItemId != null">seed_item_id = #{seedItemId},</if>
+            <if test="cropItemId != null">crop_item_id = #{cropItemId},</if>
+            <if test="growSeconds != null">grow_seconds = #{growSeconds},</if>
+            <if test="outputNum != null">output_num = #{outputNum},</if>
+            <if test="status != null">status = #{status},</if>
+            <if test="createTime != null">create_time = #{createTime},</if>
+            <if test="updateTime != null">update_time = #{updateTime},</if>
+        </set>
+        where id = #{id}
+    </update>
+
+</mapper>

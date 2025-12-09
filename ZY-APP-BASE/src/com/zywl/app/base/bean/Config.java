@@ -232,6 +232,9 @@ public class Config extends BaseBean {
 	// 每次转赠消耗的道具数量
 	public static final String TRANSFER_COST_ITEM_NUM = "TRANSFER_COST_ITEM_NUM";
 
+	// 农场配置表版本
+	public static final String FARM_TABLE_VERSION = "VERSION_FARM";
+
 
 	private String key;
 

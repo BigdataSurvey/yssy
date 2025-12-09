@@ -182,3 +182,5 @@ UserCapitalService.findUserCapitalByUserIdAndCapitalType
 UserCapitalService.subUserBalance
 
 
+请你认真分析我的项目,等你深度分析之后把项目代码和逻辑等永久保存到记忆; 之后我开始向你描述开发需求和要求;
+
