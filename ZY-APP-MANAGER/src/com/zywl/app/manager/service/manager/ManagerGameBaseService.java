@@ -223,6 +223,7 @@ public class ManagerGameBaseService extends BaseService {
         JSONObject tableInfos = new JSONObject();
         //从配置中心拿当前版本号
         String itemV = managerConfigService.getString(Config.ITEM_VERSION);
+        String farmV = managerConfigService.getString(Config.FARM_TABLE_VERSION);
         String mineV = managerConfigService.getString(Config.MINE_VERSION);
         String roleV = managerConfigService.getString(Config.ROLE_VERSION);
         // 客户端传上来的 tableInfo
@@ -262,6 +263,15 @@ public class ManagerGameBaseService extends BaseService {
             obj.put("version", roleV);
             obj.put("data", dicRoles);
             tableInfos.put("roleTable", obj);
+        }
+
+        // 农场种地配置表
+        if (tableInfo != null && (!tableInfo.containsKey("farmTable") || !farmV.equals(tableInfo.getString("farmTable")))) {
+            List<DicFarm> dicFarms = new ArrayList<>(PlayGameService.DIC_FARM.values());
+            JSONObject obj = new JSONObject();
+            obj.put("version", farmV);
+            obj.put("data", dicFarms);
+            tableInfos.put("farmTable", obj);
         }
 
         return tableInfos;
