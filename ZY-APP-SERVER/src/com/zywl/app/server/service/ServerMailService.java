@@ -50,15 +50,22 @@ public class ServerMailService extends BaseService{
 	private ActiveGiftRecordService activeGiftRecordService;
 
 
-
-
 	@ServiceMethod(code = "001", description = "查看邮件列表")
 	public JSONObject getMailInfo(final AppSocket appSocket, Command appCommand, JSONObject params) {
 		checkNull(params);
+		checkNull(params.get("page"), params.get("num"), params.getIntValue("type"));
+
 		long userId = appSocket.getWsidBean().getUserId();
-		int page = params.getInteger("page");
+		int page = params.getIntValue("page");
 		int num = params.getIntValue("num");
-		return getMailInfo(userId,page,num);
+		// 1 收件箱，2 发件箱
+		int type = params.getIntValue("type");
+
+		if (type != 1 && type != 2) {
+			throwExp("邮件类型错误");
+		}
+
+		return getMailInfo(userId, page, num, type);
 	}
 
 	@ServiceMethod(code = "002", description = "发送邮件 (转赠)")
@@ -108,34 +115,7 @@ public class ServerMailService extends BaseService{
 	}
 
 
-	public JSONObject getMailInfo(Long userId,int page,int num){
-		User user = userCacheService.getUserInfoById(userId);
-		UserMail userMail = userMailService.findUserReadMailInfo(userId);
-		JSONArray userReadMails = userMail.getReadMailList();
-		int type = 1;
-		if (user == null) {
-			throwExp("未查询到邮件信息！");
-		}
-		List<Mail> myMail = mailService.findMyEmail(userId,type,page,num);
-		JSONObject result = new JSONObject();
-		List<Mail> newList = new ArrayList<>();
-		for (Mail mail : myMail) {
-			if (mail.getType()==2 && userReadMails.toList(Long.class).contains(mail.getId())){
-				if (!userMail.getDeleteMailList().toList(Long.class).contains(mail.getId())){
-					mail.setIsRead(1);
-					newList.add(mail);
-				}
-			}else{
-				newList.add(mail);
-			}
-		}
-		result.put("mailList", newList);
-		return result;
-	}
 
-	
-
-	
 	@ServiceMethod(code = "003", description = "领取邮件")
 	public Async readMail(final AppSocket appSocket, Command appCommand, JSONObject params) {
 		checkNull(params);
@@ -202,6 +182,41 @@ public class ServerMailService extends BaseService{
 		userMailService.updateUserDeleteMailList(userId);
 		mailService.deleteReadMail(userId);
 		return null;
+	}
+
+	public JSONObject getMailInfo(Long userId, int page, int num, int type) {
+		User user = userCacheService.getUserInfoById(userId);
+		if (user == null) {
+			throwExp("未查询到邮件信息！");
+		}
+
+		UserMail userMail = userMailService.findUserReadMailInfo(userId);
+		JSONArray userReadMails = (userMail != null ? userMail.getReadMailList() : null);
+
+		// 根据 type 查询对应列表
+		List<Mail> myMail = mailService.findMyEmail(userId, type, page, num);
+
+		JSONObject result = new JSONObject();
+		List<Mail> newList = new ArrayList<>();
+
+		for (Mail mail : myMail) {
+			if (userMail != null
+					&& userReadMails != null
+					&& mail.getType() == 2
+					&& userReadMails.toList(Long.class).contains(mail.getId())) {
+
+				if (userMail.getDeleteMailList() == null
+						|| !userMail.getDeleteMailList().toList(Long.class).contains(mail.getId())) {
+					mail.setIsRead(1);
+					newList.add(mail);
+				}
+			} else {
+				newList.add(mail);
+			}
+		}
+
+		result.put("mailList", newList);
+		return result;
 	}
 
 }

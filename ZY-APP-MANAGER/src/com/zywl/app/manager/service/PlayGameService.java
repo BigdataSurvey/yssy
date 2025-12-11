@@ -607,6 +607,9 @@ public class PlayGameService extends BaseService {
         }
     }
 
+    /**
+     * 更新背包
+     * **/
     public void updateUserBackpack(String userId, String itemId, double number, LogUserBackpackTypeEnum em) {
         synchronized (LockUtil.getlock(userId)) {
             Map<String, Backpack> map = getUserBackpack(userId);
@@ -827,107 +830,108 @@ public class PlayGameService extends BaseService {
 
 
     /**
-     * 统一发奖入口（资产 + 道具）
-     * 使用场景为各种玩法结算奖励和邮件领取附件；
-     *
+     * 统一发奖入口（资产 + 道具）使用场景为各种玩法结算奖励和邮件领取附件；
      * 奖励格式约定（JSONArray array）中的单条 JSON：
      *  {
      *      "type": 1,          // 暂定只支持 type = 1（都视为“道具类奖励”，其中部分是资产）
-     *      "id":   "1001",     // 道具ID or 资产ID（与 ItemIdEnum / dic_item.id 一致）
+     *      "id":   "1001",     // 道具ID or 资产ID（与 dic_item.id / ItemIdEnum 一致）
      *      "number": 100,      // 数量；资产用 BigDecimal，普通道具用整数即可
-     *      "channel": 1,       // 预留字段：收益渠道（目前不在此方法里使用）
-     *      "fromUserId": "xxx" // 可选：来源玩家ID（比如好友赠送邮件）
+     *      "channel": 1,       // 不知道干啥的..
+     *      "fromUserId": "xxx" // 可选：来源玩家ID..比如好友赠送邮件
      *  }
      *
-     * 资产定义
-     *  - 核心积分：       ItemIdEnum.CORE_POINT      -> UserCapitalTypeEnum.hxjf      (value = 1001)
-     *  - 游戏消耗货币：   ItemIdEnum.GAME_CONSUME_COIN -> UserCapitalTypeEnum.xxxhhb (value = 1002)
-     *
-     * 规则：
-     *  1）判断 itemId 是否是资产：
-     *      - 是资产：写 UserCapital & pushCapitalUpdate(userId, capitalType)
-     *      - 否则：当普通背包道具处理
-     *
-     *  2）普通背包道具：
-     *      - 若 source == LogCapitalTypeEnum.mail：视为“邮件/好友赠送”
-     *          -> updateUserBackpack(userId, itemId, qty, LogUserBackpackTypeEnum.zs, fromUserId)
-     *      - 否则：视为“玩法/运营奖励”
-     *          -> updateUserBackpack(userId, itemId, qty, LogUserBackpackTypeEnum.game)
+     * 资产定义（由 dic_item.type 决定）：
+     *  - dic_item.type = 4 ：资产货币 这类走 UserCapital 资产逻辑；
+     * 其他类型（1 果实/材料、2 种子&基础道具、3 功能道具、5 礼包）统一走背包逻辑。
      */
     @KafkaProducer(topic = KafkaTopicContext.RED_POINT, event = KafkaEventContext.ADD_REWARD, sendParams = true)
-    public void addReward(Long userId, JSONArray array, LogCapitalTypeEnum source) {
+    public void addReward(Long userId, JSONArray array, LogCapitalTypeEnum capitalSource, LogUserBackpackTypeEnum backpackSource) {
         if (array == null || array.isEmpty()) {
             return;
         }
+
         for (Object o : array) {
             if (!(o instanceof JSONObject)) {
                 continue;
             }
             JSONObject reward = (JSONObject) o;
+
+            // 只处理type = 1
             int type = reward.getIntValue("type");
-            // 道具ID
+            if (type != 1) {
+                continue;
+            }
+
+            // 道具Id
             String itemId = reward.getString("id");
             if (itemId == null || itemId.trim().isEmpty()) {
                 continue;
             }
+
             // 数量
             BigDecimal amount = reward.getBigDecimal("number");
-            if (amount == null) {amount = BigDecimal.ZERO; }
-            if (amount.compareTo(BigDecimal.ZERO) <= 0) {continue;}
+            if (amount == null) {
+                amount = BigDecimal.ZERO;
+            }
+            if (amount.compareTo(BigDecimal.ZERO) <= 0) {
+                continue;
+            }
 
-            if (type == 1) {
-            // 判断如果是资产型道具就走资产奖励,写 UserCapital & 推资产更新
-            boolean isCapital = ItemIdEnum.CORE_POINT.getValue().equals(itemId) || ItemIdEnum.GAME_CONSUME_COIN.getValue().equals(itemId);
+            // 从静态表获取道具配置
+            Item dicItem = itemMap.get(itemId);
+            Integer itemType = (dicItem != null ? dicItem.getType() : null);
+
+            // dic_item.type 为 4 是资产类型
+            boolean isCapital = (itemType != null && itemType == 4);
+
             if (isCapital) {
+                /*资产奖励：写 UserCapital & 推资产更新*/
                 int capitalType = Integer.parseInt(itemId);
-                // 如果调用方没传source则给一个兜底类型
-                LogCapitalTypeEnum finalSource = (source != null)
-                        ? source
-                        : LogCapitalTypeEnum.friend_transfer;
-
-                //添加资产
+                // 添加资产
                 userCapitalService.addUserBalanceByAddReward(
                         amount,
                         userId,
                         capitalType,
-                        finalSource
+                        capitalSource
                 );
+
                 // 推送最新资产给客户端
                 managerGameBaseService.pushCapitalUpdate(userId, capitalType);
-                continue;
-            }
-            //不是资产类型奖励就是正常道具走背包奖励
-            double qty = amount.doubleValue();
-            if (qty == 0D) {
-                continue;
-            }
-
-            // 邮件类型;
-            if (source != null && source == LogCapitalTypeEnum.mail) {
-                String fromUserId = reward.getString("fromUserId");
-                updateUserBackpack(
-                        userId,
-                        itemId,
-                        qty,
-                        LogUserBackpackTypeEnum.zs,
-                        fromUserId
-                );
             } else {
-                //其他玩法奖励
-                updateUserBackpack(
-                        userId,
-                        itemId,
-                        qty,
-                        LogUserBackpackTypeEnum.game
-                );
-                List<JSONObject> packList = getReturnPack(userId);
-                JSONObject packUpdate = new JSONObject();
-                packUpdate.put("backpackInfo", packList);
-                Push.push(PushCode.updateUserBackpack, null, packUpdate);
+                /*普通道具：统一走背包逻辑*/
+                double qty = amount.doubleValue();
+                if (qty == 0D) {
+                    continue;
+                }
+
+                // 邮件来源奖励: 好友赠送 / 邮件附件
+                if (capitalSource == LogCapitalTypeEnum.mail) {
+                    String fromUserId = reward.getString("fromUserId");
+                    updateUserBackpack(
+                            userId,
+                            itemId,
+                            qty,
+                            backpackSource,
+                            fromUserId
+                    );
+                } else {
+                    // 其他普通玩法
+                    updateUserBackpack(
+                            userId,
+                            itemId,
+                            qty,
+                            backpackSource
+                    );
+                    // 这里保持你现有的行为：发完奖励后推一次完整背包
+                    List<JSONObject> packList = getReturnPack(userId);
+                    JSONObject packUpdate = new JSONObject();
+                    packUpdate.put("backpackInfo", packList);
+                    Push.push(PushCode.updateUserBackpack, null, packUpdate);
+                }
             }
-        }
         }
     }
+
 
 
     public void addRankCache(String id, int number, int gameType) {

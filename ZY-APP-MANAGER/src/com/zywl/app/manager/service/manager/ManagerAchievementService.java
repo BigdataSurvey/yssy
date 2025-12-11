@@ -13,6 +13,7 @@ import com.zywl.app.defaultx.cache.ItemCacheService;
 import com.zywl.app.defaultx.cache.UserBackpackCacheService;
 import com.zywl.app.defaultx.cache.UserCapitalCacheService;
 import com.zywl.app.defaultx.enmus.LogCapitalTypeEnum;
+import com.zywl.app.defaultx.enmus.LogUserBackpackTypeEnum;
 import com.zywl.app.defaultx.service.*;
 import com.zywl.app.manager.context.MessageCodeContext;
 import com.zywl.app.manager.service.PlayGameService;
@@ -89,7 +90,7 @@ public class ManagerAchievementService extends BaseService {
             }
             userAchievementService.updateList(userId,array);
             //领取完成 更新成就信息
-            gameService.addReward(userId, reward, LogCapitalTypeEnum.receive_achievement);
+            gameService.addReward(userId, reward, LogCapitalTypeEnum.receive_achievement, LogUserBackpackTypeEnum.achievement_reward);
 
             JSONObject result = new JSONObject();
             result.put("userId", data.get("userId"));

@@ -49,8 +49,8 @@ public enum LogUserBackpackTypeEnum {
 	syn("合成获得",1008),
 	buy_pit("开通矿洞",1008),
 	receive_number("矿洞收益",1010),
-	pit_refund("矿洞退款",1009)
-
+	pit_refund("矿洞退款", 1009),
+	harvest("种植收益",1009)
 
 	;
 	

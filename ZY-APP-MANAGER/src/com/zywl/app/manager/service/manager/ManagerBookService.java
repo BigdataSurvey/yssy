@@ -116,7 +116,7 @@ public class ManagerBookService extends BaseService {
             reward.put("number",number);
             JSONArray array = new JSONArray();
             array.add(reward);
-            gameService.addReward(userId,array, LogCapitalTypeEnum.book);
+            gameService.addReward(userId,array, LogCapitalTypeEnum.book,null);
             return array;
         }
     }

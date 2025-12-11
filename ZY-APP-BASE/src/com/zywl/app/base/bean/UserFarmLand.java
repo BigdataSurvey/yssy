@@ -24,9 +24,6 @@ public class UserFarmLand extends BaseBean {
     /** 当前种子的道具ID，空为无作物 */
     private Integer seedItemId;
 
-    /** 当前作物的果实道具ID，空为无作物 */
-    private Integer cropItemId;
-
     /** 种植时间 */
     private Date startTime;
 
@@ -74,13 +71,6 @@ public class UserFarmLand extends BaseBean {
         this.seedItemId = seedItemId;
     }
 
-    public Integer getCropItemId() {
-        return cropItemId;
-    }
-
-    public void setCropItemId(Integer cropItemId) {
-        this.cropItemId = cropItemId;
-    }
 
     public Date getStartTime() {
         return startTime;

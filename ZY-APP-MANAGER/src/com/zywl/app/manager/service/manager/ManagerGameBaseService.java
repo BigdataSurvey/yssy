@@ -1,4 +1,5 @@
 package com.zywl.app.manager.service.manager;
+import com.zywl.app.manager.service.manager.ManagerGameFarmService;
 
 import cn.hutool.core.util.StrUtil;
 import com.alibaba.fastjson2.JSONArray;
@@ -131,6 +132,10 @@ public class ManagerGameBaseService extends BaseService {
 
     @Autowired
     private HandBookRewardRecordService handBookRewardRecordService;
+
+    @Autowired
+    private ManagerGameFarmService managerGameFarmService;
+
 
     public static final LinkedList<JSONObject> CHAT_LIST = new LinkedList<>();
 
@@ -333,6 +338,13 @@ public class ManagerGameBaseService extends BaseService {
             result.put("version", authService.getVersion().getVersionName());
             //背包信息
             result.put("backpackInfo", gameService.getReturnPack(userId));
+
+            // 农场信息
+            JSONObject farmParams = new JSONObject();
+            farmParams.put("userId", userId);
+            JSONObject farmInfo = managerGameFarmService.getMyFarmInfo(managerSocketServer, farmParams);
+            result.put("farmInfo", farmInfo);
+
             //聊天信息
             result.put("chatInfo", getRecent(10));
             result.put("serverChat", SERVER_CHAT);
@@ -595,11 +607,11 @@ public class ManagerGameBaseService extends BaseService {
                     newInfo.put("number", info.getBigDecimal("number").multiply(new BigDecimal("2")));
                     adReward.add(newInfo);
                 }
-                gameService.addReward(userId, adReward, LogCapitalTypeEnum.daily_task);
+                gameService.addReward(userId, adReward, LogCapitalTypeEnum.daily_task, LogUserBackpackTypeEnum.daily_task);
                 result.put("rewardInfo", adReward);
             } else {
                 result.put("rewardInfo", rewards);
-                gameService.addReward(userId, rewards, LogCapitalTypeEnum.daily_task);
+                gameService.addReward(userId, rewards, LogCapitalTypeEnum.daily_task, LogUserBackpackTypeEnum.daily_task);
             }
 
             result.put("taskId", taskId);
@@ -619,7 +631,7 @@ public class ManagerGameBaseService extends BaseService {
         JSONObject result = new JSONObject();
         synchronized (LockUtil.getlock(userId.toString())) {
             JSONArray reward = JSONArray.parseArray(managerConfigService.getString(Config.SIGN_REWARD));
-            gameService.addReward(userId, reward, null);
+            gameService.addReward(userId, reward,  LogCapitalTypeEnum.daily_task, LogUserBackpackTypeEnum.daily_task);
             result.put("reward", reward);
             cardGameCacheService.userSign(userId);
             return result;
@@ -906,7 +918,7 @@ public class ManagerGameBaseService extends BaseService {
             result.put("id", dicShop.getItemId());
             result.put("number", number);
             array.add(result);
-            gameService.addReward(userId, array, LogCapitalTypeEnum.SHOPPING_GET);
+            gameService.addReward(userId, array, LogCapitalTypeEnum.SHOPPING_GET,LogUserBackpackTypeEnum.shopping);
             return array;
         }
     }
@@ -1483,7 +1495,7 @@ public class ManagerGameBaseService extends BaseService {
             }
         }
         if (rewards.size() > 0) {
-            gameService.addReward(userId, rewards, LogCapitalTypeEnum.cave_prize_draw);
+            gameService.addReward(userId, rewards, LogCapitalTypeEnum.cave_prize_draw,LogUserBackpackTypeEnum.prize_draw);
         }
         Activity activity = gameCacheService.getActivity();
         if (activity!=null){
@@ -1629,7 +1641,7 @@ public class ManagerGameBaseService extends BaseService {
             userHandbook.setDays(userHandbook.getDays() + 1);
             userHandbookService.updateUserHandbook(userHandbook);
             handBookRewardRecordService.addRecord(userId, userHandbook.getHandbookId(), userHandbook.getDays(), reward);
-            gameService.addReward(userId, reward, LogCapitalTypeEnum.handbook_reward);
+            gameService.addReward(userId, reward, LogCapitalTypeEnum.handbook_reward, null);
             JSONObject result = new JSONObject();
             result.put("rewardInfo", reward);
             BigDecimal parentMoney = BigDecimal.ZERO;

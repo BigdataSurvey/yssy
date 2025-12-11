@@ -8,6 +8,7 @@ import com.zywl.app.base.service.BaseService;
 import com.zywl.app.defaultx.annotation.ServiceClass;
 import com.zywl.app.defaultx.annotation.ServiceMethod;
 import com.zywl.app.server.context.MessageCodeContext;
+
 import com.zywl.app.server.socket.AppSocket;
 import com.zywl.app.server.util.RequestManagerListener;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -32,7 +33,7 @@ public class GameFarmService extends BaseService {
      * 获取农场信息
      */
     @ServiceMethod(code = "001", description = "获取农场信息")
-    public Object getInfo(final AppSocket appSocket, Command appCommand, JSONObject params) {
+    public Object getFarmInfo(final AppSocket appSocket, Command appCommand, JSONObject params) {
         checkNull(params);
         long userId = appSocket.getWsidBean().getUserId();
         params.put("userId",userId);

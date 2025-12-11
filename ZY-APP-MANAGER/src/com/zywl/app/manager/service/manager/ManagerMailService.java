@@ -141,7 +141,7 @@ public class ManagerMailService extends BaseService {
                     // 需要领取附件
                     JSONArray details = mail.getAttachmentsDetails();
                     rewards.addAll(details);
-                    gameService.addReward(userId, details, LogCapitalTypeEnum.mail);
+                    gameService.addReward(userId, details, LogCapitalTypeEnum.mail,LogUserBackpackTypeEnum.mail);
                 }
             }
             userMail.setReadMailList(userReadMails);
