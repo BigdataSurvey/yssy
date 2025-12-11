@@ -12,6 +12,7 @@ import com.zywl.app.base.service.BaseService;
 import com.zywl.app.defaultx.annotation.ServiceClass;
 import com.zywl.app.defaultx.annotation.ServiceMethod;
 import com.zywl.app.defaultx.enmus.LogCapitalTypeEnum;
+import com.zywl.app.defaultx.enmus.LogUserBackpackTypeEnum;
 import com.zywl.app.defaultx.service.card.DicTimeTaskGroupService;
 import com.zywl.app.defaultx.service.card.UserTimeTaskService;
 import com.zywl.app.manager.context.MessageCodeContext;
@@ -60,7 +61,7 @@ public class ManagerTimeTaskService extends BaseService {
         }
         JSONArray reward = byIdAndUserId.getReward();
         userTimeTaskService.updateTaskReceiving(userId,taskId);
-        gameService.addReward(userId,reward, LogCapitalTypeEnum.receive_invite);
+        gameService.addReward(userId,reward, LogCapitalTypeEnum.receive_invite, LogUserBackpackTypeEnum.achievement_reward);
         JSONObject result = new JSONObject();
         result.put("rewardInfo",reward);
         return result;

@@ -81,7 +81,7 @@ public class Item extends BaseBean{
 	/** 持续时间 */
 	private Integer durationDays;
 
-	/** 类型 1材料 / 2种子&基础道具 / 3功能道具 / 4货币 / 5礼包(预留) */
+	/** 类型 1果实(材料) / 2种子&基础道具 / 3功能道具 / 4资产货币 / 5礼包(预留) */
 	private Integer type;
 
 	/** 客户端展示位置 1货币栏 / 2道具背包 */

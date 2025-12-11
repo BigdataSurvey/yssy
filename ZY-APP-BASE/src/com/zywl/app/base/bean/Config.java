@@ -235,6 +235,10 @@ public class Config extends BaseBean {
 	// 农场配置表版本
 	public static final String FARM_TABLE_VERSION = "VERSION_FARM";
 
+	//购买土地配置;
+	public static final String UNLOCK_FARM = "UNLOCK_FARM";
+
+
 
 	private String key;
 

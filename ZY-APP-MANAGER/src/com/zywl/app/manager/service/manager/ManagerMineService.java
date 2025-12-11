@@ -234,7 +234,7 @@ public class ManagerMineService extends BaseService {
             object.put("id",9);
             object.put("number",userMine.getOutput());
             array.add(object);
-            gameService.addReward(userId, array, null);
+            gameService.addReward(userId, array, null,null);
             userMine.setOutput(0);
             userMineService.updateUserMine(userMine);
             return array;
@@ -273,7 +273,7 @@ public class ManagerMineService extends BaseService {
             object.put("id",9);
             object.put("number",allOutput);
             array.add(object);
-            gameService.addReward(userId, array,null);
+            gameService.addReward(userId, array,null,null);
             //收集道具
             return array;
         }

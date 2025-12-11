@@ -237,7 +237,7 @@ public class ManagerPitService extends BaseService {
             long day = (System.currentTimeMillis() - userPit.getLastReceiveTime().getTime()) / 1000 / 60 / 60 / 24;
             userPit.setLastReceiveTime(DateUtil.getDateByDay(userPit.getLastReceiveTime(), (int) day));
             //领取矿石到背包
-            gameService.addReward(userId, reward, null);
+            gameService.addReward(userId, reward, null,null);
             pitRecordList.add(pitRecord);
             //批量新增領取记录
             pitRecordService.batchAddRecord(pitRecordList);

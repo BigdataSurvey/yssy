@@ -1,7 +1,5 @@
 package com.zywl.app.base.bean.card;
-
 import com.zywl.app.base.BaseBean;
-
 import java.util.Date;
 
 /**
@@ -19,14 +17,11 @@ public class DicFarm extends BaseBean {
     /** 种子道具ID（如1101、1201） */
     private Integer seedItemId;
 
-    /** 产出果实道具ID（2101、2102、2103） */
-    private Integer cropItemId;
+    /** 产出奖励JSON **/
+    private String reward;
 
     /** 生长时间，单位：秒 */
     private Integer growSeconds;
-
-    /** 成熟后一次性产出的果实数量 */
-    private Integer outputNum;
 
     /** 状态：1=启用，0=禁用 */
     private Integer status;
@@ -53,28 +48,12 @@ public class DicFarm extends BaseBean {
         this.seedItemId = seedItemId;
     }
 
-    public Integer getCropItemId() {
-        return cropItemId;
-    }
-
-    public void setCropItemId(Integer cropItemId) {
-        this.cropItemId = cropItemId;
-    }
-
     public Integer getGrowSeconds() {
         return growSeconds;
     }
 
     public void setGrowSeconds(Integer growSeconds) {
         this.growSeconds = growSeconds;
-    }
-
-    public Integer getOutputNum() {
-        return outputNum;
-    }
-
-    public void setOutputNum(Integer outputNum) {
-        this.outputNum = outputNum;
     }
 
     public Integer getStatus() {
@@ -99,5 +78,13 @@ public class DicFarm extends BaseBean {
 
     public void setUpdateTime(Date updateTime) {
         this.updateTime = updateTime;
+    }
+
+    public String getReward() {
+        return reward;
+    }
+
+    public void setReward(String reward) {
+        this.reward = reward;
     }
 }

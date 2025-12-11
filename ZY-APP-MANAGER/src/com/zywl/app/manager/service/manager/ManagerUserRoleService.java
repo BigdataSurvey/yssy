@@ -140,7 +140,7 @@ public class ManagerUserRoleService extends BaseService {
                 throwExp("未查询到角色信息");
             }
             JSONArray reward = userRole.getUnReceive();
-            gameService.addReward(userId,reward,null);
+            gameService.addReward(userId,reward,null,null);
             userRole.setUnReceive(new JSONArray());
             userRoleService.updateUserRole(userRole);
             JSONObject result = new JSONObject();

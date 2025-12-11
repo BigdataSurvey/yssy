@@ -426,7 +426,7 @@ public class AdminMailService extends BaseService {
 
             //赠送100张卡
             JSONArray reward = JSONArray.parseArray(managerConfigService.getString(Config.SHOP_MANAGER_REWARD));
-            gameService.addReward(userId,reward,null);
+            gameService.addReward(userId,reward,null,null);
             //Map<String, Object> upCondition = new HashMap<>();
             //upCondition.put("userId", userId);
             //shopManagerService.execute("updateShopManagerInfo", upCondition);

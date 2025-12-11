@@ -23,9 +23,7 @@ public class Mail extends BaseBean{
 	private String toUserNo;
 
 	private int toUserRoleId;
-
 	private String toUserName;
-
 	private String toUserHeadImg;
 	private String title;
 	

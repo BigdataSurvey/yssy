@@ -10,7 +10,6 @@
         <result column="user_id"     property="userId"/>
         <result column="land_index"  property="landIndex"/>
         <result column="seed_item_id" property="seedItemId"/>
-        <result column="crop_item_id" property="cropItemId"/>
         <result column="start_time"  property="startTime"/>
         <result column="end_time"    property="endTime"/>
         <result column="status"      property="status"/>
@@ -24,7 +23,6 @@
         user_id,
         land_index,
         seed_item_id,
-        crop_item_id,
         start_time,
         end_time,
         status,
@@ -32,15 +30,7 @@
         update_time
     </sql>
 
-    <!-- 主键查询：findOneById -->
-    <select id="selectByPrimaryKey" parameterType="long" resultMap="BaseResultMap">
-        select
-        <include refid="Base_Column_List"/>
-        from t_user_farm_land
-        where id = #{id}
-    </select>
-
-    <!-- 按 userId 查询全部土地 -->
+    <!-- 按 userId 查询用户全部土地信息 -->
     <select id="findListByUserId" parameterType="map" resultMap="BaseResultMap">
         SELECT <include refid="Base_Column_List"/>
         FROM t_user_farm_land
@@ -48,88 +38,36 @@
         ORDER BY land_index ASC
     </select>
 
+
+    <!-- 主键查询 -->
+    <select id="selectByPrimaryKey" parameterType="long" resultMap="BaseResultMap">
+        select
+        <include refid="Base_Column_List"/>
+        from t_user_farm_land
+        where id = #{id}
+    </select>
+
+    <!--查询用户指定位置的一块地 -->
     <select id="findOneByUserAndIndex" parameterType="map" resultMap="BaseResultMap">
         SELECT <include refid="Base_Column_List"/>
         FROM t_user_farm_land
         WHERE user_id = #{userId} AND land_index = #{landIndex}
     </select>
 
-    <!-- 新增土地记录：insertSelective -->
-    <insert id="insertSelective"
-            parameterType="com.zywl.app.base.bean.UserFarmLand"
-            useGeneratedKeys="true"
-            keyProperty="id">
-        insert into t_user_farm_land
-        <trim prefix="(" suffix=")" suffixOverrides=",">
-            <if test="userId != null">user_id,</if>
-            <if test="landIndex != null">land_index,</if>
-            <if test="seedItemId != null">seed_item_id,</if>
-            <if test="cropItemId != null">crop_item_id,</if>
-            <if test="startTime != null">start_time,</if>
-            <if test="endTime != null">end_time,</if>
-            <if test="status != null">status,</if>
-            <if test="createTime != null">create_time,</if>
-            <if test="updateTime != null">update_time,</if>
-        </trim>
-        <trim prefix="values (" suffix=")" suffixOverrides=",">
-            <if test="userId != null">#{userId},</if>
-            <if test="landIndex != null">#{landIndex},</if>
-            <if test="seedItemId != null">#{seedItemId},</if>
-            <if test="cropItemId != null">#{cropItemId},</if>
-            <if test="startTime != null">#{startTime},</if>
-            <if test="endTime != null">#{endTime},</if>
-            <if test="status != null">#{status},</if>
-            <if test="createTime != null">#{createTime},</if>
-            <if test="updateTime != null">#{updateTime},</if>
-        </trim>
+
+
+    <insert id="plantLand" parameterType="com.zywl.app.base.bean.UserFarmLand">
+        INSERT INTO t_user_farm_land
+        (user_id, land_index, seed_item_id,  start_time, end_time, status, create_time, update_time)
+        VALUES
+            (#{userId}, #{landIndex}, #{seedItemId}, #{startTime}, #{endTime}, #{status}, NOW(), NOW())
+            ON DUPLICATE KEY UPDATE
+                                 seed_item_id = VALUES(seed_item_id),
+                                 start_time = VALUES(start_time),
+                                 end_time = VALUES(end_time),
+                                 status = VALUES(status),
+                                 update_time = NOW()
     </insert>
-
-    <!-- 更新土地 -->
-    <update id="updateByPrimaryKeySelective"
-            parameterType="com.zywl.app.base.bean.UserFarmLand">
-        update t_user_farm_land
-        <set>
-            <if test="userId != null">user_id = #{userId},</if>
-            <if test="landIndex != null">land_index = #{landIndex},</if>
-            <if test="seedItemId != null">seed_item_id = #{seedItemId},</if>
-            <if test="cropItemId != null">crop_item_id = #{cropItemId},</if>
-            <if test="startTime != null">start_time = #{startTime},</if>
-            <if test="endTime != null">end_time = #{endTime},</if>
-            <if test="status != null">status = #{status},</if>
-            <if test="createTime != null">create_time = #{createTime},</if>
-            <if test="updateTime != null">update_time = #{updateTime},</if>
-        </set>
-        where id = #{id}
-    </update>
-
-    <!-- 分页查询-->
-    <select id="findByConditions" parameterType="map" resultMap="BaseResultMap">
-        select
-        <include refid="Base_Column_List"/>
-        from t_user_farm_land
-        <where>
-            <if test="id != null">
-                and id = #{id}
-            </if>
-            <if test="userId != null">
-                and user_id = #{userId}
-            </if>
-            <if test="landIndex != null">
-                and land_index = #{landIndex}
-            </if>
-            <if test="status != null">
-                and status = #{status}
-            </if>
-            <!-- 可选：按起止时间做筛选，后台列表会方便一点 -->
-            <if test="minStartTime != null">
-                and start_time &gt;= #{minStartTime}
-            </if>
-            <if test="maxStartTime != null">
-                and start_time &lt;= #{maxStartTime}
-            </if>
-        </where>
-        order by user_id asc, land_index asc
-    </select>
 
     <!-- 统计总数-->
     <select id="countByConditions" parameterType="map" resultType="int">
@@ -156,31 +94,5 @@
             </if>
         </where>
     </select>
-
-    <insert id="plantLand" parameterType="com.zywl.app.base.bean.UserFarmLand">
-        INSERT INTO t_user_farm_land
-        (user_id, land_index, seed_item_id, crop_item_id, start_time, end_time, status, create_time, update_time)
-        VALUES
-            (#{userId}, #{landIndex}, #{seedItemId}, #{cropItemId}, #{startTime}, #{endTime}, #{status}, NOW(), NOW())
-            ON DUPLICATE KEY UPDATE
-                                 seed_item_id = VALUES(seed_item_id),
-                                 crop_item_id = VALUES(crop_item_id),
-                                 start_time = VALUES(start_time),
-                                 end_time = VALUES(end_time),
-                                 status = VALUES(status),
-                                 update_time = NOW()
-    </insert>
-
-    <update id="harvestLand" parameterType="map">
-        UPDATE t_user_farm_land
-        SET
-            seed_item_id = 0,
-            crop_item_id = 0,
-            start_time = NULL,
-            end_time = NULL,
-            status = 0,
-            update_time = NOW()
-        WHERE user_id = #{userId} AND land_index = #{landIndex}
-    </update>
 
 </mapper>

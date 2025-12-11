@@ -17,6 +17,7 @@ import com.zywl.app.defaultx.annotation.ServiceMethod;
 import com.zywl.app.defaultx.cache.UserCacheService;
 import com.zywl.app.defaultx.cache.UserCapitalCacheService;
 import com.zywl.app.defaultx.enmus.LogCapitalTypeEnum;
+import com.zywl.app.defaultx.enmus.LogUserBackpackTypeEnum;
 import com.zywl.app.defaultx.enmus.UserCapitalTypeEnum;
 import com.zywl.app.defaultx.service.*;
 import com.zywl.app.manager.context.MessageCodeContext;
@@ -125,7 +126,7 @@ public class ManagerUserVipService extends BaseService {
                 }
                 //获取当前用户已经当前用户等级，新增一条记录到记录表
                 long id = vipReceiveRecordService.addVipReceiveRecord(userId, orderNo, vipLevel, reward.toString(), new Date(), new Date());
-                playGameService.addReward(userId, reward, LogCapitalTypeEnum.VIP_RECEIVE);
+                playGameService.addReward(userId, reward, LogCapitalTypeEnum.VIP_RECEIVE, LogUserBackpackTypeEnum.events);
                 JSONObject result = new JSONObject();
                 result.put("id", id);
                 return result;
