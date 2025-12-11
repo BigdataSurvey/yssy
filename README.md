@@ -1,7 +1,7 @@
-我向你上传了一个"yssy.zip"这个文件,是一个压缩包；这个压缩包下的游戏项目,叫"小丑大逃杀"的后端代码,请你解压之后详细分析,深度分析每一个文件的作用,以及各个模块之间的关系,请详细分析并给出你的答案;
+这是游戏项目,叫"小丑大逃杀"的后端代码,请你详细分析,深度分析每一个文件的作用,以及各个模块之间的关系,请详细分析并给出你的答案;
 
 这个后端项目采用分模块的分布式架构,主要划分为不同的模块,各自职责明确;具体不同模块之间的说明在我上传的"YSSY后端核心模块架构与功能详解.pdf"中可以参考,请你深度分析该PDF;
-我同时上传了"yssy-Tree_20251203102409.txt"该项目的目录树,来供你参考；
+我同时上传了"yssy-Tree_20251209162307.txt"该项目的目录树,来供你参考；如果没有请向我索要
 
 我简单说一下,
 其中ZY-APP-BASE、ZY-APP-DEFAULT、ZY-APP-WS、ZY-APP-SERVER、ZY-APP-MANAGER、ZY-APP-LOG、ZY-KEYFACTORY为核心模块;
@@ -141,8 +141,21 @@ updateGameKey 是“服务已经跑起来以后，当配表/Config 被修改时�
 3.3:updateGameKey("ITEM_VERSION", "4") 这个方法会调用gameService.initItem()，从 DB 把 Item 新表读进 itemMap、同时还会有initDicHandBook/initDicHandBookReward/initPrize 等等联动；之后调 Push.push(PushCode.updateTableVersion, null, tableInfo)，把新表推给所有当前在线玩家；
 此时已在线玩家通过 push 收到 "itemTable" 的新表，可立即更新;之后新登录玩家：通过 syncTableInfo 比对 "4"，决定是否下发表。
 
-在你在认真的分析完框架代码后永久保留在记忆当中；之后我向你继续提供需要分析的模块和需求；
 
+我在说一个逻辑；
+在 PlayGameService.java 中有一个方法 addReward;。他的最用很大，主要作用是整个游戏里给玩家的奖励发放的入口；
+他的参数有一个JSONArray,其中Type固定的为1(写死);id则是发放的道具ID;number是发放的道具数量;之后根据id来判断道具表中对应itemId的type;
+/** 类型 1果实(材料) / 2种子&基础道具 / 3功能道具 / 4资产货币 / 5礼包(预留) */
+如果为货币资产类型则添加资产这些都资产入口；其余普通道具走背包入口；
+而因为要传入JSONArray参数,所以相关配置表需要添加一个奖励字段,比如reward,我举例子数据为:[{"type":1,"id":2101,"number":10}]
+该方法的详细逻辑请仔细分析PlayGameService.addReward; 和 上传的 addReward逻辑.md
+
+请你认真分析我的项目,等你深度分析之后把项目代码和逻辑等永久保存到记忆; 之后我开始向你描述开发需求和要求;
+
+
+
+在你在认真的分析完框架代码后永久保留在记忆当中；之后我向你继续提供需要分析的模块和需求；
+我同时向你上传了道具合成以及道具和资产货币的一些逻辑，请你认真分析md文档，并把逻辑和代码都保存在记忆当中
 下面是常用的服务,需要你仔细检查和分析,保存在记忆当中
 
 用户资产缓存服务：
@@ -155,30 +168,59 @@ yssy\ZY-APP-DEFAULT\src\com\zywl\app\defaultx\enmus\UserCapitalTypeEnum.java
 yssy\ZY-APP-MANAGER\src\com\zywl\app\manager\service\manager\ManagerConfigService.java
 VIP用户服务
 yssy\ZY-APP-DEFAULT\src\com\zywl\app\defaultx\service\UserVipService.java
-
-
+和道具表数据一样的道具枚举；注意：MONEY_1 银币、GOLD 金币 已经弃用;
+yssy\ZY-APP-DEFAULT\src\com\zywl\app\defaultx\enmus\ItemIdEnum.java
+也同时存在道具表中的资产类型枚举, 注意:文币、通宝、游园券、游园币、积分；已经弃用；
+yssy\ZY-APP-DEFAULT\src\com\zywl\app\defaultx\enmus\UserCapitalTypeEnum.java
 下面是一些常用写法,请你一定仔细检查和分析,保存在记忆当中;
 
 //校验用户
 Map<Long, User> users = userCacheService.loadUsers(userId);
 查询用户的VIP信息
 userVipService.findUserVipByUserId(userId);
-
 拿到配置表某个配置
 managerConfigService.getInteger(Config.IP_LOGIN_RISK) 或者getString;
-修改配置表某个配置
+
 
 用户背包信息
 gameService.getReturnPack(userId)
 推送背包最新状态
 managerGameBaseService.pushBackpackUpdate(Long.parseLong(userId), itemId,number,1);
-
-
 背包中道具是否充足
 PlayGameService.checkUserItemNumber
 检查资产是否充足
 UserCapitalService.findUserCapitalByUserIdAndCapitalType
+
 扣除用户资产
 UserCapitalService.subUserBalance
+增加资产
+UserCapitalService.addUserBalance
+添加资产
+userCapitalService.addUserBalanceByAddReward
+更新背包
+PlayGameService.updateUserBackpack
+
+以上对资产和道具的添加/扣除都走 PlayGameService.addReward方法
 
 
+
+你现在已经深度分析了我的项目以及项目框架说明文档和一些经常使用的服务;请都保存在对话记忆当中，以便之后更好的加载上下文；
+要求如下：
+1：将项目框架以及写法、风格都认真分析，这个项目是老项目，我拿过来做新的项目开发；已经完成了登录、道具枚举、合成这些修改；所以我让你先分析的这些模块
+2：我们之间的需求对话你必须要依据真实的项目代码来;不得假设、例如、可能等模糊的回答；要参考的代码有真实的出处，我举个例子，我们在开发过程当中需要获取用户的背包信息，那么你需要使用gameService.getReturnPack(userId)；你要去我提供的真实代码库中下钻到getReturnPack方法，确认方法可以使用并且认真分析；之后才能给我；
+3：每次我们之间确认的需求我开发每一步都会和你确定，会上传给你或者上传到公共库，你在下一步之前要检查上一步我写的代码；
+
+
+
+你可以在我上传的公共库中找到下面我已经创建好的代码文件;
+yssy\ZY-APP-BASE\src\com\zywl\app\base\bean\card\DicFarm.java
+yssy\ZY-APP-DEFAULT\src\com\zywl\app\defaultx\service\card\DicFarmService.java
+yssy\ZY-APP-DEFAULT\src\com\zywl\app\defaultx\mapper\DicFarmMapper.xml
+yssy\ZY-APP-BASE\src\com\zywl\app\base\bean\UserFarmLand.java
+yssy\ZY-APP-DEFAULT\src\com\zywl\app\defaultx\service\UserFarmLandService.java
+yssy\ZY-APP-DEFAULT\src\com\zywl\app\defaultx\mapper\UserFarmLandMapper.xml
+yssy\ZY-APP-SERVER\src\com\zywl\app\server\service\GameFarmService.java
+yssy\ZY-APP-MANAGER\src\com\zywl\app\manager\service\manager\ManagerGameFarmService.java
+其中,GameFarmService是service的接口;跳转到了manager的ManagerGameFarmService;
+另外,登录返回的syncTableInfo、启动加载的PlayGameService.initFarm、config重置配置数据的ManagerConfigService.key.equals(Config.MINE_VERSION 我这些都做好了;请你检查; 根据我的要求 在真实项目代码中找到这些文件去检查;
+而我也配置好了一些表的结构和数据;一同进行了上传;你可以进行分析;
