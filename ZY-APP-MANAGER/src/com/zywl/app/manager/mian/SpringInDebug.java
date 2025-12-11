@@ -4,6 +4,7 @@ import com.alibaba.fastjson2.JSONObject;
 import com.zywl.app.defaultx.util.SpringUtil;
 import com.zywl.app.manager.service.manager.ManagerCapitalService;
 import com.zywl.app.manager.service.manager.ManagerGameBaseService;
+import com.zywl.app.manager.service.manager.ManagerGameFarmService;
 import com.zywl.app.manager.socket.ManagerSocketServer;
 import org.springframework.beans.factory.NoSuchBeanDefinitionException;
 import org.springframework.context.support.ClassPathXmlApplicationContext;
@@ -227,7 +228,76 @@ public class SpringInDebug {
         }
     }
 
+    /**
+     * 用户土地信息
+     */
+    public static void myFarmInfoInTest() {
+        try {
+            ManagerGameFarmService svc = ctx.getBean(ManagerGameFarmService.class);
+            JSONObject params = new JSONObject();
 
+            params.put("userId", 937223L);
+
+            JSONObject resp = (JSONObject) svc.getMyFarmInfo(fakeSocket, params);
+            System.out.println("=== 用户土地信息 测试返回 ===");
+            System.out.println(resp.toJSONString());
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    /**
+     * 用户土地种植
+     */
+    public static void plantInTest() {
+        try {
+            ManagerGameFarmService svc = ctx.getBean(ManagerGameFarmService.class);
+            JSONObject params = new JSONObject();
+            params.put("landIndex",8);
+            params.put("seedItemId",1305);
+            params.put("userId", 937223L);
+
+            JSONObject resp = (JSONObject) svc.plant(fakeSocket, params);
+            System.out.println("=== 用户土地种植 测试返回 ===");
+            System.out.println(resp.toJSONString());
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    /**
+     * 用户种地收割 单个/一键
+     */
+    public static void harvestInTest() {
+        try {
+            ManagerGameFarmService svc = ctx.getBean(ManagerGameFarmService.class);
+            JSONObject params = new JSONObject();
+            params.put("userId", 937223L);
+            params.put("landIndex",-1);
+            JSONObject resp = (JSONObject) svc.harvest(fakeSocket, params);
+            System.out.println("=== 用户种地收割 测试返回 ===");
+            System.out.println(resp.toJSONString());
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    /**
+     * 用户解锁/购买土地
+     */
+    public static void unlockLandInTest() {
+        try {
+            ManagerGameFarmService svc = ctx.getBean(ManagerGameFarmService.class);
+            JSONObject params = new JSONObject();
+            params.put("userId", 937223L);
+                params.put("landIndex",8);
+            JSONObject resp = (JSONObject) svc.unlockLand(fakeSocket, params);
+            System.out.println("=== 用户解锁/购买土地 测试返回 ===");
+            System.out.println(resp.toJSONString());
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
 
     public static void main(String[] args) {
         //炼制测试
@@ -240,13 +310,23 @@ public class SpringInDebug {
         //sellItemToSysTest();;
 
         //发送邮件
-        sendMailTest();
+        //sendMailTest();
         //{"mailId":133,"amount":100,"itemId":"1001"}
 
         //领取全部邮件
-        readMailAllTest();
+        //readMailAllTest();
 
+        //用户土地信息
+        //myFarmInfoInTest();
 
+        //用户土地种植
+        //plantInTest();
+
+        //用户种地收割
+        harvestInTest();
+
+        //用户解锁/购买土地 测试返回
+        //unlockLandInTest();
     }
 
 
