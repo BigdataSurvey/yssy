@@ -1,26 +1,44 @@
 package com.zywl.app.base.bean;
-
 import com.zywl.app.base.BaseBean;
 
 import java.math.BigDecimal;
 import java.util.Date;
 
+/**
+ * 商城购买记录表
+ * **/
 public class ShoppingRecord extends BaseBean{
-	
+	/**
+	 * 自增主键ID
+	 * **/
 	private Long id;
-	
+	/**
+	 * 玩家Id
+	 * **/
 	private Long userId;
-
-	private int shopType;
-	
+	/**
+	 * 购买的道具商品ID
+	 * **/
 	private Long itemId;
-	
+	/**
+	 * 本次购买的商品数量
+	 * **/
 	private Integer number;
-	
+	/**
+	 * 本次实际支付总额：单价price * number
+	 * **/
 	private BigDecimal amount;
-
+	/**
+	 * 商店类型 关联 dic_shop_type.shop_type
+	 * **/
+	private int shopType;
+	/**
+	 * 支付使用的资产类型：当 use_item_id 属于资产货币时存对应资产枚举
+	 * **/
 	private int capitalType;
-	
+	/**
+	 * 商城订单号
+	 * **/
 	private String orderNo;
 	
 	private Date createTime;

@@ -291,7 +291,7 @@ public class ManagerConfigService extends BaseService {
 			tableInfo.put("mineTable", obj);
 			Push.push(PushCode.updateTableVersion, null, tableInfo);
 		}else if (key.equals(Config.FARM_TABLE_VERSION)) {
-			//重置玩家矿场表后重新推送给在线客户端
+			//重置玩家农场种地表后重新推送给在线客户端
 			gameService.initFarm();
 			List<DicFarm> farms = new ArrayList<>(PlayGameService.DIC_FARM.values());
 			JSONObject obj = new JSONObject();
