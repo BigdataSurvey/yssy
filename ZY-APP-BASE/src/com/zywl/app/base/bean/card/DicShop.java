@@ -10,17 +10,41 @@ public class DicShop extends BaseBean {
 
     private Long id;
 
+    /**
+     * 实际卖出商品的道具Id
+     * **/
     private Long itemId;
 
+    /**
+     * 支付时消耗的"货币"道具/资产  ID
+     * **/
     private Long useItemId;
 
-    private int type;
 
+    /**
+     * 商店类型
+     * **/
     private int shopType;
 
+    /**
+     * 一次购买的数量
+     * **/
     private int number;
 
+    /**
+     * 单价
+     * **/
     private BigDecimal price;
+
+    /**
+     * 是否在前端展示 1展示 0隐藏
+     * **/
+    private Integer isShow;
+
+    /**
+     * 是否允许购买 1可购买 0不可购买
+     * **/
+    private Integer canBuy;
 
     public BigDecimal getPrice() {
         return price;
@@ -46,14 +70,6 @@ public class DicShop extends BaseBean {
         this.itemId = itemId;
     }
 
-    public int getType() {
-        return type;
-    }
-
-    public void setType(int type) {
-        this.type = type;
-    }
-
     public int getShopType() {
         return shopType;
     }
@@ -76,5 +92,21 @@ public class DicShop extends BaseBean {
 
     public void setUseItemId(Long useItemId) {
         this.useItemId = useItemId;
+    }
+
+    public Integer getIsShow() {
+        return isShow;
+    }
+
+    public void setIsShow(Integer isShow) {
+        this.isShow = isShow;
+    }
+
+    public Integer getCanBuy() {
+        return canBuy;
+    }
+
+    public void setCanBuy(Integer canBuy) {
+        this.canBuy = canBuy;
     }
 }

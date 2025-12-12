@@ -3,11 +3,19 @@ package com.zywl.app.base.bean.card;
 import com.zywl.app.base.BaseBean;
 
 public class DicShopType extends BaseBean {
-
+    /**
+     * 商店类型ID
+     * **/
     private int shopType;
 
+    /**
+     * 商店名字
+     * **/
     private String name;
 
+    /**
+     * 商店归类
+     * **/
     private  int type;
 
     public int getShopType() {

@@ -299,6 +299,28 @@ public class SpringInDebug {
         }
     }
 
+
+    /**
+     * 商城信息 037
+     */
+    public static void shopInfo() {
+        try {
+            ManagerGameBaseService svc = ctx.getBean(ManagerGameBaseService.class);
+            JSONObject params = new JSONObject();
+            params.put("userId", 937223L);
+            params.put("type",1);
+            Object respObj = svc.shopInfo(fakeSocket, params);
+            System.out.println("=== 商城信息 测试返回 ===");
+            System.out.println(JSONObject.toJSONString(respObj));
+            System.out.println(JSONObject.toJSONString(respObj));
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+
+
+
     public static void main(String[] args) {
         //炼制测试
         ///synInTest();;
@@ -317,16 +339,19 @@ public class SpringInDebug {
         //readMailAllTest();
 
         //用户土地信息
-        //myFarmInfoInTest();
+        myFarmInfoInTest();
 
         //用户土地种植
         //plantInTest();
 
         //用户种地收割
-        harvestInTest();
+        //harvestInTest();
 
         //用户解锁/购买土地 测试返回
         //unlockLandInTest();
+
+        //商城信息
+        //shopInfo();
     }
 
 

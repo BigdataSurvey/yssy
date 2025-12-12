@@ -882,46 +882,168 @@ public class ManagerGameBaseService extends BaseService {
     @ServiceMethod(code = "035", description = "商店购买")
     @KafkaProducer(topic = KafkaTopicContext.RED_POINT, event = KafkaEventContext.SHOP_BUY, sendParams = true)
     public JSONArray buy(ManagerSocketServer managerSocketServer, JSONObject params) {
+
         checkNull(params);
         checkNull(params.get("userId"), params.get("id"), params.get("type"), params.get("number"));
         Long userId = params.getLong("userId");
+
         synchronized (LockUtil.getlock(userId)) {
+            //要购买的商品ID
             String id = params.getString("id");
-            String type = params.getString("type");
+            //购买的商品数量
             int number = params.getIntValue("number");
-            if (!PlayGameService.DIC_SHOP_MAP.containsKey(type) || !PlayGameService.DIC_SHOP_MAP.get(type).containsKey(id)) {
+            //商店类型
+            String type = params.getString("type");
+            if (number <= 0) {
+                throwExp("非法数量");
+            }
+
+            // 商店类型
+            if (!PlayGameService.DIC_SHOP_MAP.containsKey(type)
+                    || !PlayGameService.DIC_SHOP_MAP.get(type).containsKey(id)) {
                 throwExp("异常请求");
             }
             DicShop dicShop = PlayGameService.DIC_SHOP_MAP.get(type).get(id);
+
+            // 全局购买开关
+            Integer canBuy = dicShop.getCanBuy();
+            if (canBuy != null && canBuy == 0) {
+                throwExp("该商品暂不可购买");
+            }
+
+            //新用户限制 策划还没想好 先预留
+            checkShopBuyLimit(userId, dicShop);
+
+            // 本次购买的金额 = 单价 * 数量
             BigDecimal amount = dicShop.getPrice().multiply(BigDecimal.valueOf(number));
-            if (dicShop.getUseItemId() == 1 || dicShop.getUseItemId() == 2 || dicShop.getUseItemId() == 3) {
-                UserCapital userCapital = userCapitalCacheService.getUserCapitalCacheByType(userId, dicShop.getUseItemId().intValue());
-                if (userCapital.getBalance().compareTo(amount) < 0) {
-                    throwExp("余额不足");
-                } else {
-                    String orderNo = OrderUtil.getOrder5Number();
-                    Long dataId = shoppingRecordService.addRecord(userId, dicShop.getItemId(), number, orderNo, amount, Math.toIntExact(dicShop.getUseItemId()));
-                    userCapitalService.subUserBalanceByShopping(userId, amount, orderNo, dataId, dicShop.getUseItemId().intValue(), LogCapitalTypeEnum.shopping);
-                    pushCapitalUpdate(userId, dicShop.getUseItemId().intValue());
-                }
-            } else {
-                double userItemNumber = gameService.getUserItemNumber(userId, dicShop.getUseItemId().toString());
-                if (userItemNumber < number) {
-                    throwExp(PlayGameService.itemMap.get(dicShop.getUseItemId().toString()).getName() + "不足");
-                } else {
-                    gameService.updateUserBackpack(userId, dicShop.getUseItemId().toString(), -number, LogUserBackpackTypeEnum.use);
+
+            // 解析支付道具，判断是 资产货币 还是 普通道具
+            Long useItemId = dicShop.getUseItemId();
+            String useItemIdStr = useItemId == null ? null : useItemId.toString();
+            //是否是资产类型
+            boolean payByCapital = false;
+            //资产类型
+            Integer capitalType = null;
+
+            if (StrUtil.isNotBlank(useItemIdStr)) {
+                Item useItem = PlayGameService.itemMap.get(useItemIdStr);
+                //道具表中type=4的是资产类型道具
+                if (useItem != null && useItem.getType() != null && useItem.getType() == 4) {
+                    payByCapital = true;
+                    capitalType = useItemId.intValue();
                 }
             }
-            JSONObject result = new JSONObject();
-            JSONArray array = new JSONArray();
-            result.put("type", 1);
-            result.put("id", dicShop.getItemId());
-            result.put("number", number);
-            array.add(result);
-            gameService.addReward(userId, array, LogCapitalTypeEnum.SHOPPING_GET,LogUserBackpackTypeEnum.shopping);
-            return array;
+
+            // 根据不同类型的道具走不同的扣费流程 资产或者背包
+            if (payByCapital) {
+                // 资产支付
+                if (capitalType == null) {
+                    throwExp("资产类型异常");
+                }
+                //判断用户资产余额
+                UserCapital userCapital = userCapitalCacheService.getUserCapitalCacheByType(userId, capitalType);
+                if (userCapital == null|| userCapital.getBalance() == null || userCapital.getBalance().compareTo(amount) < 0) {
+                    throwExp("余额不足");
+                }
+
+                String orderNo = OrderUtil.getOrder5Number();
+                //添加用户购买流水
+                Long dataId = shoppingRecordService.addRecord(
+                        userId,
+                        dicShop.getItemId(),
+                        number,
+                        orderNo,
+                        amount,
+                        capitalType
+                );
+                //扣费
+                userCapitalService.subUserBalanceByShopping(
+                        userId,
+                        amount,
+                        orderNo,
+                        dataId,
+                        capitalType,
+                        LogCapitalTypeEnum.shopping
+                );
+                // 推送资产变更
+                pushCapitalUpdate(userId, capitalType);
+
+            } else {
+                // 道具支付
+                if (useItemId == null) {
+                    throwExp("支付道具未配置");
+                }
+
+                double userItemNumber = gameService.getUserItemNumber(userId, useItemIdStr);
+                if (userItemNumber < number) {
+                    Item useItem = PlayGameService.itemMap.get(useItemIdStr);
+                    String itemName = (useItem != null ? useItem.getName() : "道具");
+                    throwExp(itemName + "不足");
+                }
+                //变更背包
+                gameService.updateUserBackpack(
+                        userId,
+                        useItemIdStr,
+                        -number,
+                        LogUserBackpackTypeEnum.use
+                );
+            }
+
+            //封装reward
+            JSONArray rewardArray = new JSONArray();
+            JSONObject reward = new JSONObject();
+            reward.put("type", 1);
+            reward.put("id", dicShop.getItemId());
+            reward.put("number", number);
+            rewardArray.add(reward);
+
+            //调用addReward
+            gameService.addReward(
+                    userId,
+                    rewardArray,
+                    LogCapitalTypeEnum.SHOPPING_GET,
+                    LogUserBackpackTypeEnum.shopping
+            );
+
+            return rewardArray;
         }
     }
+
+    @Transactional
+    @ServiceMethod(code = "037", description = "商店信息")
+    public Object shopInfo(ManagerSocketServer managerSocketServer, JSONObject params) {
+        Long userId = params.getLong("userId");
+        int shopType = params.getIntValue("type");
+        List<DicShop> shopInfo = PlayGameService.DIC_SHOP_LIST.get(String.valueOf(shopType));
+        if (shopInfo == null) {
+            return new ArrayList<>();
+        }
+        // 按 isShow 做全局展示开关过滤
+        List<DicShop> result = new ArrayList<>();
+        for (DicShop dicShop : shopInfo) {
+            if (dicShop == null) {
+                continue;
+            }
+            Integer isShow = dicShop.getIsShow();
+            if (isShow != null && isShow == 0) {
+                continue;
+            }
+            result.add(dicShop);
+        }
+        return result;
+    }
+
+    /**
+     * todo lzx ：新用户商城购买条件预留
+     *
+     */
+    private void checkShopBuyLimit(Long userId, DicShop dicShop) {
+        if (userId == null || dicShop == null) {
+            return;
+        }
+    }
+
+
 
     /**
      * 捐赠道具
@@ -1043,17 +1165,7 @@ public class ManagerGameBaseService extends BaseService {
         Push.push(PushCode.updateUserBackpack, managerSocketService.getServerIdByUserId(userId), pushData);
     }
 
-    @Transactional
-    @ServiceMethod(code = "037", description = "商店信息")
-    public Object shopInfo(ManagerSocketServer managerSocketServer, JSONObject params) {
-        Long userId = params.getLong("userId");
-        int shopType = params.getIntValue("type");
-        List<DicShop> shopInfo = PlayGameService.DIC_SHOP_LIST.get(String.valueOf(shopType));
-        if (shopInfo == null) {
-            return new ArrayList<>();
-        }
-        return shopInfo;
-    }
+
 
     @Transactional
     @ServiceMethod(code = "124", description = "领取渠道收益")

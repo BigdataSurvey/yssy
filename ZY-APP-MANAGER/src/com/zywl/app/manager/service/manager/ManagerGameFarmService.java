@@ -83,7 +83,8 @@ public class ManagerGameFarmService extends BaseService {
     @Autowired
     private UserCapitalService userCapitalService;
 
-
+    //道具信息
+    //PlayGameService.itemMap.get(id)
     /**
      * 001 - 获取农场信息
      * 1-3号地为实名制,实名制后解锁;其余地必须要在实名制后才可解锁;
