@@ -888,7 +888,7 @@ public class ManagerGameBaseService extends BaseService {
         Long userId = params.getLong("userId");
 
         synchronized (LockUtil.getlock(userId)) {
-            //要购买的商品ID
+            //要购买的商品主键ID
             String id = params.getString("id");
             //购买的商品数量
             int number = params.getIntValue("number");
