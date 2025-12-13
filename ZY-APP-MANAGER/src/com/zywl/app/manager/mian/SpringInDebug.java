@@ -303,7 +303,7 @@ public class SpringInDebug {
     /**
      * 商城信息 037
      */
-    public static void shopInfo() {
+    public static void shopInfoInTest() {
         try {
             ManagerGameBaseService svc = ctx.getBean(ManagerGameBaseService.class);
             JSONObject params = new JSONObject();
@@ -312,13 +312,30 @@ public class SpringInDebug {
             Object respObj = svc.shopInfo(fakeSocket, params);
             System.out.println("=== 商城信息 测试返回 ===");
             System.out.println(JSONObject.toJSONString(respObj));
-            System.out.println(JSONObject.toJSONString(respObj));
         } catch (Exception e) {
             e.printStackTrace();
         }
     }
 
 
+    /**
+     * 商城购买 035
+     */
+    public static void buyInTest() {
+        try {
+            ManagerGameBaseService svc = ctx.getBean(ManagerGameBaseService.class);
+            JSONObject params = new JSONObject();
+            params.put("userId", 937223L);
+            params.put("id",3);
+            params.put("number",2);
+            params.put("type",1);
+            Object respObj = svc.buy(fakeSocket, params);
+            System.out.println("=== 商城购买 测试返回 ===");
+            System.out.println(JSONObject.toJSONString(respObj));
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
 
 
     public static void main(String[] args) {
@@ -339,19 +356,22 @@ public class SpringInDebug {
         //readMailAllTest();
 
         //用户土地信息
-        myFarmInfoInTest();
+        //myFarmInfoInTest();
 
         //用户土地种植
         //plantInTest();
 
         //用户种地收割
-        //harvestInTest();
+        harvestInTest();
 
         //用户解锁/购买土地 测试返回
         //unlockLandInTest();
 
         //商城信息
-        //shopInfo();
+        //shopInfoInTest();
+
+        //商城购买
+        //buyInTest();
     }
 
 
