@@ -10,7 +10,6 @@ public enum ItemIdEnum {
     XLB("小喇叭","40"),
     DLB("大喇叭", "12"),
     BUY_WHITE("购买凭证","43"),
-
     CORE_POINT("核心积分", "1001"),
     GAME_CONSUME_COIN("游戏消耗货币", "1002"),
     SEED_CORN_LV1("玉米种子·一阶", "1101"),
@@ -31,6 +30,8 @@ public enum ItemIdEnum {
     MATERIAL_CORN("玉米", "2101"),
     MATERIAL_WHEAT("小麦", "2102"),
     MATERIAL_RADISH("萝卜", "2103"),
+
+    BALLOON("气球", "2105"),
     VOUCHER_GAME_COIN("游戏货币兑换券", "3001"),
     GIFT_CONTRIBUTION("贡献奖励礼包", "3002"),
     ;
