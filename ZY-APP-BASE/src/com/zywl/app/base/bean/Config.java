@@ -238,6 +238,18 @@ public class Config extends BaseBean {
 	//购买土地配置;
 	public static final String UNLOCK_FARM = "UNLOCK_FARM";
 
+	// 离线清空天数;离线超过该天数后首次登录会清空一些玩法的收益,例如农场(清空种植状态)
+	public static final String CLEAR_DAYS = "CLEAR_DAYS";
+
+	// 气球树：各等级种子收割产生的基础欢乐值
+	public static final String JOY_PER_LEVEL = "JOY_PER_LEVEL";
+
+	// 气球树：1~5代欢乐值分成比例
+	public static final String JOY_LEVEL_PERCENT = "JOY_LEVEL_PERCENT";
+
+	// 气球树：欢乐值与气球道具兑换比例
+	public static final String JOY_EXCHANGE_RATE = "JOY_EXCHANGE_RATE";
+
 
 
 	private String key;

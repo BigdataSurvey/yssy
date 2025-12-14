@@ -65,4 +65,14 @@ public class UserFarmLandService extends DaoService {
     public int countByConditions(Map<String, Object> cond) {
         return (Integer) findOne("countByConditions", cond);
     }
+
+    /**
+     * 按 userId 清空用户农场种植状态（保留解锁地块）
+     */
+    @Transactional
+    public void clearAllByUserId(Long userId) {
+        getBaseDao().execute(mapperSpace, "clearAllByUserId", userId);
+    }
+
+
 }

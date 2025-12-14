@@ -97,4 +97,19 @@
         </where>
     </select>
 
+
+    <!-- 按 userId 清空农场种植状态，保留地块 -->
+    <update id="clearAllByUserId" parameterType="long">
+        UPDATE t_user_farm_land
+        SET
+            seed_item_id      = NULL,
+            start_time        = NULL,
+            end_time          = NULL,
+            last_harvest_time = NULL,
+            status            = 0,
+            update_time       = NOW()
+        WHERE user_id = #{userId}
+    </update>
+
+
 </mapper>

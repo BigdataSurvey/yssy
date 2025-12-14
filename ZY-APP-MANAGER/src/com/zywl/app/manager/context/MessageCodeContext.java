@@ -43,6 +43,7 @@ public class MessageCodeContext {
 
 	public final static String USER_FARM = "036";
 
+	public final static String USER_JOR = "037";
 
 
 	public final static String KP_PLAYER_CARD= "1001";
