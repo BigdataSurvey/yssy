@@ -1,14 +1,13 @@
 package com.zywl.app.manager.mian;
 
+import cn.hutool.core.lang.UUID;
 import com.alibaba.fastjson2.JSONObject;
 import com.zywl.app.defaultx.util.SpringUtil;
-import com.zywl.app.manager.service.manager.ManagerCapitalService;
-import com.zywl.app.manager.service.manager.ManagerGameBaseService;
-import com.zywl.app.manager.service.manager.ManagerGameFarmService;
+import com.zywl.app.manager.service.manager.*;
 import com.zywl.app.manager.socket.ManagerSocketServer;
 import org.springframework.beans.factory.NoSuchBeanDefinitionException;
+import org.springframework.context.ApplicationContext;
 import org.springframework.context.support.ClassPathXmlApplicationContext;
-import com.zywl.app.manager.service.manager.ManagerMailService;
 import com.zywl.app.defaultx.enmus.ItemIdEnum;
 
 import java.lang.reflect.Field;
@@ -22,6 +21,8 @@ public class SpringInDebug {
     // todo 不这样私有静态加载空指针..
     private static ClassPathXmlApplicationContext ctx;
     private static ManagerSocketServer fakeSocket;
+    private static final Long MY_USER_ID = 937223L;
+    private static final Long FRIEND_USER_ID = 928765L;
 
     static {
         try {
@@ -338,6 +339,83 @@ public class SpringInDebug {
     }
 
 
+    /** 001 查询我的欢乐值与可兑气球数量 */
+    public static void testJoy001_getMyJoyInfo() {
+        ManagerJoyService joyService = ctx.getBean(ManagerJoyService.class);
+
+        JSONObject params = new JSONObject();
+        params.put("userId", MY_USER_ID);
+
+        System.out.println("========== [JOY 001] getMyJoyInfo ==========");
+        JSONObject result = joyService.getMyJoyInfo(null, params);
+        System.out.println(result == null ? "null" : result.toJSONString());
+    }
+
+    /** 002 兑换气球（欢乐值 -> 气球道具入背包） */
+    private static void testJoy002_exchangeJoyToBalloon() {
+        ManagerJoyService joyService = ctx.getBean(ManagerJoyService.class);
+
+        JSONObject params = new JSONObject();
+        params.put("userId", MY_USER_ID);
+        JSONObject result = joyService.exchangeJoyToBalloon(null, params);
+
+        System.out.println("========== [JOY 002] exchangeJoyToBalloon ==========");
+        try {
+            System.out.println(result == null ? "null" : result.toJSONString());
+        } catch (Exception e) {
+            System.out.println("==============================[JOY 002] EXCEPTION: " + e.getMessage());
+            e.printStackTrace();
+        }
+    }
+
+    /** 003 查看某个好友对我的欢乐值贡献 */
+    private static void testJoy003_getFriendJoyContrib() {
+        ManagerJoyService joyService = ctx.getBean(ManagerJoyService.class);
+
+        if (FRIEND_USER_ID == null || FRIEND_USER_ID <= 0) {
+            System.out.println("========== [JOY 003] SKIP: FRIEND_USER_ID 未设置 ==========");
+            return;
+        }
+        JSONObject params = new JSONObject();
+        params.put("userId", MY_USER_ID);
+        params.put("friendUserId", FRIEND_USER_ID);
+        JSONObject result = joyService.getFriendJoyContrib(null, params);
+        System.out.println(result == null ? "null" : result.toJSONString());
+        System.out.println("========== ========== [JOY 003] getFriendJoyContrib ==========");
+
+    }
+
+    /**
+     * distributeJoy 调试：
+     * - 会沿 triggerUserId 的 parentId 链路，给 1~5 代上级入账
+     * - 使用 eventId + receiverUserId 做幂等：重复调用不会重复入账
+     *
+     * 注意：
+     * - 如果你用 MY_USER_ID 作为 triggerUserId，那收益会入到 MY_USER_ID 的上级，不会入到 MY_USER_ID 自己
+     * - 若你要让 MY_USER_ID 获得收益，用“MY_USER_ID 的下级用户”作为 triggerUserId
+     */
+    private static void testJoyDistributeJoy() {
+        ManagerJoyService joyService = ctx.getBean(ManagerJoyService.class);
+
+        // 测试用户的下级用户ID
+        Long triggerUserId = 937226L;
+        int itemQuality = 2;
+        String sourceType = "FARM_HARVEST";
+
+        String eventId = "DEBUG_" + sourceType + "_" + UUID.randomUUID();
+
+        System.out.println("========== [JOY] distributeJoy ==========");
+        try {
+            joyService.distributeJoy(triggerUserId, itemQuality, eventId, sourceType);
+            System.out.println("[========== ========== ========== JOY] distributeJoy OK. eventId=" + eventId);
+        } catch (Exception e) {
+            System.out.println("[JOY] distributeJoy EXCEPTION: " + e.getMessage());
+            e.printStackTrace();
+        }
+    }
+
+
+
     public static void main(String[] args) {
         //炼制测试
         ///synInTest();;
@@ -362,7 +440,7 @@ public class SpringInDebug {
         //plantInTest();
 
         //用户种地收割
-        harvestInTest();
+        //harvestInTest();
 
         //用户解锁/购买土地 测试返回
         //unlockLandInTest();
@@ -372,6 +450,19 @@ public class SpringInDebug {
 
         //商城购买
         //buyInTest();
+
+        //查询我的欢乐值与可兑气球数量
+        //testJoy001_getMyJoyInfo();
+
+        //兑换气球
+        //testJoy002_exchangeJoyToBalloon();
+
+        // 查看好友对我的贡献值
+        //testJoy003_getFriendJoyContrib();
+
+
+        // 分配欢乐值
+        testJoyDistributeJoy();
     }
 
 
