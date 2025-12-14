@@ -1,0 +1,113 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.zywl.app.defaultx.mapper.UserJoyMapper">
+
+    <!-- 通用字段映射 -->
+    <resultMap id="BaseResultMap" type="com.zywl.app.base.bean.UserJoy">
+        <id     column="id"           property="id"/>
+        <result column="user_id"      property="userId"/>
+        <result column="total_joy"    property="totalJoy"/>
+        <result column="available_joy" property="availableJoy"/>
+        <result column="today_joy"    property="todayJoy"/>
+        <result column="today_date"   property="todayDate"/>
+        <result column="create_time"  property="createTime"/>
+        <result column="update_time"  property="updateTime"/>
+    </resultMap>
+
+    <!-- 通用列 -->
+    <sql id="Base_Column_List">
+        id,
+        user_id,
+        total_joy,
+        available_joy,
+        today_joy,
+        today_date,
+        create_time,
+        update_time
+    </sql>
+
+    <!-- 主键查询 -->
+    <select id="selectByPrimaryKey" parameterType="long" resultMap="BaseResultMap">
+        SELECT
+        <include refid="Base_Column_List"/>
+        FROM t_user_joy
+        WHERE id = #{id}
+    </select>
+
+    <!-- 按 userId 查询 -->
+    <select id="findByUserId" parameterType="long" resultMap="BaseResultMap">
+        SELECT
+        <include refid="Base_Column_List"/>
+        FROM t_user_joy
+        WHERE user_id = #{userId}
+        LIMIT 1
+    </select>
+
+    <!-- 新增一条欢乐值记录-->
+    <insert id="insert"
+            parameterType="com.zywl.app.base.bean.UserJoy"
+            useGeneratedKeys="true" keyProperty="id" keyColumn="id">
+        INSERT INTO t_user_joy
+        (user_id,
+         total_joy,
+         available_joy,
+         today_joy,
+         today_date,
+         create_time,
+         update_time)
+        VALUES
+            (#{userId},
+             #{totalJoy},
+             #{availableJoy},
+             #{todayJoy},
+             #{todayDate},
+             NOW(),
+             NOW())
+    </insert>
+
+    <!-- 根据主键更新 -->
+    <update id="updateByPrimaryKey"
+            parameterType="com.zywl.app.base.bean.UserJoy">
+        UPDATE t_user_joy
+        SET
+            total_joy      = #{totalJoy},
+            available_joy  = #{availableJoy},
+            today_joy      = #{todayJoy},
+            today_date     = #{todayDate},
+            update_time    = NOW()
+        WHERE id = #{id}
+    </update>
+
+    <!-- 根据 userId 更新 -->
+    <update id="updateByUserId"
+            parameterType="com.zywl.app.base.bean.UserJoy">
+        UPDATE t_user_joy
+        SET
+            total_joy      = #{totalJoy},
+            available_joy  = #{availableJoy},
+            today_joy      = #{todayJoy},
+            today_date     = #{todayDate},
+            update_time    = NOW()
+        WHERE user_id = #{userId}
+    </update>
+
+    <!-- 条件统计 -->
+    <select id="countByConditions" parameterType="map" resultType="int">
+        SELECT COUNT(1)
+        FROM t_user_joy
+        <where>
+            <if test="id != null">
+                AND id = #{id}
+            </if>
+            <if test="userId != null">
+                AND user_id = #{userId}
+            </if>
+            <if test="todayDate != null">
+                AND today_date = #{todayDate}
+            </if>
+        </where>
+    </select>
+
+</mapper>

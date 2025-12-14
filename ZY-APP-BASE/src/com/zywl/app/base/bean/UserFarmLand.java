@@ -33,11 +33,24 @@ public class UserFarmLand extends BaseBean {
     /** 状态：0=空地，1=成长中，2=成熟（可收割） */
     private Integer status;
 
+    /** 上次收割时间 - 线性产出用 */
+    private Date lastHarvestTime;
+
+    /**创建时间**/
     private Date createTime;
 
+    /**数据更新时间**/
     private Date updateTime;
 
-    // ========== getter / setter ==========
+
+    public Date getLastHarvestTime() {
+        return lastHarvestTime;
+    }
+
+    public void setLastHarvestTime(Date lastHarvestTime) {
+        this.lastHarvestTime = lastHarvestTime;
+    }
+
 
     public Long getId() {
         return id;

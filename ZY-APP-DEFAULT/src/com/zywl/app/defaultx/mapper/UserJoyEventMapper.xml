@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.zywl.app.defaultx.mapper.UserJoyEventMapper">
+
+    <!-- 通用字段映射 -->
+    <resultMap id="BaseResultMap" type="com.zywl.app.base.bean.UserJoyEvent">
+        <id     column="id"               property="id"/>
+        <result column="event_id"         property="eventId"/>
+        <result column="receiver_user_id" property="receiverUserId"/>
+        <result column="from_user_id"     property="fromUserId"/>
+        <result column="source_type"      property="sourceType"/>
+        <result column="joy_amount"       property="joyAmount"/>
+        <result column="create_time"      property="createTime"/>
+    </resultMap>
+
+    <!-- 通用列 -->
+    <sql id="Base_Column_List">
+        id,
+        event_id,
+        receiver_user_id,
+        from_user_id,
+        source_type,
+        joy_amount,
+        create_time
+    </sql>
+
+    <!-- 主键查询 -->
+    <select id="selectByPrimaryKey" parameterType="long" resultMap="BaseResultMap">
+        SELECT
+        <include refid="Base_Column_List"/>
+        FROM t_user_joy_event
+        WHERE id = #{id}
+    </select>
+
+    <!-- 按 (eventId, receiverUserId) 查询 -->
+    <select id="findByEventAndReceiver" parameterType="map" resultMap="BaseResultMap">
+        SELECT
+        <include refid="Base_Column_List"/>
+        FROM t_user_joy_event
+        WHERE event_id = #{eventId}
+        AND receiver_user_id = #{receiverUserId}
+        LIMIT 1
+    </select>
+
+    <!-- 插入一条事件日志 -->
+    <insert id="insert"
+            parameterType="com.zywl.app.base.bean.UserJoyEvent"
+            useGeneratedKeys="true" keyProperty="id" keyColumn="id">
+        INSERT INTO t_user_joy_event
+        (event_id,
+         receiver_user_id,
+         from_user_id,
+         source_type,
+         joy_amount,
+         create_time)
+        VALUES
+            (#{eventId},
+             #{receiverUserId},
+             #{fromUserId},
+             #{sourceType},
+             #{joyAmount},
+             NOW())
+    </insert>
+
+    <!-- 条件统计 -->
+    <select id="countByConditions" parameterType="map" resultType="int">
+        SELECT COUNT(1)
+        FROM t_user_joy_event
+        <where>
+            <if test="eventId != null">
+                AND event_id = #{eventId}
+            </if>
+            <if test="receiverUserId != null">
+                AND receiver_user_id = #{receiverUserId}
+            </if>
+            <if test="fromUserId != null">
+                AND from_user_id = #{fromUserId}
+            </if>
+            <if test="sourceType != null">
+                AND source_type = #{sourceType}
+            </if>
+        </where>
+    </select>
+
+</mapper>

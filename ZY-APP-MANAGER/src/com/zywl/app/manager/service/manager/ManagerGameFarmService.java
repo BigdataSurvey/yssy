@@ -257,6 +257,8 @@ public class ManagerGameFarmService extends BaseService {
         plantLand.setSeedItemId(seedItemId);
         plantLand.setStartTime(startDate);
         plantLand.setEndTime(endDate);
+        // 新一轮种植，从未收割过
+        plantLand.setLastHarvestTime(null);
         // 成长中
         plantLand.setStatus(LAND_STATUS_GROWING);
 
@@ -276,7 +278,7 @@ public class ManagerGameFarmService extends BaseService {
 
 
     /**
-     * 003 - 果实成熟收割 / 一键收割
+     * 003 - 果实成熟收割 / 一键收割（线性产出 + 多次领取）
      *
      * landIndex：
      *   1~9  表示单块收割；
@@ -301,10 +303,8 @@ public class ManagerGameFarmService extends BaseService {
 
         // 一键收割
         boolean harvestAll = (landIndex == -1);
-        if (!harvestAll) {
-            if (landIndex < 1 || landIndex > 9) {
-                throwExp("非法的地块编号");
-            }
+        if (!harvestAll && (landIndex < 1 || landIndex > 9)) {
+            throwExp("非法的地块编号");
         }
 
         // 用户、实名制、VIP 校验
@@ -312,122 +312,45 @@ public class ManagerGameFarmService extends BaseService {
         boolean realName = isRealName(user);
         boolean isVip = isVipUser(user);
 
-        long now = System.currentTimeMillis() / 1000L;
+        long nowSec = System.currentTimeMillis() / 1000L;
 
         // 拉取用户所有土地 Map
         Map<Integer, UserFarmLand> landMap = loadUserLandMap(userId);
 
-        // 收益列表
+        // 汇总所有要发放的奖励
+        JSONArray allRewards = new JSONArray();
+        // 前端展示每个itemId一共领了多少
         Map<String, BigDecimal> gainMap = new HashMap<>();
 
-        // 汇总所有要发放的 reward
-        JSONArray allRewards = new JSONArray();
-
         if (harvestAll) {
-            /*一键收割 */
-            boolean hasAny = false;
+            boolean hasAnyReward = false;
 
-            for (Map.Entry<Integer, UserFarmLand> entry : landMap.entrySet()) {
-                Integer idx = entry.getKey();
-                UserFarmLand land = entry.getValue();
-                if (land == null) {
+            for (int idx = 1; idx <= 9; idx++) {
+                UserFarmLand land = landMap.get(idx);
+                if (land == null || land.getSeedItemId() == null || land.getSeedItemId() <= 0) {
+                    // 空地或未种植
                     continue;
                 }
 
-                Integer seedItemId = land.getSeedItemId();
-                if (seedItemId == null || seedItemId <= 0) {
-                    // 没种东西
-                    continue;
+                boolean landHasReward = appendLandHarvestRewards(land, nowSec, allRewards, gainMap);
+                if (landHasReward) {
+                    hasAnyReward = true;
+                    // 判断是否本轮全部产出已领完，若是则清空地块
+                    finalizeLandAfterHarvest(land, nowSec);
+                    userFarmLandService.plantLand(land);
                 }
-
-                Long endTimeSec = null;
-                if (land.getEndTime() != null) {
-                    endTimeSec = land.getEndTime().getTime() / 1000L;
-                }
-                if (endTimeSec == null || now < endTimeSec) {
-                    // 未成熟
-                    continue;
-                }
-
-                // 农场配置
-                DicFarm farmCfg = PlayGameService.DIC_FARM.get(String.valueOf(seedItemId));
-                if (farmCfg == null || farmCfg.getStatus() == null || farmCfg.getStatus() == 0) {
-                    continue;
-                }
-
-                String rewardStr = farmCfg.getReward();
-                if (rewardStr == null || rewardStr.trim().isEmpty()) {
-                    // 没配置奖励，跳过
-                    continue;
-                }
-
-                JSONArray rewardArr;
-                try {
-                    rewardArr = JSONArray.parseArray(rewardStr);
-                } catch (Exception e) {
-                    continue;
-                }
-                if (rewardArr == null || rewardArr.isEmpty()) {
-                    continue;
-                }
-
-                hasAny = true;
-
-                // 汇总奖励到 allRewards + gainMap
-                for (Object r : rewardArr) {
-                    if (!(r instanceof JSONObject)) {
-                        continue;
-                    }
-                    JSONObject reward = (JSONObject) r;
-
-                    // 只统计 type = 1 的道具类奖励
-                    int rType = reward.getIntValue("type");
-                    if (rType != 1) {
-                        allRewards.add(reward);
-                        continue;
-                    }
-
-                    String itemId = reward.getString("id");
-                    if (itemId == null || itemId.trim().isEmpty()) {
-                        allRewards.add(reward);
-                        continue;
-                    }
-
-                    BigDecimal num = reward.getBigDecimal("number");
-                    if (num == null || num.compareTo(BigDecimal.ZERO) <= 0) {
-                        allRewards.add(reward);
-                        continue;
-                    }
-
-                    allRewards.add(reward);
-
-                    BigDecimal old = gainMap.get(itemId);
-                    if (old == null) {
-                        old = BigDecimal.ZERO;
-                    }
-                    gainMap.put(itemId, old.add(num));
-                }
-
-                // 收割后清空地块上的数据
-                land.setSeedItemId(0);
-                land.setStartTime(null);
-                land.setEndTime(null);
-                land.setStatus(LAND_STATUS_EMPTY);
-                userFarmLandService.plantLand(land);
-
-                // 同步内存
-                landMap.put(idx, land);
             }
 
-            if (!hasAny) {
+            if (!hasAnyReward) {
                 throwExp("当前没有可收割的作物");
             }
 
             // 统一发奖
             gameService.addReward(
                     userId,
+                    // 本次应得的增量奖励
                     allRewards,
-                    //发的是普通道具走背包所以资产枚举可以为Null
+                    // 资产类型由 dic_item.type 决定
                     null,
                     LogUserBackpackTypeEnum.harvest
             );
@@ -436,18 +359,12 @@ public class ManagerGameFarmService extends BaseService {
             JSONArray landsArr = new JSONArray();
             for (int idx = 1; idx <= 9; idx++) {
                 UserFarmLand l = landMap.get(idx);
-                JSONObject landJson = buildLandJson(idx, l, realName, isVip, now);
+                JSONObject landJson = buildLandJson(idx, l, realName, isVip, nowSec);
                 landsArr.add(landJson);
             }
 
-            // 构建返回给前端的 gainList
-            JSONArray gainList = new JSONArray();
-            for (Map.Entry<String, BigDecimal> e : gainMap.entrySet()) {
-                JSONObject gainJson = new JSONObject();
-                gainJson.put("itemId", e.getKey());
-                gainJson.put("number", e.getValue());
-                gainList.add(gainJson);
-            }
+            // 构建 gainList 返回给前端
+            JSONArray gainList = buildGainList(gainMap);
 
             JSONObject result = new JSONObject();
             result.put("userId", userId);
@@ -457,100 +374,36 @@ public class ManagerGameFarmService extends BaseService {
             result.put("realName", realName);
             result.put("vip", isVip);
             return result;
-
         } else {
-            /*单块收割*/
+            // 单块收割
             UserFarmLand land = landMap.get(landIndex);
             if (land == null || land.getSeedItemId() == null || land.getSeedItemId() <= 0) {
                 throwExp("当前地块没有可收割的作物");
             }
 
-            Long endTimeSec = null;
-            if (land.getEndTime() != null) {
-                endTimeSec = land.getEndTime().getTime() / 1000L;
-            }
-            if (endTimeSec == null || now < endTimeSec) {
-                throwExp("作物尚未成熟，暂不可收割");
+            boolean landHasReward = appendLandHarvestRewards(land, nowSec, allRewards, gainMap);
+            if (!landHasReward) {
+                // 有种子但当前时间点没有新产出的数量。。例如刚种下或刚领完
+                throwExp("当前地块暂时没有可收割的果实");
             }
 
-            Integer seedItemId = land.getSeedItemId();
-            DicFarm farmCfg = PlayGameService.DIC_FARM.get(String.valueOf(seedItemId));
-            if (farmCfg == null || farmCfg.getStatus() == null || farmCfg.getStatus() == 0) {
-                throwExp("作物产出配置异常");
-            }
-
-            String rewardStr = farmCfg.getReward();
-            if (rewardStr == null || rewardStr.trim().isEmpty()) {
-                throwExp("当前地块未配置收割奖励");
-            }
-
-            JSONArray rewardArr;
-            try {
-                rewardArr = JSONArray.parseArray(rewardStr);
-            } catch (Exception e) {
-                throwExp("收割奖励配置格式错误，请联系管理员");
-                return null;
-            }
-            if (rewardArr == null || rewardArr.isEmpty()) {
-                throwExp("当前地块未配置收割奖励");
-            }
-
-            // 汇总奖励到 gainMap
-            for (Object r : rewardArr) {
-                if (!(r instanceof JSONObject)) {
-                    continue;
-                }
-                JSONObject reward = (JSONObject) r;
-
-                int rType = reward.getIntValue("type");
-                if (rType != 1) {
-                    continue;
-                }
-
-                String itemId = reward.getString("id");
-                if (itemId == null || itemId.trim().isEmpty()) {
-                    continue;
-                }
-
-                BigDecimal num = reward.getBigDecimal("number");
-                if (num == null || num.compareTo(BigDecimal.ZERO) <= 0) {
-                    continue;
-                }
-
-                BigDecimal old = gainMap.get(itemId);
-                if (old == null) {
-                    old = BigDecimal.ZERO;
-                }
-                gainMap.put(itemId, old.add(num));
-            }
-
-            // 仅当前地块统一发奖
+            // 仅当前地块发奖
             gameService.addReward(
                     userId,
-                    rewardArr,
-                    //发的是普通道具走背包所以资产枚举可以为Null
+                    allRewards,
                     null,
                     LogUserBackpackTypeEnum.harvest
             );
 
-            // 收割后清空地块
-            land.setSeedItemId(0);
-            land.setStartTime(null);
-            land.setEndTime(null);
-            land.setStatus(LAND_STATUS_EMPTY);
+            // 判断是否本轮全部产出已领完；若是则清空地块
+            finalizeLandAfterHarvest(land, nowSec);
             userFarmLandService.plantLand(land);
 
             // 构建当前地块视图
-            JSONObject landJson = buildLandJson(landIndex, land, realName, isVip, now);
+            JSONObject landJson = buildLandJson(landIndex, land, realName, isVip, nowSec);
 
-            // 构建
-            JSONArray gainList = new JSONArray();
-            for (Map.Entry<String, BigDecimal> e : gainMap.entrySet()) {
-                JSONObject gainJson = new JSONObject();
-                gainJson.put("itemId", e.getKey());
-                gainJson.put("number", e.getValue());
-                gainList.add(gainJson);
-            }
+            // 构建 gainList 返回给前端
+            JSONArray gainList = buildGainList(gainMap);
 
             JSONObject result = new JSONObject();
             result.put("userId", userId);
@@ -561,6 +414,206 @@ public class ManagerGameFarmService extends BaseService {
             result.put("realName", realName);
             result.put("vip", isVip);
             return result;
+        }
+    }
+
+
+    /**
+     * 对单块土地，在当前时间点计算“本次新增可领取的奖励”，追加到 allRewards / gainMap。
+     *
+     * 规则：
+     *   - startSec = land.startTime
+     *   - endSec   = startSec + growSeconds
+     *   - curSec   = min(nowSec, endSec)
+     *   - lastHarvestSec:
+     *         若 lastHarvestTime 为 null，则等于 startSec（视为从未收割过）
+     *         否则 clamp 到 [startSec, endSec]
+     *
+     *   对于 reward 中每条 {number = baseNum}：
+     *       producedTotal  = floor(baseNum * (curSec - startSec) / growSeconds)
+     *       producedBefore = floor(baseNum * (lastHarvestSec - startSec) / growSeconds)
+     *       delta          = producedTotal - producedBefore
+     *
+     *   若 delta > 0，则表示本次可以新增领取 delta 个。
+     */
+    private boolean appendLandHarvestRewards(UserFarmLand land, long nowSec, JSONArray allRewards, Map<String, BigDecimal> gainMap) {
+        Integer seedItemId = land.getSeedItemId();
+        if (seedItemId == null || seedItemId <= 0) {
+            return false;
+        }
+
+        DicFarm farmCfg = PlayGameService.DIC_FARM.get(String.valueOf(seedItemId));
+        if (farmCfg == null || farmCfg.getStatus() == null || farmCfg.getStatus() == 0) {
+            return false;
+        }
+
+        if (land.getStartTime() == null) {
+            return false;
+        }
+
+        long startSec = land.getStartTime().getTime() / 1000L;
+        Integer growSeconds = farmCfg.getGrowSeconds();
+        if (growSeconds == null || growSeconds <= 0) {
+            return false;
+        }
+        long grow = growSeconds.longValue();
+        if (grow <= 0L) {
+            return false;
+        }
+
+        long endSec = startSec + grow;
+        //不会超过满产时间
+        long curSec = Math.min(nowSec, endSec);
+        if (curSec <= startSec) {
+            // 还没到可以产出的时间
+            return false;
+        }
+
+        long lastHarvestSec = startSec;
+        if (land.getLastHarvestTime() != null) {
+            long tmp = land.getLastHarvestTime().getTime() / 1000L;
+            // 限制在 startSec, endSec 范围内
+            if (tmp < startSec) {
+                lastHarvestSec = startSec;
+            } else if (tmp > endSec) {
+                lastHarvestSec = endSec;
+            } else {
+                lastHarvestSec = tmp;
+            }
+        }
+
+        if (curSec <= lastHarvestSec) {
+            // 没有新的时间窗口可结算
+            return false;
+        }
+
+        String rewardStr = farmCfg.getReward();
+        if (rewardStr == null || rewardStr.trim().isEmpty()) {
+            return false;
+        }
+
+        JSONArray rewardArr;
+        try {
+            rewardArr = JSONArray.parseArray(rewardStr);
+        } catch (Exception e) {
+            return false;
+        }
+        if (rewardArr == null || rewardArr.isEmpty()) {
+            return false;
+        }
+
+        boolean hasReward = false;
+
+        for (Object r : rewardArr) {
+            if (!(r instanceof JSONObject)) {
+                continue;
+            }
+            JSONObject reward = (JSONObject) r;
+
+            int rType = reward.getIntValue("type");
+            String itemId = reward.getString("id");
+            long baseNum = reward.getLongValue("number");
+
+            if (itemId == null || itemId.trim().isEmpty()) {
+                continue;
+            }
+            if (baseNum <= 0L) {
+                continue;
+            }
+
+            /*线性产出*/
+            // 一共收取的数量
+            long producedTotal = baseNum * (curSec - startSec) / grow;
+            // 本次收取的数量
+            long producedBefore = baseNum * (lastHarvestSec - startSec) / grow;
+            long delta = producedTotal - producedBefore;
+            if (delta <= 0L) {
+                continue;
+            }
+
+            JSONObject scaled = new JSONObject();
+            scaled.put("type", rType);
+            scaled.put("id", itemId);
+            scaled.put("number", delta);
+            allRewards.add(scaled);
+            hasReward = true;
+
+            //gainMp按照itemId统计给前端
+            BigDecimal old = gainMap.get(itemId);
+            if (old == null) {
+                old = BigDecimal.ZERO;
+            }
+            gainMap.put(itemId, old.add(BigDecimal.valueOf(delta)));
+        }
+
+        if (hasReward) {
+            land.setLastHarvestTime(new Date(curSec * 1000L));
+            if (curSec >= endSec) {
+                land.setStatus(LAND_STATUS_FINISHED);
+            } else {
+                land.setStatus(LAND_STATUS_GROWING);
+            }
+        }
+
+        return hasReward;
+    }
+
+    /**
+     * 构建返回前端的 gainList
+     */
+    private JSONArray buildGainList(Map<String, BigDecimal> gainMap) {
+        JSONArray gainList = new JSONArray();
+        for (Map.Entry<String, BigDecimal> e : gainMap.entrySet()) {
+            JSONObject gainJson = new JSONObject();
+            gainJson.put("itemId", e.getKey());
+            gainJson.put("number", e.getValue());
+            gainList.add(gainJson);
+        }
+        return gainList;
+    }
+
+    /**
+     * 收割后地块状态收尾：
+     * - 若当前时间点已经把这一轮的线性产出全部领完，则清空地块，方便重新播种；
+     * - 否则保留种子与时间信息，继续“矿机模式”线性产出。
+     */
+    private void finalizeLandAfterHarvest(UserFarmLand land, long nowSec) {
+        if (land == null || land.getSeedItemId() == null || land.getSeedItemId() <= 0) {
+            return;
+        }
+
+        DicFarm farmCfg = PlayGameService.DIC_FARM.get(String.valueOf(land.getSeedItemId()));
+        if (farmCfg == null || farmCfg.getGrowSeconds() == null || farmCfg.getGrowSeconds() <= 0) {
+            return;
+        }
+        if (land.getStartTime() == null) {
+            return;
+        }
+
+        long startSec = land.getStartTime().getTime() / 1000L;
+        long grow = farmCfg.getGrowSeconds().longValue();
+        long endSec = startSec + grow;
+
+        // 以 lastHarvestTime 为准判断当前结算进度
+        long lastHarvestSec = (land.getLastHarvestTime() != null)
+                ? (land.getLastHarvestTime().getTime() / 1000L)
+                : startSec;
+
+        if (lastHarvestSec >= endSec) {
+            // 说明这一轮的线性产出已经全部结算完，清空地块
+            land.setSeedItemId(0);
+            land.setStartTime(null);
+            land.setEndTime(null);
+            land.setLastHarvestTime(null);
+            land.setStatus(LAND_STATUS_EMPTY);
+        } else {
+            // 尚未全部产完，保持当前种子与时间信息
+            long curSec = Math.min(nowSec, endSec);
+            if (curSec >= endSec) {
+                land.setStatus(LAND_STATUS_FINISHED);
+            } else {
+                land.setStatus(LAND_STATUS_GROWING);
+            }
         }
     }
 
@@ -852,15 +905,115 @@ public class ManagerGameFarmService extends BaseService {
             expectedOutput = calcExpectedOutputFromReward(seedItemId);
         }
 
+        // 当前时间点可领取的数量（线性产出 - 已结算）
+        int availableOutput = 0;
+        if (seedItemId != null && seedItemId > 0 && land != null && land.getStartTime() != null) {
+            availableOutput = calcAvailableOutput(seedItemId, land, now);
+        }
+
+
         landJson.put("seedItemId", seedItemId);
         landJson.put("startTime", startTime);
         landJson.put("endTime", endTime);
         landJson.put("remainSeconds", remainSeconds);
         landJson.put("status", statusCode);
         landJson.put("expectedOutput", expectedOutput);
+        landJson.put("availableOutput", availableOutput);
 
         return landJson;
     }
+
+
+    /**
+     * 当前时间点“还未领取但已经产出”的数量
+     */
+    private int calcAvailableOutput(Integer seedItemId, UserFarmLand land, long nowSec) {
+        if (seedItemId == null || seedItemId <= 0 || land == null || land.getStartTime() == null) {
+            return 0;
+        }
+
+        DicFarm cfg = PlayGameService.DIC_FARM.get(String.valueOf(seedItemId));
+        if (cfg == null || cfg.getGrowSeconds() == null || cfg.getGrowSeconds() <= 0) {
+            return 0;
+        }
+
+        long startSec = land.getStartTime().getTime() / 1000L;
+        long grow = cfg.getGrowSeconds().longValue();
+        long endSec = startSec + grow;
+        long curSec = Math.min(nowSec, endSec);
+        if (curSec <= startSec) {
+            return 0;
+        }
+
+        long lastHarvestSec = startSec;
+        if (land.getLastHarvestTime() != null) {
+            long tmp = land.getLastHarvestTime().getTime() / 1000L;
+            if (tmp < startSec) {
+                lastHarvestSec = startSec;
+            } else if (tmp > endSec) {
+                lastHarvestSec = endSec;
+            } else {
+                lastHarvestSec = tmp;
+            }
+        }
+
+        String rewardStr = cfg.getReward();
+        if (rewardStr == null || rewardStr.trim().isEmpty()) {
+            return 0;
+        }
+
+        JSONArray arr;
+        try {
+            arr = JSONArray.parseArray(rewardStr);
+        } catch (Exception e) {
+            return 0;
+        }
+        if (arr == null || arr.isEmpty()) {
+            return 0;
+        }
+
+        BigDecimal totalAvailable = BigDecimal.ZERO;
+
+        for (Object o : arr) {
+            if (!(o instanceof JSONObject)) {
+                continue;
+            }
+            JSONObject reward = (JSONObject) o;
+
+            int type = reward.getIntValue("type");
+            if (type != 1) {
+                continue;
+            }
+
+            String itemId = reward.getString("id");
+            if (itemId == null || itemId.trim().isEmpty()) {
+                continue;
+            }
+
+            // 只统计“果实/材料”
+            Item dicItem = PlayGameService.itemMap.get(itemId);
+            Integer itemType = (dicItem != null ? dicItem.getType() : null);
+            if (itemType == null || itemType != 1) {
+                continue;
+            }
+
+            long baseNum = reward.getLongValue("number");
+            if (baseNum <= 0L) {
+                continue;
+            }
+
+            long producedTotal = baseNum * (curSec - startSec) / grow;
+            long producedBefore = baseNum * (lastHarvestSec - startSec) / grow;
+            long delta = producedTotal - producedBefore;
+            if (delta > 0L) {
+                totalAvailable = totalAvailable.add(BigDecimal.valueOf(delta));
+            }
+        }
+
+        return totalAvailable.intValue();
+    }
+
+
 
     /**
      * 根据种子ID和 dic_farm.reward 计算预计产出数量。

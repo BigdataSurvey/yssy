@@ -114,6 +114,10 @@ public class LoginService extends BaseService {
 
     private static final String PRIVATE_KEY = "MIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQCPlaG50AVwC/yXOHK7ssP2KMV3TEoVFiH7xkKRyKUkPBzcL7LfbnrospRaigAVUOIoBqhC0uMKzS60Ji3EYxtsVu8Z9Qakslr7E6TqVQ9EOdPfSJCxokpASrdM/1yl9SqECkP+I9GvuVD5mU3cjdVMwUMvomHoHL3DgByHieWEqibtNijSXbeO6XEJzXd7k67y5ecjqXzgpYWXXsZOOjsRih2eEyytWSyqlbi4/f250PckMaHtvIjW4ASebGKncipnk3hN3u/R6eWq0x4CgvjsMMWbjLMw3av9aLV2Bt7Xkpd5n1xi4yEwcwN9T7ihI3Y58lsMwkW/E+dCoQWYv8oLAgMBAAECggEAKvRiu4nl9o0/daXnfQuP4FZ2LKhgCUrjw8SeKarS7LInGCAU7Q7KKk8yXpumRro5ziufrs4UKikT7cT2MChODe07/pH0+NR6r15DGe90b761CblVwC6C9BTmHVzPxL5Bh9riWGcy1dUkymb4iiDMTPgMN3XmwF/IzXHIFyxDw5oFe4ototWRdJq2PtDMiRBo6lyr/4PwBVTV+KTTAVejw6Ft02zYr9/t9be+d78Xh3LawI1SFE4w9U9uBdSVQv7dmF3tIiCGw0U7Cnu6fNVM1HhoIDDixWpFjmPXQuzCMO0q50lvis9DuyEYLMojPI0i0n5ACDTBAEoeGkK4qU994QKBgQD07VpPZoq/D46rpIxNzH2JwqJmy5DOEke8lUksSVa0KKm8ybnb8H1DCRo9klTHtKWZWX4cIX8MoLz+tMS1hO554G23uImcCSmwFgmsXlzSj0/jHZFVyf5NOML7l8eIYi/7iO8njXL2UupBTPHLluo/a4UVAU5PsyhYLAc17h4+KQKBgQCWE2WWc1RP0mwm9x3Clfppd76MRqcd/CJA2qrS/6hPoojgNGOaXv7hzRI8xS502DH/L9dyqSo468itAK4WEXXDScI144ZBEBHJazqPHfnJKc79EZ6sDf3OlORTssruWCU3XhPLzFb8bcDp6RiyOJ+/Y8mbguqVVMPOwBlXl4NlEwKBgQC4+H/ZsyFZhZBDxHNJVgQBBALOCzKCzn9qxnuKfKCEUqlNsDMzDP4soDU3BsoMQDtIArQg3pMqoEHbQf3E8G2BkaKKu00BkFHxb9NCX8lOI3k7llrqJTBudU2b4FaKg0yldBbZEhQePyQ2yLta+9BQsQzCfkf8HNt9K1MOwZQJcQKBgBWHGMZ5Krn8jEkWn60/CFnCtJG4vNY/ScaV13VG+STbQtkuiq8lO1i2qwwOmPhn3twlR7mJ7KWXpQS0GUTPIl5uIS7LwYFpxbNn71GCUkd5+Ngyg9lYdHUCxLIA7r075bLIivxsBnpVYBvttP4zwy6YKN5m7DGZpDDvO3NmJ5IDAoGAGzRupqjYUvo25seXwl2Fy9B3mV38pccSwr6VJPjNNEGLxqnFJIx7j4KVyvOCh2915elI/T4QsqplaXhmek7Y75HxPz2qvTVPIfizvUsu2RmL5kbjlUU6WPHy7KPsSZNIzpzagjMxxBFfydIuQMNS/UaqJlF3tNclA3RQofomrjU=";
 
+    // 用户农场
+    @Autowired
+    private UserFarmLandService userFarmLandService;
+
     @PostConstruct
     public void INIT_MP() {
         logger.info("开始加载数美防控策略");
@@ -715,6 +719,37 @@ public class LoginService extends BaseService {
         User user = userService.findUserByMail(mail);
         return user == null;
     }
+
+
+    /**
+     * 检查用户距离上次登录的时间是否超过配置的 CLEAR_DAYS，
+     * 若超过，则清空该用户一些玩法中的收益,比如农场待收果实;
+     */
+    private void clearIfOverLimit(User user) {
+        if (user == null) {
+            return;
+        }
+        // 新注册用户可能lastLoginTime为空so无所谓
+        if (user.getLastLoginTime() == null) {
+            return;
+        }
+
+        //官方限制 =0 为关闭该功能
+        Integer limitDays = managerConfigService.getInteger(Config.CLEAR_DAYS);
+        if (limitDays == null || limitDays <= 0) {
+            return;
+        }
+
+        long now = System.currentTimeMillis();
+        long lastLogin = user.getLastLoginTime().getTime();
+        long limitMillis = limitDays.longValue() * 24L * 60L * 60L * 1000L;
+
+        // 离线时间达到 / 超过配置天数时清空
+        if (now - lastLogin >= limitMillis) {
+            userFarmLandService.clearAllByUserId(user.getId());
+        }
+    }
+
 
 
 }
