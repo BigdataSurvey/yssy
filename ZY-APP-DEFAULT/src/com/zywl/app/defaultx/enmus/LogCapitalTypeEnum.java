@@ -153,7 +153,8 @@ public enum LogCapitalTypeEnum {
     handbook_reward("手册奖励",1036),
     box_reward("宝箱奖励",1037),
     zyt_receive("镇妖塔收益领取",1038),
-    unlockLand("解锁土地",1039)
+    unlockLand("解锁土地",1039),
+    balloon_exchange("兑换气球",1040),
     ;
 
     private String name;

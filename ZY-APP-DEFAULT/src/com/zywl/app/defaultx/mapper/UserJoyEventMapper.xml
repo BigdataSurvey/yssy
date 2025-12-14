@@ -11,6 +11,12 @@
         <result column="receiver_user_id" property="receiverUserId"/>
         <result column="from_user_id"     property="fromUserId"/>
         <result column="source_type"      property="sourceType"/>
+        <result column="level"            property="level"/>
+        <result column="item_quality"     property="itemQuality"/>
+        <result column="base_joy"         property="baseJoy"/>
+        <result column="percent"          property="percent"/>
+        <result column="calc_expr"        property="calcExpr"/>
+        <result column="calc_desc"        property="calcDesc"/>
         <result column="joy_amount"       property="joyAmount"/>
         <result column="create_time"      property="createTime"/>
     </resultMap>
@@ -22,6 +28,12 @@
         receiver_user_id,
         from_user_id,
         source_type,
+        level,
+        item_quality,
+        base_joy,
+        percent,
+        calc_expr,
+        calc_desc,
         joy_amount,
         create_time
     </sql>
@@ -53,6 +65,12 @@
          receiver_user_id,
          from_user_id,
          source_type,
+         level,
+         item_quality,
+         base_joy,
+         percent,
+         calc_expr,
+         calc_desc,
          joy_amount,
          create_time)
         VALUES
@@ -60,6 +78,12 @@
              #{receiverUserId},
              #{fromUserId},
              #{sourceType},
+             #{level},
+             #{itemQuality},
+             #{baseJoy},
+             #{percent},
+             #{calcExpr},
+             #{calcDesc},
              #{joyAmount},
              NOW())
     </insert>
@@ -80,6 +104,12 @@
             </if>
             <if test="sourceType != null">
                 AND source_type = #{sourceType}
+            </if>
+            <if test="level != null">
+                AND level = #{level}
+            </if>
+            <if test="itemQuality != null">
+                AND item_quality = #{itemQuality}
             </if>
         </where>
     </select>

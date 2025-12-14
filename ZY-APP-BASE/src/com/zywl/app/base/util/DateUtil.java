@@ -252,7 +252,15 @@ public class DateUtil {
             return sdf6.format(new Date());
         }
     }
-
+    /**
+     * 获取当前日期整数形式 yyyyMMdd
+     * @return int
+     */
+    public static int getTodayInt() {
+        synchronized (sdf9) {
+            return Integer.parseInt(sdf9.format(new Date()));
+        }
+    }
     /**
      * 取得当前日期所在周的第一天
      *
