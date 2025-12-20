@@ -23,10 +23,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 /**
  * @Author: lzx
@@ -85,6 +82,24 @@ public class ManagerGameFarmService extends BaseService {
 
     //道具信息
     //PlayGameService.itemMap.get(id)
+
+    //用户气球数增值欢乐豆服务
+    @Autowired
+    private ManagerJoyService managerJoyService;
+
+    static class JoyTrigger {
+        int itemQuality;
+        String eventId;
+        String sourceType;
+        JoyTrigger(int itemQuality, String eventId, String sourceType) {
+            this.itemQuality = itemQuality;
+            this.eventId = eventId;
+            this.sourceType = sourceType;
+        }
+    }
+
+
+
     /**
      * 001 - 获取农场信息
      * 1-3号地为实名制,实名制后解锁;其余地必须要在实名制后才可解锁;
@@ -290,9 +305,11 @@ public class ManagerGameFarmService extends BaseService {
      *     - 资产：由 dic_item.type = 4 决定，走 UserCapital；
      *     - 其他：走背包。
      */
+
     @ServiceMethod(code = "003", description = "收割 / 一键收割")
     @Transactional
     public JSONObject harvest(ManagerSocketServer socket, JSONObject data) {
+
         checkNull(data);
 
         Long userId = data.getLong("userId");
@@ -319,12 +336,14 @@ public class ManagerGameFarmService extends BaseService {
 
         // 汇总所有要发放的奖励
         JSONArray allRewards = new JSONArray();
+        // 触发Joy
+        List<JoyTrigger> joyTriggers = new ArrayList<>();
+
         // 前端展示每个itemId一共领了多少
         Map<String, BigDecimal> gainMap = new HashMap<>();
 
         if (harvestAll) {
             boolean hasAnyReward = false;
-
             for (int idx = 1; idx <= 9; idx++) {
                 UserFarmLand land = landMap.get(idx);
                 if (land == null || land.getSeedItemId() == null || land.getSeedItemId() <= 0) {
@@ -333,8 +352,26 @@ public class ManagerGameFarmService extends BaseService {
                 }
 
                 boolean landHasReward = appendLandHarvestRewards(land, nowSec, allRewards, gainMap);
+
                 if (landHasReward) {
                     hasAnyReward = true;
+
+                    // 在收割之前触发欢乐值收集统计
+                    Integer seedIdBefore =land.getSeedItemId();
+                    Date startTimeBefore = land.getStartTime();
+                    boolean cleared = (land.getSeedItemId() == null || land.getSeedItemId() == 0);
+                    if (cleared && seedIdBefore != null && seedIdBefore > 0) {
+                        Item seedItem = PlayGameService.itemMap.get(String.valueOf(seedIdBefore));
+                        Integer q = (seedItem != null ? seedItem.getQuality() : null);
+                        if (q != null && q > 0) {
+                            // eventId 要“每次种植周期唯一”，推荐带上 startTime
+                            long st = (startTimeBefore != null ? startTimeBefore.getTime() : System.currentTimeMillis());
+                            String joyEventId = "FARM_HARVEST_" + userId + "_" + idx + "_" + st;
+
+                            joyTriggers.add(new JoyTrigger(q, joyEventId, "FARM_HARVEST"));
+                        }
+                    }
+
                     // 判断是否本轮全部产出已领完，若是则清空地块
                     finalizeLandAfterHarvest(land, nowSec);
                     userFarmLandService.plantLand(land);
@@ -354,6 +391,11 @@ public class ManagerGameFarmService extends BaseService {
                     null,
                     LogUserBackpackTypeEnum.harvest
             );
+
+            // 发奖成功后再发欢乐值
+            for (JoyTrigger t : joyTriggers) {
+                managerJoyService.distributeJoy(userId, t.itemQuality, t.eventId, "FARM_HARVEST");
+            }
 
             // 构建最新 9 块地的视图
             JSONArray landsArr = new JSONArray();
@@ -387,6 +429,21 @@ public class ManagerGameFarmService extends BaseService {
                 throwExp("当前地块暂时没有可收割的果实");
             }
 
+            // 在收割之前触发欢乐值收集统计
+            Integer seedItemId = land.getSeedItemId();
+            Date lastHarvestTime = land.getLastHarvestTime();
+            int itemQuality = 0;
+            String joyEventId = null;
+            if (seedItemId != null && seedItemId > 0 && lastHarvestTime != null) {
+                Item seedItem = PlayGameService.itemMap.get(String.valueOf(seedItemId));
+                Integer q = (seedItem != null ? seedItem.getQuality() : null);
+                itemQuality = (q == null ? 0 : q);
+                if (itemQuality > 0) {
+                    joyEventId = "FARM_HARVEST_" + userId + "_" + landIndex + "_" + lastHarvestTime.getTime();
+                }
+            }
+
+
             // 仅当前地块发奖
             gameService.addReward(
                     userId,
@@ -394,6 +451,11 @@ public class ManagerGameFarmService extends BaseService {
                     null,
                     LogUserBackpackTypeEnum.harvest
             );
+
+            // 发奖成功后再发欢乐值
+            if (itemQuality > 0) {
+                managerJoyService.distributeJoy(userId, itemQuality, joyEventId, "FARM_HARVEST");
+            }
 
             // 判断是否本轮全部产出已领完；若是则清空地块
             finalizeLandAfterHarvest(land, nowSec);

@@ -1,10 +1,8 @@
 package com.zywl.app.manager.service.manager;
 import com.alibaba.fastjson2.JSONArray;
 import com.alibaba.fastjson2.JSONObject;
-import com.live.app.ws.bean.Command;
 import com.zywl.app.base.bean.*;
 import com.zywl.app.base.service.BaseService;
-import com.zywl.app.base.util.BeanUtils;
 import com.zywl.app.base.util.DateUtil;
 import com.zywl.app.base.util.LockUtil;
 import com.zywl.app.defaultx.annotation.ServiceClass;
@@ -22,7 +20,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.Date;
@@ -32,7 +29,7 @@ import java.util.Map;
  * @Author: lzx
  * @Create: 2025/12/14
  * @Version: V1.0
- * @Description: 欢乐值（气球树）核心业务服务
+ * @Description: 欢乐值（气球树）核心业务服务  USER_JOR 037
  */
 
 @Service
@@ -75,7 +72,7 @@ public class ManagerJoyService  extends BaseService {
     @Autowired
     private UserJoyContribService userJoyContribService;
 
-    //欢乐值贡献流水
+    // 欢乐值贡献流水
     @Autowired
     private UserJoyEventService userJoyEventService;
 
@@ -318,7 +315,7 @@ public class ManagerJoyService  extends BaseService {
 
     @Transactional
     public void distributeJoy(Long triggerUserId, int itemQuality, String eventId, String sourceType) {
-        // 0) 参数校验（保持你原有风格）
+        // 参数校验（保持你原有风格）
         if (triggerUserId == null || eventId == null || sourceType == null) {
             return;
         }
@@ -326,7 +323,7 @@ public class ManagerJoyService  extends BaseService {
             return;
         }
 
-        // 1) 读取配置
+        // 读取配置
         String baseJson = managerConfigService.getString(Config.JOY_PER_LEVEL);
         String percentJson = managerConfigService.getString(Config.JOY_LEVEL_PERCENT);
         if (baseJson == null || percentJson == null) {
@@ -338,7 +335,7 @@ public class ManagerJoyService  extends BaseService {
         // 1~5 代分成比例：JOY_LEVEL_PERCENT（level -> percent）
         JSONObject percentMap = JSONObject.parseObject(percentJson);
 
-        // 2) baseJoy：按 quality 取基础欢乐值
+        //baseJoy：按 quality 取基础欢乐值
         String qKey = String.valueOf(itemQuality);
         if (!baseMap.containsKey(qKey)) {
             // 配置没覆盖该品质
@@ -352,7 +349,7 @@ public class ManagerJoyService  extends BaseService {
         // 与 DB decimal(18,2) 对齐，避免落库/表达式不一致
         baseJoy = baseJoy.setScale(2, RoundingMode.FLOOR);
 
-        // 3) 沿 parentId 链路向上最多 5 代
+        // 沿 parentId 链路向上最多 5 代
         Long currentUserId = triggerUserId;
         int todayInt = DateUtil.getTodayInt();
 
@@ -364,7 +361,7 @@ public class ManagerJoyService  extends BaseService {
             }
             Long parentId = user.getParentId();
 
-            // 4) 读取该代分润比例（percent）
+            // 读取该代分润比例（percent）
             // 说明：你 percentJson 是 {"1":30,"2":25,...}，fastjson 这里 getBigDecimal 会得到 30/25 之类
             BigDecimal rate = percentMap.getBigDecimal(String.valueOf(level));
             if (rate == null || rate.compareTo(BigDecimal.ZERO) <= 0) {
@@ -386,7 +383,7 @@ public class ManagerJoyService  extends BaseService {
                 continue;
             }
 
-            // 5) 计算该代实际获得的欢乐值：actualJoy = baseJoy * percent / 100（2位小数 FLOOR）
+            // 计算该代实际获得的欢乐值：actualJoy = baseJoy * percent / 100（2位小数 FLOOR）
             BigDecimal actualJoy = baseJoy
                     .multiply(BigDecimal.valueOf(percentInt))
                     .divide(BigDecimal.valueOf(100), 2, RoundingMode.FLOOR);
@@ -396,8 +393,7 @@ public class ManagerJoyService  extends BaseService {
                 continue;
             }
 
-            // 6) 幂等闸门：先写事件明细（利用唯一键 uk_event_receiver: (event_id, receiver_user_id)）
-            //    先插入，再更新总账/贡献汇总，确保同一事件不会重复累加
+            // 流水记录
             String calcExpr = baseJoy.toPlainString() + "*" + percentInt + "/100=" + actualJoy.toPlainString();
             String calcDesc = "from=" + triggerUserId
                     + " -> receiver=" + parentId
@@ -414,19 +410,14 @@ public class ManagerJoyService  extends BaseService {
             event.setReceiverUserId(parentId);
             event.setFromUserId(triggerUserId);
             event.setSourceType(sourceType);
-
-            // ===== 新增审计字段：与你现在的 t_user_joy_event 表结构保持一致 =====
             event.setLevel(level);
             event.setItemQuality(itemQuality);
             event.setBaseJoy(baseJoy);
             event.setPercent(percentInt);
             event.setCalcExpr(calcExpr);
             event.setCalcDesc(calcDesc);
-            // ============================================================
-
             event.setJoyAmount(actualJoy);
             event.setCreateTime(new Date());
-
             try {
                 userJoyEventService.insert(event);
             } catch (DuplicateKeyException dup) {
@@ -435,9 +426,9 @@ public class ManagerJoyService  extends BaseService {
                 continue;
             }
 
-            // 7) 插入成功才允许记总账与贡献汇总，并对 receiverId 加锁保证并发正确
+            // 插入成功才允许记总账与贡献汇总，并对 receiverId 加锁保证并发正确
             synchronized (LockUtil.getlock(parentId)) {
-                // 7.1 总账：t_user_joy
+                // 总账
                 UserJoy parentJoy = userJoyService.findByUserId(parentId);
                 if (parentJoy == null) {
                     parentJoy = new UserJoy();
@@ -467,7 +458,7 @@ public class ManagerJoyService  extends BaseService {
                 parentJoy.setUpdateTime(new Date());
                 userJoyService.updateByUserId(parentJoy);
 
-                // 7.2 贡献汇总：t_user_joy_contrib（receiver=上级, from=触发者）
+                // 贡献汇总：t_user_joy_contrib（receiver=上级, from=触发者）
                 UserJoyContrib contrib = userJoyContribService.findOneByPair(parentId, triggerUserId);
                 if (contrib == null) {
                     contrib = new UserJoyContrib();

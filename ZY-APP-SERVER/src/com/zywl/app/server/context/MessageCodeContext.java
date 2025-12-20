@@ -47,5 +47,7 @@ public class MessageCodeContext {
 	public final  static String ZYT="084";
 	//用户种地管理
 	public final  static String USER_FARM="085";
+	// 欢乐值（气球树）核心业务服务
+	public final  static String USER_JOR="086";
 
 }
