@@ -25,7 +25,7 @@ public class ServerManagerService {
 	private LhdSocket lhdSocket;
 
 	private DgsSocket dgsSocket;
-
+	private PbxSocket pbxSocket;
 
 
 
@@ -126,6 +126,20 @@ public class ServerManagerService {
 			shakeHandsDatas.put("weight", serverProperties.get("server.weight"));
 			dgsSocket = new DgsSocket(TargetSocketType.dgs, -1, managerProperties.get("dgsServer.ws.address"), shakeHandsDatas);
 			dgsSocket.connect();
+		}
+	}
+
+	public void connectPbxServer(){
+		if(pbxSocket == null){
+			PropertiesUtil managerProperties = new PropertiesUtil("manager.properties");
+			PropertiesUtil serverProperties = new PropertiesUtil("config.properties");
+			JSONObject shakeHandsDatas = new JSONObject();
+			shakeHandsDatas.put("name", serverProperties.get("server.name"));
+			shakeHandsDatas.put("address", serverProperties.get("template.server"));
+			shakeHandsDatas.put("host", serverProperties.get("template.server"));
+			shakeHandsDatas.put("weight", serverProperties.get("server.weight"));
+			pbxSocket = new PbxSocket(TargetSocketType.pbx, -1, managerProperties.get("pbxServer.ws.address"), shakeHandsDatas);
+			pbxSocket.connect();
 		}
 	}
 }

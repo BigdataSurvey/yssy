@@ -43,7 +43,10 @@ public enum TargetSocketType {
 	nxq,
 	//算卦
 	sg,
-	bt;
+	bt,
+	//推箱子
+	pbx,
+	;
 
 
 	
@@ -67,6 +70,8 @@ public enum TargetSocketType {
 			return loginServer;
 		}else if (gameId==10) {
 			return dgs;
+		}else if (gameId==12){
+			return pbx;
 		}
 		return null;
 	}

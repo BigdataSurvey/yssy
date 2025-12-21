@@ -407,7 +407,11 @@ public enum PushCode {
 	 * 家族信息修改
 	 */
 	familyUpdate,
-
+	/**
+	 * 推箱子
+	 */
+	updatePbxInfo,
+	updatePbxStatus
 
 
 
