@@ -19,9 +19,10 @@ public enum GameTypeEnum {
 	sg("算卦",8),
 	bt("宝塔",9),
 	dgs("打怪兽",10),
-	nxq("聂小倩的故事",11)
-
+	nxq("聂小倩的故事",11),
+	txz("推箱子",12)
 	;
+
 	private String name;
 
 	private int value;

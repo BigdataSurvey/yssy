@@ -14,7 +14,6 @@ import com.live.app.ws.util.Executer;
 import com.live.app.ws.util.Push;
 import com.zywl.app.base.bean.User;
 import com.zywl.app.base.bean.UserDtsAmount;
-import com.zywl.app.base.bean.hongbao.RedPosition;
 import com.zywl.app.base.service.BaseService;
 import com.zywl.app.base.util.Async;
 import com.zywl.app.base.util.DateUtil;
@@ -30,7 +29,6 @@ import com.zywl.app.server.util.RequestManagerListener;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
 import javax.annotation.PostConstruct;
 import java.math.BigDecimal;
 import java.util.ArrayList;
@@ -48,10 +46,8 @@ public class ServerLotteryGameService extends BaseService {
     @Autowired
     private UserCacheService userCacheService;
 
-
     @Autowired
     private RequestLotteryService requestLotteryService;
-
 
     @Autowired
     private GameCacheService gameCacheService;
@@ -59,21 +55,21 @@ public class ServerLotteryGameService extends BaseService {
     @Autowired
     private UserDtsAmountService userDtsAmountService;
 
-
     public static List<BigDecimal> betList = new ArrayList<>();
-
     public static List<BigDecimal> canCash = new ArrayList<>();
-
 
     @PostConstruct
     public void _Construct() {
         betList.add(new BigDecimal("1"));
         betList.add(new BigDecimal("10"));
         betList.add(new BigDecimal("100"));
+
         canCash.add(new BigDecimal("0.1"));
         canCash.add(new BigDecimal("1"));
         canCash.add(new BigDecimal("10"));
+
         userLotteryPush.clear();
+
         Push.addPushSuport(PushCode.updateRoomDate, new DefaultPushHandler());
         Push.addPushSuport(PushCode.updateGameStatus, new DefaultPushHandler());
         Push.addPushSuport(PushCode.updateGameDiyData, new DefaultPushHandler());
@@ -89,6 +85,10 @@ public class ServerLotteryGameService extends BaseService {
         Push.addPushSuport(PushCode.updateBtStatus, new DefaultPushHandler());
         Push.addPushSuport(PushCode.updateDgsInfo, new DefaultPushHandler());
         Push.addPushSuport(PushCode.updateDgsStatus, new DefaultPushHandler());
+
+        // PBX
+        Push.addPushSuport(PushCode.updatePbxInfo, new DefaultPushHandler());
+        Push.addPushSuport(PushCode.updatePbxStatus, new DefaultPushHandler());
     }
 
     public void registPush(AppSocket appSocket, String userId, String gameId) {
@@ -108,13 +108,15 @@ public class ServerLotteryGameService extends BaseService {
         } else if (gameId.equals("8")) {
             Push.doAddPush(appSocket, new PushBean(PushCode.updateSgInfo, gameId));
             Push.doAddPush(appSocket, new PushBean(PushCode.updateSgStatus, userId));
-        }else if (gameId.equals("9")) {
+        } else if (gameId.equals("9")) {
             Push.doAddPush(appSocket, new PushBean(PushCode.updateBtInfo, gameId));
             Push.doAddPush(appSocket, new PushBean(PushCode.updateBtStatus, userId));
-        }
-        else if (gameId.equals("10")) {
+        } else if (gameId.equals("10")) {
             Push.doAddPush(appSocket, new PushBean(PushCode.updateDgsInfo, gameId));
             Push.doAddPush(appSocket, new PushBean(PushCode.updateDgsStatus, userId));
+        } else if (gameId.equals("12")) {
+            Push.doAddPush(appSocket, new PushBean(PushCode.updatePbxInfo, gameId));
+            Push.doAddPush(appSocket, new PushBean(PushCode.updatePbxStatus, userId));
         }
     }
 
@@ -128,7 +130,7 @@ public class ServerLotteryGameService extends BaseService {
         } else if (gameId.equals("5")) {
             Push.doRemovePush(appSocket, new PushBean(PushCode.updateNhInfo, gameId));
             Push.doRemovePush(appSocket, new PushBean(PushCode.updateNhStatus, userId));
-        }else if (gameId.equals("7")) {
+        } else if (gameId.equals("7")) {
             Push.doRemovePush(appSocket, new PushBean(PushCode.updateDts2Info, gameId));
             Push.doRemovePush(appSocket, new PushBean(PushCode.updateDts2Status, userId));
         } else if (gameId.equals("8")) {
@@ -137,43 +139,36 @@ public class ServerLotteryGameService extends BaseService {
         } else if (gameId.equals("9")) {
             Push.doRemovePush(appSocket, new PushBean(PushCode.updateBtInfo, gameId));
             Push.doRemovePush(appSocket, new PushBean(PushCode.updateBtStatus, userId));
-        }
-        else if (gameId.equals("10")) {
+        } else if (gameId.equals("10")) {
             Push.doRemovePush(appSocket, new PushBean(PushCode.updateDgsInfo, gameId));
             Push.doRemovePush(appSocket, new PushBean(PushCode.updateDgsStatus, userId));
+        } else if (gameId.equals("12")) {
+            Push.doRemovePush(appSocket, new PushBean(PushCode.updatePbxInfo, gameId));
+            Push.doRemovePush(appSocket, new PushBean(PushCode.updatePbxStatus, userId));
         }
     }
 
-
-    /**
-     * 判断lottery是否在线
-     *
-     * @param
-     * @return
-     */
+    // 判断玩法服是否在线
     public boolean isOnline(int gameId) {
-
         Set<BaseClientSocket> clients = SocketManager.getServers(TargetSocketType.getServerEnum(gameId));
-        if (clients != null && !clients.isEmpty()) {
-            return true;
-        }
-        return false;
+        return clients != null && !clients.isEmpty();
     }
 
     @ServiceMethod(code = "001", description = "加入房间")
-    public Async jionRoom(final AppSocket appSocket, Command appCommand, JSONObject params) {
+    public Async jionRoom(final AppSocket appSocket, final Command appCommand, final JSONObject params) {
         checkNull(params);
         checkNull(params.get("gameId"));
-        //params.put("gameId",5);
-        if (!isOnline(params.getIntValue("gameId"))) {
-            if (params.getIntValue("gameId") == 10){
+
+        final int gameId = params.getIntValue("gameId");
+        if (!isOnline(gameId)) {
+            if (gameId == 10) {
                 throwExp("游戏正在升级中。敬请期待！");
-            }else {
+            } else {
                 throwExp("小游戏正在维护");
             }
-
         }
-        long userId = appSocket.getWsidBean().getUserId();
+
+        final long userId = appSocket.getWsidBean().getUserId();
         User user = userCacheService.getUserInfoById(userId);
         if (user == null) {
             throwExp("用户信息异常");
@@ -184,125 +179,112 @@ public class ServerLotteryGameService extends BaseService {
         if (user.getRiskPlus() != null && user.getRiskPlus() == 1) {
             throwExp("请求超时，请更换网络环境再试");
         }
-        String userNo = user.getUserNo();
-        String headImgUrl = user.getHeadImageUrl();
-        String UserName = user.getName();
+
         JSONObject data = new JSONObject();
-        data.put("gameId", params.get("gameId"));
+        data.put("gameId", gameId);
         data.put("userId", userId);
-        data.put("userNo", userNo);
-        data.put("headImgUrl", headImgUrl);
-        data.put("userName", UserName);
-        data.put("bet",params.get("bet"));
-        requestLotteryService.requestBattleRoyaleJoinRoom(data, new Listener() {
+        data.put("userNo", user.getUserNo());
+        data.put("headImgUrl", user.getHeadImageUrl());
+        data.put("userName", user.getName());
+        data.put("bet", params.get("bet"));
+
+        Listener cb = new Listener() {
+            @Override
             public void handle(BaseClientSocket clientSocket, Command command) {
                 if (command.isSuccess()) {
                     JSONObject result = JSONObject.from(command.getData());
                     Executer.response(CommandBuilder.builder(appCommand).success(result).build());
-                    registPush(appSocket, String.valueOf(userId), params.getString("gameId"));
+
+                    registPush(appSocket, String.valueOf(userId), String.valueOf(gameId));
+                    userLotteryPush.put(String.valueOf(userId), TargetSocketType.getServerEnum(gameId));
                 } else {
-                    Executer.response(
-                            CommandBuilder.builder(appCommand).error(command.getMessage(), command.getData()).build());
+                    Executer.response(CommandBuilder.builder(appCommand).error(command.getMessage(), command.getData()).build());
                 }
             }
-        });
+        };
 
-        //
-        //Executer.request(TargetSocketType.getServerEnum(params.getIntValue("gameId")),
-        //	CommandBuilder.builder().request("101101", data).build(), new RequestManagerListener(appCommand));
-        // 玩家同时只能呆在一个lottery服
-        userLotteryPush.put(String.valueOf(userId), TargetSocketType.getServerEnum(params.getInteger("gameId")));
+        // PBX: 102101；其他小游戏沿用 101101
+        if (gameId == 12) {
+            requestLotteryService.requestPbxJoinRoom(data, cb);
+        } else {
+            requestLotteryService.requestBattleRoyaleJoinRoom(data, cb);
+        }
+
         return async();
-
     }
 
     @ServiceMethod(code = "002", description = "投入")
     public Async bet(final AppSocket appSocket, Command appCommand, JSONObject params) {
         checkNull(params);
-        checkNull(params.get("betAmount"), params.get("bet"));
+        checkNull(params.get("gameId"), params.get("betAmount"), params.get("bet"));
+
         int gameId = params.getIntValue("gameId");
         if (!isOnline(gameId)) {
             throwExp("小游戏正在维护");
         }
+
         long userId = appSocket.getWsidBean().getUserId();
         User user = userCacheService.getUserInfoById(userId);
         if (user == null) {
             throwExp("用户信息异常");
         }
+
         BigDecimal amount = params.getBigDecimal("betAmount");
         if (gameId != 5) {
             if (!betList.contains(amount)) {
                 throwExp("非法请求");
             }
         }
+
         params.put("userId", userId);
-        params.put("headImgUrl",user.getHeadImageUrl());
-        params.put("name",user.getName());
-        Executer.request(TargetSocketType.getServerEnum(gameId), CommandBuilder.builder().request("101103", params).build(),
-                new RequestManagerListener(appCommand));
+        params.put("headImgUrl", user.getHeadImageUrl());
+        params.put("name", user.getName());
+
+        // PBX: 102103....之前的东西还是沿用101103
+        if (gameId == 12) {
+            requestLotteryService.requestPbxBetService(params, new RequestManagerListener(appCommand));
+        } else {
+            requestLotteryService.requestBattleRoyaleBetService(params, new RequestManagerListener(appCommand));
+        }
+
         return async();
     }
-
-    @ServiceMethod(code = "003", description = "更换房间")
-    public Async battleRoyaleUpdateBet(final AppSocket appSocket, Command appCommand, JSONObject params) {
-        checkNull(params);
-        checkNull(params.get("bet"));
-        String bet = params.getString("bet");
-        long userId = appSocket.getWsidBean().getUserId();
-        User user = userCacheService.getUserInfoById(userId);
-        if (user == null) {
-            throwExp("用户信息异常");
-        }
-        String userNo = user.getUserNo();
-        String headImgUrl = user.getHeadImageUrl();
-        String UserName = user.getName();
-        JSONObject data = new JSONObject();
-        data.put("userId", userId);
-        data.put("userNo", userNo);
-        data.put("headImgUrl", headImgUrl);
-        data.put("userName", UserName);
-        data.put("bet", params.getString("bet"));
-        if (params.getIntValue("gameId")==GameTypeEnum.bt.getValue()){
-            data.put("floor",params.getString("floor"));
-        }
-        if (isOnline(params.getIntValue("gameId"))) {
-            Executer.request(TargetSocketType.getServerEnum(params.getIntValue("gameId")), CommandBuilder.builder().request("101105", data).build(),
-                    new RequestManagerListener(appCommand));
-            // 玩家同时只能呆在一个lottery服
-            userLotteryPush.put(String.valueOf(userId), TargetSocketType.getServerEnum(params.getIntValue("gameId")));
-        }
-        return async();
-    }
-
-
-
 
     @ServiceMethod(code = "004", description = "离开房间")
     public Async leaveRoom(final AppSocket appSocket, Command appCommand, JSONObject params) {
         checkNull(params);
         checkNull(params.get("gameId"));
+
+        int gameId = params.getIntValue("gameId");
+
         long userId = appSocket.getWsidBean().getUserId();
         User user = userCacheService.getUserInfoById(userId);
         if (user == null) {
             throwExp("用户信息异常");
         }
-        JSONObject data = new JSONObject();
-        data.put("userId", userId);
-        if (isOnline(params.getIntValue("gameId"))) {
-            // 移除lottery信息
-            userLotteryPush.remove(String.valueOf(userId));
-            removePush(appSocket, String.valueOf(userId), params.getString("gameId"));
-            Executer.request(TargetSocketType.getServerEnum(params.getIntValue("gameId")),
-                    CommandBuilder.builder().request("101104", data).build(), new RequestManagerListener(appCommand));
 
+        JSONObject data = new JSONObject();
+        data.put("gameId", gameId);
+        data.put("userId", userId);
+
+        // 本地移除
+        userLotteryPush.remove(String.valueOf(userId));
+        removePush(appSocket, String.valueOf(userId), String.valueOf(gameId));
+
+        if (isOnline(gameId)) {
+            if (gameId == 12) {
+                requestLotteryService.requestPbxLeaveRoom(data, new RequestManagerListener(appCommand));
+            } else {
+                requestLotteryService.requestBattleRoyaleLeaveRoom(data, new RequestManagerListener(appCommand));
+            }
         }
+
         return async();
     }
 
 
 
-
-    @ServiceMethod(code = "015", description = "记录")
+@ServiceMethod(code = "015", description = "记录")
     public Async recordSg(final AppSocket appSocket, Command appCommand, JSONObject params) {
         checkNull(params);
         long userId = appSocket.getWsidBean().getUserId();
@@ -447,16 +429,11 @@ public class ServerLotteryGameService extends BaseService {
         if (user == null) {
             throwExp("用户信息异常");
         }
-      /*  BigDecimal amount = params.getBigDecimal("betAmount");
-        if (gameId != 5) {
-            if (!betList.contains(amount)) {
-                throwExp("非法请求");
-            }
-        }*/
+
         params.put("userId", userId);
         params.put("headImgUrl",user.getHeadImageUrl());
         params.put("name",user.getName());
-        Executer.request(TargetSocketType.getServerEnum(gameId), CommandBuilder.builder().request("101103", params).build(),
+        Executer.request(TargetSocketType.getServerEnum(gameId), CommandBuilder.builder().request("102103", params).build(),
                 new RequestManagerListener(appCommand));
         return async();
     }
@@ -471,7 +448,7 @@ public class ServerLotteryGameService extends BaseService {
         if (user == null) {
             throwExp("用户信息异常");
         }
-        Executer.request(TargetSocketType.getServerEnum(params.getIntValue("gameId")), CommandBuilder.builder().request("101004", params).build(), new RequestManagerListener(appCommand));
+        Executer.request(TargetSocketType.getServerEnum(params.getIntValue("gameId")), CommandBuilder.builder().request("102104", params).build(), new RequestManagerListener(appCommand));
         return async();
     }
 

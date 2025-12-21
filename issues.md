@@ -1,7 +1,7 @@
 我向你上传了一个"yssy.zip"这个文件,是一个压缩包；这个压缩包下的游戏项目,叫"小丑大逃杀"的后端代码,请你解压之后详细分析,深度分析每一个文件的作用,以及各个模块之间的关系,请详细分析并给出你的答案;
 
 这个后端项目采用分模块的分布式架构,主要划分为不同的模块,各自职责明确;具体不同模块之间的说明在我上传的"YSSY后端核心模块架构与功能详解.pdf"中可以参考,请你深度分析该PDF;
-我同时上传了"yssy-Tree_20251212224058.txt"该项目的目录树,来供你参考；
+我同时上传了"yssy-Tree_20251220143003.txt"该项目的目录树,来供你参考；
 
 我简单说一下,
 其中ZY-APP-BASE、ZY-APP-DEFAULT、ZY-APP-WS、ZY-APP-SERVER、ZY-APP-MANAGER、ZY-APP-LOG、ZY-KEYFACTORY为核心模块;
@@ -12,6 +12,7 @@ ZY-APP-SERVER：主要提供外部服务的接口（例如登录、用户信息�
 ZY-APP-MANAGER：核心服务模块，处理游戏的核心业务逻辑，提供如 getLoginInfo、getUserInfo、getBackPackInfo 等业务接口。
 ZY-APP-LOG：用于日志记录，跟踪用户的资产变动、操作记录等。
 ZY-KEYFACTORY：用于生成和管理 wsid（WebSocket ID）等密钥的模块。
+ZY-APP-DTS:小游戏/独立玩法服务器模块。此模块架构与核心逻辑服类似，也有自己的 BattleRoyaleSocketServer WebSocket端点和相关服务逻辑;它通过一个ManagerSocket连接到主逻辑服以获取玩家数据或同步状态。小游戏都是现成的;部署起来就能跑；
 
 我目前重新升级了 tomcat为tomcat-9.0.105 版本,并且只配置了ZY-KEYFACTORY、ZY-APP-LOG、ZY-APP-MANAGER、 ZY-APP-SERVER这4个项目,这4个启动后项目就算是跑起来了;
 
@@ -150,7 +151,7 @@ updateGameKey 是“服务已经跑起来以后，当配表/Config 被修改时�
 而因为要传入JSONArray参数,所以相关配置表需要添加一个奖励字段,比如reward,我举例子数据为:[{"type":1,"id":2101,"number":10}]
 该方法的详细逻辑请仔细分析PlayGameService.addReward; 和 上传的 addReward逻辑.md  这些我也整理到了 YSSY项目分析.md 中
 
-请你认真分析我的项目,等你深度分析之后把项目代码和逻辑等永久保存到记忆; 之后我开始向你描述开发需求和要求;
+你可以先按照步骤列出来分析流程，我确认每一步骤后开始；请你认真分析我的项目,等你深度分析之后把项目代码和逻辑等永久保存到记忆; 之后我开始向你描述开发需求和要求;
 
 
 你需要重点分析我所提及的模块和需求，并把逻辑和代码都保存在记忆当中;
