@@ -19,7 +19,7 @@ public class ServerContext implements ServletContextListener {
 	
 	public void contextInitialized(ServletContextEvent contextEvent) {
 		APP.run();
-		System.out.println(11111111);
+		System.out.println(2222222);
 		Thread t = new Thread(() -> {
 			SpringUtil.getService(PbxManagerService.class).connectManager();
 		}, "connectManagerDgsServer");
