@@ -33,11 +33,9 @@ import java.util.concurrent.CountDownLatch;
 public class BattleRoyale2Socket extends BaseClientSocket {
     private static final Log logger = LogFactory.getLog(BattleRoyale2Socket.class);
 
-
     private VersionService versionService;
 
     private UpdateAppService updateAppService;
-
 
     private IncomeRecordService incomeRecordService;
 
@@ -46,7 +44,6 @@ public class BattleRoyale2Socket extends BaseClientSocket {
     private UserCapitalService userCapitalService;
 
     private UserCapitalCacheService userCapitalCacheService;
-
 
     public BattleRoyale2Socket(TargetSocketType socketType, int reconnect, String server, JSONObject shakeHandsDatas) {
         super(socketType, false, reconnect, server, shakeHandsDatas);
@@ -62,15 +59,51 @@ public class BattleRoyale2Socket extends BaseClientSocket {
                 pushBean.setShakeHands(Executer.size() + "," + Executer.QPS());
             }
         });
+
         Push.addPushSuport(PushCode.syncIsService, new DefaultPushHandler() {
             public void onRegist(BaseSocket baseSocket, PushBean pushBean) {
                 pushBean.setShakeHands(ServerStateService.isService());
             }
         });
 
-        Push.addPushSuport(PushCode.updateDts2Info, new DefaultPushHandler());
+        Push.registPush(new PushBean(PushCode.updatePbxInfo), new PushListener() {
+            @Override
+            public void onRegist(BaseSocket baseSocket, Object data) { }
 
-        Push.addPushSuport(PushCode.updateDts2Status, new DefaultPushHandler());
+            @Override
+            public void onReceive(BaseSocket baseSocket, Object data) {
+                logger.info("收到推箱子信息变更" + data);
+                JSONObject obj = JSONObject.from(data);
+                String gameId = obj.getString("gameId");
+                if ("12".equals(gameId)) {
+                    Push.push(PushCode.updatePbxInfo, gameId, obj);
+                }
+            }
+        }, this);
+
+        Push.registPush(new PushBean(PushCode.updatePbxStatus), new PushListener() {
+            @Override
+            public void onRegist(BaseSocket baseSocket, Object data) { }
+
+            @Override
+            public void onReceive(BaseSocket baseSocket, Object data) {
+                logger.info("收到推箱子状态变更" + data);
+                JSONObject obj = JSONObject.from(data);
+                String gameId = obj.getString("gameId");
+                JSONArray ids = obj.getJSONArray("userIds");
+                if ("12".equals(gameId)) {
+                    for (Object id : ids) {
+                        String userId = (String) id;
+                        JSONObject result = new JSONObject();
+                        result.put("userId", userId);
+                        result.put("gameStatus", obj.get("status"));
+                        result.put("userSettleInfo", obj.get("userSettleInfo"));
+                        Push.push(PushCode.updatePbxStatus, userId, result);
+                    }
+                }
+            }
+        }, this);
+
     }
 
     @Override

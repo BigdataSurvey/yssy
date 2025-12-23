@@ -22,21 +22,12 @@ public enum TargetSocketType {
 	starChange,
 	//接口服务器
 	interfaceServer,
-
 	foodServer,
 	logServer,
-
-
 	//登录服务器 防止注册请求过多
 	loginServer,
-
-
-
-
-
 	//打年兽
 	dns,
-
 	nh,
 	dgs,
 	dts2,
@@ -48,9 +39,6 @@ public enum TargetSocketType {
 	pbx,
 	;
 
-
-	
-	
 	public static TargetSocketType getServerEnum(int gameId) {
 		if (gameId==1) {
 			return dts2;
@@ -70,12 +58,11 @@ public enum TargetSocketType {
 			return loginServer;
 		}else if (gameId==10) {
 			return dgs;
-		}else if (gameId==12){
-			return pbx;
+		}
+		//推箱子也走12
+		else if (gameId==12){
+			return dts2;
 		}
 		return null;
 	}
-	
-	
-	
 }

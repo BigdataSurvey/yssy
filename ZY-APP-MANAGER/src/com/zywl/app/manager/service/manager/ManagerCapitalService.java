@@ -355,7 +355,6 @@ public class ManagerCapitalService extends BaseService {
             }
             pushData.put("capitalType", UserCapitalTypeEnum.currency_2.getValue());
             pushData.put("balance", userCapital.getBalance());
-
             Push.push(PushCode.updateUserCapital, managerSocketService.getServerIdByUserId(userId), pushData);
         }
 
