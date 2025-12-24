@@ -172,54 +172,128 @@ public class UserCapitalService extends DaoService {
         }
     }
 
-    //仅仅用来解决大逃杀死锁问题
+    //
+
+    /**
+     * 批量更新用户资产余额（仅仅用来解决大逃杀死锁问题）
+     *  通过一次批量 SQL 完成余额变更,减少数据库锁竞争;
+     *  在内存缓存与日志系统中同步变更
+     * **/
     @Transactional
-    public void betUpdateBalance2(JSONObject obj) {
-        int capitalType = UserCapitalTypeEnum.yyb.getValue();
+    public void betUpdateBalance2(JSONObject obj, int capitalType) {
+        if (obj == null || obj.isEmpty()) {
+            return;
+        }
+
+        // 组装批量更新参数,保证一个用户一条update
         List<Map<String, Object>> list = new ArrayList<>();
         Set<String> set = obj.keySet();
         LogCapitalTypeEnum em = null;
+
+        // 记录变更前余额
         Map<String, BigDecimal> beforeMoney = new HashMap<>();
-        for (String key : set) {
-            Map<String, Object> map = new HashedMap<>();
-            map.put("userId", key);
-            JSONObject o = JSONObject.parse(obj.getString(key));
-            if (o.getBigDecimal("amount").compareTo(BigDecimal.ZERO)==0){
+
+        for (String userIdStr : set) {
+            // 取本用户的变更对象
+            JSONObject o;
+            Object raw = obj.get(userIdStr);
+
+            if (raw instanceof JSONObject) {
+                o = (JSONObject) raw;
+            } else {
+                o = JSONObject.parseObject(obj.getString(userIdStr));
+            }
+
+            if (o == null) { continue; }
+
+            BigDecimal amount = o.getBigDecimal("amount");
+            if (amount == null || amount.compareTo(BigDecimal.ZERO) == 0) {
                 continue;
             }
-            UserCapital userCapital = userCapitalCacheService.getUserCapitalCacheByType(Long.parseLong(key), UserCapitalTypeEnum.yyb.getValue());
-            beforeMoney.put(key, userCapital.getBalance());
-            map.put("amount", o.get("amount"));
-            map.put("id",userCapital.getId());
+
+            // 如果 payload 里带 capitalType，必须与入参一致，避免扣错币种
+            Integer ctInObj = o.getInteger("capitalType");
+            if (ctInObj != null && ctInObj != 0 && ctInObj.intValue() != capitalType) {
+                throwExp("capitalType mismatch: param=" + capitalType + ", obj=" + ctInObj);
+            }
+
+            // 查询目标资本记录
+            UserCapital userCapital = userCapitalCacheService.getUserCapitalCacheByType(Long.parseLong(userIdStr), capitalType);
+            beforeMoney.put(userIdStr, userCapital.getBalance());
+
+            //资产校验
+            if (amount.compareTo(BigDecimal.ZERO) < 0) {
+                if (userCapital.getBalance().add(amount).compareTo(BigDecimal.ZERO) < 0) {
+                    throwExp("用户[" + userIdStr + "]余额不足，无法扣费！当前余额:" + userCapital.getBalance());
+                }
+            }
+
+            // 批量更新
+            Map<String, Object> map = new HashedMap<>();
+            map.put("userId", userIdStr);
+            map.put("amount", amount);
+            map.put("id", userCapital.getId());
+            map.put("capitalType", capitalType);
             em = LogCapitalTypeEnum.getEm(o.getIntValue("em"));
-            map.put("capitalType", o.get("capitalType"));
-            capitalType = o.getIntValue("capitalType");
             list.add(map);
         }
+
+        if (list.isEmpty()) {
+            return;
+        }
+
+        // 执行批量更新
         int a = execute("betUpdateBalance2", list);
+
+        // 更新失败 清理缓存并抛错
         if (a < 1) {
-            for (String key : set) {
-                userCapitalCacheService.deltedUserCapitalCache(Long.parseLong(key), UserCapitalTypeEnum.yyb.getValue());
+            for (String userIdStr : set) {
+                userCapitalCacheService.deltedUserCapitalCache(Long.parseLong(userIdStr), capitalType);
             }
-            if (em.getValue() == LogCapitalTypeEnum.game_bet.getValue()) {
+            if (em != null && em.getValue() == LogCapitalTypeEnum.game_bet.getValue()) {
                 throwExp("失败！");
             } else {
                 throwExp("结算失败！");
             }
         }
-        if (a > 0) {
-            for (String userId : set) {
-                BigDecimal before;
-                if (!beforeMoney.containsKey(userId)) {
-                    before = userCapitalCacheService.getUserCapitalCacheByType(Long.parseLong(userId), UserCapitalTypeEnum.yyb.getValue()).getBalance();
-                } else {
-                    before = beforeMoney.get(userId);
-                }
-                BigDecimal occupyBefore = BigDecimal.ZERO;
-                JSONObject o = (JSONObject) obj.get(userId);
-                userCapitalCacheService.add(Long.parseLong(userId), capitalType, o.getBigDecimal("amount"), BigDecimal.ZERO);
-                pushLog(1, Long.parseLong(userId), capitalType, before, occupyBefore, o.getBigDecimal("amount"), em, (String) o.getOrDefault("orderNo", null), null, (String) o.getOrDefault("tableName", null));
+
+        // 更新成功 更新缓存 + 写流水日志
+        for (String userIdStr : set) {
+            JSONObject o;
+            Object raw = obj.get(userIdStr);
+            if (raw instanceof JSONObject) {
+                o = (JSONObject) raw;
+            } else {
+                o = JSONObject.parseObject(obj.getString(userIdStr));
             }
+            if (o == null) continue;
+
+            BigDecimal amount = o.getBigDecimal("amount");
+            if (amount == null || amount.compareTo(BigDecimal.ZERO) == 0) continue;
+
+            // 余额更新前值 用于日志
+            BigDecimal before = beforeMoney.containsKey(userIdStr)
+                    ? beforeMoney.get(userIdStr)
+                    : userCapitalCacheService.getUserCapitalCacheByType(Long.parseLong(userIdStr), capitalType).getBalance();
+
+            BigDecimal occupyBefore = BigDecimal.ZERO;
+
+            // 更新缓存
+            userCapitalCacheService.add(Long.parseLong(userIdStr), capitalType, amount, BigDecimal.ZERO);
+
+            // 写流水
+            pushLog(
+                    1,
+                    Long.parseLong(userIdStr),
+                    capitalType,
+                    before,
+                    occupyBefore,
+                    amount,
+                    em,
+                    (String) o.getOrDefault("orderNo", null),
+                    null,
+                    (String) o.getOrDefault("tableName", null)
+            );
         }
     }
 

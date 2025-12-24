@@ -1,7 +1,7 @@
 我向你上传了一个"yssy.zip"这个文件,是一个压缩包；这个压缩包下的游戏项目,叫"小丑大逃杀"的后端代码,请你解压之后详细分析,深度分析每一个文件的作用,以及各个模块之间的关系,请详细分析并给出你的答案;
 
 这个后端项目采用分模块的分布式架构,主要划分为不同的模块,各自职责明确;具体不同模块之间的说明在我上传的"YSSY后端核心模块架构与功能详解.pdf"中可以参考,请你深度分析该PDF;
-我同时上传了"yssy-Tree_20251222161226.txt"该项目的目录树,来供你参考；
+我同时上传了"yssy-Tree_20251214142022.txt"该项目的目录树,来供你参考；
 
 我简单说一下,
 其中ZY-APP-BASE、ZY-APP-DEFAULT、ZY-APP-WS、ZY-APP-SERVER、ZY-APP-MANAGER、ZY-APP-LOG、ZY-KEYFACTORY为核心模块;
@@ -221,7 +221,7 @@ managerConfigService.updateConfigData
 3：每次我们之间确认的需求我开发每一步都会和你确定，会上传给你或者上传到公共库，你在下一步之前要检查上一步我写的代码；
 
 
-你分析的很有道理，我下面说的代码文件你可以参考；是我这次做的需求可；我把我想你提及的功能点在这上面的都有实现，后续下新的开发可以按照这种逻辑走：登录返回、启动加载、config重置配置、相关配置表Map取、奖励走addreward等；
+你分析的很有道理，我下面说的代码文件你可以参考；是我这次做的需求可；我把我想你提及的功能点在这上面的都有实现，后续我们要做的不管是新的主线开发还是小游戏开发，可以按照这种逻辑走：登录返回、启动加载、config重置配置、相关配置表Map取、奖励走addreward等；
 yssy\ZY-APP-BASE\src\com\zywl\app\base\bean\card\DicFarm.java
 yssy\ZY-APP-DEFAULT\src\com\zywl\app\defaultx\service\card\DicFarmService.java
 yssy\ZY-APP-DEFAULT\src\com\zywl\app\defaultx\mapper\DicFarmMapper.xml

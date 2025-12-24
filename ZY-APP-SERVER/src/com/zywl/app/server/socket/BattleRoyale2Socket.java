@@ -34,15 +34,10 @@ public class BattleRoyale2Socket extends BaseClientSocket {
     private static final Log logger = LogFactory.getLog(BattleRoyale2Socket.class);
 
     private VersionService versionService;
-
     private UpdateAppService updateAppService;
-
     private IncomeRecordService incomeRecordService;
-
     private ServerConfigService serverConfigService;
-
     private UserCapitalService userCapitalService;
-
     private UserCapitalCacheService userCapitalCacheService;
 
     public BattleRoyale2Socket(TargetSocketType socketType, int reconnect, String server, JSONObject shakeHandsDatas) {
@@ -59,13 +54,18 @@ public class BattleRoyale2Socket extends BaseClientSocket {
                 pushBean.setShakeHands(Executer.size() + "," + Executer.QPS());
             }
         });
-
         Push.addPushSuport(PushCode.syncIsService, new DefaultPushHandler() {
             public void onRegist(BaseSocket baseSocket, PushBean pushBean) {
                 pushBean.setShakeHands(ServerStateService.isService());
             }
         });
+    }
 
+    @Override
+    public void onConnect(Object data) {
+        CountDownLatch downLatch = new CountDownLatch(2);
+
+        // 先注册 PBX 推送
         Push.registPush(new PushBean(PushCode.updatePbxInfo), new PushListener() {
             @Override
             public void onRegist(BaseSocket baseSocket, Object data) { }
@@ -91,7 +91,7 @@ public class BattleRoyale2Socket extends BaseClientSocket {
                 JSONObject obj = JSONObject.from(data);
                 String gameId = obj.getString("gameId");
                 JSONArray ids = obj.getJSONArray("userIds");
-                if ("12".equals(gameId)) {
+                if ("12".equals(gameId) && ids != null) {
                     for (Object id : ids) {
                         String userId = (String) id;
                         JSONObject result = new JSONObject();
@@ -104,19 +104,13 @@ public class BattleRoyale2Socket extends BaseClientSocket {
             }
         }, this);
 
-    }
-
-    @Override
-    public void onConnect(Object data) {
-        CountDownLatch downLatch = new CountDownLatch(2);
+        // 资产回滚
         Push.registPush(new PushBean(PushCode.rollbackCapital), new PushListener() {
-            public void onRegist(BaseSocket baseSocket, Object data) {
-            }
-
-            public void onReceive(BaseSocket baseSocket, Object data) {
-            }
+            public void onRegist(BaseSocket baseSocket, Object data) { }
+            public void onReceive(BaseSocket baseSocket, Object data) { }
         }, this);
 
+        // DTS2 房间信息
         Push.registPush(new PushBean(PushCode.updateDts2Info), new PushListener() {
             public void onRegist(BaseSocket baseSocket, Object data) {
                 downLatch.countDown();
@@ -132,11 +126,10 @@ public class BattleRoyale2Socket extends BaseClientSocket {
                         Push.push(PushCode.updateRoomDate, gameId, obj);
                     }
                 }
-
-
             }
         }, this);
 
+        // DTS2 游戏状态
         Push.registPush(new PushBean(PushCode.updateDts2Status), new PushListener() {
             public void onRegist(BaseSocket baseSocket, Object data) {
                 downLatch.countDown();
@@ -152,13 +145,12 @@ public class BattleRoyale2Socket extends BaseClientSocket {
                         JSONObject result = new JSONObject();
                         String userId = (String) id;
                         if (LotteryGameStatusEnum.settle.getValue() == obj.getIntValue("status")) {
-                            Map<String, Map<String, String>> map = (Map<String, Map<String, String>>) obj.get("userSettleInfo");
-                            if (map.containsKey(userId)) {
-                                //有该玩家的下注信息
+                            Map<String, Map<String, String>> map =
+                                    (Map<String, Map<String, String>>) obj.get("userSettleInfo");
+                            if (map != null && map.containsKey(userId)) {
                                 result.put("isBot", map.get(userId).get("isBot"));
                                 result.put("winAmount", map.get(userId).get("winAmount"));
                                 result.put("betAmount", map.get(userId).get("betAmount"));
-                                //0 输  1 赢
                                 result.put("roomResult", Integer.parseInt(map.get(userId).get("isWin")));
                             } else {
                                 result.put("roomResult", 2);
@@ -171,19 +163,17 @@ public class BattleRoyale2Socket extends BaseClientSocket {
                         result.put("status", obj.get("status"));
                         result.put("userId", userId);
                         Push.push(PushCode.updateGameStatus, userId, result);
-
                     }
-
                 }
             }
         }, this);
-
 
         JSONObject connectedData = ((JSONObject) data).getJSONObject("responseShakeHandsData");
         if (connectedData != null) {
             TemplateLoadService.staticWebUrl = connectedData.getString("staticWebUrl");
             TemplateLoadService.managerWebUrl = connectedData.getString("managerWebUrl");
         }
+
         new Thread("同步握手数据监测") {
             public void run() {
                 try {
@@ -195,8 +185,6 @@ public class BattleRoyale2Socket extends BaseClientSocket {
                     logger.error("同步握手数据异常：" + e, e);
                 }
             }
-
-            ;
         }.start();
     }
 
@@ -214,8 +202,6 @@ public class BattleRoyale2Socket extends BaseClientSocket {
     @Override
     public void onDisconnect(int surplusReconnectNum) {
         logger.debug("剩余重连次数：" + surplusReconnectNum);
-        //ServerStateService.stopService();
-        //ServerNoticeService.setOpenNotice(false);
     }
 
     @Override
@@ -227,5 +213,4 @@ public class BattleRoyale2Socket extends BaseClientSocket {
     protected Log logger() {
         return logger;
     }
-
 }

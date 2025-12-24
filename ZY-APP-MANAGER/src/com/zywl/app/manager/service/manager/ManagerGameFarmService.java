@@ -443,7 +443,6 @@ public class ManagerGameFarmService extends BaseService {
                 }
             }
 
-
             // 仅当前地块发奖
             gameService.addReward(
                     userId,

@@ -105,8 +105,6 @@ public class ManagerCapitalService extends BaseService {
     @PostConstruct
     public void _ManagerCapitalService() {
 
-
-
         Push.addPushSuport(PushCode.updateUserBackpack, new DefaultPushHandler() {
             public void onRegist(BaseSocket baseSocket, PushBean pushBean) {
                 if (baseSocket instanceof ManagerSocketServer) {
@@ -341,7 +339,7 @@ public class ManagerCapitalService extends BaseService {
         }*/
         }
         if (!data.isEmpty()) {
-            userCapitalService.betUpdateBalance2(data);
+            userCapitalService.betUpdateBalance2(data,0);
         }
         for (String key : set) {
             JSONObject o = JSONObject.parse(data.getString(key));
@@ -361,6 +359,337 @@ public class ManagerCapitalService extends BaseService {
 
         return new JSONObject();
     }
+
+
+    @Transactional
+    @ServiceMethod(code = "720", description = "推箱子(PBX)下注扣款")
+    public JSONObject pbxBet(ManagerDTS2SocketServer adminSocketServer, JSONObject data) {
+        checkNull(data);
+        checkNull(data.get("userId"), data.get("betAmount"));
+
+        Long userId = data.getLong("userId");
+        BigDecimal betAmount = data.getBigDecimal("betAmount");
+        if (betAmount == null) {
+            throwExp("betAmount 不能为空");
+        }
+        betAmount = betAmount.setScale(2, java.math.RoundingMode.HALF_UP);
+        if (betAmount.compareTo(BigDecimal.ZERO) <= 0) {
+            throwExp("betAmount 非法");
+        }
+
+        Integer capitalType = data.getInteger("capitalType");
+        if (capitalType == null || capitalType == 0) {
+            capitalType = 1002;
+        }
+
+        BigDecimal feeRate = data.getBigDecimal("feeRate");
+        if (feeRate == null) {
+            feeRate = new BigDecimal("0.05");
+        }
+
+        String orderNo = data.getString("orderNo");
+        if (orderNo == null || orderNo.trim().isEmpty()) {
+            orderNo = OrderUtil.getOrder5Number();
+        }
+
+        synchronized (LockUtil.getlock(String.valueOf(userId))) {
+            JSONObject one = new JSONObject();
+            one.put("amount", betAmount.negate());
+            one.put("capitalType", capitalType);
+            one.put("em", LogCapitalTypeEnum.game_bet_pbx.getValue());
+            one.put("orderNo", orderNo);
+
+            JSONObject betObj = new JSONObject();
+            betObj.put(String.valueOf(userId), one);
+            // 批量更新用户资产余额
+            userCapitalService.betUpdateBalance2(betObj,capitalType);
+
+            // 推送资产变更
+            UserCapital userCapital = userCapitalCacheService.getUserCapitalCacheByType(userId, capitalType);
+            JSONObject pushData = new JSONObject();
+            pushData.put("userId", userId);
+            pushData.put("capitalType", capitalType);
+            pushData.put("balance", userCapital.getBalance());
+            Push.push(PushCode.updateUserCapital, managerSocketService.getServerIdByUserId(userId), pushData);
+
+            // 手续费入奖池
+            String week = com.zywl.app.base.util.DateUtil.getFirstDayOfWeek(new java.util.Date());
+            String poolKey = RedisKeyConstant.PRIZE_POOL + "pbx:" + week;
+
+            long betCents = betAmount.multiply(new BigDecimal("100")).setScale(0, java.math.RoundingMode.HALF_UP).longValue();
+            gameCacheService.incr(poolKey, betCents);
+            gameCacheService.expire(poolKey, 86400 * 14);
+
+
+
+
+            String poolCentsStr = gameCacheService.get(poolKey);
+            BigDecimal poolBalance = BigDecimal.ZERO;
+            if (poolCentsStr != null) {
+                poolBalance = new BigDecimal(poolCentsStr).divide(new BigDecimal("100"), 2, java.math.RoundingMode.HALF_UP);
+            }
+
+            // 回包给 DTS2
+            JSONObject result = new JSONObject();
+            result.put("success", true);
+            result.put("gameId", data.getString("gameId"));
+            result.put("userId", String.valueOf(userId));
+            result.put("orderNo", orderNo);
+            result.put("betAmount", betAmount);
+            result.put("feeRate", feeRate);
+            result.put("fee", betCents);
+            result.put("balance", userCapital.getBalance());
+            result.put("poolBalance", poolBalance);
+            return result;
+        }
+    }
+
+    @Transactional
+    @ServiceMethod(code = "721", description = "推箱子(PBX)派奖/结算（奖池扣净额net，手续费fee为系统收益）")
+    public JSONObject pbxSettle(ManagerDTS2SocketServer adminSocketServer, JSONObject data) {
+        checkNull(data);
+        checkNull(data.get("gameId"), data.get("periodNo"));
+
+        // ---- 基础参数 ----
+        String gameId = data.getString("gameId");
+        String periodNo = data.getString("periodNo");
+
+        Integer capitalType = data.getInteger("capitalType");
+        if (capitalType == null || capitalType == 0) {
+            capitalType = 1002;
+        }
+
+        BigDecimal feeRate = data.getBigDecimal("feeRate");
+        if (feeRate == null) {
+            feeRate = new BigDecimal("0.05");
+        }
+
+        // em：允许 DTS2 指定；不指定则用通用 win 类型，避免硬依赖枚举常量导致编译失败
+        int emValue;
+        if (data.containsKey("em")) {
+            emValue = data.getIntValue("em");
+        } else {
+            emValue = LogCapitalTypeEnum.game_bet_win_pbx.getValue();
+        }
+
+        // ---- 解析 winList（支持单人/多人）----
+        JSONArray winList = data.getJSONArray("winList");
+        if (winList == null) {
+            // 兼容：单人结算模式（userId + returnAmount）
+            if (data.containsKey("userId") && data.containsKey("returnAmount")) {
+                winList = new JSONArray();
+                JSONObject one = new JSONObject();
+                one.put("userId", data.get("userId"));
+                one.put("returnAmount", data.get("returnAmount"));
+                winList.add(one);
+            } else {
+                throwExp("winList 不能为空");
+            }
+        }
+        if (winList.size() == 0) {
+            // 空结算：只返回当前奖池
+            JSONObject empty = new JSONObject();
+            empty.put("success", true);
+            empty.put("gameId", gameId);
+            empty.put("periodNo", periodNo);
+            empty.put("totalReturnAmount", BigDecimal.ZERO);
+            empty.put("totalFee", BigDecimal.ZERO);
+            empty.put("totalNet", BigDecimal.ZERO);
+
+            String week0 = com.zywl.app.base.util.DateUtil.getFirstDayOfWeek(new java.util.Date());
+            String poolKey0 = RedisKeyConstant.PRIZE_POOL + "pbx:" + week0;
+            String poolCentsStr0 = gameCacheService.get(poolKey0);
+            BigDecimal poolBalance0 = BigDecimal.ZERO;
+            if (poolCentsStr0 != null) {
+                poolBalance0 = new BigDecimal(poolCentsStr0).divide(new BigDecimal("100"), 2, java.math.RoundingMode.HALF_UP);
+            }
+            empty.put("poolBalance", poolBalance0);
+            empty.put("userList", new JSONArray());
+            return empty;
+        }
+
+        // ---- 奖池 key（与 200720 同口径：按周）----
+        String week = com.zywl.app.base.util.DateUtil.getFirstDayOfWeek(new java.util.Date());
+        String poolKey = RedisKeyConstant.PRIZE_POOL + "pbx:" + week;
+
+        // ---- 先核算总额（统一两位小数 HALF_UP -> cents）----
+        BigDecimal totalReturn = BigDecimal.ZERO;
+        BigDecimal totalFee = BigDecimal.ZERO;
+        BigDecimal totalNet = BigDecimal.ZERO;
+
+        // 先整理一个标准化列表，后面要用两次（验奖池 + 批量入账）
+        List<JSONObject> normalized = new ArrayList<>();
+
+        for (Object o : winList) {
+            JSONObject w = (JSONObject) o;
+
+            Object uidObj = w.get("userId");
+            if (uidObj == null) {
+                throwExp("winList.userId 不能为空");
+            }
+            Long uid = (uidObj instanceof Number) ? ((Number) uidObj).longValue() : Long.parseLong(uidObj.toString());
+
+            BigDecimal returnAmount = w.getBigDecimal("returnAmount");
+            if (returnAmount == null) {
+                throwExp("winList.returnAmount 不能为空");
+            }
+            returnAmount = returnAmount.setScale(2, java.math.RoundingMode.HALF_UP);
+            if (returnAmount.compareTo(BigDecimal.ZERO) < 0) {
+                throwExp("returnAmount 非法");
+            }
+            if (returnAmount.compareTo(BigDecimal.ZERO) == 0) {
+                // 允许 0：比如没中奖的人也被带进来，直接跳过入账
+                continue;
+            }
+
+            BigDecimal fee = returnAmount.multiply(feeRate).setScale(2, java.math.RoundingMode.HALF_UP);
+            BigDecimal net = returnAmount.subtract(fee).setScale(2, java.math.RoundingMode.HALF_UP);
+            if (net.compareTo(BigDecimal.ZERO) < 0) {
+                throwExp("net 非法");
+            }
+
+            JSONObject n = new JSONObject();
+            n.put("userId", uid);
+            n.put("returnAmount", returnAmount);
+            n.put("fee", fee);
+            n.put("net", net);
+            normalized.add(n);
+
+            totalReturn = totalReturn.add(returnAmount);
+            totalFee = totalFee.add(fee);
+            totalNet = totalNet.add(net);
+        }
+
+        // 若全是 0，直接返回当前奖池
+        if (normalized.size() == 0) {
+            JSONObject empty2 = new JSONObject();
+            empty2.put("success", true);
+            empty2.put("gameId", gameId);
+            empty2.put("periodNo", periodNo);
+            empty2.put("totalReturnAmount", BigDecimal.ZERO);
+            empty2.put("totalFee", BigDecimal.ZERO);
+            empty2.put("totalNet", BigDecimal.ZERO);
+
+            String poolCentsStr = gameCacheService.get(poolKey);
+            BigDecimal poolBalance = BigDecimal.ZERO;
+            if (poolCentsStr != null) {
+                poolBalance = new BigDecimal(poolCentsStr).divide(new BigDecimal("100"), 2, java.math.RoundingMode.HALF_UP);
+            }
+            empty2.put("poolBalance", poolBalance);
+            empty2.put("userList", new JSONArray());
+            return empty2;
+        }
+
+        long totalNetCents = totalNet.multiply(new BigDecimal("100")).longValue();
+
+        // ---- 关键：奖池扣净额（net），不足则直接失败（由 DTS2 决定“让其输”时不调用 200721）----
+        synchronized (LockUtil.getlock("pbx_pool_" + week)) {
+            String poolCentsStr = gameCacheService.get(poolKey);
+            long poolCents = 0L;
+            if (poolCentsStr != null && poolCentsStr.trim().length() > 0) {
+                poolCents = Long.parseLong(poolCentsStr);
+            }
+
+            if (poolCents < totalNetCents) {
+                throwExp("推箱子奖池不足，无法派奖！当前奖池: " +
+                        new BigDecimal(poolCents).divide(new BigDecimal("100"), 2, java.math.RoundingMode.HALF_UP) +
+                        "，需要: " + totalNet);
+            }
+
+            // 1) 先扣奖池（扣净额 net）
+            gameCacheService.incr(poolKey, -totalNetCents);
+            gameCacheService.expire(poolKey, 86400 * 14);
+
+            // 2) 批量给用户加钱（net 入账）
+            JSONObject batch = new JSONObject();
+            for (JSONObject n : normalized) {
+                Long uid = n.getLong("userId");
+                BigDecimal net = n.getBigDecimal("net");
+
+                JSONObject one = new JSONObject();
+                one.put("amount", net); // 正数：加钱
+                one.put("capitalType", capitalType);
+                one.put("em", emValue);
+                one.put("orderNo", periodNo); // 用 periodNo 做结算单号，便于对账/幂等（若你后续加唯一约束可继续扩展）
+                batch.put(String.valueOf(uid), one);
+            }
+            userCapitalService.betUpdateBalance2(batch, capitalType);
+
+            // 3) 推送每个用户资产变更 + 组装回包
+            JSONArray userResult = new JSONArray();
+            for (JSONObject n : normalized) {
+                Long uid = n.getLong("userId");
+                UserCapital userCapital = userCapitalCacheService.getUserCapitalCacheByType(uid, capitalType);
+
+                JSONObject pushData = new JSONObject();
+                pushData.put("userId", uid);
+                pushData.put("capitalType", capitalType);
+                pushData.put("balance", userCapital.getBalance());
+                Push.push(PushCode.updateUserCapital, managerSocketService.getServerIdByUserId(uid), pushData);
+
+                JSONObject ur = new JSONObject();
+                ur.put("userId", String.valueOf(uid));
+                ur.put("returnAmount", n.getBigDecimal("returnAmount"));
+                ur.put("fee", n.getBigDecimal("fee"));
+                ur.put("net", n.getBigDecimal("net"));
+                ur.put("balance", userCapital.getBalance());
+                userResult.add(ur);
+            }
+
+            // 4) 返回最新奖池
+            String newPoolCentsStr = gameCacheService.get(poolKey);
+            BigDecimal poolBalance = BigDecimal.ZERO;
+            if (newPoolCentsStr != null && newPoolCentsStr.trim().length() > 0) {
+                poolBalance = new BigDecimal(newPoolCentsStr).divide(new BigDecimal("100"), 2, java.math.RoundingMode.HALF_UP);
+            }
+
+            JSONObject result = new JSONObject();
+            result.put("success", true);
+            result.put("gameId", gameId);
+            result.put("periodNo", periodNo);
+            result.put("capitalType", capitalType);
+            result.put("feeRate", feeRate);
+
+            result.put("totalReturnAmount", totalReturn.setScale(2, java.math.RoundingMode.HALF_UP));
+            result.put("totalFee", totalFee.setScale(2, java.math.RoundingMode.HALF_UP));
+            result.put("totalNet", totalNet.setScale(2, java.math.RoundingMode.HALF_UP));
+            result.put("poolBalance", poolBalance);
+
+            result.put("userList", userResult);
+            return result;
+        }
+    }
+
+    @Transactional(readOnly = true)
+    @ServiceMethod(code = "722", description = "推箱子(PBX)查询（奖池/记录/榜单）")
+    public JSONObject pbxQuery(ManagerDTS2SocketServer adminSocketServer, JSONObject data) {
+        checkNull(data);
+        String gameId = data.getString("gameId");
+        if (gameId == null || gameId.trim().isEmpty()) {
+            gameId = "12";
+        }
+
+        // 1) 查询本周奖池（和 pbxBet 的写法保持一致）
+        String week = com.zywl.app.base.util.DateUtil.getFirstDayOfWeek(new java.util.Date());
+        String poolKey = RedisKeyConstant.PRIZE_POOL + "pbx:" + week;
+
+        String poolCentsStr = gameCacheService.get(poolKey);
+        java.math.BigDecimal poolBalance = java.math.BigDecimal.ZERO;
+        if (poolCentsStr != null) {
+            poolBalance = new java.math.BigDecimal(poolCentsStr)
+                    .divide(new java.math.BigDecimal("100"), 2, java.math.RoundingMode.HALF_UP);
+        }
+
+        // 2) 这里先回最小可用字段：奖池 + serverTime
+        // 后续你要加“近100期统计/周榜/上周榜”再扩展字段与数据源（DB表/Redis集合）
+        JSONObject result = new JSONObject();
+        result.put("success", true);
+        result.put("gameId", gameId);
+        result.put("poolBalance", poolBalance);
+        result.put("serverTime", new Date());
+        return result;
+    }
+
 
     @Transactional
     @ServiceMethod(code = "801", description = "大逃杀下注修改内存")
@@ -465,7 +794,7 @@ public class ManagerCapitalService extends BaseService {
         }
         LogCapitalTypeEnum em = null;
         Long userId = null;
-        userCapitalService.betUpdateBalance2(data);
+        userCapitalService.betUpdateBalance2(data,UserCapitalTypeEnum.currency_2.getValue());
         for (String key : set) {
             JSONObject o = JSONObject.parse(data.getString(key));
             em = LogCapitalTypeEnum.getEm(o.getIntValue("em"));
@@ -547,7 +876,7 @@ public class ManagerCapitalService extends BaseService {
             em = LogCapitalTypeEnum.getEm(o.getIntValue("em"));
             userId = Long.parseLong(key);
         }
-        userCapitalService.betUpdateBalance2(data);
+        userCapitalService.betUpdateBalance2(data,UserCapitalTypeEnum.yyb.getValue());
         for (String key : set) {
             JSONObject o = JSONObject.parse(data.getString(key));
             em = LogCapitalTypeEnum.getEm(o.getIntValue("em"));
@@ -577,7 +906,7 @@ public class ManagerCapitalService extends BaseService {
         if (data.size()==0){
             return new JSONObject();
         }
-        userCapitalService.betUpdateBalance2(data);
+        userCapitalService.betUpdateBalance2(data,UserCapitalTypeEnum.yyb.getValue());
         addItem(data);
         for (String key : set) {
             JSONObject o = JSONObject.parse(data.getString(key));

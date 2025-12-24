@@ -155,6 +155,10 @@ public enum LogCapitalTypeEnum {
     zyt_receive("镇妖塔收益领取",1038),
     unlockLand("解锁土地",1039),
     balloon_exchange("兑换气球",1040),
+
+    game_bet_pbx("推箱子下注",1041),
+    game_bet_win_pbx("推箱子中奖",1042),
+
     ;
 
     private String name;
