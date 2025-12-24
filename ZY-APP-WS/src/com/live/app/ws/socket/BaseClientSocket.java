@@ -105,7 +105,7 @@ public abstract class BaseClientSocket extends BaseSocket {
 		}
 		Command command = JSON.parseObject(message, Command.class);
 		if (!command.getCode().equals("700200")) {
-			logger().info("收到服务端消息：" + message);
+			//logger().info("收到服务端消息：" + message);
 		}
 		if(eq(CommandConstants.CMD_CONNECTED, command.getCode())){
 			logger().info("服务器连接成功 -> " + server);

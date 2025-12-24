@@ -29,19 +29,12 @@ import java.math.BigDecimal;
 public class ManagerSocket2 extends BaseClientSocket {
 	private static final Log logger = LogFactory.getLog(ManagerSocket2.class);
 
-	
 	private VersionService versionService;
-	
 	private BattleRoyaleService2 battleRoyaleService2;
-
 	private GameService gameService;
-	
 	private IncomeRecordService incomeRecordService;
-	
-	
-	
-	
-	
+
+
 	public ManagerSocket2(TargetSocketType socketType, int reconnect, String server, JSONObject shakeHandsDatas) {
 		super(socketType, false, reconnect, server, shakeHandsDatas);
 		versionService = SpringUtil.getService(VersionService.class);
@@ -52,7 +45,7 @@ public class ManagerSocket2 extends BaseClientSocket {
 			public void onRegist(BaseSocket baseSocket, PushBean pushBean) {
 			}
 		});
-		
+
 		Push.addPushSuport(PushCode.syncTaskNum, new DefaultPushHandler() {
 			public void onRegist(BaseSocket baseSocket, PushBean pushBean) {
 				pushBean.setShakeHands(Executer.size() + "," + Executer.QPS());
@@ -63,45 +56,47 @@ public class ManagerSocket2 extends BaseClientSocket {
 				pushBean.setShakeHands(ServerStateService.isService());
 			}
 		});
+		// PBX推送支持
+		Push.addPushSuport(PushCode.updatePbxInfo, new DefaultPushHandler());
+		Push.addPushSuport(PushCode.updatePbxStatus, new DefaultPushHandler());
 	}
 
 	@Override
 	public void onConnect(Object data) {
 
-
 		Push.registPush(new PushBean(PushCode.updateConfig), new PushListener() {
 			public void onRegist(BaseSocket baseSocket, Object data) {
-
 			}
 
 			public void onReceive(BaseSocket baseSocket, Object data) {
 				logger.info("收到系统参数修改推送：" + data);
-				JSONObject object = (JSONObject) data;
-				Config config = object.toJavaObject(Config.class);
-				if (config.getKey().equals(Config.DTS2_STATUS)){
-					int status = Integer.parseInt(config.getValue());
-					BattleRoyaleService2.STATUS=status;
-					gameService.updateGameStatus(GameTypeEnum.battleRoyale.getValue(),status);
+				if (data != null){
+					JSONObject pushData = (JSONObject) data;
+					Config config = pushData.toJavaObject(Config.class);
+					if (config.getKey().equals(Config.DTS2_STATUS)){
+						int status = Integer.parseInt(config.getValue());
+						BattleRoyaleService2.STATUS=status;
+						gameService.updateGameStatus(GameTypeEnum.battleRoyale.getValue(),status);
+					}
+					if (config.getKey().equals(Config.DAILY_STOLEN_COUNT)){
+						BigDecimal status = new BigDecimal(config.getValue());
+						logger.info("调整飞仙手续费："+status);
+						battleRoyaleService2.updateRate(status);
+						//gameService.updateGameStatus(GameTypeEnum.battleRoyale.getValue(),status);
+					}
+					if (config.getKey().equals(Config.GAME_DTS2_NEED_BOT)){
+						BattleRoyaleService2.NEED_BOT=Integer.parseInt(config.getValue());
+					}
+					if (config.getKey().equals(Config.QNYH_RATE)){
+						battleRoyaleService2.initRate();
+					}
+					if (config.getKey().equals(Config.DTS_BOT_MONEY)){
+						battleRoyaleService2.initBotMoney();
+					}
+					if (config.getKey().equals(Config.DTS_KILL_RATE)){
+						BattleRoyaleService2.KILL_RATE= Integer.parseInt(config.getValue());
+					}
 				}
-				if (config.getKey().equals(Config.DAILY_STOLEN_COUNT)){
-					BigDecimal status = new BigDecimal(config.getValue());
-					logger.info("调整飞仙手续费："+status);
-					battleRoyaleService2.updateRate(status);
-					//gameService.updateGameStatus(GameTypeEnum.battleRoyale.getValue(),status);
-				}
-				if (config.getKey().equals(Config.GAME_DTS2_NEED_BOT)){
-					BattleRoyaleService2.NEED_BOT=Integer.parseInt(config.getValue());
-				}
-				if (config.getKey().equals(Config.QNYH_RATE)){
-					battleRoyaleService2.initRate();
-				}
-				if (config.getKey().equals(Config.DTS_BOT_MONEY)){
-					battleRoyaleService2.initBotMoney();
-				}
-				if (config.getKey().equals(Config.DTS_KILL_RATE)){
-					BattleRoyaleService2.KILL_RATE= Integer.parseInt(config.getValue());
-				}
-
 			}
 		}, this);
 

@@ -4,9 +4,9 @@ import java.util.Set;
 
 import javax.websocket.server.ServerEndpoint;
 
+import com.live.app.ws.util.DefaultPushHandler;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-
 import com.alibaba.fastjson2.JSONObject;
 import com.live.app.ws.bean.Command;
 import com.live.app.ws.bean.ConnectedData;
@@ -27,9 +27,9 @@ import com.zywl.app.defaultx.util.SpringUtil;
 import com.zywl.app.service.BattleRoyaleRequsetMangerService2;
 import com.zywl.app.service.BattleRoyaleService2;
 
-@ServerEndpoint(value = "/BattleRoyale2Server"
-		+ SocketConstants.SOCKET_CONNECT_SHAKE_HANDS, configurator = HttpSessionConfigurator.class)
+@ServerEndpoint(value = "/BattleRoyale2Server" + SocketConstants.SOCKET_CONNECT_SHAKE_HANDS, configurator = HttpSessionConfigurator.class)
 public class BattleRoyaleSocketServer2 extends BaseServerSocket {
+
 	private static final Log logger = LogFactory.getLog(BattleRoyaleSocketServer2.class);
 
 	private String address;
@@ -39,9 +39,9 @@ public class BattleRoyaleSocketServer2 extends BaseServerSocket {
 	private String name;
 
 	private double weight = 1; // 权重
-
+	/** 静态配置读取 */
 	private PropertiesUtil staticProperties;
-
+	/** 全局配置读取 */
 	private PropertiesUtil globalProperties;
 
 	private BattleRoyaleService2 battleRoyaleService2;
@@ -99,12 +99,13 @@ public class BattleRoyaleSocketServer2 extends BaseServerSocket {
 	}
 
 	private void initPush() {
+		// PBX
+		Push.addPushSuport(PushCode.updatePbxInfo, new DefaultPushHandler());
+		Push.addPushSuport(PushCode.updatePbxStatus, new DefaultPushHandler());
 
 		// 注册加入房间推送
 		Push.registPush(new PushBean(PushCode.updateDts2Info), new PushListener() {
-			public void onRegist(BaseSocket baseSocket, Object data) {
-			}
-
+			public void onRegist(BaseSocket baseSocket, Object data) {}
 			public void onReceive(BaseSocket baseSocket, Object data) {
 				if (data != null) {
 					BattleRoyaleSocketServer2 managerSocketServer = ((BattleRoyaleSocketServer2) baseSocket);
@@ -113,25 +114,23 @@ public class BattleRoyaleSocketServer2 extends BaseServerSocket {
 					String userNo = pushData.getString("userNo");
 					int group = pushData.getIntValue("group");
 					String sessionId = pushData.getString("sessionId");
-					logger.debug(
-							"用户[" + userNo + "]加入" + managerSocketServer.getName() + "房间" + pushData.toJSONString());
+					logger.debug("用户[" + userNo + "]加入" + managerSocketServer.getName() + "房间" + pushData.toJSONString());
+
+					logger.debug("updateDts2Info userId=" + userId + ", userNo=" + userNo + ", group=" + group + ", sessionId=" + sessionId);
 				}
 			}
 		}, this);
 
 		// 注册加入房间推送
 		Push.registPush(new PushBean(PushCode.rollbackCapital), new PushListener() {
-			public void onRegist(BaseSocket baseSocket, Object data) {
-			}
-
-			public void onReceive(BaseSocket baseSocket, Object data) {
-			}
+			public void onRegist(BaseSocket baseSocket, Object data) {}
+			public void onReceive(BaseSocket baseSocket, Object data) {}
 		}, this);
+
 
 		// 注册更新游戏状态推送
 		Push.registPush(new PushBean(PushCode.updateDts2Status), new PushListener() {
-			public void onRegist(BaseSocket baseSocket, Object data) {
-			}
+			public void onRegist(BaseSocket baseSocket, Object data) {}
 
 			public void onReceive(BaseSocket baseSocket, Object data) {
 				JSONObject json = (JSONObject) data;
@@ -144,8 +143,7 @@ public class BattleRoyaleSocketServer2 extends BaseServerSocket {
 
 		// 注册APP离线推送
 		Push.registPush(new PushBean(PushCode.syncAppOffline), new PushListener() {
-			public void onRegist(BaseSocket baseSocket, Object data) {
-			}
+			public void onRegist(BaseSocket baseSocket, Object data) {}
 
 			public void onReceive(BaseSocket baseSocket, Object data) {
 				if (data != null) {

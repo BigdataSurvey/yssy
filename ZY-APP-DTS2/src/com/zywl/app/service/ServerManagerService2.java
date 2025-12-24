@@ -27,5 +27,14 @@ public class ServerManagerService2 {
 			managerSocket2.connect();
 		}
 	}
-	
+	public void close() {
+		if (managerSocket2 != null) {
+			try {
+				managerSocket2.disconnect();
+				System.out.println("ZY-APP-DTS2: ManagerSocket2 closed.");
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
+		}
+	}
 }

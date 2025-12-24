@@ -276,6 +276,10 @@ public class BattleRoyaleService2 extends BaseService {
         Push.addPushSuport(PushCode.updateUserCapital, new DefaultPushHandler());
         Push.addPushSuport(PushCode.updateDts2Status, new DefaultPushHandler());
         Push.addPushSuport(PushCode.updateDts2Info, new DefaultPushHandler());
+
+        // PBX(推箱子) push 支持
+        Push.addPushSuport(PushCode.updatePbxInfo, new DefaultPushHandler());
+        Push.addPushSuport(PushCode.updatePbxStatus, new DefaultPushHandler());
     }
 
     @Transactional
