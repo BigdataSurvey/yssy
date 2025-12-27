@@ -417,8 +417,8 @@ public class SpringInDebug {
 
 
     public static void main(String[] args) {
-        //炼制测试
-        ///synInTest();;
+        //种子合成
+        synInTest();;
 
         //背包测试
         //backpackTest();
@@ -462,7 +462,7 @@ public class SpringInDebug {
 
 
         // 分配欢乐值
-        testJoyDistributeJoy();
+        //testJoyDistributeJoy();
     }
 
 

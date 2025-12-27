@@ -1,5 +1,9 @@
 package com.zywl.app.manager.service.manager;
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.util.stream.Collectors;
 
+import com.alibaba.fastjson2.JSON;
 import com.alibaba.fastjson2.JSONArray;
 import com.alibaba.fastjson2.JSONObject;
 import com.live.app.ws.bean.PushBean;
@@ -7,14 +11,13 @@ import com.live.app.ws.enums.PushCode;
 import com.live.app.ws.socket.BaseSocket;
 import com.live.app.ws.util.DefaultPushHandler;
 import com.live.app.ws.util.Push;
-import com.zywl.app.base.bean.Config;
-import com.zywl.app.base.bean.User;
-import com.zywl.app.base.bean.UserCapital;
-import com.zywl.app.base.bean.UserStatistic;
+import com.zywl.app.base.bean.*;
 import com.zywl.app.base.constant.RedisKeyConstant;
 import com.zywl.app.base.service.BaseService;
+import com.zywl.app.base.util.DateUtil;
 import com.zywl.app.base.util.LockUtil;
 import com.zywl.app.base.util.OrderUtil;
+import com.zywl.app.base.util.StringUtils;
 import com.zywl.app.defaultx.annotation.KafkaProducer;
 import com.zywl.app.defaultx.annotation.ServiceClass;
 import com.zywl.app.defaultx.annotation.ServiceMethod;
@@ -44,6 +47,10 @@ import javax.annotation.PostConstruct;
 import java.math.BigDecimal;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import java.math.RoundingMode;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
 
 @Service
 @ServiceClass(code = MessageCodeContext.CAPITAL_SERVER)
@@ -53,6 +60,45 @@ public class ManagerCapitalService extends BaseService {
     public static JSONObject itemResult =new JSONObject();
 
     public static JSONObject yybResult =new JSONObject();
+// ====================== PBX（推箱子）Step2/Step3：记录页 & 周榜/上周榜 & 周结算分红 ======================
+    /** 本周/某周：玩家投入(消耗)（weekKey -> {userId -> consumeCents}） */
+    private static final ConcurrentHashMap<String, ConcurrentHashMap<Long, Long>> PBX_WEEK_USER_CONSUME_CENTS = new ConcurrentHashMap<>();
+    /** 本周/某周：玩家净返还（weekKey -> {userId -> netReturnCents}） */
+    private static final ConcurrentHashMap<String, ConcurrentHashMap<Long, Long>> PBX_WEEK_USER_NET_RETURN_CENTS = new ConcurrentHashMap<>();
+    /** 本周/某周：玩家周榜分红（weekKey -> {userId -> dividendCents}） */
+    private static final ConcurrentHashMap<String, ConcurrentHashMap<Long, Long>> PBX_WEEK_USER_DIVIDEND_CENTS = new ConcurrentHashMap<>();
+
+    /** 本周/某周：总投入(消耗)（weekKey -> consumeCents） */
+    private static final ConcurrentHashMap<String, Long> PBX_WEEK_TOTAL_CONSUME_CENTS = new ConcurrentHashMap<>();
+    /** 本周/某周：总净返还（weekKey -> netReturnCents） */
+    private static final ConcurrentHashMap<String, Long> PBX_WEEK_TOTAL_NET_RETURN_CENTS = new ConcurrentHashMap<>();
+    /** 本周/某周：利润（派生值，weekKey -> profitCents） */
+    private static final ConcurrentHashMap<String, Long> PBX_WEEK_TOTAL_PROFIT_CENTS = new ConcurrentHashMap<>();
+    /** 本周/某周：分红池（派生值，weekKey -> dividendPoolCents） */
+    private static final ConcurrentHashMap<String, Long> PBX_WEEK_TOTAL_DIVIDEND_POOL_CENTS = new ConcurrentHashMap<>();
+// ========================= PBX 周榜/上周榜（200723） begin =========================
+
+    /** 周榜：每周每人累计投注（分） */
+    private static final Map<String, Map<Long, Long>> PBX_WEEK_USER_BET_CENTS = new ConcurrentHashMap<>();
+    /** 周榜：每周总投注（分） */
+    private static final Map<String, Long> PBX_WEEK_TOTAL_BET_CENTS = new ConcurrentHashMap<>();
+    /** 周榜：每周总“返还(总额,含手续费前)”（分） */
+    private static final Map<String, Long> PBX_WEEK_TOTAL_RETURN_CENTS = new ConcurrentHashMap<>();
+    /** 周榜：每周总“实返(net)”（分） */
+    private static final Map<String, Long> PBX_WEEK_TOTAL_NET_CENTS = new ConcurrentHashMap<>();
+    /** 周榜：每周总手续费（分） */
+    private static final Map<String, Long> PBX_WEEK_TOTAL_FEE_CENTS = new ConcurrentHashMap<>();
+    /** 周榜奖池（分）：从每周利润按比例抽取进入 */
+    private static final Map<String, Long> PBX_WEEK_RANK_POOL_CENTS = new ConcurrentHashMap<>();
+    /** 周榜是否已结算 */
+    private static final Map<String, Boolean> PBX_WEEK_SETTLED = new ConcurrentHashMap<>();
+    /** 周结算后快照（用于“上周榜”展示），key=weekKey(yyyy-MM-dd) */
+    private static final ConcurrentHashMap<String, JSONArray> PBX_WEEK_TOP10_SNAPSHOT = new ConcurrentHashMap<>();
+    /** 已结算周榜 Top10 结果缓存（用于后续“上周榜查询”接口直接复用；阶段1先放内存） */
+    private static final ConcurrentHashMap<String, JSONArray> PBX_WEEK_SETTLED_TOP10_CACHE = new ConcurrentHashMap<>();
+
+
+    private transient Timer pbxWeekSettleTimer;
 
     @Autowired
     private UserCapitalService userCapitalService;
@@ -78,11 +124,12 @@ public class ManagerCapitalService extends BaseService {
     @Autowired
     private GameCacheService gameCacheService;
 
-
     @Autowired
     private AppConfigCacheService appConfigCacheService;
 
-
+    /** l_game 配置读取 */
+    @Autowired
+    private GameService gameDbService;
 
     @Autowired
     private CashChannelIncomeRecordService cashChannelIncomeRecordService;
@@ -391,7 +438,6 @@ public class ManagerCapitalService extends BaseService {
         if (orderNo == null || orderNo.trim().isEmpty()) {
             orderNo = OrderUtil.getOrder5Number();
         }
-
         synchronized (LockUtil.getlock(String.valueOf(userId))) {
             JSONObject one = new JSONObject();
             one.put("amount", betAmount.negate());
@@ -413,15 +459,18 @@ public class ManagerCapitalService extends BaseService {
             Push.push(PushCode.updateUserCapital, managerSocketService.getServerIdByUserId(userId), pushData);
 
             // 手续费入奖池
-            String week = com.zywl.app.base.util.DateUtil.getFirstDayOfWeek(new java.util.Date());
-            String poolKey = RedisKeyConstant.PRIZE_POOL + "pbx:" + week;
+            String weekKey = DateUtil.getFirstDayOfWeek(new Date());
+            String poolKey = RedisKeyConstant.PRIZE_POOL + "pbx:" + weekKey;
 
-            long betCents = betAmount.multiply(new BigDecimal("100")).setScale(0, java.math.RoundingMode.HALF_UP).longValue();
+            long betCents = betAmount.multiply(new BigDecimal("100"))
+                    .setScale(0, java.math.RoundingMode.HALF_UP)
+                    .longValue();
+
             gameCacheService.incr(poolKey, betCents);
             gameCacheService.expire(poolKey, 86400 * 14);
 
-
-
+            // 下注成功 -> 计入本周投入排行（周榜）
+            pbxWeekOnBet(data.getIntValue("gameId"), userId, betCents, weekKey);
 
             String poolCentsStr = gameCacheService.get(poolKey);
             BigDecimal poolBalance = BigDecimal.ZERO;
@@ -429,6 +478,8 @@ public class ManagerCapitalService extends BaseService {
                 poolBalance = new BigDecimal(poolCentsStr).divide(new BigDecimal("100"), 2, java.math.RoundingMode.HALF_UP);
             }
 
+            // fee单位统一为BigDecimal 两位小数
+            BigDecimal fee = BigDecimal.ZERO.setScale(2, java.math.RoundingMode.HALF_UP);
             // 回包给 DTS2
             JSONObject result = new JSONObject();
             result.put("success", true);
@@ -437,7 +488,7 @@ public class ManagerCapitalService extends BaseService {
             result.put("orderNo", orderNo);
             result.put("betAmount", betAmount);
             result.put("feeRate", feeRate);
-            result.put("fee", betCents);
+            result.put("fee", fee);
             result.put("balance", userCapital.getBalance());
             result.put("poolBalance", poolBalance);
             return result;
@@ -449,7 +500,7 @@ public class ManagerCapitalService extends BaseService {
     public JSONObject pbxSettle(ManagerDTS2SocketServer adminSocketServer, JSONObject data) {
         checkNull(data);
         checkNull(data.get("gameId"), data.get("periodNo"));
-
+        String week = DateUtil.getFirstDayOfWeek(new Date());
         // ---- 基础参数 ----
         String gameId = data.getString("gameId");
         String periodNo = data.getString("periodNo");
@@ -496,8 +547,8 @@ public class ManagerCapitalService extends BaseService {
             empty.put("totalFee", BigDecimal.ZERO);
             empty.put("totalNet", BigDecimal.ZERO);
 
-            String week0 = com.zywl.app.base.util.DateUtil.getFirstDayOfWeek(new java.util.Date());
-            String poolKey0 = RedisKeyConstant.PRIZE_POOL + "pbx:" + week0;
+
+            String poolKey0 = RedisKeyConstant.PRIZE_POOL + "pbx:" + week;
             String poolCentsStr0 = gameCacheService.get(poolKey0);
             BigDecimal poolBalance0 = BigDecimal.ZERO;
             if (poolCentsStr0 != null) {
@@ -509,7 +560,7 @@ public class ManagerCapitalService extends BaseService {
         }
 
         // ---- 奖池 key（与 200720 同口径：按周）----
-        String week = com.zywl.app.base.util.DateUtil.getFirstDayOfWeek(new java.util.Date());
+
         String poolKey = RedisKeyConstant.PRIZE_POOL + "pbx:" + week;
 
         // ---- 先核算总额（统一两位小数 HALF_UP -> cents）----
@@ -597,7 +648,7 @@ public class ManagerCapitalService extends BaseService {
             }
 
             // 1) 先扣奖池（扣净额 net）
-            gameCacheService.incr(poolKey, -totalNetCents);
+            gameCacheService.decr(poolKey, totalNetCents);
             gameCacheService.expire(poolKey, 86400 * 14);
 
             // 2) 批量给用户加钱（net 入账）
@@ -642,6 +693,7 @@ public class ManagerCapitalService extends BaseService {
             if (newPoolCentsStr != null && newPoolCentsStr.trim().length() > 0) {
                 poolBalance = new BigDecimal(newPoolCentsStr).divide(new BigDecimal("100"), 2, java.math.RoundingMode.HALF_UP);
             }
+            BigDecimal totalReturnAmount = totalReturn.setScale(2, java.math.RoundingMode.HALF_UP);
 
             JSONObject result = new JSONObject();
             result.put("success", true);
@@ -654,7 +706,15 @@ public class ManagerCapitalService extends BaseService {
             result.put("totalFee", totalFee.setScale(2, java.math.RoundingMode.HALF_UP));
             result.put("totalNet", totalNet.setScale(2, java.math.RoundingMode.HALF_UP));
             result.put("poolBalance", poolBalance);
-
+            // 周榜统计：累计本周“净返还”与个人净返还
+            BigDecimal totalNetReturnAmount = totalNet.setScale(2, java.math.RoundingMode.HALF_UP);
+            pbxWeekOnSettle(
+                    data.getIntValue("gameId"),
+                    week,
+                    bdToCents(totalReturnAmount),
+                    bdToCents(totalNetReturnAmount),
+                    bdToCents(totalFee)
+            );
             result.put("userList", userResult);
             return result;
         }
@@ -686,9 +746,231 @@ public class ManagerCapitalService extends BaseService {
         result.put("success", true);
         result.put("gameId", gameId);
         result.put("poolBalance", poolBalance);
-        result.put("serverTime", new Date());
+        result.put("serverTime",nowTimeMs());
         return result;
     }
+
+
+// ===================== PBX 周榜/上周榜：接口 + helper（阶段1：内存版）=====================
+
+    /**
+     * 200723：PBX 周榜结算（用于结算“上周榜”）
+     * - weekKey 为空：默认结算“上周”（取今天-7天所在周的周一）
+     * - top10Rates / rankProfitPercent 若不传：从 l_game.game_setting 读取；再缺省则给默认值
+     */
+    @ServiceMethod(code = "200723", description = "PBX 周榜结算（上周榜）")
+    public JSONObject pbxWeekSettle(JSONObject data) {
+        int gameId = data.getIntValue("gameId");
+        if (gameId <= 0) {
+            gameId = 12;
+        }
+
+        String weekKey = data.getString("weekKey");
+        if (StringUtils.isBlank(weekKey)) {
+            Date d = new Date(System.currentTimeMillis() - 7L * 24 * 60 * 60 * 1000);
+            weekKey = DateUtil.getFirstDayOfWeek(d);
+        }
+
+        // 读取 l_game.game_setting
+        JSONObject setting = pbxLoadGameSettingByGameId(gameId);
+        BigDecimal rankProfitPercent = null;
+        JSONArray top10Rates = null;
+        if (setting != null) {
+            rankProfitPercent = setting.getBigDecimal("rankProfitPercent");
+            top10Rates = setting.getJSONArray("top10Rates");
+        }
+
+        // 兜底：如果没有配置，就按 50% 与等分 10 份
+        if (rankProfitPercent == null) {
+            rankProfitPercent = new BigDecimal("0.50");
+        }
+        if (top10Rates == null || top10Rates.isEmpty()) {
+            top10Rates = new JSONArray();
+            for (int i = 0; i < 10; i++) {
+                top10Rates.add(new BigDecimal("0.10"));
+            }
+        }
+
+        return pbxWeekSettleInternal(gameId, weekKey, rankProfitPercent, top10Rates);
+    }
+
+    private JSONObject pbxWeekSettleInternal(int gameId, String weekKey, BigDecimal rankProfitPercent, JSONArray top10Rates) {
+        JSONObject result = new JSONObject();
+        result.put("gameId", gameId);
+        result.put("weekKey", weekKey);
+
+        Boolean settled = PBX_WEEK_SETTLED.getOrDefault(weekKey, Boolean.FALSE);
+        if (Boolean.TRUE.equals(settled)) {
+            result.put("success", false);
+            result.put("msg", "本周已结算");
+            result.put("settled", true);
+            result.put("poolBalance", centsToBd(PBX_WEEK_RANK_POOL_CENTS.getOrDefault(weekKey, 0L)));
+            return result;
+        }
+
+        long totalBetCents = PBX_WEEK_TOTAL_BET_CENTS.getOrDefault(weekKey, 0L);
+        long totalNetCents = PBX_WEEK_TOTAL_NET_CENTS.getOrDefault(weekKey, 0L);
+        long profitCents = totalBetCents - totalNetCents;
+        if (profitCents < 0) {
+            profitCents = 0;
+        }
+
+        // 计算进入周榜奖池的金额（分）
+        BigDecimal profitBd = centsToBd(profitCents);
+        BigDecimal rankPoolBd = profitBd.multiply(rankProfitPercent).setScale(2, RoundingMode.HALF_UP);
+        long rankPoolCents = bdToCents(rankPoolBd);
+
+        // 写入周榜奖池（累计）
+        PBX_WEEK_RANK_POOL_CENTS.merge(weekKey, rankPoolCents, Long::sum);
+        long poolCents = PBX_WEEK_RANK_POOL_CENTS.getOrDefault(weekKey, 0L);
+
+        // 取 Top10（按投注额倒序）
+        Map<Long, Long> userBetMap = PBX_WEEK_USER_BET_CENTS.getOrDefault(weekKey, new HashMap<>());
+        List<Map.Entry<Long, Long>> entries = new ArrayList<>(userBetMap.entrySet());
+        entries.sort((a, b) -> Long.compare(b.getValue(), a.getValue()));
+        if (entries.size() > 10) {
+            entries = entries.subList(0, 10);
+        }
+
+        // 发放（币种固定 1002）
+        int capitalType = 1002;
+        BigDecimal poolLeft = centsToBd(poolCents);
+        JSONArray userResult = new JSONArray();
+
+        // 发币批次：最终统一走 betUpdateBalance2
+        JSONObject payBatch = new JSONObject();
+
+        for (int i = 0; i < entries.size(); i++) {
+            int rank = i + 1;
+            long uid = entries.get(i).getKey();
+            long betC = entries.get(i).getValue();
+
+            BigDecimal rate = BigDecimal.ZERO;
+            if (i < top10Rates.size()) {
+                rate = top10Rates.getBigDecimal(i);
+            }
+
+            BigDecimal award = centsToBd(poolCents).multiply(rate).setScale(2, RoundingMode.HALF_UP);
+            if (award.compareTo(BigDecimal.ZERO) < 0) {
+                award = BigDecimal.ZERO;
+            }
+            if (award.compareTo(poolLeft) > 0) {
+                award = poolLeft;
+            }
+
+            if (award.compareTo(BigDecimal.ZERO) > 0) {
+                JSONObject one = new JSONObject();
+                one.put("amount", award);
+
+                // 复用工程已有 PBX 中奖枚举，保证不额外改 enum 也能编译通过
+                one.put("em", LogCapitalTypeEnum.game_bet_win_pbx.getValue());
+
+                one.put("orderNo", "PBX_WEEK_RANK_" + weekKey);
+                one.put("tableName", "pbx_week_rank");
+                payBatch.put(String.valueOf(uid), one);
+            }
+
+            poolLeft = poolLeft.subtract(award).setScale(2, RoundingMode.HALF_UP);
+
+            JSONObject ur = new JSONObject();
+            ur.put("rank", rank);
+            ur.put("userId", uid);
+            ur.put("betAmount", centsToBd(betC));
+            ur.put("rate", rate);
+            ur.put("award", award);
+            userResult.add(ur);
+        }
+
+        // 执行批量发币（与你工程 pbxSettle 现有写法一致：走 betUpdateBalance2）
+        if (!payBatch.isEmpty()) {
+            userCapitalService.betUpdateBalance2(payBatch, capitalType);
+
+            // 补充返回余额：从缓存读取最新余额（betUpdateBalance2 内部会清缓存并重建）
+            for (int i = 0; i < userResult.size(); i++) {
+                JSONObject ur = userResult.getJSONObject(i);
+                Long uid = ur.getLong("userId");
+                if (uid != null) {
+                    try {
+                        UserCapital uc = userCapitalCacheService.getUserCapitalCacheByType(uid, capitalType);
+                        if (uc != null) {
+                            ur.put("balance", uc.getBalance());
+                        }
+                    } catch (Exception ignore) {
+                    }
+                }
+            }
+        }
+
+        // 回写奖池剩余（分）
+        PBX_WEEK_RANK_POOL_CENTS.put(weekKey, bdToCents(poolLeft));
+        PBX_WEEK_SETTLED.put(weekKey, true);
+
+        result.put("success", true);
+        result.put("settled", true);
+        result.put("totalBet", centsToBd(totalBetCents));
+        result.put("totalNet", centsToBd(totalNetCents));
+        result.put("profit", centsToBd(profitCents));
+        result.put("rankProfitPercent", rankProfitPercent);
+        result.put("poolAdd", rankPoolBd);
+        result.put("poolBalance", poolLeft);
+        result.put("userList", userResult);
+        return result;
+    }
+
+    /** 下注统计：投入累加到本周 */
+    private void pbxWeekOnBet(int gameId, long userId, long betCents, String weekKey) {
+        if (StringUtils.isBlank(weekKey)) {
+            weekKey = DateUtil.getFirstDayOfWeek(new Date());
+        }
+        Map<Long, Long> userBetMap = PBX_WEEK_USER_BET_CENTS.computeIfAbsent(weekKey, k -> new ConcurrentHashMap<>());
+        userBetMap.merge(userId, betCents, Long::sum);
+        PBX_WEEK_TOTAL_BET_CENTS.merge(weekKey, betCents, Long::sum);
+    }
+
+    /** 结算时累计周榜返还/实返/手续费（在 pbxSettle(200721) 完成派奖后调用） */
+    private void pbxWeekOnSettle(int gameId, String weekKey, long totalReturnCents, long totalNetCents, long totalFeeCents) {
+        if (StringUtils.isBlank(weekKey)) {
+            weekKey = DateUtil.getFirstDayOfWeek(new Date());
+        }
+        PBX_WEEK_TOTAL_RETURN_CENTS.merge(weekKey, totalReturnCents, Long::sum);
+        PBX_WEEK_TOTAL_NET_CENTS.merge(weekKey, totalNetCents, Long::sum);
+        PBX_WEEK_TOTAL_FEE_CENTS.merge(weekKey, totalFeeCents, Long::sum);
+    }
+
+    /** 从 l_game.game_setting 读取配置：rankProfitPercent/top10Rates 等 */
+    private JSONObject pbxLoadGameSettingByGameId(int gameId) {
+        try {
+            Game g = gameDbService.findGameById((long) gameId);
+            if (g == null) {
+                return null;
+            }
+            String gs = g.getGameSetting();
+            if (StringUtils.isBlank(gs)) {
+                return null;
+            }
+            return JSONObject.parseObject(gs);
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    private long bdToCents(BigDecimal amount) {
+        if (amount == null) {
+            return 0L;
+        }
+        return amount.multiply(new BigDecimal("100"))
+                .setScale(0, RoundingMode.HALF_UP)
+                .longValue();
+    }
+
+    private BigDecimal centsToBd(long cents) {
+        return new BigDecimal(cents)
+                .divide(new BigDecimal("100"), 2, RoundingMode.HALF_UP);
+    }
+
+// ===================== PBX 周榜/上周榜：接口 + helper（阶段1：内存版）=====================
+
+
 
 
     @Transactional
@@ -824,7 +1106,7 @@ public class ManagerCapitalService extends BaseService {
             try {
                 JSONObject orderInfo = (JSONObject) o;
                 gameService.updateSg(null,orderInfo);
-                 } catch (Exception e) {
+            } catch (Exception e) {
                 logger.error(e);
                 e.printStackTrace();
             }
@@ -1046,6 +1328,9 @@ public class ManagerCapitalService extends BaseService {
         a.put("sourceDataId", sourceDataId);
         a.put("tableName", tableName);
         Push.push(PushCode.insertLog, null, a);
+    }
+    private String nowTimeMs() {
+        return new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS").format(new Date());
     }
 
 }
