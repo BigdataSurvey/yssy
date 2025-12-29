@@ -457,7 +457,26 @@ public class RedisService extends BaseService {
 
         return var4;
     }
+    /**
+     * ZSet: 增加分数
+     */
+    public Double zincrby(String key, String value, double delta) {
+        return redisTemplate.opsForZSet().incrementScore(key, value, delta);
+    }
 
+    /**
+     * ZSet: 获取分数
+     */
+    public Double zscore(String key, String value) {
+        return redisTemplate.opsForZSet().score(key, value);
+    }
+
+    /**
+     * ZSet: 获取倒序排名
+     */
+    public Long zrevrank(String key, String value) {
+        return redisTemplate.opsForZSet().reverseRank(key, value);
+    }
     public double hincr(String key, String item, double by) {
         double var6;
         try {

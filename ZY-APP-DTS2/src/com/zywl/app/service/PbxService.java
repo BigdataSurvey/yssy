@@ -867,6 +867,9 @@ public class PbxService extends BaseService {
         long periodStartMs = getPeriodStartMs(nowMs);
         long periodEndMs = getPeriodEndMs(nowMs);
         resp.putAll(buildPbxInfoByPeriod(lastPoolBalance, periodNo, periodStartMs, periodEndMs, nowMs));
+        // 个人本期投入（每元素/总计）
+        resp.put("myElementBet", buildMyElementBet(userId));
+        resp.put("myTotalBet", buildMyTotalBet(userId));
         return resp;
     }
 
@@ -898,15 +901,13 @@ public class PbxService extends BaseService {
         String periodNo = ensureCurrentPeriod(System.currentTimeMillis());
 
         // 里程碑1：orderNo 以 MANAGER 为准 —— 这里不生成 orderNo
-        String orderNoForAck = newOrderNo(); // 保持字段存在，避免前端/接口服解析报错
+        String orderNoForAck = newOrderNo();
 
         JSONObject state = onlineUserState.get(userId);
         if (state != null) {
             state.put("status", 2);
             state.put("ts", System.currentTimeMillis());
         }
-
-        // 里程碑：102103 下注回包不能先 success=true，必须以 MANAGER(200720) 回包为准。
         final AtomicReference<JSONObject> betRespRef = new AtomicReference<>();
         final CountDownLatch betLatch = new CountDownLatch(1);
 
@@ -919,7 +920,7 @@ public class PbxService extends BaseService {
         betReq.put("periodNo", periodNo);
         betReq.put("elementId", elementId);
         betReq.put("chip", chip.stripTrailingZeros().toPlainString());
-        betReq.put("orderNo", orderNoForAck); // DTS2 生成并透传，确保与 MANAGER 日志/回包一致
+        betReq.put("orderNo", orderNoForAck);
 
         Integer finalElementId = elementId;
 
@@ -1027,7 +1028,6 @@ public class PbxService extends BaseService {
         return ack;
     }
 
-
     private void pushBetFailed(String userId, String orderNo, String periodNo, Integer elementId, BigDecimal chip, String message) {
         // 失败时状态回到 1（在房间空闲）
         JSONObject state = onlineUserState.get(userId);
@@ -1126,6 +1126,9 @@ public class PbxService extends BaseService {
         long periodStartMs = getPeriodStartMs(nowMs);
         long periodEndMs = getPeriodEndMs(nowMs);
         resp.putAll(buildPbxInfoByPeriod(lastPoolBalance, periodNo, periodStartMs, periodEndMs, nowMs));
+        // 个人本期投入（每元素/总计）
+        resp.put("myElementBet", buildMyElementBet(userId));
+        resp.put("myTotalBet", buildMyTotalBet(userId));
         return resp;
     }
 
@@ -1137,7 +1140,7 @@ public class PbxService extends BaseService {
     @ServiceMethod(code = "106", description = "推箱子-结算派奖（debug透传）")
     public Object settle(BattleRoyaleSocketServer2 adminSocketServer, Command lotteryCommand, JSONObject data) {
         checkNull(data);
-        String userId = data.getString("userId");
+
         // Manager 721 要求：gameId + periodNo + winList + feeRate 等
         String periodNo = data.getString("periodNo");
         if (isBlank(periodNo)) {
@@ -1200,13 +1203,7 @@ public class PbxService extends BaseService {
         }
 
         if (!ok) {
-            JSONObject fail = new JSONObject();
-            fail.put("success", false);
-            fail.put("gameId", String.valueOf(PBX_GAME_ID));
-            fail.put("userId", userId);
-            fail.put("periodNo", periodNo);
-            fail.put("message", "pbxSettle timeout");
-            return fail;
+            throwExp("未知异常");
         }
 
         JSONObject resp = ref.get();
@@ -1219,31 +1216,22 @@ public class PbxService extends BaseService {
             pushPbxInfo(lastPoolBalance);
         }
 
-        if (resp == null) {
-            // 不 throw：避免玩法服直接抛异常导致接口服/前端拿不到明确的失败 message。
-            JSONObject fail = new JSONObject();
-            fail.put("success", false);
-            fail.put("gameId", String.valueOf(PBX_GAME_ID));
-            fail.put("userId", userId);
-            fail.put("periodNo", data.getString("periodNo"));
-            fail.put("message", "pbxSettle response is null");
-            return fail;
-        }
-        return resp;
+        return resp == null ? throwExp("pbxSettle response is null"): resp;
     }
 
-    // -------------------------------------------------------------------------
-    // 周榜：结算（主服 200723）
-    // -------------------------------------------------------------------------
-    @ServiceMethod(code = "107", description = "PBX 周榜结算")
+
+    @ServiceMethod(code = "107",  description = "PBX 周榜结算")
     public Object processWeekSettle(JSONObject data) {
         Integer gameId = data.getInteger("gameId");
         if (gameId == null) {
             gameId = PBX_GAME_ID;
         }
+        if (gameId != PBX_GAME_ID) {
+            throwExp("gameId invalid");
+        }
 
         JSONObject req = new JSONObject();
-        req.put("gameId", gameId);
+        req.put("gameId", PBX_GAME_ID);
         String weekKey = data.getString("weekKey");
         if (StringUtils.isNotBlank(weekKey)) {
             req.put("weekKey", weekKey);
@@ -1251,6 +1239,7 @@ public class PbxService extends BaseService {
 
         AtomicReference<JSONObject> ref = new AtomicReference<>();
         CountDownLatch latch = new CountDownLatch(1);
+
         requsetMangerService2.requestPbxWeekSettle(req, new Listener() {
             @Override
             public void handle(com.live.app.ws.socket.BaseClientSocket socket, Command command) {
@@ -1259,21 +1248,17 @@ public class PbxService extends BaseService {
             }
         });
 
+        boolean ok = false;
         try {
-            boolean ok = latch.await(6, TimeUnit.SECONDS);
-            if (!ok) {
-                JSONObject fail = new JSONObject();
-                fail.put("success", false);
-                fail.put("gameId", String.valueOf(PBX_GAME_ID));
-                fail.put("message", "pbxWeekSettle timeout");
-                return fail;
-            }
+            ok = latch.await(6, TimeUnit.SECONDS);
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
+        }
+
+        if (!ok) {
             JSONObject fail = new JSONObject();
             fail.put("success", false);
-            fail.put("gameId", String.valueOf(PBX_GAME_ID));
-            fail.put("message", "pbxWeekSettle interrupted");
+            fail.put("message", "pbxWeekSettle timeout");
             return fail;
         }
 
@@ -1281,7 +1266,6 @@ public class PbxService extends BaseService {
         if (resp == null) {
             JSONObject fail = new JSONObject();
             fail.put("success", false);
-            fail.put("gameId", String.valueOf(PBX_GAME_ID));
             fail.put("message", "pbxWeekSettle response is null");
             return fail;
         }
@@ -1440,7 +1424,8 @@ public class PbxService extends BaseService {
 
         info.put("recent16", getRecentResults(16));
         info.put("recent100", getRecentResults(100));
-
+        info.put("recent16Stat", buildRecent16Stat());
+        info.put("recent100Stat", buildRecent100Stat());
         // 本期全服各元素总投入（用于前端每张元素卡片显示“全服投入”）
         JSONObject elementTotalBet = new JSONObject();
         BigDecimal totalBet = BigDecimal.ZERO;
@@ -1507,6 +1492,50 @@ public class PbxService extends BaseService {
             }
         }
         return arr;
+    }
+
+    /** 近16期统计（元素ID -> 命中次数；每期3个元素） */
+    private JSONObject buildRecent16Stat() {
+        int[] counts = new int[ELEMENT_COUNT + 1];
+        synchronized (recent16Results) {
+            for (JSONObject r : recent16Results) {
+                if (r == null) continue;
+                JSONArray open = r.getJSONArray("resultElements");
+                if (open == null) continue;
+                for (int i = 0; i < open.size(); i++) {
+                    int eid = open.getIntValue(i);
+                    if (eid >= 1 && eid <= ELEMENT_COUNT) {
+                        counts[eid]++;
+                    }
+                }
+            }
+        }
+        JSONObject stat = new JSONObject();
+        for (int i = 1; i <= ELEMENT_COUNT; i++) {
+            stat.put(String.valueOf(i), counts[i]);
+        }
+        return stat;
+    }
+
+    /** 近100期统计（元素ID -> 命中次数；每期3个元素，总计300次） */
+    private JSONObject buildRecent100Stat() {
+        int[] counts = new int[ELEMENT_COUNT + 1];
+        synchronized (recent100Results) {
+            for (JSONArray open : recent100Results) {
+                if (open == null) continue;
+                for (int i = 0; i < open.size(); i++) {
+                    int eid = open.getIntValue(i);
+                    if (eid >= 1 && eid <= ELEMENT_COUNT) {
+                        counts[eid]++;
+                    }
+                }
+            }
+        }
+        JSONObject stat = new JSONObject();
+        for (int i = 1; i <= ELEMENT_COUNT; i++) {
+            stat.put(String.valueOf(i), counts[i]);
+        }
+        return stat;
     }
 
 
@@ -1614,6 +1643,32 @@ public class PbxService extends BaseService {
 
         data.put("userSettleInfo", userSettleInfo);
         return data;
+    }
+
+    /**
+     * 当前周期内：某个用户对每个元素的投注额。
+     *
+     * <p>返回结构：{"1":"0",...,"6":"10"}，value 统一为两位小数去尾零的字符串；未投则为"0"。</p>
+     */
+    private JSONObject buildMyElementBet(String userId) {
+        JSONObject myElementBet = new JSONObject();
+        Map<Integer, BigDecimal> myMap = periodUserElementBet.get(userId);
+        for (int i = 1; i <= ELEMENT_COUNT; i++) {
+            BigDecimal v = BigDecimal.ZERO;
+            if (myMap != null) {
+                v = myMap.getOrDefault(i, BigDecimal.ZERO);
+            }
+            myElementBet.put(String.valueOf(i), v.stripTrailingZeros().toPlainString());
+        }
+        return myElementBet;
+    }
+
+    /**
+     * 当前周期内：某个用户的总投注额（两位小数去尾零的字符串）。
+     */
+    private String buildMyTotalBet(String userId) {
+        BigDecimal myTotalBet = periodUserTotalBet.getOrDefault(userId, BigDecimal.ZERO);
+        return myTotalBet.stripTrailingZeros().toPlainString();
     }
 
     // -------------------------------------------------------------------------

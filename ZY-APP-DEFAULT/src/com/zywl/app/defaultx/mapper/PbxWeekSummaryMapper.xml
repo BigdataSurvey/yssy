@@ -1,0 +1,115 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.zywl.app.defaultx.mapper.PbxWeekSummaryMapper">
+
+    <resultMap id="BaseResultMap" type="com.zywl.app.base.bean.PbxWeekSummary">
+        <id column="id" property="id" jdbcType="BIGINT"/>
+        <result column="game_id"             property="gameId"            jdbcType="INTEGER"/>
+        <result column="week_key"            property="weekKey"           jdbcType="VARCHAR"/>
+        <result column="total_bet_cents"     property="totalBetCents"     jdbcType="BIGINT"/>
+        <result column="total_return_cents"  property="totalReturnCents"  jdbcType="BIGINT"/>
+        <result column="total_net_cents"     property="totalNetCents"     jdbcType="BIGINT"/>
+        <result column="total_fee_cents"     property="totalFeeCents"     jdbcType="BIGINT"/>
+        <result column="profit_cents"        property="profitCents"       jdbcType="BIGINT"/>
+        <result column="rank_profit_percent" property="rankProfitPercent" jdbcType="DECIMAL"/>
+        <result column="pool_add_cents"      property="poolAddCents"      jdbcType="BIGINT"/>
+        <result column="pool_balance_cents"  property="poolBalanceCents"  jdbcType="BIGINT"/>
+        <result column="top10_rates_json"    property="top10RatesJson"    jdbcType="VARCHAR"/>
+        <result column="user_list_json"      property="userListJson"      jdbcType="VARCHAR"/>
+        <result column="settled"             property="settled"           jdbcType="INTEGER"/>
+        <result column="settle_time"         property="settleTime"        jdbcType="TIMESTAMP"/>
+        <result column="create_time"         property="createTime"        jdbcType="TIMESTAMP"/>
+        <result column="update_time"         property="updateTime"        jdbcType="TIMESTAMP"/>
+    </resultMap>
+
+    <sql id="Base_Column_List">
+        id, game_id, week_key, total_bet_cents, total_return_cents, total_net_cents,
+        total_fee_cents, profit_cents, rank_profit_percent, pool_add_cents, pool_balance_cents,
+        top10_rates_json, user_list_json, settled, settle_time, create_time, update_time
+    </sql>
+
+    <select id="findById" parameterType="long" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM t_pbx_week_summary
+        WHERE id = #{id}
+    </select>
+
+    <select id="findByWeekKey" parameterType="map" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM t_pbx_week_summary
+        WHERE week_key = #{weekKey}
+        LIMIT 1
+    </select>
+
+    <select id="findByGameWeek" parameterType="map" resultMap="BaseResultMap">
+        select *
+        from t_pbx_week_summary
+        where game_id = #{gameId}
+          and week_key = #{weekKey}
+            limit 1
+    </select>
+
+    <select id="findByGameWeekForUpdate" parameterType="java.util.Map" resultType="com.zywl.app.base.bean.PbxWeekSummary">
+        select * from t_pbx_week_summary where game_id=#{gameId} and week_key=#{weekKey} for update
+    </select>
+
+    <insert id="insert" parameterType="com.zywl.app.base.bean.PbxWeekSummary" useGeneratedKeys="true" keyProperty="id">
+        insert into t_pbx_week_summary(
+            game_id, week_key,
+            total_bet_cents, total_return_cents, total_net_cents, total_fee_cents,
+            profit_cents, rank_profit_percent,
+            pool_add_cents, pool_balance_cents,
+            top10_rates_json, user_list_json,
+            settled, settle_time,
+            create_time, update_time
+        ) values (
+                     #{gameId}, #{weekKey},
+                     #{totalBetCents}, #{totalReturnCents}, #{totalNetCents}, #{totalFeeCents},
+                     #{profitCents}, #{rankProfitPercent},
+                     #{poolAddCents}, #{poolBalanceCents},
+                     #{top10RatesJson}, #{userListJson},
+                     #{settled}, #{settleTime},
+                     #{createTime}, #{updateTime}
+                 )
+    </insert>
+
+    <insert id="insertIgnore" parameterType="com.zywl.app.base.bean.PbxWeekSummary">
+        insert ignore into t_pbx_week_summary(
+            game_id, week_key,
+            total_bet_cents, total_return_cents, total_net_cents, total_fee_cents,
+            profit_cents, rank_profit_percent,
+            pool_add_cents, pool_balance_cents,
+            top10_rates_json, user_list_json,
+            settled, settle_time,
+            create_time, update_time
+        ) values (
+        #{gameId}, #{weekKey},
+        #{totalBetCents}, #{totalReturnCents}, #{totalNetCents}, #{totalFeeCents},
+        #{profitCents}, #{rankProfitPercent},
+        #{poolAddCents}, #{poolBalanceCents},
+        #{top10RatesJson}, #{userListJson},
+        #{settled}, #{settleTime},
+        #{createTime}, #{updateTime}
+        )
+    </insert>
+
+    <update id="update" parameterType="com.zywl.app.base.bean.PbxWeekSummary">
+        update t_pbx_week_summary
+        set total_bet_cents      = #{totalBetCents},
+            total_return_cents   = #{totalReturnCents},
+            total_net_cents      = #{totalNetCents},
+            total_fee_cents      = #{totalFeeCents},
+            profit_cents         = #{profitCents},
+            rank_profit_percent  = #{rankProfitPercent},
+            pool_add_cents       = #{poolAddCents},
+            pool_balance_cents   = #{poolBalanceCents},
+            top10_rates_json     = #{top10RatesJson},
+            user_list_json       = #{userListJson},
+            settled              = #{settled},
+            settle_time          = #{settleTime},
+            update_time          = #{updateTime}
+        where id = #{id}
+    </update>
+</mapper>

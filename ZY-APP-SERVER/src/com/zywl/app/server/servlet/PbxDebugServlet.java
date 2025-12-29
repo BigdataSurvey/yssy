@@ -88,19 +88,20 @@ public class PbxDebugServlet extends HttpServlet {
 
         // settle 支持 payouts 或 gross 快捷参数
         if ("settle".equalsIgnoreCase(action)) {
-            String payoutsStr = req.getParameter("payouts");
-            if (payoutsStr != null && payoutsStr.trim().length() > 0) {
-                JSONArray payouts = JSONArray.parse(payoutsStr);
-                data.put("payouts", payouts);
+            String winListStr = req.getParameter("winList");
+            if (winListStr != null && winListStr.trim().length() > 0) {
+                JSONArray winList = JSONArray.parse(winListStr);
+                data.put("winList", winList);
             } else {
-                String gross = req.getParameter("gross");
-                if (gross != null && gross.trim().length() > 0) {
-                    JSONArray payouts = new JSONArray();
+                // 兼容快捷参数：直接传 returnAmount
+                String returnAmount = req.getParameter("returnAmount");
+                if (returnAmount != null && returnAmount.trim().length() > 0) {
+                    JSONArray winList = new JSONArray();
                     JSONObject one = new JSONObject();
                     one.put("userId", userId);
-                    one.put("gross", gross);
-                    payouts.add(one);
-                    data.put("payouts", payouts);
+                    one.put("returnAmount", returnAmount);
+                    winList.add(one);
+                    data.put("winList", winList);
                 }
             }
         }
