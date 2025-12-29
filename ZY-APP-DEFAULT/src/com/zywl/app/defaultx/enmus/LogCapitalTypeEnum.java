@@ -158,7 +158,7 @@ public enum LogCapitalTypeEnum {
 
     game_bet_pbx("推箱子下注",1041),
     game_bet_win_pbx("推箱子中奖",1042),
-
+    game_week_rank_pbx("推箱子周榜分红",1043),
     ;
 
     private String name;

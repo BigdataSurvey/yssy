@@ -29,6 +29,7 @@ import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 @Service
 @ServiceClass(code = MessageCodeContext.MAIL_SERVER)
@@ -189,22 +190,40 @@ public class ServerMailService extends BaseService{
 		if (user == null) {
 			throwExp("未查询到邮件信息！");
 		}
-
 		UserMail userMail = userMailService.findUserReadMailInfo(userId);
 		JSONArray userReadMails = (userMail != null ? userMail.getReadMailList() : null);
-
 		// 根据 type 查询对应列表
 		List<Mail> myMail = mailService.findMyEmail(userId, type, page, num);
-
+		//发件人
+		List<Long> fromIds = new ArrayList<>();
+		for (Mail m : myMail) {
+			Long fromId = m.getFromUserId();
+			if (fromId != null && fromId > 0 && !fromIds.contains(fromId)) {
+				fromIds.add(fromId);
+			}
+		}
+		Map<Long, User> fromUserMap = null;
+		if (!fromIds.isEmpty()) {
+			fromUserMap = userCacheService.loadUsers(fromIds.toArray(new Long[0]));
+		}
 		JSONObject result = new JSONObject();
 		List<Mail> newList = new ArrayList<>();
-
 		for (Mail mail : myMail) {
+			// 回填发件人信息
+			if (fromUserMap != null) {
+				User fu = fromUserMap.get(mail.getFromUserId());
+				if (fu != null) {
+					mail.setFromUserNo(fu.getUserNo());
+					mail.setFromUserName(fu.getName());
+					mail.setFromUserRoleId(fu.getRoleId());
+					mail.setFromUserHeadImg(fu.getHeadImageUrl());
+				}
+			}
+			// 已读/删除过滤
 			if (userMail != null
 					&& userReadMails != null
 					&& mail.getType() == 2
 					&& userReadMails.toList(Long.class).contains(mail.getId())) {
-
 				if (userMail.getDeleteMailList() == null
 						|| !userMail.getDeleteMailList().toList(Long.class).contains(mail.getId())) {
 					mail.setIsRead(1);

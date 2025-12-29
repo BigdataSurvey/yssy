@@ -922,7 +922,7 @@ public class PlayGameService extends BaseService {
                             qty,
                             backpackSource
                     );
-                    // 这里保持你现有的行为：发完奖励后推一次完整背包
+                    // 发完奖励后推一次完整背包
                     List<JSONObject> packList = getReturnPack(userId);
                     JSONObject packUpdate = new JSONObject();
                     packUpdate.put("backpackInfo", packList);

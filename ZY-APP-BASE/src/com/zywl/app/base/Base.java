@@ -67,7 +67,7 @@ public abstract class Base {
 		return false;
 	}
 
-	protected static void throwExp(String message){
+	protected static Object throwExp(String message){
 		throw new AppException(message);
 	}
 	

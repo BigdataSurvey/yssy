@@ -40,26 +40,46 @@ public class PbxDebugServlet extends HttpServlet {
         if (userId == null || userId.isEmpty()) userId = "1";
 
         String code;
+        // 加入房间 -> DTS2 102101 (joinRoom) -> Manager 200722(pbxQuery) 取 poolBalance/serverTime
         if ("join".equalsIgnoreCase(action)) {
             code = "102101";
-        } else if ("op".equalsIgnoreCase(action)) {
+        }
+        // 下注 -> DTS2 102103 (operate) -> Manager 200720(pbxBet) 扣款入全服奖池
+        else if ("op".equalsIgnoreCase(action)) {
             code = "102103";
-        } else if ("leave".equalsIgnoreCase(action)) {
+        }
+        // 离开房间 -> DTS2 102104 (leaveRoom)
+        else if ("leave".equalsIgnoreCase(action)) {
             code = "102104";
-        } else if ("query".equalsIgnoreCase(action)) {
-            // 触发 DTS2 -> Manager 200721 查询
-            code = "102106";
-        } else if ("settle".equalsIgnoreCase(action)) {
-            // 触发 DTS2 -> Manager 200722 结算派奖
+        }
+        // 查询奖池 -> DTS2 102105 (processQuery) -> Manager 200722(pbxQuery)
+        else if ("query".equalsIgnoreCase(action)) {
             code = "102105";
+        }
+        // 结算派奖 -> DTS2 102106 (processSettle) -> Manager 200721(pbxSettle)
+        else if ("settle".equalsIgnoreCase(action)) {
+            code = "102106";
+        }
+        // 周榜结算 -> DTS2 102107 (processWeekSettle) -> Manager 200723(pbxWeekSettle)
+        else if ("weekSettle".equalsIgnoreCase(action)) {
+            code = "102107";
         } else {
-            resp.getWriter().write("{\"success\":false,\"message\":\"action must be join|op|leave|query|settle\"}");
+            resp.getWriter().write("{\"success\":false,\"message\":\"action must be join|op|leave|query|settle|weekSettle\"}");
             return;
         }
-
         JSONObject data = new JSONObject();
         data.put("userId", userId);
         data.put("gameId", gameId);
+        // 兼容旧参数：op 时若只传 betAmount，则补齐 chip（Step C-2.1 以 chip+elementId 为准）
+        if ("op".equalsIgnoreCase(action)) {
+            String chip = req.getParameter("chip");
+            if (chip == null || chip.trim().length() == 0) {
+                String betAmount = req.getParameter("betAmount");
+                if (betAmount != null && betAmount.trim().length() > 0) {
+                    data.put("chip", betAmount);
+                }
+            }
+        }
 
         // 将所有 querystring 参数灌进 data
         req.getParameterMap().forEach((k, v) -> {
@@ -68,19 +88,20 @@ public class PbxDebugServlet extends HttpServlet {
 
         // settle 支持 payouts 或 gross 快捷参数
         if ("settle".equalsIgnoreCase(action)) {
-            String payoutsStr = req.getParameter("payouts");
-            if (payoutsStr != null && payoutsStr.trim().length() > 0) {
-                JSONArray payouts = JSONArray.parse(payoutsStr);
-                data.put("payouts", payouts);
+            String winListStr = req.getParameter("winList");
+            if (winListStr != null && winListStr.trim().length() > 0) {
+                JSONArray winList = JSONArray.parse(winListStr);
+                data.put("winList", winList);
             } else {
-                String gross = req.getParameter("gross");
-                if (gross != null && gross.trim().length() > 0) {
-                    JSONArray payouts = new JSONArray();
+                // 兼容快捷参数：直接传 returnAmount
+                String returnAmount = req.getParameter("returnAmount");
+                if (returnAmount != null && returnAmount.trim().length() > 0) {
+                    JSONArray winList = new JSONArray();
                     JSONObject one = new JSONObject();
                     one.put("userId", userId);
-                    one.put("gross", gross);
-                    payouts.add(one);
-                    data.put("payouts", payouts);
+                    one.put("returnAmount", returnAmount);
+                    winList.add(one);
+                    data.put("winList", winList);
                 }
             }
         }

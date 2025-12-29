@@ -47,4 +47,13 @@ public class BattleRoyaleRequsetMangerService2 {
 		);
 	}
 
+	/** PBX 周榜结算 */
+	public void requestPbxWeekSettle(JSONObject data, Listener listener) {
+		Executer.request(
+				TargetSocketType.dts2,
+				CommandBuilder.builder().request("200723", data).build(),
+				listener
+		);
+	}
+
 }
