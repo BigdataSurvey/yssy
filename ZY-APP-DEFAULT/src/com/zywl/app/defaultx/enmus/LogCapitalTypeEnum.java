@@ -159,6 +159,12 @@ public enum LogCapitalTypeEnum {
     game_bet_pbx("推箱子下注",1041),
     game_bet_win_pbx("推箱子中奖",1042),
     game_week_rank_pbx("推箱子周榜分红",1043),
+    pet_lion_buy("养宠-购买狮子", 1044),
+    pet_feed("养宠-喂养", 1045),
+    pet_claim_yield("养宠-领取产出", 1046),
+    pet_dividend("养宠-上级分润", 1047),
+    pet_unlock("养宠-分润等级解锁", 1048),
+
     ;
 
     private String name;

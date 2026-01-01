@@ -231,6 +231,7 @@ public class ManagerGameBaseService extends BaseService {
         String farmV = managerConfigService.getString(Config.FARM_TABLE_VERSION);
         String mineV = managerConfigService.getString(Config.MINE_VERSION);
         String roleV = managerConfigService.getString(Config.ROLE_VERSION);
+        String petV = managerConfigService.getString(Config.PET_TABLE_VERSION);
         // 客户端传上来的 tableInfo
         JSONObject tableInfo = params.getJSONObject("tableInfo");
 
@@ -279,6 +280,14 @@ public class ManagerGameBaseService extends BaseService {
             tableInfos.put("farmTable", obj);
         }
 
+        // 玩家养宠配置表
+        if (tableInfo != null && (!tableInfo.containsKey("petTable") || !petV.equals(tableInfo.getString("petTable")))) {
+            List<DicPet> dicPets = new ArrayList<>(PlayGameService.DIC_PET.values());
+            JSONObject obj = new JSONObject();
+            obj.put("version", petV);
+            obj.put("data", dicPets);
+            tableInfos.put("petTable", obj);
+        }
         return tableInfos;
     }
 

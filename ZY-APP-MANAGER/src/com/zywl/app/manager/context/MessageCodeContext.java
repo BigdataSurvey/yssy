@@ -45,6 +45,7 @@ public class MessageCodeContext {
 
 	public final static String USER_JOR = "037";
 
+	public final static String USER_PET = "038";
 
 	public final static String KP_PLAYER_CARD= "1001";
 

@@ -5,6 +5,7 @@ import com.live.app.ws.enums.PushCode;
 import com.live.app.ws.util.DefaultPushHandler;
 import com.live.app.ws.util.Push;
 import com.zywl.app.base.bean.Config;
+import com.zywl.app.base.bean.DicPet;
 import com.zywl.app.base.bean.DicRole;
 import com.zywl.app.base.bean.Item;
 import com.zywl.app.base.bean.card.*;
@@ -299,6 +300,17 @@ public class ManagerConfigService extends BaseService {
 			obj.put("data", farms);
 			JSONObject tableInfo = new JSONObject();
 			tableInfo.put("farmTable", obj);
+			//推送给在线客户端
+			Push.push(PushCode.updateTableVersion, null, tableInfo);
+		}else if (key.equals(Config.PET_TABLE_VERSION)) {
+			//重置玩家养宠配置表后重新推送给在线客户端
+			gameService.initPet();
+			List<DicPet> pets = new ArrayList<>(PlayGameService.DIC_PET.values());
+			JSONObject obj = new JSONObject();
+			obj.put("version", value);
+			obj.put("data", pets);
+			JSONObject tableInfo = new JSONObject();
+			tableInfo.put("petTable", obj);
 			//推送给在线客户端
 			Push.push(PushCode.updateTableVersion, null, tableInfo);
 		} else if (key.equals(Config.ROLE_VERSION)) {

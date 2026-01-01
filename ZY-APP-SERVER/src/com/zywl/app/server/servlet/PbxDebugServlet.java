@@ -1,5 +1,4 @@
 package com.zywl.app.server.servlet;
-
 import com.alibaba.fastjson2.JSONArray;
 import com.alibaba.fastjson2.JSONObject;
 import com.live.app.ws.bean.Command;
@@ -8,136 +7,209 @@ import com.live.app.ws.interfacex.Listener;
 import com.live.app.ws.socket.BaseClientSocket;
 import com.live.app.ws.util.CommandBuilder;
 import com.live.app.ws.util.Executer;
-
+import org.apache.commons.lang3.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import javax.servlet.ServletException;
 import javax.servlet.annotation.WebServlet;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
+import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
+/**
+ * @Author: lzx
+ * @Create: 2025/12/20
+ * @Version: V1.0
+ * @Description: PBX 推箱子 玩法调试入口 仅限本地回路访问-HTTP转WebSocket指令，模拟客户端请求，用于后端接口联调与状态查询
+ */
 @WebServlet(name = "PbxDebugServlet", urlPatterns = "/pbxDebug")
 public class PbxDebugServlet extends HttpServlet {
 
+    private static final Logger logger = LoggerFactory.getLogger(PbxDebugServlet.class);
+
+    private static final String DEFAULT_GAME_ID = "12";
+    private static final String DEFAULT_USER_ID = "1";
+    private static final int TIMEOUT_SECONDS = 6;
+
+    /**
+     * 指令映射枚举
+     * 维护 Action -> CmdCode 的映射关系，对应 DTS2 -> Manager 的调用链路
+     */
+    private enum ActionEnum {
+        JOIN("join", "102101", "加入房间: DTS2->Manager(200722)"),
+        OP("op", "102103", "下注操作: DTS2->Manager(200720)"),
+        LEAVE("leave", "102104", "离开房间: DTS2本地逻辑"),
+        QUERY("query", "102105", "查询奖池: DTS2->Manager(200722)"),
+        SETTLE("settle", "102106", "结算派奖: DTS2->Manager(200721)"),
+        WEEK_SETTLE("weekSettle", "102107", "周榜结算: DTS2->Manager(200723)");
+
+        private final String action;
+        private final String code;
+        private final String desc;
+
+        ActionEnum(String action, String code, String desc) {
+            this.action = action;
+            this.code = code;
+            this.desc = desc;
+        }
+
+        public static ActionEnum getByAction(String action) {
+            return Arrays.stream(values())
+                    .filter(e -> e.action.equalsIgnoreCase(action))
+                    .findFirst()
+                    .orElse(null);
+        }
+
+        public String getCode() {
+            return code;
+        }
+    }
+
     @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+        resp.setContentType("application/json;charset=utf-8");
 
-        String remote = req.getRemoteAddr();
-        if (!(remote.equals("127.0.0.1") || remote.equals("0:0:0:0:0:0:0:1"))) {
-            resp.setStatus(403);
-            resp.getWriter().write("{\"success\":false,\"message\":\"forbidden\"}");
+        if (!isLocalRequest(req)) {
+            sendResponse(resp, 403, false, "Forbidden: Local access only", null);
             return;
         }
 
-        // join | op | leave | query | settle
-        String action = req.getParameter("action");
-        String userId = req.getParameter("userId");
-        String gameId = req.getParameter("gameId");
-        if (gameId == null || gameId.isEmpty()) gameId = "12";
-        if (userId == null || userId.isEmpty()) userId = "1";
+        String actionStr = req.getParameter("action");
+        ActionEnum actionEnum = ActionEnum.getByAction(actionStr);
+        if (actionEnum == null) {
+            sendResponse(resp, 400, false, "Invalid action. Support: join|op|leave|query|settle|weekSettle", null);
+            return;
+        }
 
-        String code;
-        // 加入房间 -> DTS2 102101 (joinRoom) -> Manager 200722(pbxQuery) 取 poolBalance/serverTime
-        if ("join".equalsIgnoreCase(action)) {
-            code = "102101";
+        String gameId = StringUtils.defaultIfBlank(req.getParameter("gameId"), DEFAULT_GAME_ID);
+        String userId = StringUtils.defaultIfBlank(req.getParameter("userId"), DEFAULT_USER_ID);
+
+        JSONObject bizData = buildBusinessData(req, actionEnum, userId, gameId);
+
+        // 路由转发
+        TargetSocketType socketType;
+        try {
+            socketType = TargetSocketType.getServerEnum(Integer.parseInt(gameId));
+        } catch (NumberFormatException e) {
+            sendResponse(resp, 400, false, "Invalid gameId format", null);
+            return;
         }
-        // 下注 -> DTS2 102103 (operate) -> Manager 200720(pbxBet) 扣款入全服奖池
-        else if ("op".equalsIgnoreCase(action)) {
-            code = "102103";
-        }
-        // 离开房间 -> DTS2 102104 (leaveRoom)
-        else if ("leave".equalsIgnoreCase(action)) {
-            code = "102104";
-        }
-        // 查询奖池 -> DTS2 102105 (processQuery) -> Manager 200722(pbxQuery)
-        else if ("query".equalsIgnoreCase(action)) {
-            code = "102105";
-        }
-        // 结算派奖 -> DTS2 102106 (processSettle) -> Manager 200721(pbxSettle)
-        else if ("settle".equalsIgnoreCase(action)) {
-            code = "102106";
-        }
-        // 周榜结算 -> DTS2 102107 (processWeekSettle) -> Manager 200723(pbxWeekSettle)
-        else if ("weekSettle".equalsIgnoreCase(action)) {
-            code = "102107";
+
+        // 响应
+        Command resultCmd = executeRpc(socketType, actionEnum.getCode(), bizData);
+        if (resultCmd == null) {
+            sendResponse(resp, 504, false, "RPC Timeout or DTS2 Connection Failed", null);
         } else {
-            resp.getWriter().write("{\"success\":false,\"message\":\"action must be join|op|leave|query|settle|weekSettle\"}");
-            return;
+            sendResponse(resp, 200, resultCmd.isSuccess(), resultCmd.getMessage(), resultCmd.getData());
         }
+    }
+
+    /**
+     * 构建透传给 DTS2 的业务参数
+     */
+    private JSONObject buildBusinessData(HttpServletRequest req, ActionEnum action, String userId, String gameId) {
         JSONObject data = new JSONObject();
+
         data.put("userId", userId);
         data.put("gameId", gameId);
-        // 兼容旧参数：op 时若只传 betAmount，则补齐 chip（Step C-2.1 以 chip+elementId 为准）
-        if ("op".equalsIgnoreCase(action)) {
-            String chip = req.getParameter("chip");
-            if (chip == null || chip.trim().length() == 0) {
-                String betAmount = req.getParameter("betAmount");
-                if (betAmount != null && betAmount.trim().length() > 0) {
-                    data.put("chip", betAmount);
-                }
+
+        Map<String, String[]> paramMap = req.getParameterMap();
+        for (Map.Entry<String, String[]> entry : paramMap.entrySet()) {
+            if (!data.containsKey(entry.getKey()) && entry.getValue() != null && entry.getValue().length > 0) {
+                data.put(entry.getKey(), entry.getValue()[0]);
             }
         }
 
-        // 将所有 querystring 参数灌进 data
-        req.getParameterMap().forEach((k, v) -> {
-            if (!data.containsKey(k) && v != null && v.length > 0) data.put(k, v[0]);
-        });
-
-        // settle 支持 payouts 或 gross 快捷参数
-        if ("settle".equalsIgnoreCase(action)) {
-            String winListStr = req.getParameter("winList");
-            if (winListStr != null && winListStr.trim().length() > 0) {
-                JSONArray winList = JSONArray.parse(winListStr);
-                data.put("winList", winList);
-            } else {
-                // 兼容快捷参数：直接传 returnAmount
-                String returnAmount = req.getParameter("returnAmount");
-                if (returnAmount != null && returnAmount.trim().length() > 0) {
-                    JSONArray winList = new JSONArray();
-                    JSONObject one = new JSONObject();
-                    one.put("userId", userId);
-                    one.put("returnAmount", returnAmount);
-                    winList.add(one);
-                    data.put("winList", winList);
+        switch (action) {
+            case OP:
+                if (StringUtils.isBlank(data.getString("chip"))) {
+                    String betAmount = data.getString("betAmount");
+                    if (StringUtils.isNotBlank(betAmount)) {
+                        data.put("chip", betAmount);
+                    }
                 }
-            }
+                break;
+            case SETTLE:
+                String winListStr = req.getParameter("winList");
+                if (StringUtils.isNotBlank(winListStr)) {
+                    try {
+                        data.put("winList", JSONArray.parse(winListStr));
+                    } catch (Exception e) {
+                        logger.warn("Parse winList json failed", e);
+                    }
+                } else {
+                    String returnAmount = req.getParameter("returnAmount");
+                    if (StringUtils.isNotBlank(returnAmount)) {
+                        JSONArray simpleWinList = new JSONArray();
+                        JSONObject item = new JSONObject();
+                        item.put("userId", userId);
+                        item.put("returnAmount", returnAmount);
+                        simpleWinList.add(item);
+                        data.put("winList", simpleWinList);
+                    }
+                }
+                break;
+            default:
+                break;
         }
+        return data;
+    }
 
+    /**
+     * 执行 WebSocket 同步调用
+     */
+    private Command executeRpc(TargetSocketType target, String code, JSONObject data) {
+        Command requestCmd = CommandBuilder.builder().request(code, data).build();
         CountDownLatch latch = new CountDownLatch(1);
-        AtomicReference<Command> back = new AtomicReference<>();
+        AtomicReference<Command> responseRef = new AtomicReference<>();
 
-        TargetSocketType socketType = TargetSocketType.getServerEnum((int) Long.parseLong(gameId));
-        Command cmd = CommandBuilder.builder().request(code, data).build();
-
-        Executer.request(socketType, cmd, new Listener() {
+        Executer.request(target, requestCmd, new Listener() {
             @Override
             public void handle(BaseClientSocket clientSocket, Command command) {
-                back.set(command);
+                responseRef.set(command);
                 latch.countDown();
             }
         });
 
-        boolean ok;
         try {
-            ok = latch.await(6, TimeUnit.SECONDS);
+            boolean completed = latch.await(TIMEOUT_SECONDS, TimeUnit.SECONDS);
+            if (!completed) {
+                logger.error("[PbxDebug] RPC timeout, code={}, data={}", code, data);
+                return null;
+            }
         } catch (InterruptedException e) {
-            ok = false;
+            Thread.currentThread().interrupt();
+            return null;
         }
+        return responseRef.get();
+    }
 
-        resp.setContentType("application/json;charset=utf-8");
-        if (!ok) {
-            resp.getWriter().write("{\"success\":false,\"message\":\"timeout/no response, check DTS2 connection\"}");
-            return;
+    /**
+     * 本地回路检测
+     */
+    private boolean isLocalRequest(HttpServletRequest req) {
+        String ip = req.getRemoteAddr();
+        return "127.0.0.1".equals(ip) || "0:0:0:0:0:0:0:1".equals(ip) || "localhost".equals(ip);
+    }
+
+    /**
+     * 统一响应输出
+     */
+    private void sendResponse(HttpServletResponse resp, int status, boolean success, String msg, Object data) throws IOException {
+        resp.setStatus(status);
+        JSONObject output = new JSONObject();
+        output.put("success", success);
+        output.put("message", msg);
+        if (data != null) {
+            output.put("data", data);
         }
-
-        Command r = back.get();
-        JSONObject out = new JSONObject();
-        out.put("success", r.isSuccess());
-        out.put("message", r.getMessage());
-        out.put("data", r.getData());
-        resp.getWriter().write(out.toJSONString());
+        resp.getOutputStream().write(output.toJSONString().getBytes(StandardCharsets.UTF_8));
     }
 }

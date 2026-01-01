@@ -58,48 +58,30 @@ import java.util.Map;
 @ServiceClass(code = MessageCodeContext.CAPITAL_SERVER)
 public class ManagerCapitalService extends BaseService {
 
-
-    public static JSONObject itemResult =new JSONObject();
-
-    public static JSONObject yybResult =new JSONObject();
-// ====================== PBX（推箱子）Step2/Step3：记录页 & 周榜/上周榜 & 周结算分红 ======================
-    /** 本周/某周：玩家投入(消耗)（weekKey -> {userId -> consumeCents}） */
-    private static final ConcurrentHashMap<String, ConcurrentHashMap<Long, Long>> PBX_WEEK_USER_CONSUME_CENTS = new ConcurrentHashMap<>();
-    /** 本周/某周：玩家净返还（weekKey -> {userId -> netReturnCents}） */
-    private static final ConcurrentHashMap<String, ConcurrentHashMap<Long, Long>> PBX_WEEK_USER_NET_RETURN_CENTS = new ConcurrentHashMap<>();
-    /** 本周/某周：玩家周榜分红（weekKey -> {userId -> dividendCents}） */
-    private static final ConcurrentHashMap<String, ConcurrentHashMap<Long, Long>> PBX_WEEK_USER_DIVIDEND_CENTS = new ConcurrentHashMap<>();
-
-    /** 本周/某周：总投入(消耗)（weekKey -> consumeCents） */
-    private static final ConcurrentHashMap<String, Long> PBX_WEEK_TOTAL_CONSUME_CENTS = new ConcurrentHashMap<>();
-    /** 本周/某周：总净返还（weekKey -> netReturnCents） */
-    private static final ConcurrentHashMap<String, Long> PBX_WEEK_TOTAL_NET_RETURN_CENTS = new ConcurrentHashMap<>();
-    /** 本周/某周：利润（派生值，weekKey -> profitCents） */
-    private static final ConcurrentHashMap<String, Long> PBX_WEEK_TOTAL_PROFIT_CENTS = new ConcurrentHashMap<>();
-    /** 本周/某周：分红池（派生值，weekKey -> dividendPoolCents） */
-    private static final ConcurrentHashMap<String, Long> PBX_WEEK_TOTAL_DIVIDEND_POOL_CENTS = new ConcurrentHashMap<>();
-// ========================= PBX 周榜/上周榜（200723） begin =========================
-
-    /** 周榜：每周每人累计投注（分） */
-    private static final Map<String, Map<Long, Long>> PBX_WEEK_USER_BET_CENTS = new ConcurrentHashMap<>();
-    /** 周榜：每周每人累计已发放奖励（分）——用于 pbxQuery 回包的 myWeekAward/myLastWeekAward */
-    private static final Map<String, Map<Long, Long>> PBX_WEEK_USER_AWARD_CENTS = new ConcurrentHashMap<>();
-    /** 周榜：每周总投注（分） */
-    private static final Map<String, Long> PBX_WEEK_TOTAL_BET_CENTS = new ConcurrentHashMap<>();
-    /** 周榜：每周总“返还(总额,含手续费前)”（分） */
-    private static final Map<String, Long> PBX_WEEK_TOTAL_RETURN_CENTS = new ConcurrentHashMap<>();
-    /** 周榜：每周总“实返(net)”（分） */
-    private static final Map<String, Long> PBX_WEEK_TOTAL_NET_CENTS = new ConcurrentHashMap<>();
-    /** 周榜：每周总手续费（分） */
-    private static final Map<String, Long> PBX_WEEK_TOTAL_FEE_CENTS = new ConcurrentHashMap<>();
-    /** 周榜奖池（分）：从每周利润按比例抽取进入 */
-    private static final Map<String, Long> PBX_WEEK_RANK_POOL_CENTS = new ConcurrentHashMap<>();
-    /** 周榜是否已结算 */
+    /**
+     * 周榜结算状态缓存
+     */
     private static final Map<String, Boolean> PBX_WEEK_SETTLED = new ConcurrentHashMap<>();
-    /** 周结算后快照（用于“上周榜”展示），key=weekKey(yyyy-MM-dd) */
-    private static final ConcurrentHashMap<String, JSONArray> PBX_WEEK_TOP10_SNAPSHOT = new ConcurrentHashMap<>();
-    /** 已结算周榜 Top10 结果缓存（用于后续“上周榜查询”接口直接复用；阶段1先放内存） */
-    private static final ConcurrentHashMap<String, JSONArray> PBX_WEEK_SETTLED_TOP10_CACHE = new ConcurrentHashMap<>();
+
+    /**
+     * 已结算 Top10 榜单快照
+     */
+    private static final Map<String, JSONArray> PBX_WEEK_SETTLED_TOP10_CACHE = new ConcurrentHashMap<>();
+
+    /**
+     * 实时榜单快照
+     */
+    private static final Map<String, JSONArray> PBX_WEEK_TOP10_SNAPSHOT = new ConcurrentHashMap<>();
+
+    /**
+     * 结算时计算出的分红奖池金额
+     */
+    private static final Map<String, Long> PBX_WEEK_RANK_POOL_CENTS = new ConcurrentHashMap<>();
+
+    /**
+     * 玩家周榜分红金额
+     */
+    private static final Map<String, Map<Long, Long>> PBX_WEEK_USER_AWARD_CENTS = new ConcurrentHashMap<>();
 
 
     private transient Timer pbxWeekSettleTimer;
@@ -216,8 +198,9 @@ public class ManagerCapitalService extends BaseService {
         logger.info("[PBX] Auto triggering last week settle: " + lastWeekKey);
 
         // 构造默认参数
-        BigDecimal rankProfitPercent = new BigDecimal("0.5");
-        JSONArray top10Rates = new JSONArray(); // 空数组会让内部使用默认值
+        JSONObject gameSetting = pbxLoadGameSettingByGameId(12);
+        BigDecimal rankProfitPercent = (gameSetting != null) ? gameSetting.getBigDecimal("rankProfitPercent") : new BigDecimal("0.5");
+        JSONArray top10Rates = (gameSetting != null) ? gameSetting.getJSONArray("top10Rates") : new JSONArray();
 
         // 调用结算
         // 注意：这里需要 try-catch 避免影响定时器
@@ -834,21 +817,36 @@ public class ManagerCapitalService extends BaseService {
 
         // 3) 读取游戏配置：榜单利润入池比例（默认 0.5）
         JSONObject gameSetting = pbxLoadGameSettingByGameId(gameId);
-        BigDecimal rankProfitPercent = gameSetting.getBigDecimal("rankProfitPercent");
+        BigDecimal rankProfitPercent = null;
+        if (gameSetting != null) {
+            rankProfitPercent = gameSetting.getBigDecimal("rankProfitPercent");
+        }
         if (rankProfitPercent == null) {
             rankProfitPercent = new BigDecimal("0.5");
         }
 
         // 4) 周汇总（本周/上周）
-        // 本周
-        long weekTotalBetCents = getLongFromCache(pbxWeekTotalBetCentsKey(gameId, weekKey));
-        long weekTotalNetReturnCents = PBX_WEEK_TOTAL_NET_RETURN_CENTS.getOrDefault(weekKey, 0L);
-        long weekTotalFeeCents = PBX_WEEK_TOTAL_FEE_CENTS.getOrDefault(weekKey, 0L);
+        // =========================================================================
+        // 【核心修复点】全部改为从 Redis 读取 (使用 getLongFromCache + 对应的 Key 方法)
+        // 解决了“数据写入 Redis 但读取仍在读空 Map”导致周榜显示为 0 的问题
+        // =========================================================================
+
+        // --- 4.1 本周数据 ---
+        long weekTotalBetCents       = getLongFromCache(pbxWeekTotalBetCentsKey(gameId, weekKey));
+        long weekTotalNetReturnCents = getLongFromCache(pbxWeekTotalNetCentsKey(gameId, weekKey)); // ✅ 修正：读 Redis
+        long weekTotalFeeCents       = getLongFromCache(pbxWeekTotalFeeCentsKey(gameId, weekKey)); // ✅ 修正：读 Redis
+
         long weekProfitCents = weekTotalBetCents - weekTotalNetReturnCents;
         if (weekProfitCents < 0) {
             weekProfitCents = 0;
         }
         long weekRankPoolCents = PBX_WEEK_RANK_POOL_CENTS.getOrDefault(weekKey, 0L);
+        if (weekRankPoolCents <= 0 && weekSettled && thisSummary != null) {
+            Long savedPool = thisSummary.getPoolAddCents();
+            if (savedPool != null) {
+                weekRankPoolCents = savedPool;
+            }
+        }
         if (weekRankPoolCents <= 0 && !weekSettled) {
             weekRankPoolCents = new BigDecimal(weekProfitCents).multiply(rankProfitPercent).setScale(0, RoundingMode.FLOOR).longValue();
         }
@@ -858,10 +856,11 @@ public class ManagerCapitalService extends BaseService {
         result.put("weekProfit", centsToBd(weekProfitCents));
         result.put("weekDividendPool", centsToBd(weekRankPoolCents));
 
-        // 上周
-        long lastWeekTotalBetCents = PBX_WEEK_TOTAL_BET_CENTS.getOrDefault(lastWeekKey, 0L);
-        long lastWeekTotalNetReturnCents = PBX_WEEK_TOTAL_NET_RETURN_CENTS.getOrDefault(lastWeekKey, 0L);
-        long lastWeekTotalFeeCents = PBX_WEEK_TOTAL_FEE_CENTS.getOrDefault(lastWeekKey, 0L);
+        // --- 4.2 上周数据 ---
+        long lastWeekTotalBetCents       = getLongFromCache(pbxWeekTotalBetCentsKey(gameId, lastWeekKey)); // ✅ 修正：读 Redis
+        long lastWeekTotalNetReturnCents = getLongFromCache(pbxWeekTotalNetCentsKey(gameId, lastWeekKey)); // ✅ 修正：读 Redis
+        long lastWeekTotalFeeCents       = getLongFromCache(pbxWeekTotalFeeCentsKey(gameId, lastWeekKey)); // ✅ 修正：读 Redis
+
         long lastWeekProfitCents = lastWeekTotalBetCents - lastWeekTotalNetReturnCents;
         if (lastWeekProfitCents < 0) {
             lastWeekProfitCents = 0;
@@ -983,66 +982,6 @@ public class ManagerCapitalService extends BaseService {
         }
 
         return result;
-    }
-
-    /**
-     * 构建周榜 Top10 快照（按 betCents desc + userId asc）
-     * includeAward=true 时，会把（若存在）奖励字段填入；用于已结算榜单展示。
-     */
-    private JSONArray buildWeekTop10Snapshot(String weekKey, boolean includeAward) {
-        Map<Long, Long> userBetMap = PBX_WEEK_USER_BET_CENTS.getOrDefault(weekKey, new ConcurrentHashMap<>());
-        if (userBetMap.isEmpty()) {
-            return new JSONArray();
-        }
-
-        // 排序
-        List<Map.Entry<Long, Long>> entries = new ArrayList<>(userBetMap.entrySet());
-        entries.sort((a, b) -> {
-            int cmp = Long.compare(b.getValue(), a.getValue());
-            if (cmp != 0) return cmp;
-            return Long.compare(a.getKey(), b.getKey());
-        });
-
-        Map<Long, Long> awardMap = includeAward ? PBX_WEEK_USER_AWARD_CENTS.getOrDefault(weekKey, new ConcurrentHashMap<>()) : null;
-
-        JSONArray top10 = new JSONArray();
-        int rank = 1;
-        for (Map.Entry<Long, Long> e : entries) {
-            if (rank > 10) break;
-            JSONObject o = new JSONObject();
-            o.put("rank", rank);
-            o.put("userId", String.valueOf(e.getKey()));
-            o.put("betAmount", centsToBd(e.getValue()));
-            if (includeAward && awardMap != null) {
-                o.put("award", centsToBd(awardMap.getOrDefault(e.getKey(), 0L)));
-            }
-            top10.add(o);
-            rank++;
-        }
-        return top10;
-    }
-
-    /** 计算用户在某周的排名（0=未上榜/未下注） */
-    private int calcUserRank(Map<Long, Long> userBetMap, Long userId) {
-        Long my = userBetMap.get(userId);
-        if (my == null || my <= 0) {
-            return 0;
-        }
-
-        // 排名定义：betCents desc + userId asc
-        int rank = 1;
-        for (Map.Entry<Long, Long> e : userBetMap.entrySet()) {
-            if (e.getKey().equals(userId)) {
-                continue;
-            }
-            long other = e.getValue() == null ? 0L : e.getValue();
-            if (other > my) {
-                rank++;
-            } else if (other == my && e.getKey() < userId) {
-                rank++;
-            }
-        }
-        return rank;
     }
 
 

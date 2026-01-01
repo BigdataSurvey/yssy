@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.zywl.app.defaultx.mapper.UserPetMapper">
+
+    <resultMap id="BaseResultMap" type="com.zywl.app.base.bean.UserPet">
+        <id column="id" property="id" jdbcType="BIGINT"/>
+        <result column="user_id" property="userId" jdbcType="BIGINT"/>
+        <result column="status" property="status" jdbcType="TINYINT"/>
+        <result column="buy_time" property="buyTime" jdbcType="TIMESTAMP"/>
+        <result column="total_yield_amount" property="totalYieldAmount" jdbcType="DECIMAL"/>
+        <result column="create_time" property="createTime" jdbcType="TIMESTAMP"/>
+        <result column="update_time" property="updateTime" jdbcType="TIMESTAMP"/>
+    </resultMap>
+
+    <sql id="Base_Column_List">
+        id,user_id,status,buy_time,total_yield_amount,create_time,update_time
+    </sql>
+
+    <insert id="insert" parameterType="com.zywl.app.base.bean.UserPet" useGeneratedKeys="true" keyProperty="id" keyColumn="id">
+        insert into t_user_pet(user_id,status,buy_time,total_yield_amount,create_time,update_time)
+        values(#{userId},#{status},#{buyTime},#{totalYieldAmount},now(),now())
+    </insert>
+
+    <insert id="batchInsert" parameterType="java.util.List">
+        insert into t_user_pet(user_id,status,buy_time,total_yield_amount,create_time,update_time)
+        values
+        <foreach collection="list" item="it" separator=",">
+            (#{it.userId},#{it.status},#{it.buyTime},#{it.totalYieldAmount},now(),now())
+        </foreach>
+    </insert>
+
+    <select id="findListByUserId" parameterType="java.lang.Long" resultMap="BaseResultMap">
+        select
+        <include refid="Base_Column_List"/>
+        from t_user_pet
+        where user_id = #{userId}
+        and status = 1
+        order by id desc
+    </select>
+
+    <select id="countByUserId" parameterType="java.lang.Long" resultType="int">
+        select count(1)
+        from t_user_pet
+        where user_id = #{userId}
+          and status = 1
+    </select>
+
+    <insert id="saveOrUpdate" parameterType="com.zywl.app.base.bean.UserPet">
+        insert into t_user_pet(
+            user_id,pet_type,status,buy_time,create_time,update_time
+        ) values (
+                     #{userId},#{petType},#{status},#{buyTime},now(),now()
+                 )
+            on duplicate key update
+                                 pet_type = values(pet_type),
+                                 status = values(status),
+                                 buy_time = values(buy_time),
+                                 update_time = now()
+    </insert>
+
+    <select id="findFirstBuyTime" parameterType="java.lang.Long" resultType="java.util.Date">
+        select min(buy_time)
+        from t_user_pet
+        where user_id = #{userId}
+          and status = 1
+    </select>
+
+    <select id="countByUserIdAndBuyTimeRange" parameterType="java.util.Map" resultType="int">
+        select count(1)
+        from t_user_pet
+        where user_id = #{userId}
+        and status = 1
+        <if test="startTime != null">
+            and buy_time &gt;= #{startTime}
+        </if>
+        <if test="endTime != null">
+            and buy_time &lt; #{endTime}
+        </if>
+    </select>
+
+</mapper>

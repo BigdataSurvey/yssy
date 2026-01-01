@@ -234,6 +234,8 @@ public class Config extends BaseBean {
 
 	// 农场配置表版本
 	public static final String FARM_TABLE_VERSION = "VERSION_FARM";
+	// 养宠配置表版本
+	public static final String PET_TABLE_VERSION = "VERSION_PET";
 
 	//购买土地配置;
 	public static final String UNLOCK_FARM = "UNLOCK_FARM";

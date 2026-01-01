@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.zywl.app.defaultx.mapper.UserPetUserMapper">
+
+    <resultMap id="BaseResultMap" type="com.zywl.app.base.bean.UserPetUser">
+        <id column="user_id" property="userId" jdbcType="BIGINT"/>
+        <result column="hunger_hours" property="hungerHours" jdbcType="INTEGER"/>
+        <result column="pending_yield_amount" property="pendingYieldAmount" jdbcType="DECIMAL"/>
+        <result column="total_yield_amount" property="totalYieldAmount" jdbcType="DECIMAL"/>
+
+        <result column="today_dividend_amount" property="todayDividendAmount" jdbcType="DECIMAL"/>
+        <result column="total_dividend_amount" property="totalDividendAmount" jdbcType="DECIMAL"/>
+
+        <result column="unlock_lv3" property="unlockLv3" jdbcType="TINYINT"/>
+        <result column="unlock_lv4" property="unlockLv4" jdbcType="TINYINT"/>
+        <result column="unlock_lv5" property="unlockLv5" jdbcType="TINYINT"/>
+
+        <result column="last_settle_time" property="lastSettleTime" jdbcType="TIMESTAMP"/>
+        <result column="create_time" property="createTime" jdbcType="TIMESTAMP"/>
+        <result column="update_time" property="updateTime" jdbcType="TIMESTAMP"/>
+    </resultMap>
+
+    <sql id="Base_Column_List">
+        user_id,hunger_hours,pending_yield_amount,total_yield_amount,
+        today_dividend_amount,total_dividend_amount,
+        unlock_lv3,unlock_lv4,unlock_lv5,
+        last_settle_time,create_time,update_time
+    </sql>
+
+    <select id="selectByPrimaryKey" parameterType="java.lang.Long" resultMap="BaseResultMap">
+        select
+        <include refid="Base_Column_List"/>
+        from t_user_pet_user
+        where user_id = #{userId}
+        limit 1
+    </select>
+
+    <select id="selectByPrimaryKeyForUpdate" parameterType="java.lang.Long" resultMap="BaseResultMap">
+        select
+        <include refid="Base_Column_List"/>
+        from t_user_pet_user
+        where user_id = #{userId}
+        limit 1
+        for update
+    </select>
+
+    <insert id="saveOrUpdate" parameterType="com.zywl.app.base.bean.UserPetUser">
+        insert into t_user_pet_user(
+            user_id,hunger_hours,pending_yield_amount,total_yield_amount,
+            today_dividend_amount,total_dividend_amount,
+            unlock_lv3,unlock_lv4,unlock_lv5,
+            last_settle_time,create_time,update_time
+        ) values (
+                     #{userId},#{hungerHours},#{pendingYieldAmount},#{totalYieldAmount},
+                     #{todayDividendAmount},#{totalDividendAmount},
+                     #{unlockLv3},#{unlockLv4},#{unlockLv5},
+                     #{lastSettleTime},now(),now()
+                 )
+            on duplicate key update
+                                 hunger_hours=values(hunger_hours),
+                                 pending_yield_amount=values(pending_yield_amount),
+                                 total_yield_amount=values(total_yield_amount),
+                                 today_dividend_amount=values(today_dividend_amount),
+                                 total_dividend_amount=values(total_dividend_amount),
+                                 unlock_lv3=values(unlock_lv3),
+                                 unlock_lv4=values(unlock_lv4),
+                                 unlock_lv5=values(unlock_lv5),
+                                 last_settle_time=values(last_settle_time),
+                                 update_time=now()
+    </insert>
+
+</mapper>

@@ -105,6 +105,9 @@ public class PlayGameService extends BaseService {
     /*种地配置*/
     @Autowired
     private DicFarmService dicFarmService;
+    /*养宠配置*/
+    @Autowired
+    private DicPetService dicPetService;
 
     /**
      * 系统初始化缓存配置
@@ -142,8 +145,10 @@ public class PlayGameService extends BaseService {
     public final static Map<String, DicHandBook> DIC_HAND_BOOK_MAP = new ConcurrentHashMap<>();
     //手册每日奖励信息配置缓存
     public final static Map<String, Map<String, DicHandBookReward>> DIC_HAND_BOOK_REWARD_MAP = new ConcurrentHashMap<>();
-    // 农场种地配置
+    // 农场种地配置缓存
     public static final Map<String, DicFarm> DIC_FARM = new ConcurrentHashMap<>();
+    // 养宠配置缓存
+    public static final Map<String, DicPet> DIC_PET = new ConcurrentHashMap<>();
 
 
     /**
@@ -289,6 +294,8 @@ public class PlayGameService extends BaseService {
         initDicHandBookReward();
         //农场配置
         initFarm();
+        //养宠配置
+        initPet();
     }
 
     /**
@@ -451,6 +458,20 @@ public class PlayGameService extends BaseService {
         { logger.warn("dic_farm 表为空，未加载到任何农场配置");return;}
         list.forEach(e -> DIC_FARM.put(e.getSeedItemId().toString(), e));
         logger.info("初始化农场种地配置完成，加载数量：{}"+ DIC_FARM.size());
+    }
+
+    /**
+     * 初始化养宠配置
+     */
+    public void initPet() {
+        DIC_PET.clear();
+        logger.info("初始化养宠配置 dic_pet");
+
+        List<DicPet> list = dicPetService.findAll();
+        if (list == null || list.isEmpty())
+        { logger.warn("dic_pet 表为空，未加载到任何养宠配置");return;}
+        list.forEach(e -> DIC_PET.put(e.getId().toString(), e));
+        logger.info("初始化养宠配置完成，加载数量：{}"+ DIC_PET.size());
     }
 
 
