@@ -3,6 +3,7 @@ import com.zywl.app.base.bean.card.DicFarm;
 import com.zywl.app.defaultx.dbutil.DaoService;
 import com.zywl.app.base.bean.UserPetUser;
 import com.zywl.app.base.bean.UserPet;
+import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
@@ -11,6 +12,7 @@ import org.springframework.transaction.annotation.Transactional;
  * @Version: V1.0
  * @Description: 养宠用户状态Service
  */
+@Service
 public class UserPetUserService extends DaoService {
 
     public UserPetUserService() {

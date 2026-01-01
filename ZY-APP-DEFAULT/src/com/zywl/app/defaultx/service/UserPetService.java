@@ -1,6 +1,8 @@
 package com.zywl.app.defaultx.service;
 import com.zywl.app.base.bean.UserPet;
 import com.zywl.app.defaultx.dbutil.DaoService;
+import org.springframework.stereotype.Service;
+
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -10,6 +12,7 @@ import java.util.Map;
  * @Version: V1.0
  * @Description: 用户宠物明细Service
  */
+@Service
 public class UserPetService extends DaoService {
 
     public UserPetService() {

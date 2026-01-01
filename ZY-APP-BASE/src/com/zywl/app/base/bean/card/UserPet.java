@@ -1,9 +1,9 @@
 package com.zywl.app.base.bean.card;
 
 import com.zywl.app.base.BaseBean;
-
+import org.apache.ibatis.type.Alias;
 import java.util.Date;
-
+@Alias("CardUserPet")
 public class UserPet extends BaseBean {
 
     private Long id;

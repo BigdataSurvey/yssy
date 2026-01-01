@@ -104,132 +104,136 @@ public class RedisKeyConstant {
 
 
 
-	
+
 	//socket对象
 	public final static String APP_WSID="t:app:ws:";
-	
+
 	//用户信息
 	public final static String APP_USER_INFO = "t:app:user:info:";
 
 	public final static String APP_USER_CHANNEL_NO = "t:app:user:channel:";
-	
+
 	//用户code-id
 	public final static String APP_USER_CODE_ID ="t:app:user:code:";
-	
+
 	//用户背包物品
 	public final static String APP_USER_BACKPACK="t:app:user:backpack:";
-	
+
 	//用户的socketId
 	public final static String APP_USER_WSID="t:app:user:ws:";
-	
+
 	//用户的资产
 	public final static String APP_USER_CAPITAL="t:app:user:capital:";
-	
+
 	//用户的角色信息
 	public final static String APP_USER_PLAYER= "t:app:user:player:";
 
 	public final static String APP_USER_IS_RECEIVE_MAGIC="t:app:user:isReceiveMagic:";
-	
+
 	//交易行手续费设置
 	public final static String APP_CONFIG_TRADING_FEE = "t:app:config:fee:tradingfee";
-	
+
 
 	//好友转增的门槛设置
 	public final static String APP_TRANSFER_SILL = "t:app:config:fee:sillTransfer";
-	
+
 	//提现手续费设置
 	public final static String APP_CASH_FEE = "t:app:config:fee:cash";
-	
+
 	//领取气泡收益门槛设置
 	public final static String APP_INCOME_SILL = "t:app:config:fee:sillIncome";
-	
+
 	//提现手续费设置
 	public final static String APP_CONVERT_RATE= "t:app:config:fee:convert";
-	
+
 	//交易行出售物品信息
 	public final static String APP_TRADING_SELL="t:app:trading:sell:";
-	
+
 	//交易行求购物品信息
 	public final static String APP_TRADING_ASK_BUY ="t:app:trading:askbuy:";
-	
+
 	//交易行用户的上架信息
 	public final static String APP_USER_TRADING_LISTING ="t:app:user:trading:listing:";
-	
+
 	//交易行用户的求购信息
 	public final static String APP_USER_TRADING_ASKBUY ="t:app:user:trading:askbuy:";
-	
+
 	//交易行trading信息
 	public final static String APP_TRADING_ID="t:app:trading:id:";
-	
+
 	//游戏内的物品信息
 	public final static String APP_ITEM_INFO = "t:app:item:";
-	
+
 	//游戏内所有的物品信息
 	public final static String APP_ALL_ITEM_INFO = "t:app:dic:item:all";
-	
+
 	//邮件有效期
 	public final static String APP_MAIL_VALIDITY="t:app:config:mailValidity";
-	
+
 	//排行榜数量
 	public final static String APP_TOP_NUMBER="t:app:config:topNumber";
-	
+
+	// 用户资产消耗排行榜
+	public final static String APP_TOP_CONSUME_ALL = "t:app:top:consume:all";
+	public final static String APP_TOP_CONSUME_TYPE = "t:app:top:consume:type:";
+
 	//锁
 	public final static String APP_LOCK="t:app:lock:lock";
-	
+
 	//游戏境界设置
 	public final static String APP_GAME_REALM="t:app:dic:game:setting:realm";
-	
+
 	//用户本月签到数据
 	public final static String APP_USER_SIGN="t:app:user:sign:";
-	
+
 	//签到奖励信息
 	public final static String APP_SIGN_REWARD = "t:app:dic:sign:reward";
-	
+
 	//用户签到信息
 	public final static String APP_USER_SIGN_INFO = "t:app:user:sign:";
-	
+
 	//补签价格
 	public final static String APP_SIGN_PRICE = "t:app:config:fee:signPrice";
-	
+
 	//验证码
 	public final static String APP_VERIFY_CODE = "t:app:code:";
-	
+
 	//用户基本设置
 	public final static String APP_USER_SETTING = "t:app:user:setting:";
 
 	//所有成就
 	public final static String APP_ACHIEVEMENT_LIST = "t:app:dic:achievement:list";
-	
+
 	//所有每日
 	public final static String APP_DAILY_TASK_LIST = "t:app:dic:dailyTask:list";
-	
+
 	//某种类型的成就
 	public final static String APP_ACHIEVEMENT_TYPE_LIST="t:app:dic:achievement:type:";
-	
+
 	//用户已完成成就信息
 	public final static String APP_USER_COMPLETE_ACHIEVEMENT="t:app:user:achievement:complete:";
-	
+
 	//用户达成条件未领取奖励的成就信息
 	public final static String APP_USER_ACHIEVEMENT_NO_COMPLETE="t:app:user:achievement:noComplete:";
-	
+
 	//用户打开成就界面的列表
 	public final static String APP_USER_ACHIEVEMENT_LIST="t:app:user:achievement:list:";
-	
+
 	//用户打开每日任务的列表
 	public final static String APP_USER_DAILY_TASK_LIST="t:app:user:dailyTask:list:";
-	
+
 	//用户红点提醒集合
 	public final static String APP_USER_REDREMINDER_LIST=  "t:app:user:redReminder:";
-	
+
 	//dic 等级经验信息
 	public final static String APP_DIC_LV_EXP="t:app:dic:lvExp";
-	
+
 	//物品表版本号
 	public final static String APP_CONFIG_VERSION_ITEM="t:app:config:version:item";
-	
+
 	//物品表版本号
 	public final static String APP_CONFIG_VERSION_ELIXIR="t:app:config:version:elixir";
-	
+
 	//物品表版本号
 	public final static String APP_CONFIG_VERSION_PET="t:app:config:version:pet";
 
@@ -238,7 +242,7 @@ public class RedisKeyConstant {
 
 	//某个用户的邮件缓存
 	public final static String APP_MY_MAIL_LIST = "t:app:user:mail:";
-	
+
 	//广告位观看次数
 	public final static String APP_USER_ADVERT="t:app:user:advert:";
 
@@ -247,15 +251,15 @@ public class RedisKeyConstant {
 
 	//用户未领取铜钱
 	public final static String APP_USER_NO_COMPLETE_COIN = "t:app:user:offlineCoin:";
-	
+
 
 	//获取用户下级数量
 	public final static String APP_USER_SON_COUNT= "t:app:user:sonCount:";
-	
+
 
 	//今日偷蛋次数
 	public final static String APP_USER_STOLEN_COUNT = "t:app:user:stolenCount:";
-	
+
 	//今天刷新偷蛋列表次数
 	public final static String APP_USER_REFRESH_STOLEN_COUNT = "t:app:user:refreshStolenCount:";
 

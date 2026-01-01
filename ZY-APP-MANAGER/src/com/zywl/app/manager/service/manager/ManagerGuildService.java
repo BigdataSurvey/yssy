@@ -172,9 +172,9 @@ public class ManagerGuildService extends BaseService {
         }else if (allGuild.size()==4) {
             createAmount = GUILD_FEE.multiply(new BigDecimal("0.9"));
         }
-        UserCapital userCapital = userCapitalCacheService.getUserCapitalCacheByType(userId, UserCapitalTypeEnum.currency_2.getValue());
+        UserCapital userCapital = userCapitalCacheService.getUserCapitalCacheByType(userId, UserCapitalTypeEnum.hxjf.getValue());
         if (userCapital.getBalance().compareTo(createAmount) < 0) {
-            throwExp(UserCapitalTypeEnum.currency_2.getName()+"不足");
+            throwExp(UserCapitalTypeEnum.hxjf.getName()+"不足");
         }
         if (user.getRoleId() == 2 || user.getRoleId() == 3) {
             throwExp("您已成为王者之师，无需再次购买");
@@ -183,7 +183,7 @@ public class ManagerGuildService extends BaseService {
         //guildMemberService.addGuildMember(dataId, userId, new BigDecimal("8"), 3, userId, GUILD_FEE);
         //initStatics(userId, dataId);
         userCapitalService.subUserBalanceByGuild(userId, createAmount, dataId);
-        managerGameBaseService.pushCapitalUpdate(userId,UserCapitalTypeEnum.currency_2.getValue());
+        managerGameBaseService.pushCapitalUpdate(userId,UserCapitalTypeEnum.hxjf.getValue());
         //userService.updateUserRoleId(userId, 3);
         return new JSONObject();
     }
@@ -203,10 +203,10 @@ public class ManagerGuildService extends BaseService {
     public void refuseApplyGuild(long dataId, long userId) {
         //退款
         userCapitalService.addUserBalanceByGuild(userId, GUILD_FEE.add(GUILD_FEE.multiply(new BigDecimal("0.08"))), dataId);
-        UserCapital userCapital = userCapitalCacheService.getUserCapitalCacheByType(userId,UserCapitalTypeEnum.currency_2.getValue());
+        UserCapital userCapital = userCapitalCacheService.getUserCapitalCacheByType(userId,UserCapitalTypeEnum.hxjf.getValue());
         JSONObject pushData = new JSONObject();
         pushData.put("userId", userId);
-        pushData.put("capitalType", UserCapitalTypeEnum.currency_2.getValue());
+        pushData.put("capitalType", UserCapitalTypeEnum.hxjf.getValue());
         pushData.put("balance", userCapital.getBalance());
         Push.push(PushCode.updateUserCapital, managerSocketService.getServerIdByUserId(userId), pushData);
         JSONObject obj = new JSONObject();
@@ -285,15 +285,15 @@ public class ManagerGuildService extends BaseService {
             Integer freeNum = guild.getFreeNum();
             if (freeNum <= 0) {
                 //需要收费
-                UserCapital userCapital = userCapitalCacheService.getUserCapitalCacheByType(createUserId, UserCapitalTypeEnum.currency_2.getValue());
+                UserCapital userCapital = userCapitalCacheService.getUserCapitalCacheByType(createUserId, UserCapitalTypeEnum.hxjf.getValue());
                 if (userCapital.getBalance().compareTo(GUILD_MEMBER_FEE) == -1) {
                     throwExp("金币不足");
                 }
                 userCapitalService.subUserBalanceByGuild(createUserId, GUILD_MEMBER_FEE, guildId);
-                UserCapital createUserCapital = userCapitalCacheService.getUserCapitalCacheByType(createUserId,UserCapitalTypeEnum.currency_2.getValue());
+                UserCapital createUserCapital = userCapitalCacheService.getUserCapitalCacheByType(createUserId,UserCapitalTypeEnum.hxjf.getValue());
                 JSONObject pushData = new JSONObject();
                 pushData.put("userId", createUserId);
-                pushData.put("capitalType", UserCapitalTypeEnum.currency_2.getValue());
+                pushData.put("capitalType", UserCapitalTypeEnum.hxjf.getValue());
                 pushData.put("balance", userCapital.getBalance());
                 Push.push(PushCode.updateUserCapital, managerSocketService.getServerIdByUserId(createUserId), pushData);
                 guildService.updateGuildBailAmount(GUILD_MEMBER_FEE, guildId);
@@ -365,7 +365,7 @@ public class ManagerGuildService extends BaseService {
             String orderNo = OrderUtil.getOrder5Number();
             Long dataId = guildGrantRecordService.addRecord(guildId, userId, orderNo, operatorUserId, member.getProfitBalance(), member.getProfitRate(), amount, amount, user.getUserNo());
             userCapitalService.addUserBalanceByReceiveGuild(operatorUserId, amount, orderNo, dataId);
-            managerGameBaseService.pushCapitalUpdate(operatorUserId,UserCapitalTypeEnum.currency_2.getValue());
+            managerGameBaseService.pushCapitalUpdate(operatorUserId,UserCapitalTypeEnum.hxjf.getValue());
             JSONObject result = new JSONObject();
             result.put("memberAmount", amount);
             return result;

@@ -78,4 +78,23 @@
           and level in (1,2)
     </select>
 
+
+    <select id="sumTodayDividendByLevel" parameterType="map" resultType="java.math.BigDecimal">
+        SELECT IFNULL(SUM(amount),0)
+        FROM t_user_pet_record
+        WHERE user_id = #{userId}
+          AND record_type = 2
+          AND status = 1
+          AND level = #{level}
+          AND create_time >= DATE_FORMAT(NOW(),'%Y-%m-%d 00:00:00')
+    </select>
+
+    <select id="sumTotalDividendByLevel" parameterType="map" resultType="java.math.BigDecimal">
+        SELECT IFNULL(SUM(amount),0)
+        FROM t_user_pet_record
+        WHERE user_id = #{userId}
+          AND record_type = 2
+          AND status = 1
+          AND level = #{level}
+    </select>
 </mapper>
