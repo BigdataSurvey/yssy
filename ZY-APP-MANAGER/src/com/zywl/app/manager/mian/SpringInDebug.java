@@ -414,12 +414,29 @@ public class SpringInDebug {
         }
     }
 
+
+    //创建工会
+    private static void testCreateGuild() {
+        ManagerGuildService guildService = ctx.getBean(ManagerGuildService.class);
+
+        JSONObject params = new JSONObject();
+        params.put("userId", MY_USER_ID);
+        params.put("guildName", "红花会");
+        System.out.println("========== [创建工会] 测试 ==========");
+        try {
+            guildService.getGuildInfo(null,params);
+            System.out.println("[========== ========== ========== 创建工会 OK" );
+        } catch (Exception e) {
+            System.out.println("[创建工会] distributeJoy EXCEPTION: " + e.getMessage());
+            e.printStackTrace();
+        }
+    }
+
     //工会详情
     private static void testGuild() {
         ManagerGuildService guildService = ctx.getBean(ManagerGuildService.class);
 
         // 测试用户的下级用户ID
-
         JSONObject params = new JSONObject();
         params.put("userId", MY_USER_ID);
         params.put("guildId", 54);
@@ -433,14 +450,15 @@ public class SpringInDebug {
         }
     }
 
-    //购买狮子
+    //养宠物信息
     private static void getPetInfoTest() {
         ManagerGamePetService getPetService = ctx.getBean(ManagerGamePetService.class);
         JSONObject params = new JSONObject();
         params.put("userId", MY_USER_ID);
         System.out.println("========== [获取养宠信息] 测试 ==========");
         try {
-            getPetService.getPetInfo(null,params);
+            JSONObject result = getPetService.getPetInfo(null, params);
+            System.out.println(result == null ? "null" : result.toJSONString());
             System.out.println("[========== ========== ========== 获取养宠信息 OK" );
         } catch (Exception e) {
             System.out.println("[获取养宠信息][=====================异常]: " + e.getMessage());
@@ -448,6 +466,91 @@ public class SpringInDebug {
         }
     }
 
+    //购买宠物
+    private static void getPayPetTest() {
+        ManagerGamePetService getPetService = ctx.getBean(ManagerGamePetService.class);
+        JSONObject params = new JSONObject();
+        params.put("userId", MY_USER_ID);
+        params.put("buyCount", 2);
+        System.out.println("========== [购买养宠] 测试 ==========");
+        try {
+            JSONObject result = getPetService.buyLion(null, params);
+            System.out.println(result == null ? "null" : result.toJSONString());
+            System.out.println("[========== ========== ========== 购买养宠 OK" );
+        } catch (Exception e) {
+            System.out.println("[购买养宠][=====================异常]: " + e.getMessage());
+            e.printStackTrace();
+        }
+    }
+
+    //喂养宠物
+    private static void getFeedLionTest() {
+        ManagerGamePetService getPetService = ctx.getBean(ManagerGamePetService.class);
+        JSONObject params = new JSONObject();
+        params.put("userId", MY_USER_ID);
+        params.put("feedTimes", 1);
+        System.out.println("========== [喂养宠物] 测试 ==========");
+        try {
+            JSONObject result = getPetService.feedLion(null, params);
+            System.out.println(result == null ? "null" : result.toJSONString());
+            System.out.println("[========== ========== ========== 喂养宠物 OK" );
+        } catch (Exception e) {
+            System.out.println("[喂养宠物][=====================异常]: " + e.getMessage());
+            e.printStackTrace();
+        }
+    }
+
+
+    //领取宠物收益信息
+    private static void getClaimYieldTest() {
+        ManagerGamePetService getPetService = ctx.getBean(ManagerGamePetService.class);
+        JSONObject params = new JSONObject();
+        params.put("userId", MY_USER_ID);
+        System.out.println("========== [领取养宠产出] 测试 ==========");
+        try {
+            JSONObject result = getPetService.claimYield(null, params);
+            System.out.println(result == null ? "null" : result.toJSONString());
+            System.out.println("[========== ========== ========== 领取养宠产出 OK" );
+        } catch (Exception e) {
+            System.out.println("[领取养宠产出][=====================异常]: " + e.getMessage());
+            e.printStackTrace();
+        }
+    }
+
+    private static void unlockLv3Test() {
+        ManagerGamePetService svc = ctx.getBean(ManagerGamePetService.class);
+        JSONObject p = new JSONObject();
+        p.put("userId", 928765L);     // 你的1代上级
+        p.put("unlockLevel", 3);
+        System.out.println("========== [解锁3代分润] 测试 ==========");
+        try {
+            JSONObject r = svc.unlockDividendLevel(null, p);
+            System.out.println(r == null ? "null" : r.toJSONString());
+            System.out.println("[========== 解锁3代分润 OK");
+        } catch (Exception e) {
+            System.out.println("[解锁3代分润][异常]: " + e.getMessage());
+            e.printStackTrace();
+        }
+    }
+
+    // 排行榜测试
+    private static void getTopTest() {
+        ManagerGameBaseService svc = ctx.getBean(ManagerGameBaseService.class);
+        JSONObject p = new JSONObject();
+        p.put("userId", MY_USER_ID);
+        // 1邀请拉新/2VIP/7资产消耗
+        p.put("type", 7);
+        p.put("capitalType", 0);
+        System.out.println("========== [排行榜] 测试 ==========");
+        try {
+            JSONObject r = svc.getTop(null, p);
+            System.out.println(r == null ? "null" : r.toJSONString());
+            System.out.println("[========== 排行榜 OK");
+        } catch (Exception e) {
+            System.out.println("[排行榜][异常]: " + e.getMessage());
+            e.printStackTrace();
+        }
+    }
 
     public static void main(String[] args) {
         //种子合成
@@ -497,12 +600,32 @@ public class SpringInDebug {
         // 分配欢乐值
         //testJoyDistributeJoy();
 
+        //创建工会
+        testCreateGuild();
+
         //工会详情
         //testGuild();
 
-        //购买宠物信息
-        getPetInfoTest();
+        //获取购买宠物信息
+        //getPetInfoTest();
+
+        //购买宠物
+        //getPayPetTest();
+
+        //喂养宠物
+        //getFeedLionTest();
+
+        //领取宠物产出
+        //getClaimYieldTest();
+
+        //解锁3代分润
+        //unlockLv3Test();
+
+        //排行榜测试‘’
+        //getTopTest();
     }
+
+
 
 
 
