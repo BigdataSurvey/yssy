@@ -219,13 +219,24 @@ public class ManagerGuildService extends BaseService {
     public Object getGuildInfo(ManagerSocketServer adminSocketServer, JSONObject data) {
         checkNull(data);
         checkNull(data.get("guildId"), data.get("userId"));
-        String userId = data.getString("userId");
+        Long userId = data.getLong("userId");
+        loadAndCheckUser(userId);
+
         Long guildId = data.getLong("guildId");
+        // 查询公会成员列表
         List<GuildMember> guildMembers = guildMemberService.findByGuildId(guildId);
+        if (guildMembers == null || guildMembers.isEmpty()) {
+            logger.error("暂无工会");
+            return new ArrayList<>();
+        }
 
         List<UserVo> list = new ArrayList<>();
         for (GuildMember guildMember : guildMembers) {
             User user = userCacheService.getUserInfoById(guildMember.getUserId());
+            if (user == null) {
+                logger.error("工会用户不存在");
+                continue;
+            }
             UserVo vo = new UserVo();
             try {
                 BeanUtils.copy(user, vo);
@@ -396,5 +407,15 @@ public class ManagerGuildService extends BaseService {
         result.put("fee", fee);
         return result;
     }
-
+    /**
+     * 加载并校验用户
+     */
+    private User loadAndCheckUser(Long userId) {
+        Map<Long, User> users = userCacheService.loadUsers(userId);
+        User user = (users != null) ? users.get(userId) : null;
+        if (user == null) {
+            throwExp("用户不存在");
+        }
+        return user;
+    }
 }

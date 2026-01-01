@@ -3,7 +3,7 @@ package com.zywl.app.base.bean.card;
 import com.alibaba.fastjson2.JSONArray;
 import com.zywl.app.base.BaseBean;
 
-public class DicPet extends BaseBean {
+public class DicPetOld extends BaseBean {
 
     private Long id;
 

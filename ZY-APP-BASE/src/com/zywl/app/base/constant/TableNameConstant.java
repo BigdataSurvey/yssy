@@ -79,6 +79,8 @@ public class TableNameConstant {
 	//购买技能记录
 	public final static String STUDY_SKILL_RECORD = "r_study_skill_record";
 
+	//买兽明细
+	public final static String USER_PET="t_user_pet";
 
 
 	//限时邀请活动奖励

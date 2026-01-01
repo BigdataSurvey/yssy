@@ -910,6 +910,67 @@ public class UserCapitalService extends DaoService {
         }
     }
 
+    // 买兽扣除资产并清理缓存
+    @Transactional
+    public void subUserBalanceByBuyLion(Long userId, BigDecimal amount, Integer capitalType, String orderNo, Long sourceDataId, LogCapitalTypeEnum logType) {
+        if (userId == null || userId <= 0) {
+            throwExp("userId不能为空");
+        }
+        if (amount == null || amount.compareTo(BigDecimal.ZERO) <= 0) {
+            throwExp("amount参数错误");
+        }
+        if (orderNo == null || orderNo.trim().isEmpty()) {
+            throwExp("orderNo不能为空");
+        }
+
+        // 默认资产类型为核心积分
+        if (capitalType == null) {
+            capitalType = UserCapitalTypeEnum.hxjf.getValue();
+        }
+        // 默认日志类型为
+        if (logType == null) {
+            logType = LogCapitalTypeEnum.pet_lion_buy;
+        }
+
+        // 从缓存获取用户资产
+        UserCapital userCapital = userCapitalCacheService.getUserCapitalCacheByType(userId, capitalType);
+        if (userCapital == null) {
+            throwExp("资产不存在");
+        }
+
+        int a = subUserBalance(
+                amount,
+                userId,
+                capitalType,
+                userCapital.getBalance(),
+                userCapital.getOccupyBalance(),
+                orderNo,
+                sourceDataId,
+                logType,
+                TableNameConstant.USER_PET
+        );
+        if (a < 1) {
+            // 清理缓存后重试一次
+            userCapitalCacheService.deltedUserCapitalCache(userId, capitalType);
+            userCapital = userCapitalCacheService.getUserCapitalCacheByType(userId, capitalType);
+
+            int b = subUserBalance(
+                    amount,
+                    userId,
+                    capitalType,
+                    userCapital.getBalance(),
+                    userCapital.getOccupyBalance(),
+                    orderNo,
+                    sourceDataId,
+                    logType,
+                    TableNameConstant.USER_PET
+            );
+            if (b < 1) {
+                throwExp("扣除资产失败，请稍后重试");
+            }
+        }
+    }
+
 
 
     @Transactional

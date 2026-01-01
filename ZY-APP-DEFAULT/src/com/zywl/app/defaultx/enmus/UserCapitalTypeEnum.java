@@ -11,7 +11,8 @@ public enum UserCapitalTypeEnum {
 	rmb("游园币", 4),
 	score("积分",5),
 	hxjf("核心积分",1001),
-	xxxhhb("游戏消耗货币",1002)
+	xxxhhb("游戏消耗货币",1002),
+	ejjf("二级积分",1003),
 	;
 	
 	private String name;

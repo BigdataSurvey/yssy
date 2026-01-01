@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.zywl.app.defaultx.mapper.UserPetRecordMapper">
+
+    <resultMap id="BaseResultMap" type="com.zywl.app.base.bean.UserPetRecord">
+        <id column="id" property="id" jdbcType="BIGINT"/>
+        <result column="user_id" property="userId" jdbcType="BIGINT"/>
+        <result column="pet_id" property="petId" jdbcType="BIGINT"/>
+        <result column="record_type" property="recordType" jdbcType="TINYINT"/>
+        <result column="record_key" property="recordKey" jdbcType="VARCHAR"/>
+
+        <result column="from_user_id" property="fromUserId" jdbcType="BIGINT"/>
+        <result column="level" property="level" jdbcType="TINYINT"/>
+
+        <result column="hunger_before" property="hungerBefore" jdbcType="INTEGER"/>
+        <result column="hunger_after" property="hungerAfter" jdbcType="INTEGER"/>
+
+        <result column="capital_type" property="capitalType" jdbcType="INTEGER"/>
+        <result column="amount" property="amount" jdbcType="DECIMAL"/>
+
+        <result column="changes_json" property="changesJson" jdbcType="LONGVARCHAR"/>
+        <result column="payload_json" property="payloadJson" jdbcType="LONGVARCHAR"/>
+
+        <result column="status" property="status" jdbcType="TINYINT"/>
+        <result column="fail_msg" property="failMsg" jdbcType="VARCHAR"/>
+
+        <result column="create_time" property="createTime" jdbcType="TIMESTAMP"/>
+        <result column="update_time" property="updateTime" jdbcType="TIMESTAMP"/>
+    </resultMap>
+
+    <sql id="Base_Column_List">
+        id,user_id,pet_id,record_type,record_key,from_user_id,level,
+        hunger_before,hunger_after,capital_type,amount,
+        changes_json,payload_json,status,fail_msg,create_time,update_time
+    </sql>
+
+    <insert id="insert" parameterType="com.zywl.app.base.bean.UserPetRecord" useGeneratedKeys="true" keyProperty="id" keyColumn="id">
+        insert into t_user_pet_record(
+            user_id,pet_id,record_type,record_key,from_user_id,level,
+            hunger_before,hunger_after,capital_type,amount,
+            changes_json,payload_json,status,fail_msg,create_time,update_time
+        ) values (
+                     #{userId},#{petId},#{recordType},#{recordKey},#{fromUserId},#{level},
+                     #{hungerBefore},#{hungerAfter},#{capitalType},#{amount},
+                     #{changesJson},#{payloadJson},#{status},#{failMsg},now(),now()
+                 )
+    </insert>
+
+    <select id="findOneByUk" parameterType="com.zywl.app.base.bean.UserPetRecord" resultMap="BaseResultMap">
+        select
+        <include refid="Base_Column_List"/>
+        from t_user_pet_record
+        where user_id = #{userId}
+        and record_type = #{recordType}
+        and record_key = #{recordKey}
+        and pet_id = #{petId}
+        and from_user_id = #{fromUserId}
+        and level = #{level}
+        limit 1
+    </select>
+
+    <select id="sumTodayDividend" parameterType="java.lang.Long" resultType="java.math.BigDecimal">
+        select ifnull(sum(amount),0)
+        from t_user_pet_record
+        where user_id = #{userId}
+          and record_type = 2
+          and status = 1
+          and create_time >= date_format(now(),'%Y-%m-%d 00:00:00')
+    </select>
+
+    <select id="sumDividendLevel12" parameterType="java.lang.Long" resultType="java.math.BigDecimal">
+        select ifnull(sum(amount),0)
+        from t_user_pet_record
+        where user_id = #{userId}
+          and record_type = 2
+          and status = 1
+          and level in (1,2)
+    </select>
+
+</mapper>

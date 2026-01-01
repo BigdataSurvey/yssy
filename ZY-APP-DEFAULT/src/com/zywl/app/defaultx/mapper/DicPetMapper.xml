@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.zywl.app.defaultx.mapper.DicPetMapper">
+
+    <resultMap id="BaseResultMap" type="com.zywl.app.base.bean.DicPet">
+        <id column="id" property="id" />
+        <result column="status" property="status" />
+        <result column="remark" property="remark" />
+        <result column="settle_interval_min" property="settleIntervalMin" />
+        <result column="hunger_max_days" property="hungerMaxDays" />
+        <result column="feed_add_hours" property="feedAddHours" />
+        <result column="buy_cost_capital_type" property="buyCostCapitalType" />
+        <result column="buy_cost_amount" property="buyCostAmount" />
+        <result column="feed_cost_capital_type" property="feedCostCapitalType" />
+        <result column="feed_cost_amount" property="feedCostAmount" />
+        <result column="yield_capital_type" property="yieldCapitalType" />
+        <result column="dividend_capital_type" property="dividendCapitalType" />
+        <result column="unlock_contrib_capital_type" property="unlockContribCapitalType" />
+        <result column="unlock_direct_lv3" property="unlockDirectLv3" />
+        <result column="unlock_direct_lv4" property="unlockDirectLv4" />
+        <result column="unlock_direct_lv5" property="unlockDirectLv5" />
+        <result column="unlock_contrib_lv3" property="unlockContribLv3" />
+        <result column="unlock_contrib_lv4" property="unlockContribLv4" />
+        <result column="unlock_contrib_lv5" property="unlockContribLv5" />
+        <result column="profit_fixed_json" property="profitFixedJson" />
+        <result column="yield_curve_json" property="yieldCurveJson" />
+        <result column="create_time" property="createTime" />
+        <result column="update_time" property="updateTime" />
+    </resultMap>
+
+    <sql id="Base_Column_List">
+        id, status, remark, settle_interval_min, hunger_max_days, feed_add_hours,
+        buy_cost_capital_type, buy_cost_amount, feed_cost_capital_type, feed_cost_amount,
+        yield_capital_type, dividend_capital_type, unlock_contrib_capital_type,
+        unlock_direct_lv3, unlock_direct_lv4, unlock_direct_lv5,
+        unlock_contrib_lv3, unlock_contrib_lv4, unlock_contrib_lv5,
+        profit_fixed_json, yield_curve_json, create_time, update_time
+    </sql>
+
+
+    <!--查询所有养宠配置-->
+    <select id="findAll" resultMap="BaseResultMap">
+        select
+        <include refid="Base_Column_List"/>
+        from dic_pet
+        where status = 1
+        order by create_time DESC
+    </select>
+</mapper>

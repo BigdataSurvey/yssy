@@ -12,6 +12,7 @@ public enum ItemIdEnum {
     BUY_WHITE("购买凭证","43"),
     CORE_POINT("核心积分", "1001"),
     GAME_CONSUME_COIN("游戏消耗货币", "1002"),
+    SECOND_POINT("二级积分", "1003"),
     SEED_CORN_LV1("玉米种子·一阶", "1101"),
     SEED_CORN_LV2("玉米种子·二阶", "1102"),
     SEED_CORN_LV3("玉米种子·三阶", "1103"),
