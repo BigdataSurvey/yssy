@@ -326,7 +326,7 @@ public class SpringInDebug {
         try {
             ManagerGameBaseService svc = ctx.getBean(ManagerGameBaseService.class);
             JSONObject params = new JSONObject();
-            params.put("userId", 937223L);
+            params.put("userId", MY_USER_ID);
             params.put("id",3);
             params.put("number",2);
             params.put("type",1);
@@ -414,11 +414,44 @@ public class SpringInDebug {
         }
     }
 
+    //工会详情
+    private static void testGuild() {
+        ManagerGuildService guildService = ctx.getBean(ManagerGuildService.class);
+
+        // 测试用户的下级用户ID
+
+        JSONObject params = new JSONObject();
+        params.put("userId", MY_USER_ID);
+        params.put("guildId", 54);
+        System.out.println("========== [工会详情] 测试 ==========");
+        try {
+            guildService.getGuildInfo(null,params);
+            System.out.println("[========== ========== ========== 工会测试 OK" );
+        } catch (Exception e) {
+            System.out.println("[JOY] distributeJoy EXCEPTION: " + e.getMessage());
+            e.printStackTrace();
+        }
+    }
+
+    //购买狮子
+    private static void getPetInfoTest() {
+        ManagerGamePetService getPetService = ctx.getBean(ManagerGamePetService.class);
+        JSONObject params = new JSONObject();
+        params.put("userId", MY_USER_ID);
+        System.out.println("========== [获取养宠信息] 测试 ==========");
+        try {
+            getPetService.getPetInfo(null,params);
+            System.out.println("[========== ========== ========== 获取养宠信息 OK" );
+        } catch (Exception e) {
+            System.out.println("[获取养宠信息][=====================异常]: " + e.getMessage());
+            e.printStackTrace();
+        }
+    }
 
 
     public static void main(String[] args) {
         //种子合成
-        synInTest();;
+        // synInTest();;
 
         //背包测试
         //backpackTest();
@@ -463,6 +496,12 @@ public class SpringInDebug {
 
         // 分配欢乐值
         //testJoyDistributeJoy();
+
+        //工会详情
+        //testGuild();
+
+        //购买宠物信息
+        getPetInfoTest();
     }
 
 
