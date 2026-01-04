@@ -188,13 +188,14 @@ public class ManagerBountyService extends BaseService {
         // 必填
         checkNull(params.get("taskName"), params.get("taskTitle"), params.get("taskDesc"),
                 params.get("unitPrice"), params.get("quotaTotal"), params.get("takeLimitHours"),
-                params.get("downloadImgs"));
+                params.get("downloadImgs"), params.get("idTip"));
 
         String taskName = params.getString("taskName");
         String taskTitle = params.getString("taskTitle");
         String taskDesc = params.getString("taskDesc");
         String taskSteps = params.getString("taskSteps");
         String videoUrl = params.getString("videoUrl");
+
         // 下载图可以是JSON串
         String downloadImgs = params.getString("downloadImgs");
         // 个人ID提示文案
@@ -323,7 +324,7 @@ public class ManagerBountyService extends BaseService {
         Long userId = params.getLong("userId");
         Long taskId = params.getLong("taskId");
         loadAndCheckUser(userId);
-
+        String orderNo = "BOUNTY_" + System.currentTimeMillis() + "_" + userId + "_" + taskId;
         BountyTask task = bountyTaskService.findById(taskId);
         if (task == null) throwExp("任务不存在");
         if (task.getStatus() != TASK_STATUS_ONLINE) throwExp("任务已下架");
@@ -347,11 +348,12 @@ public class ManagerBountyService extends BaseService {
         order.setStatus(ORDER_STATUS_DOING);
         order.setTakeTime(now);
         order.setDeadlineTime(addHours(now, task.getTakeLimitHours()));
-
+        order.setOrderNo(orderNo);
+        order.setAppealStatus(APPEAL_STATUS_NONE);
         Long orderId = bountyTaskOrderService.addOrder(order);
 
         Map<String, Object> upd = new HashMap<>();
-        upd.put("id", taskId);
+        upd.put("taskId", taskId);
         upd.put("joinCountDelta", 1);
         upd.put("quotaRemainDelta", -1);
         bountyTaskService.updateCounts(upd);
@@ -393,8 +395,7 @@ public class ManagerBountyService extends BaseService {
         bountyTaskOrderService.updateOrder(order);
 
         Map<String, Object> upd = new HashMap<>();
-        upd.put("id", taskId);
-        upd.put("joinCountDelta", -1);
+        upd.put("taskId", taskId);
         if (task.getStatus() == TASK_STATUS_ONLINE) {
             upd.put("quotaRemainDelta", 1);
         }
@@ -407,10 +408,10 @@ public class ManagerBountyService extends BaseService {
     }
 
     /**
-     * 悬赏任务-提交材料
+     * 悬赏任务-完成任务提交材料
      * **/
     @Transactional
-    @ServiceMethod(code = "007", description = "悬赏任务-提交材料")
+    @ServiceMethod(code = "007", description = "悬赏任务-完成任务提交材料")
     public JSONObject submitOrder(ManagerSocketServer socket, JSONObject params) {
         checkNull(params);
         checkNull(params.get("userId"), params.get("taskId"), params.get("submitImgs"), params.get("submitUserId"));
@@ -542,22 +543,11 @@ public class ManagerBountyService extends BaseService {
         if (pageSize > 50) pageSize = 50;
         int offset = (pageNo - 1) * pageSize;
 
-        List<Integer> statusList = new ArrayList<>();
-        if (tab == null || tab == 1) {
-            statusList.add(ORDER_STATUS_DOING);
-            statusList.add(ORDER_STATUS_SUBMIT);
-            statusList.add(ORDER_STATUS_APPEAL);
-        } else if (tab == 2) {
-            statusList.add(ORDER_STATUS_DONE);
-        } else {
-            statusList.add(ORDER_STATUS_REJECT);
-            statusList.add(ORDER_STATUS_TIMEOUT);
-            statusList.add(ORDER_STATUS_CANCEL);
-        }
+        List<Integer> statusList = buildMyOrderStatusList(tab);
 
         Map<String, Object> q = new HashMap<>();
         q.put("userId", userId);
-        q.put("statusList", statusList);
+        q.put("statuses", statusList);
         q.put("offset", offset);
         q.put("limit", pageSize);
 
@@ -685,13 +675,17 @@ public class ManagerBountyService extends BaseService {
         rewards.add(r);
         playGameService.addReward(order.getUserId(), rewards, LogCapitalTypeEnum.bounty_order_reward, LogUserBackpackTypeEnum.bounty);
 
+        if (order.getStatus() == ORDER_STATUS_APPEAL) {
+            order.setAppealStatus(APPEAL_STATUS_DONE);
+        }
         order.setStatus(ORDER_STATUS_DONE);
+
         order.setAuditTime(new Date());
         order.setUpdateTime(new Date());
         bountyTaskOrderService.updateOrder(order);
 
         Map<String, Object> upd = new HashMap<>();
-        upd.put("id", task.getId());
+        upd.put("taskId", task.getId());
         upd.put("finishCountDelta", 1);
         bountyTaskService.updateCounts(upd);
 
@@ -722,7 +716,11 @@ public class ManagerBountyService extends BaseService {
         if (!Objects.equals(order.getPublisherUserId(), userId)) throwExp("无权限");
         if (order.getStatus() != ORDER_STATUS_SUBMIT) throwExp("订单状态不可驳回");
 
+        if (order.getStatus() == ORDER_STATUS_APPEAL) {
+            order.setAppealStatus(APPEAL_STATUS_DONE);
+        }
         order.setStatus(ORDER_STATUS_REJECT);
+
         order.setRejectReason(rejectReason);
         order.setAuditTime(new Date());
         order.setUpdateTime(new Date());
@@ -793,8 +791,7 @@ public class ManagerBountyService extends BaseService {
         bountyTaskOrderService.updateOrder(o);
 
         Map<String, Object> upd = new HashMap<>();
-        upd.put("id", task.getId());
-        upd.put("joinCountDelta", -1);
+        upd.put("taskId", task.getId());
         if (task.getStatus() != null && task.getStatus() == TASK_STATUS_ONLINE) {
             upd.put("quotaRemainDelta", 1);
         }
@@ -882,4 +879,34 @@ public class ManagerBountyService extends BaseService {
         return amount.multiply(new BigDecimal("100")).setScale(0, RoundingMode.HALF_UP).longValue();
     }
 
+    private List<Integer> buildMyOrderStatusList(Integer tabType) {
+        // 全部
+        if (tabType == null || tabType == 0) return null;
+        switch (tabType) {
+            // 进行中
+            case 1:
+                return Arrays.asList(ORDER_STATUS_DOING, ORDER_STATUS_REJECT, ORDER_STATUS_APPEAL);
+            // 待审核
+            case 2:
+                return Collections.singletonList(ORDER_STATUS_SUBMIT);
+            // 已完成
+            case 3:
+                return Collections.singletonList(ORDER_STATUS_DONE);
+            // 已驳回
+            case 4:
+                return Collections.singletonList(ORDER_STATUS_REJECT);
+            // 申诉中
+            case 5:
+                return Collections.singletonList(ORDER_STATUS_APPEAL);
+            // 已取消
+            case 6:
+                return Collections.singletonList(ORDER_STATUS_CANCEL);
+            // 已超时
+            case 7:
+                return Collections.singletonList(ORDER_STATUS_TIMEOUT);
+            default:
+                return null;
+        }
+    }
 }
+

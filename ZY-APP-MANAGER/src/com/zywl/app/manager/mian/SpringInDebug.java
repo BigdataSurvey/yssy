@@ -1,4 +1,6 @@
 package com.zywl.app.manager.mian;
+import com.zywl.app.manager.service.manager.ManagerBountyService;
+import java.math.BigDecimal;
 
 import cn.hutool.core.lang.UUID;
 import com.alibaba.fastjson2.JSONObject;
@@ -23,6 +25,11 @@ public class SpringInDebug {
     private static ManagerSocketServer fakeSocket;
     private static final Long MY_USER_ID = 937223L;
     private static final Long FRIEND_USER_ID = 928765L;
+
+    private static final String TEST_GUILD_NAME = "A工会测试";
+    // 计划招募人数（用于“质押=人数*单价”的版本；旧代码会忽略该字段）
+    private static final Integer TEST_NEED_MEMBER_NUMBER = 20;
+    private static Long TEST_GUILD_ID = null;
 
     static {
         try {
@@ -129,15 +136,9 @@ public class SpringInDebug {
 
     /**
      * 邮件发送（转赠）测试
-     *
-     * 场景：
-     *  - fromUserId 给 toUserId 转赠指定道具（目前要求是 CORE_POINT 核心积分）
-     *  - 生成一封带附件的邮件，收件人稍后通过 userReadMail 领取
-     *
-     * 使用前请根据自己本地数据修改：
      *  - FROM_USER_ID  : 发送人 user_id
      *  - TO_USER_ID    : 收件人 user_id
-     *  - TO_USER_NO    : 收件人 user_no（游戏编号）
+     *  - TO_USER_NO    : 收件人 user_no
      */
     public static void sendMailTest() {
         // TODO：这里改成你本地真实存在的两个用户
@@ -154,22 +155,19 @@ public class SpringInDebug {
             params.put("toUserId", TO_USER_ID);
             params.put("toUserNo", TO_USER_NO);
 
-            // 转赠的道具：目前我们约定只能转 CORE_POINT（核心积分）
+            // 转赠的道具
             params.put("itemId", ItemIdEnum.CORE_POINT.getValue());
 
-            // 转赠数量：这里先写个 100，注意要满足 TRANSFER_SILL 起赠门槛
+            // 转赠数量
             params.put("amount", 100);
 
-            // 邮件标题 / 内容（可以让前端传，这里直接写死测试文案）
+            // 邮件标
             params.put("title",   "【测试】好友转赠核心积分");
             params.put("context", "本邮件为本地Debug测试用，转赠 100 核心积分，请在游戏内勿当真~");
 
             JSONObject resp = svc.sendMail(fakeSocket, params);
             System.out.println("=== 发送邮件（转赠）测试返回 ===");
             System.out.println(resp.toJSONString());
-
-            // 一般 resp 会包含 mailId / amount / itemId
-            // 你可以记下 mailId，下面单封领取的时候用
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -178,9 +176,6 @@ public class SpringInDebug {
     /**
      * 邮件领取测试 - 全部领取（mailId = 0）
      *
-     * 场景：
-     *  - 指定一个用户，领取他当前“所有可领取的邮件附件”
-     *  - 用于配合 sendMailTest() 测试收件方到账情况
      */
     public static void readMailAllTest() {
         // TODO：改成“收件方”的 user_id（上面 TO_USER_ID）
@@ -191,7 +186,7 @@ public class SpringInDebug {
 
             JSONObject params = new JSONObject();
             params.put("userId", USER_ID);
-            // mailId = 0 表示“全部领取”，与真实 userReadMail 逻辑一致
+            // mailId = 0 全部领取
             params.put("mailId", 0L);
 
             JSONObject resp = svc.userReadMail(fakeSocket, params);
@@ -203,11 +198,7 @@ public class SpringInDebug {
     }
 
     /**
-     * 邮件领取测试 - 单封领取（指定 mailId）
-     *
-     * 使用方法：
-     *  - 先执行 sendMailTest()，看控制台返回的 mailId
-     *  - 把下面的 MAIL_ID 改成那个值，再执行本方法
+     * 邮件领取测试 - 单封领取
      */
     public static void readMailOneTest() {
         // TODO：改成收件人的 user_id（同上）和你要测试的 mailId
@@ -236,9 +227,7 @@ public class SpringInDebug {
         try {
             ManagerGameFarmService svc = ctx.getBean(ManagerGameFarmService.class);
             JSONObject params = new JSONObject();
-
             params.put("userId", 937223L);
-
             JSONObject resp = (JSONObject) svc.getMyFarmInfo(fakeSocket, params);
             System.out.println("=== 用户土地信息 测试返回 ===");
             System.out.println(resp.toJSONString());
@@ -318,7 +307,6 @@ public class SpringInDebug {
         }
     }
 
-
     /**
      * 商城购买 035
      */
@@ -372,10 +360,6 @@ public class SpringInDebug {
     private static void testJoy003_getFriendJoyContrib() {
         ManagerJoyService joyService = ctx.getBean(ManagerJoyService.class);
 
-        if (FRIEND_USER_ID == null || FRIEND_USER_ID <= 0) {
-            System.out.println("========== [JOY 003] SKIP: FRIEND_USER_ID 未设置 ==========");
-            return;
-        }
         JSONObject params = new JSONObject();
         params.put("userId", MY_USER_ID);
         params.put("friendUserId", FRIEND_USER_ID);
@@ -386,13 +370,13 @@ public class SpringInDebug {
     }
 
     /**
-     * distributeJoy 调试：
+     * 分发欢乐值
      * - 会沿 triggerUserId 的 parentId 链路，给 1~5 代上级入账
      * - 使用 eventId + receiverUserId 做幂等：重复调用不会重复入账
      *
      * 注意：
-     * - 如果你用 MY_USER_ID 作为 triggerUserId，那收益会入到 MY_USER_ID 的上级，不会入到 MY_USER_ID 自己
-     * - 若你要让 MY_USER_ID 获得收益，用“MY_USER_ID 的下级用户”作为 triggerUserId
+     * - 如果用 MY_USER_ID 作为 triggerUserId，那收益会入到 MY_USER_ID 的上级，不会入到 MY_USER_ID 自己
+     * - 如果要让 MY_USER_ID 获得收益，用“MY_USER_ID 的下级用户”作为 triggerUserId
      */
     private static void testJoyDistributeJoy() {
         ManagerJoyService joyService = ctx.getBean(ManagerJoyService.class);
@@ -414,14 +398,9 @@ public class SpringInDebug {
         }
     }
 
-    private static final String TEST_GUILD_NAME = "A工会测试";
-    // 计划招募人数（用于“质押=人数*单价”的版本；旧代码会忽略该字段）
-    private static final Integer TEST_NEED_MEMBER_NUMBER = 20;
-    private static Long TEST_GUILD_ID = null;
 
     /**
      * 查询某个用户最新的一条“待审核/已通过”等指定状态的公会记录 id
-     * （如果你的实现只允许一人一会，可直接取第一条；这里取最大的 id 更稳妥）
      */
     private static Long queryLatestGuildId(Long userId, Integer status) {
         com.zywl.app.defaultx.service.GuildService guildService = ctx.getBean(com.zywl.app.defaultx.service.GuildService.class);
@@ -444,7 +423,7 @@ public class SpringInDebug {
     }
 
     /**
-     * 001：获取公会列表（MANAGER: ManagerGuildService.getGuilds）
+     * 001：获取公会列表
      */
     private static void guildGetListTest() {
         ManagerGuildService guildService = ctx.getBean(ManagerGuildService.class);
@@ -462,7 +441,7 @@ public class SpringInDebug {
     }
 
     /**
-     * 002：创建公会（MANAGER: ManagerGuildService.createGuild）
+     * 002：创建公会
      */
     private static void guildCreateTest() {
         ManagerGuildService guildService = ctx.getBean(ManagerGuildService.class);
@@ -470,13 +449,13 @@ public class SpringInDebug {
         JSONObject p = new JSONObject();
         p.put("userId", MY_USER_ID);
         p.put("guildName", TEST_GUILD_NAME);
-        p.put("needMemberNumber", TEST_NEED_MEMBER_NUMBER); // 新需求字段；旧实现会忽略
+        //计划找那人数
+        p.put("needMemberNumber", TEST_NEED_MEMBER_NUMBER);
         System.out.println("========== [GUILD][002 创建公会] 测试 ==========");
         try {
             JSONObject r = guildService.createGuild(fakeSocket, p);
             System.out.println(r == null ? "null" : r.toJSONString());
 
-            // 兼容：如果 createGuild 不回传 guildId，则从 DB 查一条最新记录作为后续测试用
             Long gid = null;
             if (r != null && r.getLong("guildId") != null) {
                 gid = r.getLong("guildId");
@@ -497,7 +476,7 @@ public class SpringInDebug {
     }
 
     /**
-     * 审核通过（非 WS 指令）：ManagerGuildService.passApplyGuild(dataId, userId)
+     * 审核通过 非 WS
      * 仅当你实现了“创建公会需审核”时使用。
      */
     private static void guildApproveTest() {
@@ -519,7 +498,7 @@ public class SpringInDebug {
     }
 
     /**
-     * 审核拒绝（非 WS 指令）：ManagerGuildService.refuseApplyGuild(dataId, userId)
+     * 审核拒绝非 WS 指令
      * 仅当你实现了“创建公会需审核”时使用。
      */
     private static void guildRefuseTest() {
@@ -541,7 +520,7 @@ public class SpringInDebug {
     }
 
     /**
-     * 003：公会详情（MANAGER: ManagerGuildService.getGuildInfo）
+     * 003：公会详情
      */
     private static void guildInfoTest() {
         ManagerGuildService guildService = ctx.getBean(ManagerGuildService.class);
@@ -564,7 +543,7 @@ public class SpringInDebug {
     }
 
     /**
-     * 004：添加成员（MANAGER: ManagerGuildService.addGuildMember）
+     * 004：添加成员
      */
     private static void guildAddMemberTest() {
         ManagerGuildService guildService = ctx.getBean(ManagerGuildService.class);
@@ -589,7 +568,7 @@ public class SpringInDebug {
     }
 
     /**
-     * 005：成员列表（MANAGER: ManagerGuildService.myGuild）
+     * 005：成员列表
      */
     private static void guildMemberListTest() {
         ManagerGuildService guildService = ctx.getBean(ManagerGuildService.class);
@@ -613,7 +592,6 @@ public class SpringInDebug {
 
     /**
      * 为了测试 007（发放佣金/领取），需要先人为给某个成员塞一点 profitBalance。
-     * 这里直接调用 DEFAULT 的 GuildMemberService.addProfitBalance(userId, amount)
      */
     private static void guildAddProfitBalanceForTest() {
         com.zywl.app.defaultx.service.GuildMemberService memberService = ctx.getBean(com.zywl.app.defaultx.service.GuildMemberService.class);
@@ -628,7 +606,7 @@ public class SpringInDebug {
     }
 
     /**
-     * 007：发放佣金（MANAGER: ManagerGuildService.receive）
+     * 007：发放佣金
      * - 注意：当前实现是“把 member.profitBalance 转给 operatorUserId（操作人/会长）”
      */
     private static void guildReceiveTest() {
@@ -653,7 +631,7 @@ public class SpringInDebug {
     }
 
     /**
-     * 009：修改比例（MANAGER: ManagerGuildService.updateRate）
+     * 009：修改比例
      */
     private static void guildUpdateRateTest() {
         ManagerGuildService guildService = ctx.getBean(ManagerGuildService.class);
@@ -774,6 +752,322 @@ public class SpringInDebug {
         }
     }
 
+    //================================================================ 悬赏 =====================================================================//
+    /**
+     * 001 悬赏任务-大厅列表 (Worker 查看)
+     */
+    private static void getTaskListTest() {
+        System.out.println("=开始========= [悬赏任务]【001 大厅列表】 测试 ==========");
+        try {
+            ManagerBountyService svc = ctx.getBean(ManagerBountyService.class);
+            JSONObject params = new JSONObject();
+            // 接单者看列表
+            params.put("userId", FRIEND_USER_ID);
+            params.put("pageNo", 1);
+            params.put("pageSize", 10);
+            // 可选
+            //params.put("keyword", "debug");
+            // 可选 排序
+            params.put("orderType", 2);
+
+            JSONObject res = svc.listTasks(null, params);
+            System.out.println("运行结果: " + res.toJSONString());
+        } catch (Exception e) {
+            System.out.println("异常: " + e.getMessage());
+            e.printStackTrace();
+        }
+        System.out.println("=结束========= [悬赏任务]【001 大厅列表】 测试 ==========");
+    }
+
+    /**
+     * 002 悬赏任务-任务详情
+     */
+    private static void getTaskDetailTest() {
+        System.out.println("=开始========= [悬赏任务]【002 任务详情】 测试 ==========");
+        try {
+            ManagerBountyService svc = ctx.getBean(ManagerBountyService.class);
+            JSONObject params = new JSONObject();
+            params.put("userId", FRIEND_USER_ID);
+            params.put("taskId", 1);
+
+            JSONObject res = svc.getTaskDetail(null, params);
+            System.out.println("运行结果: " + res.toJSONString());
+        } catch (Exception e) {
+            System.out.println("异常: " + e.getMessage());
+            e.printStackTrace();
+        }
+        System.out.println("=结束========= [悬赏任务]【002 任务详情】 测试 ==========");
+    }
+
+    /**
+     * 003 悬赏任务-发布任务 (Publisher 发布)
+     * (保留你原有的方法，稍微增强了日志打印以便获取taskId)
+     */
+    private static void getPublishTaskTest() {
+        System.out.println("=开始========= [悬赏任务]【003 发布任务】 测试 ==========");
+        try {
+            ManagerBountyService svc = ctx.getBean(ManagerBountyService.class);
+            JSONObject pub = new JSONObject();
+            pub.put("userId", MY_USER_ID); // 发布者
+            pub.put("taskName", "test-Debug任务-" + UUID.randomUUID().toString().substring(0, 4));
+            pub.put("taskTitle", "Debug标题测试");
+            pub.put("taskDesc", "这是一个用于本地Debug测试发布的任务");
+            pub.put("taskSteps", "1.接单\n2.提交截图");
+            pub.put("videoUrl", "http://test.video/1.mp4");
+            pub.put("idTip", "请提交ID");
+            pub.put("unitPrice", new BigDecimal("1.50")); // 单价
+            pub.put("quotaTotal", 5); // 总名额
+            pub.put("takeLimitHours", 2); // 限时2小时
+            pub.put("downloadImgs", "[\"https://img.test/guide.png\"]");
+
+            JSONObject pubRes = svc.publishTask(null, pub);
+            System.out.println("运行结果: " + pubRes);
+            if (pubRes != null && pubRes.containsKey("taskId")) {
+                System.out.println(">>> 请更新代码中的静态变量: private static Long TEST_TASK_ID = " + pubRes.getLong("taskId") + "L;");
+            }
+        } catch (Exception e) {
+            System.out.println("异常: " + e.getMessage());
+            e.printStackTrace();
+        }
+        System.out.println("=结束========= [悬赏任务]【003 发布任务】 测试 ==========");
+    }
+
+    /**
+     * 004 悬赏任务-取消任务 (Publisher 操作)
+     */
+    private static void getCancelTaskTest() {
+        System.out.println("=开始========= [悬赏任务]【004 取消任务】 测试 ==========");
+        try {
+            ManagerBountyService svc = ctx.getBean(ManagerBountyService.class);
+            JSONObject params = new JSONObject();
+            params.put("userId", MY_USER_ID); // 必须是发布者
+            params.put("taskId", 1);
+
+            JSONObject res = svc.cancelTask(null, params);
+            System.out.println("运行结果: " + res.toJSONString());
+        } catch (Exception e) {
+            System.out.println("异常: " + e.getMessage());
+            e.printStackTrace();
+        }
+        System.out.println("=结束========= [悬赏任务]【004 取消任务】 测试 ==========");
+    }
+
+    /**
+     * 005 悬赏任务-接单 (Worker 操作)
+     */
+    private static void getTakeTaskTest() {
+        System.out.println("=开始========= [悬赏任务]【005 接单】 测试 ==========");
+        try {
+            ManagerBountyService svc = ctx.getBean(ManagerBountyService.class);
+            JSONObject params = new JSONObject();
+            params.put("userId", MY_USER_ID); // 另一个用户接单
+            params.put("taskId", 3);
+
+            JSONObject res = svc.takeTask(null, params);
+            System.out.println("运行结果: " + res.toJSONString());
+            if (res != null && res.containsKey("orderId")) {
+            }
+        } catch (Exception e) {
+            System.out.println("异常: " + e.getMessage());
+            e.printStackTrace();
+        }
+        System.out.println("=结束========= [悬赏任务]【005 接单】 测试 ==========");
+    }
+
+    /**
+     * 006 悬赏任务-取消接单 (Worker 操作)
+     */
+    private static void getCancelOrderTest() {
+        System.out.println("=开始========= [悬赏任务]【006 取消接单/放弃】 测试 ==========");
+        try {
+            ManagerBountyService svc = ctx.getBean(ManagerBountyService.class);
+            JSONObject params = new JSONObject();
+            params.put("userId", MY_USER_ID);
+            params.put("taskId", 3);
+
+            JSONObject res = svc.cancelOrder(null, params);
+            System.out.println("运行结果: " + res.toJSONString());
+        } catch (Exception e) {
+            System.out.println("异常: " + e.getMessage());
+            e.printStackTrace();
+        }
+        System.out.println("=结束========= [悬赏任务]【006 取消接单/放弃】 测试 ==========");
+    }
+
+    /**
+     * 007 悬赏任务-提交材料 (Worker 操作)
+     */
+    private static void getSubmitOrderTest() {
+        System.out.println("=开始========= [悬赏任务]【007 提交材料】 测试 ==========");
+        try {
+            ManagerBountyService svc = ctx.getBean(ManagerBountyService.class);
+            JSONObject params = new JSONObject();
+            params.put("userId", MY_USER_ID);
+            params.put("taskId", 3);
+            params.put("submitUserId", "GameID-8888");
+            // 模拟上传后的图片数组
+            params.put("submitImgs", "[\"https://oss.test/submit1.jpg\", \"https://oss.test/submit2.jpg\"]");
+
+            JSONObject res = svc.submitOrder(null, params);
+            System.out.println("运行结果: " + res.toJSONString());
+        } catch (Exception e) {
+            System.out.println("异常: " + e.getMessage());
+            e.printStackTrace();
+        }
+        System.out.println("=结束========= [悬赏任务]【007 提交材料】 测试 ==========");
+    }
+
+    /**
+     * 008 悬赏任务-重新提交 (Worker 操作 - 需先被驳回)
+     */
+    private static void getResubmitOrderTest() {
+        System.out.println("=开始========= [悬赏任务]【008 重新提交】 测试 ==========");
+        try {
+            ManagerBountyService svc = ctx.getBean(ManagerBountyService.class);
+            JSONObject params = new JSONObject();
+            params.put("userId", MY_USER_ID);
+            params.put("taskId", 3);
+            params.put("submitUserId", "抖音123号");
+            params.put("submitImgs", "[\"https://oss.test/fix.jpg\"]");
+
+            JSONObject res = svc.resubmitOrder(null, params);
+            System.out.println("运行结果: " + res.toJSONString());
+        } catch (Exception e) {
+            System.out.println("异常: " + e.getMessage());
+            e.printStackTrace();
+        }
+        System.out.println("=结束========= [悬赏任务]【008 重新提交】 测试 ==========");
+    }
+
+    /**
+     * 009 悬赏任务-申诉 (Worker 操作 - 需先被驳回)
+     */
+    private static void getAppealOrderTest() {
+        System.out.println("=开始========= [悬赏任务]【009 申诉】 测试 ==========");
+        try {
+            ManagerBountyService svc = ctx.getBean(ManagerBountyService.class);
+            JSONObject params = new JSONObject();
+            params.put("userId", MY_USER_ID);
+            params.put("taskId", 3);
+            params.put("appealReason", "我已经按要求做了，请复查！");
+
+            JSONObject res = svc.appealOrder(null, params);
+            System.out.println("运行结果: " + res.toJSONString());
+        } catch (Exception e) {
+            System.out.println("异常: " + e.getMessage());
+            e.printStackTrace();
+        }
+        System.out.println("=结束========= [悬赏任务]【009 申诉】 测试 ==========");
+    }
+
+    /**
+     * 010 悬赏任务-我的接单列表
+     */
+    private static void getMyOrdersTest() {
+        System.out.println("=开始========= [悬赏任务]【010 我的接单列表】 测试 ==========");
+        try {
+            ManagerBountyService svc = ctx.getBean(ManagerBountyService.class);
+            JSONObject params = new JSONObject();
+            params.put("userId", FRIEND_USER_ID);
+            params.put("pageNo", 1);
+            params.put("pageSize", 10);
+            params.put("tab", 1); // 1进行中, 2待审核, 3已完成...
+
+            JSONObject res = svc.myOrders(null, params);
+            System.out.println("运行结果: " + res.toJSONString());
+        } catch (Exception e) {
+            System.out.println("异常: " + e.getMessage());
+            e.printStackTrace();
+        }
+        System.out.println("=结束========= [悬赏任务]【010 我的接单列表】 测试 ==========");
+    }
+
+    /**
+     * 011 悬赏任务-我的发布列表
+     */
+    private static void getMyPublishTest() {
+        System.out.println("=开始========= [悬赏任务]【011 我的发布列表】 测试 ==========");
+        try {
+            ManagerBountyService svc = ctx.getBean(ManagerBountyService.class);
+            JSONObject params = new JSONObject();
+            params.put("userId", MY_USER_ID);
+            params.put("pageNo", 1);
+            params.put("pageSize", 10);
+
+            JSONObject res = svc.myPublish(null, params);
+            System.out.println("运行结果: " + res.toJSONString());
+        } catch (Exception e) {
+            System.out.println("异常: " + e.getMessage());
+            e.printStackTrace();
+        }
+        System.out.println("=结束========= [悬赏任务]【011 我的发布列表】 测试 ==========");
+    }
+
+    /**
+     * 012 悬赏任务-我发布的待审核列表
+     */
+    private static void getPendingAuditTest() {
+        System.out.println("=开始========= [悬赏任务]【012 待审核列表】 测试 ==========");
+        try {
+            ManagerBountyService svc = ctx.getBean(ManagerBountyService.class);
+            JSONObject params = new JSONObject();
+            params.put("userId", 928762);
+            params.put("pageNo", 1);
+            params.put("pageSize", 10);
+
+            JSONObject res = svc.pendingAudit(null, params);
+            System.out.println("运行结果: " + res.toJSONString());
+        } catch (Exception e) {
+            System.out.println("异常: " + e.getMessage());
+            e.printStackTrace();
+        }
+        System.out.println("=结束========= [悬赏任务]【012 待审核列表】 测试 ==========");
+    }
+
+    /**
+     * 013 悬赏任务-审核通过 (Publisher 操作)
+     */
+    private static void getAuditApproveTest() {
+        System.out.println("=开始========= [悬赏任务]【013 审核通过】 测试 ==========");
+        try {
+            ManagerBountyService svc = ctx.getBean(ManagerBountyService.class);
+            JSONObject params = new JSONObject();
+            //发布者ID
+            params.put("userId", 928762);
+            params.put("orderId", 1);
+
+            JSONObject res = svc.auditApprove(null, params);
+            System.out.println("运行结果: " + res.toJSONString());
+        } catch (Exception e) {
+            System.out.println("异常: " + e.getMessage());
+            e.printStackTrace();
+        }
+        System.out.println("=结束========= [悬赏任务]【013 审核通过】 测试 ==========");
+    }
+
+    /**
+     * 014 悬赏任务-审核驳回 (Publisher 操作)
+     */
+    private static void getAuditRejectTest() {
+        System.out.println("=开始========= [悬赏任务]【014 审核驳回】 测试 ==========");
+        try {
+            ManagerBountyService svc = ctx.getBean(ManagerBountyService.class);
+            JSONObject params = new JSONObject();
+            params.put("userId", 928762);
+            params.put("orderId", 1);
+            params.put("rejectReason", "截图不清晰，请重新提交");
+
+            JSONObject res = svc.auditReject(null, params);
+            System.out.println("运行结果: " + res.toJSONString());
+        } catch (Exception e) {
+            System.out.println("异常: " + e.getMessage());
+            e.printStackTrace();
+        }
+        System.out.println("=结束========= [悬赏任务]【014 审核驳回】 测试 ==========");
+    }
+
+
+
     public static void main(String[] args) {
         // ===================== 公会 Guild 模块 =====================
         // 一键跑完整流程：
@@ -827,10 +1121,11 @@ public class SpringInDebug {
         //testJoyDistributeJoy();
 
         //工会列表
-        guildGetListTest();
+        //guildGetListTest();
 
         //创建工会
         //guildCreateTest();
+
         //邀请成员
         //guildAddMemberTest();
 
@@ -854,7 +1149,45 @@ public class SpringInDebug {
 
         //排行榜测试‘’
         //getTopTest();
+
+        //悬赏任务-发布任务
+        getPublishTaskTest();
+
+        //任务详情
+        //getTaskDetailTest();
+
+        //任务大厅任务
+        //getTaskListTest();
+
+        //取消任务
+        //getCancelTaskTest();
+
+        //悬赏任务接单
+        //getTakeTaskTest();
+
+        //悬赏任务取消接单
+        //getCancelOrderTest();
+
+        //完成任务提交材料
+        //getSubmitOrderTest();
+
+        //我的待审核列表
+        //getPendingAuditTest();
+
+        //审核被驳回
+        //getAuditRejectTest();
+
+        //申诉
+        //getAppealOrderTest();;
+
+        //重新提交
+        //getResubmitOrderTest();
+
+        //审核通过
+        //getAuditApproveTest();
+
     }
+
 
 
 

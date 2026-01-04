@@ -164,15 +164,15 @@
             </if>
         </where>
         <choose>
-            <!-- 2=高价：单价倒序，同价按完成数倒序，再按时间倒序 -->
+            <!-- 单价倒序-->
             <when test="orderType != null and orderType == 2">
-                order by unit_price desc, finish_count desc, create_time desc
+                order by unit_price desc, create_time desc
             </when>
-            <!-- 3=热度：参与人数倒序 -->
+            <!-- 热度参与人数倒序 -->
             <when test="orderType != null and orderType == 3">
                 order by join_count desc, create_time desc
             </when>
-            <!-- 默认=最新 -->
+            <!-- 最新 -->
             <otherwise>
                 order by create_time desc
             </otherwise>
