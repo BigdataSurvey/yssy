@@ -13,6 +13,7 @@ import com.zywl.app.base.util.OrderUtil;
 import com.zywl.app.defaultx.cache.AppConfigCacheService;
 import com.zywl.app.defaultx.cache.UserCacheService;
 import com.zywl.app.defaultx.cache.UserCapitalCacheService;
+import com.zywl.app.defaultx.cache.impl.RedisService;
 import com.zywl.app.defaultx.dbutil.DaoService;
 import com.zywl.app.defaultx.enmus.LogCapitalTypeEnum;
 import com.zywl.app.defaultx.enmus.LogUserBackpackTypeEnum;
@@ -24,6 +25,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.*;
 
 @Service
@@ -38,6 +40,8 @@ public class UserCapitalService extends DaoService {
     private UserCapitalCacheService userCapitalCacheService;
     @Autowired
     private AppConfigCacheService appConfigCacheService;
+    @Autowired
+    private RedisService redisService;
 
     @Autowired
     private UserCacheService userCacheService;
@@ -65,7 +69,7 @@ public class UserCapitalService extends DaoService {
     }
     @Transactional
     public int updateUserCapital( List<Map<String, Object>> list) {
-         return execute("betUpdateBalance2", list);
+        return execute("betUpdateBalance2", list);
     }
 
     public List<UserCapital> findUserCapitalByUserId(Long userId) {
@@ -84,7 +88,7 @@ public class UserCapitalService extends DaoService {
         parameters.put("capitalType", capitalType);
         return (UserCapital) findOne("findUserCapitalByUserIdAndCapitalType", parameters);
     }
-    
+
 
     @Transactional
     public int addUserBalanceByUserId(Long userId,BigDecimal amount,Integer capitalType,long id,UserCapital userCapital){
@@ -315,6 +319,33 @@ public class UserCapitalService extends DaoService {
 
         }
         // 清理缓存
+    }
+
+    /**
+     * 记录用户资产消耗排行榜
+     * - 汇总榜：RedisKeyConstant.APP_TOP_CONSUME_ALL
+     * - 分类型榜：RedisKeyConstant.APP_TOP_CONSUME_TYPE + capitalType
+     */
+    private void recordConsumeTop(Long userId, Integer capitalType, BigDecimal amount) {
+        try {
+            if (userId == null || capitalType == null || amount == null) {
+                return;
+            }
+            if (amount.compareTo(BigDecimal.ZERO) <= 0) {
+                return;
+            }
+            long cents = amount
+                    .setScale(2, RoundingMode.HALF_UP)
+                    .movePointRight(2)
+                    .longValue();
+            if (cents <= 0) {
+                return;
+            }
+            String member = String.valueOf(userId);
+            redisService.zincrby(RedisKeyConstant.APP_TOP_CONSUME_ALL, member, (double) cents);
+            redisService.zincrby(RedisKeyConstant.APP_TOP_CONSUME_TYPE + capitalType, member, (double) cents);
+        } catch (Exception e) {
+        }
     }
 
     @Transactional
@@ -834,8 +865,7 @@ public class UserCapitalService extends DaoService {
     }
 
     @Transactional
-    public void subUserBalanceByGuild(Long userId, BigDecimal amount, Long dataId) {
-        int capitalType = UserCapitalTypeEnum.currency_2.getValue();
+    public void subUserBalanceByGuild(Long userId, BigDecimal amount, Long dataId,int capitalType) {
         UserCapital userCapital = userCapitalCacheService.getUserCapitalCacheByType(userId, capitalType);
         int a = subUserBalance(amount, userId, capitalType, userCapital.getBalance(), userCapital.getOccupyBalance(), null, dataId, LogCapitalTypeEnum.guild, null);
         if (a < 1) {
@@ -861,6 +891,83 @@ public class UserCapitalService extends DaoService {
             }
         }
     }
+
+
+    // 悬赏任务发布：预付扣费（托管资金 + 平台手续费）
+    @Transactional
+    public void subUserBalanceByBountyPublish(Long userId,
+                                              BigDecimal amount,
+                                              Integer capitalType,
+                                              String orderNo,
+                                              Long bountyTaskId,
+                                              LogCapitalTypeEnum logType) {
+
+        if (userId == null || userId <= 0) {
+            throwExp("userId不能为空");
+        }
+        if (amount == null || amount.compareTo(BigDecimal.ZERO) <= 0) {
+            throwExp("amount参数错误");
+        }
+        if (orderNo == null || orderNo.trim().isEmpty()) {
+            throwExp("orderNo不能为空");
+        }
+        if (bountyTaskId == null || bountyTaskId <= 0) {
+            throwExp("bountyTaskId不能为空");
+        }
+
+        // 默认资产类型为核心积分
+        if (capitalType == null) {
+            capitalType = UserCapitalTypeEnum.hxjf.getValue();
+        }
+
+        // 默认日志类型：悬赏任务发布预付扣费
+        if (logType == null) {
+            logType = LogCapitalTypeEnum.bounty_publish_pay;
+        }
+
+        // 从缓存获取用户资产
+        UserCapital userCapital = userCapitalCacheService.getUserCapitalCacheByType(userId, capitalType);
+        if (userCapital == null) {
+            throwExp("资产不存在");
+        }
+
+        int a = subUserBalance(
+                amount,
+                userId,
+                capitalType,
+                userCapital.getBalance(),
+                userCapital.getOccupyBalance(),
+                orderNo,
+                bountyTaskId,
+                logType,
+                TableNameConstant.BOUNTY_TASK
+        );
+
+        if (a < 1) {
+            // 清理缓存后按币种重试一次
+            userCapitalCacheService.deltedUserCapitalCache(userId, capitalType);
+            userCapital = userCapitalCacheService.getUserCapitalCacheByType(userId, capitalType);
+            if (userCapital == null) {
+                throwExp("资产不存在");
+            }
+
+            int b = subUserBalance(
+                    amount,
+                    userId,
+                    capitalType,
+                    userCapital.getBalance(),
+                    userCapital.getOccupyBalance(),
+                    orderNo,
+                    bountyTaskId,
+                    logType,
+                    TableNameConstant.BOUNTY_TASK
+            );
+            if (b < 1) {
+                throwExp("扣除资产失败，请稍后重试");
+            }
+        }
+    }
+
 
 
     //扣除用户资产并清理缓存
@@ -1472,6 +1579,7 @@ public class UserCapitalService extends DaoService {
         if (a >= 1) {
             userCapitalCacheService.sub(userId, capitalType, amount, BigDecimal.ZERO);
             pushLog(1, userId, capitalType, balanceBefore, occupyBalanceBefore, amount.negate(), em, orderNo, sourceDataId, tableName);
+            recordConsumeTop(userId, capitalType, amount);
         }
         if (a < 1) {
             userCapitalCacheService.deltedUserCapitalCache(userId, capitalType);
@@ -1489,6 +1597,8 @@ public class UserCapitalService extends DaoService {
         params.put("userId", userId);
         params.put("capitalType", capitalType);
         params.put("amount", amount);
+        //原来的代码没有这个，不确定缺不缺 先写上；
+        recordConsumeTop(userId, capitalType, amount);
         return execute("subUserBalance2", params);
     }
 
@@ -1658,7 +1768,7 @@ public class UserCapitalService extends DaoService {
         }
         return balance;
     }
-    
+
     public BigDecimal findNo1(int capitalType){
         BigDecimal balance = BigDecimal.ZERO;
         Map<String,Object> params = new HashedMap<>();
@@ -1724,7 +1834,6 @@ public class UserCapitalService extends DaoService {
 
 
 
-    //+++++++++++++++++++++++++++++++++++++++++++++++
 
 
 

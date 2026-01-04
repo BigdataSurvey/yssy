@@ -17,6 +17,18 @@ public class Guild extends BaseBean {
 
     private BigDecimal bailAmount;
 
+    /** 计划招募人数 */
+    private Integer needMemberNumber;
+
+    /** 创建公会手续费比例 */
+    private BigDecimal feeRate;
+
+    /** 创建公会手续费金额 */
+    private BigDecimal feeAmount;
+
+    /** 创建公会实际扣款总额 */
+    private BigDecimal payAmount;
+
     private  String remark;
 
     private Integer type;
@@ -115,5 +127,37 @@ public class Guild extends BaseBean {
 
     public void setFreeNum(Integer freeNum) {
         this.freeNum = freeNum;
+    }
+
+    public Integer getNeedMemberNumber() {
+        return needMemberNumber;
+    }
+
+    public void setNeedMemberNumber(Integer needMemberNumber) {
+        this.needMemberNumber = needMemberNumber;
+    }
+
+    public BigDecimal getFeeRate() {
+        return feeRate;
+    }
+
+    public void setFeeRate(BigDecimal feeRate) {
+        this.feeRate = feeRate;
+    }
+
+    public BigDecimal getFeeAmount() {
+        return feeAmount;
+    }
+
+    public void setFeeAmount(BigDecimal feeAmount) {
+        this.feeAmount = feeAmount;
+    }
+
+    public BigDecimal getPayAmount() {
+        return payAmount;
+    }
+
+    public void setPayAmount(BigDecimal payAmount) {
+        this.payAmount = payAmount;
     }
 }

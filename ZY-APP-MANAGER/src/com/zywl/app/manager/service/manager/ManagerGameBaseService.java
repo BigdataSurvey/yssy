@@ -29,6 +29,7 @@ import com.zywl.app.manager.context.KafkaTopicContext;
 import com.zywl.app.manager.context.MessageCodeContext;
 import com.zywl.app.manager.context.KafkaEventContext;
 import com.zywl.app.manager.service.*;
+import com.zywl.app.manager.service.TopService;
 import com.zywl.app.manager.socket.AdminSocketServer;
 import com.zywl.app.manager.socket.ManagerSocketServer;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -89,6 +90,9 @@ public class ManagerGameBaseService extends BaseService {
 
     @Autowired
     private UserStatisticService userStatisticService;
+
+    @Autowired
+    private TopService topService;
 
     @Autowired
     private PlayGameService gameService;
@@ -387,6 +391,13 @@ public class ManagerGameBaseService extends BaseService {
             OneJuniorNumTopVo myJuniorNum = userStatisticService.findMyJuniorNum(userId);
             myJuniorNum.setNum(myJuniorNum.getNum() + myJuniorNum.getNum2());
             result.put("my", myJuniorNum);
+        } else if (type == TopTypeEnum.CONSUME.getValue()) {
+            Integer capitalType = params.containsKey("capitalType") ? params.getInteger("capitalType") : null;
+            if (capitalType != null && capitalType <= 0) {
+                capitalType = null;
+            }
+            result.put("topList", topService.getConsumeTopList(capitalType));
+            result.put("my", topService.getConsumeMy(userId, capitalType));
         }
         result.put("isOpen", managerConfigService.getInteger(Config.RANK_IS_OPEN));
 

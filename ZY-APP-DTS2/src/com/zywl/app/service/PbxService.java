@@ -823,6 +823,17 @@ public class PbxService extends BaseService {
         JSONObject q = queryPoolFromManager(userId);
         BigDecimal poolBalance = q.getBigDecimal("poolBalance");
         String serverTime = q.getString("serverTime");
+        // 历史总投入
+        BigDecimal myTotalConsume = q.getBigDecimal("myTotalConsume");
+        // 历史总返还
+        BigDecimal myTotalReturn  = q.getBigDecimal("myTotalReturn");
+        // 历史总到手
+        BigDecimal myTotalNet     = q.getBigDecimal("myTotalNet");
+
+        if (myTotalConsume == null) myTotalConsume = BigDecimal.ZERO;
+        if (myTotalReturn  == null) myTotalReturn  = BigDecimal.ZERO;
+        if (myTotalNet     == null) myTotalNet     = BigDecimal.ZERO;
+
         // 记录最近值（供 leave/info push 使用）
         if (poolBalance != null) {
             lastPoolBalance = poolBalance;
@@ -852,6 +863,11 @@ public class PbxService extends BaseService {
         // 个人本期投入（每元素/总计）
         resp.put("myElementBet", buildMyElementBet(userId));
         resp.put("myTotalBet", buildMyTotalBet(userId));
+        //个人历史游戏记录
+        resp.put("myTotalConsume", myTotalConsume);
+        resp.put("myTotalReturn", myTotalReturn);
+        resp.put("myTotalNet", myTotalNet);
+
         return resp;
     }
 
@@ -1120,7 +1136,12 @@ public class PbxService extends BaseService {
         JSONObject q = queryPoolFromManager(userId);
         BigDecimal poolBalance = q.getBigDecimal("poolBalance");
         String serverTime = q.getString("serverTime");
-
+        // 历史总投入
+        BigDecimal myTotalConsume = q.getBigDecimal("myTotalConsume");
+        // 历史总返还
+        BigDecimal myTotalReturn  = q.getBigDecimal("myTotalReturn");
+        // 历史总到手
+        BigDecimal myTotalNet     = q.getBigDecimal("myTotalNet");
         if (poolBalance != null) {
             lastPoolBalance = poolBalance;
         }
@@ -1146,6 +1167,11 @@ public class PbxService extends BaseService {
         // 个人本期投入（每元素/总计）
         resp.put("myElementBet", buildMyElementBet(userId));
         resp.put("myTotalBet", buildMyTotalBet(userId));
+        //个人历史游戏记录
+        resp.put("myTotalConsume", myTotalConsume);
+        resp.put("myTotalReturn", myTotalReturn);
+        resp.put("myTotalNet", myTotalNet);
+
         return resp;
     }
 
@@ -1363,6 +1389,7 @@ public class PbxService extends BaseService {
                 this.myWeekRank = resp.getIntValue("myWeekRank");
                 this.myLastWeekConsume = resp.getBigDecimal("myLastWeekConsume");
                 this.myLastWeekRank = resp.getIntValue("myLastWeekRank");
+
             }
         } catch (Exception ignore) {}
 

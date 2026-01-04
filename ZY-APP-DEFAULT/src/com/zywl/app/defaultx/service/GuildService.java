@@ -24,17 +24,30 @@ public class GuildService extends DaoService{
 	private GuildCacheService guildCacheService;
 
 	@Transactional
-	public Long applyAddGuild(String guildName,Long userId,int memberNumber,BigDecimal bailAmount,int type) {
+	public Long applyAddGuild(String guildName,
+							  Long userId,
+							  int memberNumber,
+							  BigDecimal bailAmount,
+							  int freeNum,
+							  Integer needMemberNumber,
+							  BigDecimal feeRate,
+							  BigDecimal feeAmount,
+							  BigDecimal payAmount,
+							  int status) {
 		Guild obj = new Guild();
 		obj.setGuildName(guildName);
 		obj.setUserId(userId);
 		obj.setMemberNumber(memberNumber);
 		obj.setRemark("");
-//		obj.setCreateTime(new Date());
 		obj.setBailAmount(bailAmount);
-		obj.setType(type);
-		obj.setStatus(2);
-		obj.setFreeNum(4);
+		obj.setNeedMemberNumber(needMemberNumber);
+		obj.setFeeRate(feeRate);
+		obj.setFeeAmount(feeAmount);
+		obj.setPayAmount(payAmount);
+		// type 目前保留字段，默认 1
+		obj.setType(1);
+		obj.setStatus(status);
+		obj.setFreeNum(freeNum);
 		obj.setApplyTime(new Date());
 		save(obj);
 		guildCacheService.removeGuilds();
@@ -46,7 +59,7 @@ public class GuildService extends DaoService{
 		params.put("userId", userId);
 		return (Guild) findOne("findByUserId",params);
 	}
-	
+
 	public List<Guild> findAllGuild(){
 		return findAll();
 	}

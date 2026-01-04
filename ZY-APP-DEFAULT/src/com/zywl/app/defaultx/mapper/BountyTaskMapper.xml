@@ -1,0 +1,227 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.zywl.app.defaultx.mapper.BountyTaskMapper">
+
+    <!-- 通用字段映射 -->
+    <resultMap id="BaseResultMap" type="com.zywl.app.base.bean.BountyTask">
+        <id     column="id"               property="id"/>
+        <result column="user_id"          property="userId"/>
+        <result column="task_title"       property="taskTitle"/>
+        <result column="task_name"        property="taskName"/>
+        <result column="task_desc"        property="taskDesc"/>
+        <result column="task_steps"       property="taskSteps"/>
+        <result column="video_url"        property="videoUrl"/>
+        <result column="download_imgs"    property="downloadImgs"/>
+        <result column="id_tip"           property="idTip"/>
+        <result column="unit_price"       property="unitPrice"/>
+        <result column="quota_total"      property="quotaTotal"/>
+        <result column="quota_remain"     property="quotaRemain"/>
+        <result column="take_limit_hours" property="takeLimitHours"/>
+        <result column="status"           property="status"/>
+        <result column="join_count"       property="joinCount"/>
+        <result column="finish_count"     property="finishCount"/>
+        <result column="capital_type"     property="capitalType"/>
+        <result column="escrow_amount"    property="escrowAmount"/>
+        <result column="fee_amount"       property="feeAmount"/>
+        <result column="fee_rate"         property="feeRate"/>
+        <result column="create_time"      property="createTime"/>
+        <result column="update_time"      property="updateTime"/>
+    </resultMap>
+
+    <!-- 通用列 -->
+    <sql id="Base_Column_List">
+        id,
+        user_id,
+        task_title,
+        task_name,
+        task_desc,
+        task_steps,
+        video_url,
+        download_imgs,
+        id_tip,
+        unit_price,
+        quota_total,
+        quota_remain,
+        take_limit_hours,
+        status,
+        join_count,
+        finish_count,
+        capital_type,
+        escrow_amount,
+        fee_amount,
+        fee_rate,
+        create_time,
+        update_time
+    </sql>
+
+    <!-- 主键查询 -->
+    <select id="selectByPrimaryKey" parameterType="long" resultMap="BaseResultMap">
+        select
+        <include refid="Base_Column_List"/>
+        from t_bounty_task
+        where id = #{id}
+    </select>
+
+    <!-- 新增 -->
+    <insert id="insert" parameterType="com.zywl.app.base.bean.BountyTask" useGeneratedKeys="true" keyProperty="id" keyColumn="id">
+        insert into t_bounty_task
+        (
+            user_id,
+            task_title,
+            task_name,
+            task_desc,
+            task_steps,
+            video_url,
+            download_imgs,
+            id_tip,
+            unit_price,
+            quota_total,
+            quota_remain,
+            take_limit_hours,
+            status,
+            join_count,
+            finish_count,
+            capital_type,
+            escrow_amount,
+            fee_amount,
+            fee_rate,
+            create_time,
+            update_time
+        )
+        values
+        (
+            #{userId},
+            #{taskTitle},
+            #{taskName},
+            #{taskDesc},
+            #{taskSteps},
+            #{videoUrl},
+            #{downloadImgs},
+            #{idTip},
+            #{unitPrice},
+            #{quotaTotal},
+            #{quotaRemain},
+            #{takeLimitHours},
+            #{status},
+            #{joinCount},
+            #{finishCount},
+            #{capitalType},
+            #{escrowAmount},
+            #{feeAmount},
+            #{feeRate},
+            #{createTime},
+            #{updateTime}
+        )
+    </insert>
+
+    <!-- 更新 -->
+    <update id="update" parameterType="com.zywl.app.base.bean.BountyTask">
+        update t_bounty_task
+        <set>
+            <if test="userId != null">user_id = #{userId},</if>
+            <if test="taskTitle != null">task_title = #{taskTitle},</if>
+            <if test="taskName != null">task_name = #{taskName},</if>
+            <if test="taskDesc != null">task_desc = #{taskDesc},</if>
+            <if test="taskSteps != null">task_steps = #{taskSteps},</if>
+            <if test="videoUrl != null">video_url = #{videoUrl},</if>
+            <if test="downloadImgs != null">download_imgs = #{downloadImgs},</if>
+            <if test="idTip != null">id_tip = #{idTip},</if>
+            <if test="unitPrice != null">unit_price = #{unitPrice},</if>
+            <if test="quotaTotal != null">quota_total = #{quotaTotal},</if>
+            <if test="quotaRemain != null">quota_remain = #{quotaRemain},</if>
+            <if test="takeLimitHours != null">take_limit_hours = #{takeLimitHours},</if>
+            <if test="status != null">status = #{status},</if>
+            <if test="joinCount != null">join_count = #{joinCount},</if>
+            <if test="finishCount != null">finish_count = #{finishCount},</if>
+            <if test="capitalType != null">capital_type = #{capitalType},</if>
+            <if test="escrowAmount != null">escrow_amount = #{escrowAmount},</if>
+            <if test="feeAmount != null">fee_amount = #{feeAmount},</if>
+            <if test="feeRate != null">fee_rate = #{feeRate},</if>
+            update_time = #{updateTime}
+        </set>
+        where id = #{id}
+    </update>
+
+    <!-- 条件列表 -->
+    <select id="findListByConditions" parameterType="map" resultMap="BaseResultMap">
+        select
+        <include refid="Base_Column_List"/>
+        from t_bounty_task
+        <where>
+            <if test="id != null">
+                and id = #{id}
+            </if>
+            <if test="userId != null">
+                and user_id = #{userId}
+            </if>
+            <if test="status != null">
+                and status = #{status}
+            </if>
+            <if test="keyword != null and keyword != ''">
+                and (task_title like concat('%', #{keyword}, '%') or task_name like concat('%', #{keyword}, '%'))
+            </if>
+        </where>
+        <choose>
+            <!-- 2=高价：单价倒序，同价按完成数倒序，再按时间倒序 -->
+            <when test="orderType != null and orderType == 2">
+                order by unit_price desc, finish_count desc, create_time desc
+            </when>
+            <!-- 3=热度：参与人数倒序 -->
+            <when test="orderType != null and orderType == 3">
+                order by join_count desc, create_time desc
+            </when>
+            <!-- 默认=最新 -->
+            <otherwise>
+                order by create_time desc
+            </otherwise>
+        </choose>
+
+        <if test="offset != null and limit != null">
+            limit #{offset}, #{limit}
+        </if>
+        <if test="offset == null and limit != null">
+            limit #{limit}
+        </if>
+    </select>
+
+    <!-- 条件统计 -->
+    <select id="countByConditions" parameterType="map" resultType="int">
+        select count(1)
+        from t_bounty_task
+        <where>
+            <if test="id != null">
+                and id = #{id}
+            </if>
+            <if test="userId != null">
+                and user_id = #{userId}
+            </if>
+            <if test="status != null">
+                and status = #{status}
+            </if>
+            <if test="keyword != null and keyword != ''">
+                and (task_title like concat('%', #{keyword}, '%') or task_name like concat('%', #{keyword}, '%'))
+            </if>
+        </where>
+    </select>
+
+    <!-- 原子计数更新 -->
+    <update id="updateCounts" parameterType="map">
+        update t_bounty_task
+        <set>
+            <if test="quotaRemainDelta != null">
+                quota_remain = quota_remain + #{quotaRemainDelta},
+            </if>
+            <if test="joinCountDelta != null">
+                join_count = join_count + #{joinCountDelta},
+            </if>
+            <if test="finishCountDelta != null">
+                finish_count = finish_count + #{finishCountDelta},
+            </if>
+            update_time = now()
+        </set>
+        where id = #{taskId}
+    </update>
+
+</mapper>

@@ -2,8 +2,13 @@ package com.zywl.app.defaultx.service;
 
 import com.zywl.app.base.bean.UserPetRecord;
 import com.zywl.app.defaultx.dbutil.DaoService;
+import org.springframework.stereotype.Service;
+
 import javax.annotation.Resource;
 import java.math.BigDecimal;
+import java.util.HashMap;
+import java.util.Map;
+
 /**
  * @Author: lzx
  * @Create: 2025/12/29
@@ -11,6 +16,7 @@ import java.math.BigDecimal;
  * @Description: 养宠用户明细Service
  * @Task:
  */
+@Service
 public class UserPetRecordService extends DaoService {
     public UserPetRecordService() {
         super("UserPetRecordMapper");
@@ -49,5 +55,22 @@ public class UserPetRecordService extends DaoService {
         record.setFromUserId(fromUserId);
         record.setLevel(level);
         return findOneByUk(record);
+    }
+
+
+    public BigDecimal sumTodayDividendByLevel(Long userId, Integer level) {
+        Map<String, Object> params = new HashMap<>();
+        params.put("userId", userId);
+        params.put("level", level);
+        BigDecimal v = (BigDecimal) findOne("sumTodayDividendByLevel", params);
+        return v == null ? BigDecimal.ZERO : v;
+    }
+
+    public BigDecimal sumTotalDividendByLevel(Long userId, Integer level) {
+        Map<String, Object> params = new HashMap<>();
+        params.put("userId", userId);
+        params.put("level", level);
+        BigDecimal v = (BigDecimal) findOne("sumTotalDividendByLevel", params);
+        return v == null ? BigDecimal.ZERO : v;
     }
 }

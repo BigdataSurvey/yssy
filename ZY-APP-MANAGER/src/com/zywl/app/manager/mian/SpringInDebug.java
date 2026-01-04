@@ -291,7 +291,7 @@ public class SpringInDebug {
             ManagerGameFarmService svc = ctx.getBean(ManagerGameFarmService.class);
             JSONObject params = new JSONObject();
             params.put("userId", 937223L);
-                params.put("landIndex",8);
+            params.put("landIndex",8);
             JSONObject resp = (JSONObject) svc.unlockLand(fakeSocket, params);
             System.out.println("=== 用户解锁/购买土地 测试返回 ===");
             System.out.println(resp.toJSONString());
@@ -414,33 +414,273 @@ public class SpringInDebug {
         }
     }
 
-    //工会详情
-    private static void testGuild() {
+    private static final String TEST_GUILD_NAME = "A工会测试";
+    // 计划招募人数（用于“质押=人数*单价”的版本；旧代码会忽略该字段）
+    private static final Integer TEST_NEED_MEMBER_NUMBER = 20;
+    private static Long TEST_GUILD_ID = null;
+
+    /**
+     * 查询某个用户最新的一条“待审核/已通过”等指定状态的公会记录 id
+     * （如果你的实现只允许一人一会，可直接取第一条；这里取最大的 id 更稳妥）
+     */
+    private static Long queryLatestGuildId(Long userId, Integer status) {
+        com.zywl.app.defaultx.service.GuildService guildService = ctx.getBean(com.zywl.app.defaultx.service.GuildService.class);
+        java.util.Map<String, Object> q = new java.util.HashMap<>();
+        q.put("userId", userId);
+        if (status != null) {
+            q.put("status", status);
+        }
+        java.util.List<com.zywl.app.base.bean.Guild> list = guildService.findByConditions(q);
+        if (list == null || list.isEmpty()) {
+            return null;
+        }
+        long max = 0;
+        for (com.zywl.app.base.bean.Guild g : list) {
+            if (g != null && g.getId() != null && g.getId() > max) {
+                max = g.getId();
+            }
+        }
+        return max == 0 ? null : max;
+    }
+
+    /**
+     * 001：获取公会列表（MANAGER: ManagerGuildService.getGuilds）
+     */
+    private static void guildGetListTest() {
         ManagerGuildService guildService = ctx.getBean(ManagerGuildService.class);
-
-        // 测试用户的下级用户ID
-
-        JSONObject params = new JSONObject();
-        params.put("userId", MY_USER_ID);
-        params.put("guildId", 54);
-        System.out.println("========== [工会详情] 测试 ==========");
+        JSONObject p = new JSONObject();
+        p.put("userId", MY_USER_ID);
+        System.out.println("========== [GUILD][001 获取公会列表] 测试 ==========");
         try {
-            guildService.getGuildInfo(null,params);
-            System.out.println("[========== ========== ========== 工会测试 OK" );
+            JSONObject r = guildService.getGuilds(fakeSocket, p);
+            System.out.println(r == null ? "null" : r.toJSONString());
+            System.out.println("[GUILD][001] OK");
         } catch (Exception e) {
-            System.out.println("[JOY] distributeJoy EXCEPTION: " + e.getMessage());
+            System.out.println("[GUILD][001][异常]: " + e.getMessage());
             e.printStackTrace();
         }
     }
 
-    //购买狮子
+    /**
+     * 002：创建公会（MANAGER: ManagerGuildService.createGuild）
+     */
+    private static void guildCreateTest() {
+        ManagerGuildService guildService = ctx.getBean(ManagerGuildService.class);
+
+        JSONObject p = new JSONObject();
+        p.put("userId", MY_USER_ID);
+        p.put("guildName", TEST_GUILD_NAME);
+        p.put("needMemberNumber", TEST_NEED_MEMBER_NUMBER); // 新需求字段；旧实现会忽略
+        System.out.println("========== [GUILD][002 创建公会] 测试 ==========");
+        try {
+            JSONObject r = guildService.createGuild(fakeSocket, p);
+            System.out.println(r == null ? "null" : r.toJSONString());
+
+            // 兼容：如果 createGuild 不回传 guildId，则从 DB 查一条最新记录作为后续测试用
+            Long gid = null;
+            if (r != null && r.getLong("guildId") != null) {
+                gid = r.getLong("guildId");
+            } else {
+                // 优先按“审核中 status=2”查；如果查不到，再不带 status 查
+                gid = queryLatestGuildId(MY_USER_ID, 2);
+                if (gid == null) {
+                    gid = queryLatestGuildId(MY_USER_ID, null);
+                }
+            }
+            TEST_GUILD_ID = gid;
+            System.out.println("[GUILD][002] guildId = " + TEST_GUILD_ID);
+            System.out.println("[GUILD][002] OK");
+        } catch (Exception e) {
+            System.out.println("[GUILD][002][异常]: " + e.getMessage());
+            e.printStackTrace();
+        }
+    }
+
+    /**
+     * 审核通过（非 WS 指令）：ManagerGuildService.passApplyGuild(dataId, userId)
+     * 仅当你实现了“创建公会需审核”时使用。
+     */
+    private static void guildApproveTest() {
+        ManagerGuildService guildService = ctx.getBean(ManagerGuildService.class);
+        System.out.println("========== [GUILD][审核通过] 测试 ==========");
+        try {
+            if (TEST_GUILD_ID == null) {
+                TEST_GUILD_ID = queryLatestGuildId(MY_USER_ID, 2);
+            }
+            if (TEST_GUILD_ID == null) {
+                throw new RuntimeException("未找到待审核公会记录（status=2），请先执行 guildCreateTest()");
+            }
+            guildService.passApplyGuild(TEST_GUILD_ID, MY_USER_ID);
+            System.out.println("[GUILD][审核通过] guildId=" + TEST_GUILD_ID + " OK");
+        } catch (Exception e) {
+            System.out.println("[GUILD][审核通过][异常]: " + e.getMessage());
+            e.printStackTrace();
+        }
+    }
+
+    /**
+     * 审核拒绝（非 WS 指令）：ManagerGuildService.refuseApplyGuild(dataId, userId)
+     * 仅当你实现了“创建公会需审核”时使用。
+     */
+    private static void guildRefuseTest() {
+        ManagerGuildService guildService = ctx.getBean(ManagerGuildService.class);
+        System.out.println("========== [GUILD][审核拒绝] 测试 ==========");
+        try {
+            if (TEST_GUILD_ID == null) {
+                TEST_GUILD_ID = queryLatestGuildId(MY_USER_ID, 2);
+            }
+            if (TEST_GUILD_ID == null) {
+                throw new RuntimeException("未找到待审核公会记录（status=2），请先执行 guildCreateTest()");
+            }
+            guildService.refuseApplyGuild(TEST_GUILD_ID, MY_USER_ID);
+            System.out.println("[GUILD][审核拒绝] guildId=" + TEST_GUILD_ID + " OK");
+        } catch (Exception e) {
+            System.out.println("[GUILD][审核拒绝][异常]: " + e.getMessage());
+            e.printStackTrace();
+        }
+    }
+
+    /**
+     * 003：公会详情（MANAGER: ManagerGuildService.getGuildInfo）
+     */
+    private static void guildInfoTest() {
+        ManagerGuildService guildService = ctx.getBean(ManagerGuildService.class);
+
+        JSONObject p = new JSONObject();
+        p.put("userId", MY_USER_ID);
+        if (TEST_GUILD_ID == null) {
+            TEST_GUILD_ID = queryLatestGuildId(MY_USER_ID, null);
+        }
+        p.put("guildId", TEST_GUILD_ID);
+        System.out.println("========== [GUILD][003 公会详情] 测试 ==========");
+        try {
+            Object r = guildService.getGuildInfo(fakeSocket, p);
+            System.out.println(r == null ? "null" : r.toString());
+            System.out.println("[GUILD][003] OK");
+        } catch (Exception e) {
+            System.out.println("[GUILD][003][异常]: " + e.getMessage());
+            e.printStackTrace();
+        }
+    }
+
+    /**
+     * 004：添加成员（MANAGER: ManagerGuildService.addGuildMember）
+     */
+    private static void guildAddMemberTest() {
+        ManagerGuildService guildService = ctx.getBean(ManagerGuildService.class);
+
+        if (TEST_GUILD_ID == null) {
+            TEST_GUILD_ID = queryLatestGuildId(MY_USER_ID, null);
+        }
+        JSONObject p = new JSONObject();
+        p.put("guildId", TEST_GUILD_ID);
+        p.put("userId", 853859);      // 被邀请加入的成员
+        p.put("createUserId", FRIEND_USER_ID);    // 会长/邀请人
+        p.put("memberRoleId",4);
+        System.out.println("========== [GUILD][004 添加成员] 测试 ==========");
+        try {
+            JSONObject r = guildService.addGuildMember(fakeSocket, p);
+            System.out.println(r == null ? "null" : r.toJSONString());
+            System.out.println("[GUILD][004] OK");
+        } catch (Exception e) {
+            System.out.println("[GUILD][004][异常]: " + e.getMessage());
+            e.printStackTrace();
+        }
+    }
+
+    /**
+     * 005：成员列表（MANAGER: ManagerGuildService.myGuild）
+     */
+    private static void guildMemberListTest() {
+        ManagerGuildService guildService = ctx.getBean(ManagerGuildService.class);
+
+        if (TEST_GUILD_ID == null) {
+            TEST_GUILD_ID = queryLatestGuildId(MY_USER_ID, null);
+        }
+        JSONObject p = new JSONObject();
+        p.put("guildId", TEST_GUILD_ID);
+        p.put("userId", MY_USER_ID);
+        System.out.println("========== [GUILD][005 成员列表] 测试 ==========");
+        try {
+            JSONObject r = guildService.myGuild(fakeSocket, p);
+            System.out.println(r == null ? "null" : r.toJSONString());
+            System.out.println("[GUILD][005] OK");
+        } catch (Exception e) {
+            System.out.println("[GUILD][005][异常]: " + e.getMessage());
+            e.printStackTrace();
+        }
+    }
+
+    /**
+     * 为了测试 007（发放佣金/领取），需要先人为给某个成员塞一点 profitBalance。
+     * 这里直接调用 DEFAULT 的 GuildMemberService.addProfitBalance(userId, amount)
+     */
+    private static void guildAddProfitBalanceForTest() {
+        com.zywl.app.defaultx.service.GuildMemberService memberService = ctx.getBean(com.zywl.app.defaultx.service.GuildMemberService.class);
+        System.out.println("========== [GUILD][准备数据] 给成员增加 profitBalance ==========");
+        try {
+            memberService.addProfitBalance(FRIEND_USER_ID, new java.math.BigDecimal("100"));
+            System.out.println("[GUILD][准备数据] OK");
+        } catch (Exception e) {
+            System.out.println("[GUILD][准备数据][异常]: " + e.getMessage());
+            e.printStackTrace();
+        }
+    }
+
+    /**
+     * 007：发放佣金（MANAGER: ManagerGuildService.receive）
+     * - 注意：当前实现是“把 member.profitBalance 转给 operatorUserId（操作人/会长）”
+     */
+    private static void guildReceiveTest() {
+        ManagerGuildService guildService = ctx.getBean(ManagerGuildService.class);
+
+        if (TEST_GUILD_ID == null) {
+            TEST_GUILD_ID = queryLatestGuildId(MY_USER_ID, null);
+        }
+        JSONObject p = new JSONObject();
+        p.put("guildId", TEST_GUILD_ID);
+        p.put("userId", FRIEND_USER_ID);       // 被发放/被清零 profitBalance 的成员
+        p.put("operatorUserId", MY_USER_ID);   // 实际入账的人（会长）
+        System.out.println("========== [GUILD][007 发放佣金] 测试 ==========");
+        try {
+            Object r = guildService.receive(fakeSocket, p);
+            System.out.println(r == null ? "null" : r.toString());
+            System.out.println("[GUILD][007] OK");
+        } catch (Exception e) {
+            System.out.println("[GUILD][007][异常]: " + e.getMessage());
+            e.printStackTrace();
+        }
+    }
+
+    /**
+     * 009：修改比例（MANAGER: ManagerGuildService.updateRate）
+     */
+    private static void guildUpdateRateTest() {
+        ManagerGuildService guildService = ctx.getBean(ManagerGuildService.class);
+
+        JSONObject p = new JSONObject();
+        p.put("userId", FRIEND_USER_ID);
+        p.put("rate", "8"); // 这里传字符串也可以，被 getBigDecimal 解析
+        System.out.println("========== [GUILD][009 修改比例] 测试 ==========");
+        try {
+            JSONObject r = guildService.updateRate(fakeSocket, p);
+            System.out.println(r == null ? "null" : r.toJSONString());
+            System.out.println("[GUILD][009] OK");
+        } catch (Exception e) {
+            System.out.println("[GUILD][009][异常]: " + e.getMessage());
+            e.printStackTrace();
+        }
+    }
+
+    //养宠物信息
     private static void getPetInfoTest() {
         ManagerGamePetService getPetService = ctx.getBean(ManagerGamePetService.class);
         JSONObject params = new JSONObject();
         params.put("userId", MY_USER_ID);
         System.out.println("========== [获取养宠信息] 测试 ==========");
         try {
-            getPetService.getPetInfo(null,params);
+            JSONObject result = getPetService.getPetInfo(null, params);
+            System.out.println(result == null ? "null" : result.toJSONString());
             System.out.println("[========== ========== ========== 获取养宠信息 OK" );
         } catch (Exception e) {
             System.out.println("[获取养宠信息][=====================异常]: " + e.getMessage());
@@ -448,8 +688,97 @@ public class SpringInDebug {
         }
     }
 
+    //购买宠物
+    private static void getPayPetTest() {
+        ManagerGamePetService getPetService = ctx.getBean(ManagerGamePetService.class);
+        JSONObject params = new JSONObject();
+        params.put("userId", MY_USER_ID);
+        params.put("buyCount", 2);
+        System.out.println("========== [购买养宠] 测试 ==========");
+        try {
+            JSONObject result = getPetService.buyLion(null, params);
+            System.out.println(result == null ? "null" : result.toJSONString());
+            System.out.println("[========== ========== ========== 购买养宠 OK" );
+        } catch (Exception e) {
+            System.out.println("[购买养宠][=====================异常]: " + e.getMessage());
+            e.printStackTrace();
+        }
+    }
+
+    //喂养宠物
+    private static void getFeedLionTest() {
+        ManagerGamePetService getPetService = ctx.getBean(ManagerGamePetService.class);
+        JSONObject params = new JSONObject();
+        params.put("userId", MY_USER_ID);
+        params.put("feedTimes", 1);
+        System.out.println("========== [喂养宠物] 测试 ==========");
+        try {
+            JSONObject result = getPetService.feedLion(null, params);
+            System.out.println(result == null ? "null" : result.toJSONString());
+            System.out.println("[========== ========== ========== 喂养宠物 OK" );
+        } catch (Exception e) {
+            System.out.println("[喂养宠物][=====================异常]: " + e.getMessage());
+            e.printStackTrace();
+        }
+    }
+
+
+    //领取宠物收益信息
+    private static void getClaimYieldTest() {
+        ManagerGamePetService getPetService = ctx.getBean(ManagerGamePetService.class);
+        JSONObject params = new JSONObject();
+        params.put("userId", MY_USER_ID);
+        System.out.println("========== [领取养宠产出] 测试 ==========");
+        try {
+            JSONObject result = getPetService.claimYield(null, params);
+            System.out.println(result == null ? "null" : result.toJSONString());
+            System.out.println("[========== ========== ========== 领取养宠产出 OK" );
+        } catch (Exception e) {
+            System.out.println("[领取养宠产出][=====================异常]: " + e.getMessage());
+            e.printStackTrace();
+        }
+    }
+
+    private static void unlockLv3Test() {
+        ManagerGamePetService svc = ctx.getBean(ManagerGamePetService.class);
+        JSONObject p = new JSONObject();
+        p.put("userId", 928765L);     // 你的1代上级
+        p.put("unlockLevel", 3);
+        System.out.println("========== [解锁3代分润] 测试 ==========");
+        try {
+            JSONObject r = svc.unlockDividendLevel(null, p);
+            System.out.println(r == null ? "null" : r.toJSONString());
+            System.out.println("[========== 解锁3代分润 OK");
+        } catch (Exception e) {
+            System.out.println("[解锁3代分润][异常]: " + e.getMessage());
+            e.printStackTrace();
+        }
+    }
+
+    // 排行榜测试
+    private static void getTopTest() {
+        ManagerGameBaseService svc = ctx.getBean(ManagerGameBaseService.class);
+        JSONObject p = new JSONObject();
+        p.put("userId", MY_USER_ID);
+        // 1邀请拉新/2VIP/7资产消耗
+        p.put("type", 7);
+        p.put("capitalType", 0);
+        System.out.println("========== [排行榜] 测试 ==========");
+        try {
+            JSONObject r = svc.getTop(null, p);
+            System.out.println(r == null ? "null" : r.toJSONString());
+            System.out.println("[========== 排行榜 OK");
+        } catch (Exception e) {
+            System.out.println("[排行榜][异常]: " + e.getMessage());
+            e.printStackTrace();
+        }
+    }
 
     public static void main(String[] args) {
+        // ===================== 公会 Guild 模块 =====================
+        // 一键跑完整流程：
+        // guildFullFlowTest();
+
         //种子合成
         // synInTest();;
 
@@ -497,12 +826,37 @@ public class SpringInDebug {
         // 分配欢乐值
         //testJoyDistributeJoy();
 
+        //工会列表
+        guildGetListTest();
+
+        //创建工会
+        //guildCreateTest();
+        //邀请成员
+        //guildAddMemberTest();
+
         //工会详情
         //testGuild();
 
-        //购买宠物信息
-        getPetInfoTest();
+        //获取购买宠物信息
+        //getPetInfoTest();
+
+        //购买宠物
+        //getPayPetTest();
+
+        //喂养宠物
+        //getFeedLionTest();
+
+        //领取宠物产出
+        //getClaimYieldTest();
+
+        //解锁3代分润
+        //unlockLv3Test();
+
+        //排行榜测试‘’
+        //getTopTest();
     }
+
+
 
 
 

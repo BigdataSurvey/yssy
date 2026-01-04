@@ -915,6 +915,15 @@ public class RedisService extends BaseService {
         return set;
     }
 
+    public Set<ZSetOperations.TypedTuple<String>> getZset(String key, long start, long end) {
+        try {
+            return this.redisTemplate.opsForZSet().reverseRangeWithScores(key, start, end);
+        } catch (Exception e) {
+            logger.error("从Redis ZSet获取指定范围数据异常 key=[" + key + "]", e);
+            return null;
+        }
+    }
+
     public void removeZsetKey(String key,String... var){
         redisTemplate.opsForZSet().remove(key,var);
     }

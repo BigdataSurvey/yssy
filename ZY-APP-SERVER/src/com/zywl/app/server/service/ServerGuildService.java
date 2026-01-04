@@ -59,6 +59,14 @@ public class ServerGuildService extends BaseService {
     @ServiceMethod(code = "002", description = "创建公会")
     public Object createGuilds(final AppSocket appSocket, Command appCommand, JSONObject params) {
         checkNull(params);
+
+        // 前置校验（减少无效跨服 RPC）
+        checkNull(params.get("guildName"));
+        checkNull(params.get("needMemberNumber"));
+        String guildName = params.getString("guildName");
+        if (guildName != null && guildName.trim().codePointCount(0, guildName.trim().length()) > 10) {
+            throwExp("公会名称最多10个字");
+        }
         Long userId = appSocket.getWsidBean().getUserId();
         params.put("userId", userId);
         User user = userCacheService.getUserInfoById(userId);
@@ -83,36 +91,68 @@ public class ServerGuildService extends BaseService {
         return async();
     }
 
-    @ServiceMethod(code = "004", description = "添加公会成员")
+    @ServiceMethod(code = "004", description = "添加公会成员（会长可邀请副会长/成员；副会长可邀请成员）")
     public Object addGuildMember(final AppSocket appSocket, Command appCommand, JSONObject params) {
         checkNull(params);
         checkNull(params.get("userNo"));
         String userNo = params.getString("userNo");
-        User user = userCacheService.getUserInfoByUserNo(userNo);
-        params.put("userId", user.getId());
-        Long createUserId = appSocket.getWsidBean().getUserId();
-        GuildMember member = guildCacheService.getMemberByUserId(createUserId);
-        if (member == null) {
-            throwExp("您没有加入小队");
+
+        User targetUser = userCacheService.getUserInfoByUserNo(userNo);
+        if (targetUser == null) {
+            throwExp("玩家不存在");
         }
-        Long guildId = member.getGuildId();
-        params.put("guildId", guildId);
-        params.put("createUserId", createUserId);
-        if (createUserId.toString().equals(params.getString("userId"))) {
-            throwExp("您已是小队成员");
+
+        Long operatorUserId = appSocket.getWsidBean().getUserId();
+        GuildMember operatorMember = guildCacheService.getMemberByUserId(operatorUserId);
+        if (operatorMember == null) {
+            throwExp("您没有加入公会");
         }
-        if (user.getRoleId() != 1) {
-            throwExp("该玩家已是小队成员");
-        }
+
+        Long guildId = operatorMember.getGuildId();
         Guild guild = guildCacheService.getGuildByGuildId(guildId);
-        if (!guild.getUserId().toString().equals(createUserId.toString())) {
-            throwExp("您没有权限");
+        if (guild == null) {
+            throwExp("公会不存在");
         }
-        User my = userCacheService.getUserInfoById(createUserId);
-        if (my == null) {
-            throwExp("查询玩家信息失败");
+        if (guild.getStatus() == null || guild.getStatus() != 1) {
+            throwExp("公会审核中，暂不可邀请成员");
         }
-        Executer.request(TargetSocketType.manager, CommandBuilder.builder().request("018004", params).build(), new RequestManagerListener(appCommand));
+
+        // memberRoleId：2=成员(默认)，4=副会长
+        Integer memberRoleId = params.getInteger("memberRoleId");
+        if (memberRoleId == null) {
+            memberRoleId = 2;
+        }
+        if (memberRoleId != 2 && memberRoleId != 4) {
+            throwExp("memberRoleId错误");
+        }
+
+        // 邀请权限校验
+        Integer operatorRoleId = operatorMember.getRoleId();
+        if (memberRoleId == 4) {
+            if (operatorRoleId == null || operatorRoleId != 3) {
+                throwExp("仅会长可邀请副会长");
+            }
+        } else {
+            if (operatorRoleId == null || (operatorRoleId != 3 && operatorRoleId != 4)) {
+                throwExp("仅会长/副会长可邀请成员");
+            }
+        }
+
+        if (operatorUserId.toString().equals(targetUser.getId().toString())) {
+            throwExp("不能添加自己");
+        }
+        if (targetUser.getRoleId() != 1) {
+            throwExp("该玩家已是公会成员");
+        }
+
+        params.put("userId", targetUser.getId());
+        params.put("guildId", guildId);
+        params.put("createUserId", operatorUserId);
+        params.put("memberRoleId", memberRoleId);
+
+        Executer.request(TargetSocketType.manager,
+                CommandBuilder.builder().request("018004", params).build(),
+                new RequestManagerListener(appCommand));
         return async();
     }
 
@@ -138,33 +178,61 @@ public class ServerGuildService extends BaseService {
         checkNull(params);
         checkNull(params.get("userId"), params.get("page"), params.get("num"));
         Long userId = params.getLong("userId");
-        GuildMember member = guildCacheService.getMemberByUserId(userId);
-        if (member == null) {
-            throwExp("您没有加入公会");
+
+        GuildMember targetMemberCache = guildCacheService.getMemberByUserId(userId);
+        if (targetMemberCache == null) {
+            throwExp("该玩家未加入公会");
         }
-        Long guildId = member.getGuildId();
-        User user = userCacheService.getUserInfoById(userId);
-        if (user == null) {
+        Long guildId = targetMemberCache.getGuildId();
+
+        User targetUser = userCacheService.getUserInfoById(userId);
+        if (targetUser == null) {
             throwExp("玩家不存在");
         }
+
         Guild guild = guildCacheService.getGuildByGuildId(guildId);
-        Long myId = appSocket.getWsidBean().getUserId();
         if (guild == null) {
             throwExp("公会不存在");
         }
-        if (!myId.toString().equals(user.getId().toString()) && !guild.getUserId().toString().equals(myId.toString())) {
-            throwExp("您无权查看");
+
+        Long myId = appSocket.getWsidBean().getUserId();
+        GuildMember myMember = guildCacheService.getMemberByUserId(myId);
+        if (myMember == null || !guildId.toString().equals(myMember.getGuildId().toString())) {
+            throwExp("您没有加入该公会");
         }
+
         GuildMember guildMember = guildMemberService.findByGuildIdAndUserId(guildId, userId);
         if (guildMember == null) {
             throwExp("该玩家不是您的公会成员");
         }
-        List<GuildDailyStatics> statics = guildDailyStaticsService.findByUserId(userId, params.getInteger("page"), params.getInteger("num"));
+
+        // 权限：本人 / 会长 / 副会长(仅可查看自己直邀的成员)
+        boolean allow = myId.toString().equals(userId.toString());
+        if (!allow) {
+            Integer myRoleId = myMember.getRoleId();
+            if (myRoleId != null && myRoleId == 3) {
+                allow = true;
+            } else if (myRoleId != null && myRoleId == 4
+                    && guildMember.getCreateUserId() != null
+                    && guildMember.getCreateUserId().toString().equals(myId.toString())) {
+                allow = true;
+            } else if (guild.getUserId() != null && guild.getUserId().toString().equals(myId.toString())) {
+                // 兼容：历史逻辑以 guild.userId 作为会长判断
+                allow = true;
+            }
+        }
+        if (!allow) {
+            throwExp("您无权查看");
+        }
+
+        List<GuildDailyStatics> statics = guildDailyStaticsService.findByUserId(
+                userId, params.getInteger("page"), params.getInteger("num"));
         GuildDailyStaticsVo vo = guildDailyStaticsService.findStatics(userId);
+
         JSONObject result = new JSONObject();
         result.put("staticsList", statics);
         result.put("all", vo);
-        result.put("rate", member.getProfitRate());
+        result.put("rate", guildMember.getProfitRate());
         return result;
     }
 
@@ -299,10 +367,22 @@ public class ServerGuildService extends BaseService {
         checkNull(params);
         Long userId = appSocket.getWsidBean().getUserId();
         params.put("userId",userId);
+        GuildMember member = guildCacheService.getMemberByUserId(userId);
+        if (member == null) {
+            throwExp("查询记录失败");
+        }
+        Long guildId = member.getGuildId();
         User user = userCacheService.getUserInfoById(userId);
         if (user == null) {
             throwExp("玩家不存在");
         }
+        Guild guild = guildCacheService.getGuildByGuildId(guildId);
+
+        if (guild == null) {
+            throwExp("公会不存在");
+        }
+        params.put("guildId", guildId);
+        params.put("operatorUserId", params.get("operatorUserId"));
         Executer.request(TargetSocketType.manager, CommandBuilder.builder().request("018007", params).build(), new RequestManagerListener(appCommand));
         return async();
     }

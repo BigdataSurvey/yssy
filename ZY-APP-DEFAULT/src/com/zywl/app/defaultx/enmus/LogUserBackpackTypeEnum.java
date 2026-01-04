@@ -52,6 +52,8 @@ public enum LogUserBackpackTypeEnum {
 	pit_refund("矿洞退款", 1011),
 	harvest("种植收益",1012),
 	balloon_exchange("兑换气球",1013),
+	bounty("悬赏任务",1014),
+
 	;
 	
 	private String name;

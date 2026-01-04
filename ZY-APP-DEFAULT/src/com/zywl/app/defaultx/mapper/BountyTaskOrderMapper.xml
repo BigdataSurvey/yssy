@@ -1,0 +1,240 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.zywl.app.defaultx.mapper.BountyTaskOrderMapper">
+
+    <!-- 通用字段映射 -->
+    <resultMap id="BaseResultMap" type="com.zywl.app.base.bean.BountyTaskOrder">
+        <id     column="id"               property="id"/>
+        <result column="task_id"          property="taskId"/>
+        <result column="publisher_user_id" property="publisherUserId"/>
+        <result column="user_id"          property="userId"/>
+        <result column="order_no"         property="orderNo"/>
+        <result column="status"           property="status"/>
+        <result column="take_time"        property="takeTime"/>
+        <result column="deadline_time"    property="deadlineTime"/>
+        <result column="submit_time"      property="submitTime"/>
+        <result column="audit_time"       property="auditTime"/>
+        <result column="submit_imgs"      property="submitImgs"/>
+        <result column="submit_user_id"   property="submitUserId"/>
+        <result column="reject_reason"    property="rejectReason"/>
+        <result column="appeal_reason"    property="appealReason"/>
+        <result column="appeal_time"      property="appealTime"/>
+        <result column="appeal_status"    property="appealStatus"/>
+        <result column="appeal_handle_reason" property="appealHandleReason"/>
+        <result column="appeal_handle_time"   property="appealHandleTime"/>
+        <result column="appeal_handle_user_id" property="appealHandleUserId"/>
+        <result column="unit_price"       property="unitPrice"/>
+        <result column="capital_type"     property="capitalType"/>
+        <result column="create_time"      property="createTime"/>
+        <result column="update_time"      property="updateTime"/>
+    </resultMap>
+
+    <!-- 通用列 -->
+    <sql id="Base_Column_List">
+        id,
+        task_id,
+        publisher_user_id,
+        user_id,
+        order_no,
+        status,
+        take_time,
+        deadline_time,
+        submit_time,
+        audit_time,
+        submit_imgs,
+        submit_user_id,
+        reject_reason,
+        appeal_reason,
+        appeal_time,
+        appeal_status,
+        appeal_handle_reason,
+        appeal_handle_time,
+        appeal_handle_user_id,
+        unit_price,
+        capital_type,
+        create_time,
+        update_time
+    </sql>
+
+    <!-- 主键查询 -->
+    <select id="selectByPrimaryKey" parameterType="long" resultMap="BaseResultMap">
+        select
+        <include refid="Base_Column_List"/>
+        from t_bounty_task_order
+        where id = #{id}
+    </select>
+
+    <!-- 新增 -->
+    <insert id="insert" parameterType="com.zywl.app.base.bean.BountyTaskOrder" useGeneratedKeys="true" keyProperty="id" keyColumn="id">
+        insert into t_bounty_task_order
+        (
+            task_id,
+            publisher_user_id,
+            user_id,
+            order_no,
+            status,
+            take_time,
+            deadline_time,
+            submit_time,
+            audit_time,
+            submit_imgs,
+            submit_user_id,
+            reject_reason,
+            appeal_reason,
+            appeal_time,
+            appeal_status,
+            appeal_handle_reason,
+            appeal_handle_time,
+            appeal_handle_user_id,
+            unit_price,
+            capital_type,
+            create_time,
+            update_time
+        )
+        values
+            (
+                #{taskId},
+                #{publisherUserId},
+                #{userId},
+                #{orderNo},
+                #{status},
+                #{takeTime},
+                #{deadlineTime},
+                #{submitTime},
+                #{auditTime},
+                #{submitImgs},
+                #{submitUserId},
+                #{rejectReason},
+                #{appealReason},
+                #{appealTime},
+                #{appealStatus},
+                #{appealHandleReason},
+                #{appealHandleTime},
+                #{appealHandleUserId},
+                #{unitPrice},
+                #{capitalType},
+                #{createTime},
+                #{updateTime}
+            )
+    </insert>
+
+    <!-- 更新（按需选择性更新） -->
+    <update id="update" parameterType="com.zywl.app.base.bean.BountyTaskOrder">
+        update t_bounty_task_order
+        <set>
+            <if test="taskId != null">task_id = #{taskId},</if>
+            <if test="publisherUserId != null">publisher_user_id = #{publisherUserId},</if>
+            <if test="userId != null">user_id = #{userId},</if>
+            <if test="orderNo != null">order_no = #{orderNo},</if>
+            <if test="status != null">status = #{status},</if>
+            <if test="takeTime != null">take_time = #{takeTime},</if>
+            <if test="deadlineTime != null">deadline_time = #{deadlineTime},</if>
+            <if test="submitTime != null">submit_time = #{submitTime},</if>
+            <if test="auditTime != null">audit_time = #{auditTime},</if>
+            <if test="submitImgs != null">submit_imgs = #{submitImgs},</if>
+            <if test="submitUserId != null">submit_user_id = #{submitUserId},</if>
+            <if test="rejectReason != null">reject_reason = #{rejectReason},</if>
+            <if test="appealReason != null">appeal_reason = #{appealReason},</if>
+            <if test="appealTime != null">appeal_time = #{appealTime},</if>
+            <if test="appealStatus != null">appeal_status = #{appealStatus},</if>
+            <if test="appealHandleReason != null">appeal_handle_reason = #{appealHandleReason},</if>
+            <if test="appealHandleTime != null">appeal_handle_time = #{appealHandleTime},</if>
+            <if test="appealHandleUserId != null">appeal_handle_user_id = #{appealHandleUserId},</if>
+            <if test="unitPrice != null">unit_price = #{unitPrice},</if>
+            <if test="capitalType != null">capital_type = #{capitalType},</if>
+            update_time = #{updateTime}
+        </set>
+        where id = #{id}
+    </update>
+
+    <!-- 条件列表 -->
+    <select id="findListByConditions" parameterType="map" resultMap="BaseResultMap">
+        select
+        <include refid="Base_Column_List"/>
+        from t_bounty_task_order
+        <where>
+            <if test="id != null">
+                and id = #{id}
+            </if>
+            <if test="taskId != null">
+                and task_id = #{taskId}
+            </if>
+            <if test="publisherUserId != null">
+                and publisher_user_id = #{publisherUserId}
+            </if>
+            <if test="userId != null">
+                and user_id = #{userId}
+            </if>
+            <if test="status != null">
+                and status = #{status}
+            </if>
+            <if test="statuses != null and statuses.size() > 0">
+                and status in
+                <foreach collection="statuses" item="st" open="(" separator="," close=")">
+                    #{st}
+                </foreach>
+            </if>
+            <if test="orderNo != null and orderNo != ''">
+                and order_no = #{orderNo}
+            </if>
+        </where>
+        order by take_time desc, id desc
+
+        <if test="offset != null and limit != null">
+            limit #{offset}, #{limit}
+        </if>
+        <if test="offset == null and limit != null">
+            limit #{limit}
+        </if>
+    </select>
+
+    <!-- 条件统计 -->
+    <select id="countByConditions" parameterType="map" resultType="int">
+        select count(1)
+        from t_bounty_task_order
+        <where>
+            <if test="id != null">
+                and id = #{id}
+            </if>
+            <if test="taskId != null">
+                and task_id = #{taskId}
+            </if>
+            <if test="publisherUserId != null">
+                and publisher_user_id = #{publisherUserId}
+            </if>
+            <if test="userId != null">
+                and user_id = #{userId}
+            </if>
+            <if test="status != null">
+                and status = #{status}
+            </if>
+            <if test="statuses != null and statuses.size() > 0">
+                and status in
+                <foreach collection="statuses" item="st" open="(" separator="," close=")">
+                    #{st}
+                </foreach>
+            </if>
+            <if test="orderNo != null and orderNo != ''">
+                and order_no = #{orderNo}
+            </if>
+        </where>
+    </select>
+
+    <!-- 状态更新（业务层保证幂等/合法性） -->
+    <update id="updateStatus" parameterType="map">
+        update t_bounty_task_order
+        <set>
+            <if test="status != null">status = #{status},</if>
+            <if test="submitTime != null">submit_time = #{submitTime},</if>
+            <if test="auditTime != null">audit_time = #{auditTime},</if>
+            <if test="rejectReason != null">reject_reason = #{rejectReason},</if>
+            <if test="appealReason != null">appeal_reason = #{appealReason},</if>
+            <if test="appealTime != null">appeal_time = #{appealTime},</if>
+            update_time = now()
+        </set>
+        where id = #{id}
+    </update>
+
+</mapper>

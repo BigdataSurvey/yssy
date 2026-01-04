@@ -26,15 +26,12 @@ import com.zywl.app.defaultx.service.UserPetService;
 import com.zywl.app.defaultx.service.UserPetUserService;
 import com.zywl.app.defaultx.service.UserService;
 
-import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
-import javax.annotation.Resource;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.text.SimpleDateFormat;
 import java.util.*;
-import java.util.Collections;
 
 /**
  * @Author: lzx
@@ -60,8 +57,6 @@ public class ManagerGamePetService  extends BaseService {
     private static final int PET_RECORD_TYPE_CLAIM = 5;
     private static final int PET_RECORD_TYPE_UNLOCK = 6;
 
-
-    private static final int PET_YIELD_CAPITAL_TYPE = 1003;
     // 用户服务
     @Autowired
     private UserService userService;
@@ -183,15 +178,47 @@ public class ManagerGamePetService  extends BaseService {
         // 解锁差额（直推 + 1/2代贡献）
         resp.put("unlockNeed", buildUnlockNeed(dicPet, petUser, levelPeople.getOrDefault(1, 0), contribLevel12));
 
+// 各代分润（用于前端展示：每代 今日/累计/人数/是否已解锁/还差条件）
+        JSONObject unlockNeed = resp.getJSONObject("unlockNeed");
+        JSONObject levelDividend = new JSONObject();
+        for (int lv = 1; lv <= 5; lv++) {
+            JSONObject one = new JSONObject();
+            one.put("people", levelPeople.getOrDefault(lv, 0));
+
+            BigDecimal todayLv = safeDecimal(userPetRecordService.sumTodayDividendByLevel(userId, lv));
+            BigDecimal totalLv = safeDecimal(userPetRecordService.sumTotalDividendByLevel(userId, lv));
+            one.put("todayAmount", format6(todayLv));
+            one.put("totalAmount", format6(totalLv));
+
+            int enabled = 1;
+            if (lv == 3) {
+                enabled = safeInt(petUser.getUnlockLv3());
+            } else if (lv == 4) {
+                enabled = safeInt(petUser.getUnlockLv4());
+            } else if (lv == 5) {
+                enabled = safeInt(petUser.getUnlockLv5());
+            }
+            one.put("enabled", enabled);
+
+            // 3-5代若未解锁，返回还差多少（直接引用 unlockNeed 的“差额”口径）
+            if (lv >= 3) {
+                one.put("needDirect", unlockNeed == null ? 0 : unlockNeed.getInteger("lv" + lv + "NeedDirect"));
+                one.put("needContrib", unlockNeed == null ? format6(BigDecimal.ZERO) : unlockNeed.getString("lv" + lv + "NeedContrib"));
+            }
+
+            levelDividend.put("lv" + lv, one);
+        }
+        resp.put("levelDividend", levelDividend);
+
         return resp;
     }
 
     /**
      * 038002 购买狮子
-     * - 入参：buyCount / orderNo
+     * - 入参：buyCount（前端不传 orderNo；服务端生成并返回，仅用于流水追踪）
      * - 扣资产：dic_pet.buy_cost_capital_type / buy_cost_amount（一般为 1001 核心积分）
      * - 写入：t_user_pet（buyCount 行）
-     * - 幂等：t_user_pet_record（uk_user_type_key_from_lv）基于 orderNo
+     * - 说明：该接口语义为“购买 N 只狮子”。与 Farm 播种/收割类似，前端重试会再次购买（不做业务幂等）。
      */
     @Transactional
     @ServiceMethod(code = "002")
@@ -200,6 +227,10 @@ public class ManagerGamePetService  extends BaseService {
         Long userId = params.getLong("userId");
         Integer buyCount = params.getInteger("buyCount");
         String  orderNo = "BUY_LION_" + OrderUtil.getOrder5Number();
+
+        if (userId == null || userId <= 0) {
+            throwExp("参数错误：userId");
+        }
 
         if (buyCount == null || buyCount <= 0) {
             throwExp("buyCount参数错误");
@@ -213,24 +244,6 @@ public class ManagerGamePetService  extends BaseService {
                 throwExp("该功能暂未开放");
             }
 
-            // 订单幂等：若已成功则直接返回历史结果
-            UserPetRecord uk = new UserPetRecord();
-            uk.setUserId(userId);
-            uk.setRecordType(PET_RECORD_TYPE_BUY);
-            uk.setRecordKey(orderNo);
-            uk.setPetId(0L);
-            uk.setFromUserId(0L);
-            uk.setLevel(0);
-            UserPetRecord exists = userPetRecordService.findOneByUk(uk);
-            if (exists != null && exists.getStatus() != null && exists.getStatus() == 1) {
-                String payloadJson = exists.getPayloadJson();
-                if (payloadJson != null && !payloadJson.trim().isEmpty()) {
-                    return JSONObject.parseObject(payloadJson);
-                }
-                // payload 缺失则按当前状态兜底
-                UserPetUser userPetUser = lockOrCreateUserPetUser(userId, floorToHourBegin(new Date()));
-                return buildPetInfoResult(userId, dicPet, userPetUser);
-            }
 
             Date now = new Date();
             Date nowHourBegin = floorToHourBegin(now);
@@ -276,6 +289,9 @@ public class ManagerGamePetService  extends BaseService {
             record.setPetId(0L);
             record.setFromUserId(0L);
             record.setLevel(0);
+            record.setHungerBefore(safeInt(userPetUser.getHungerHours()));
+            record.setHungerAfter(safeInt(userPetUser.getHungerHours()));
+            record.setCapitalType(costCapitalType);
             record.setAmount(totalCost);
             record.setPayloadJson(result.toJSONString());
             record.setStatus(1);
@@ -285,11 +301,7 @@ public class ManagerGamePetService  extends BaseService {
             try {
                 userPetRecordService.insert(record);
             } catch (DuplicateKeyException e) {
-                // 并发/重放：返回已有结果
-                UserPetRecord old = userPetRecordService.findOneByUk(uk);
-                if (old != null && old.getPayloadJson() != null && !old.getPayloadJson().trim().isEmpty()) {
-                    return JSONObject.parseObject(old.getPayloadJson());
-                }
+                // 极小概率 orderNo 冲突：不影响主流程（购买已完成），忽略本次流水落库失败
             }
 
             return result;
@@ -324,20 +336,6 @@ public class ManagerGamePetService  extends BaseService {
                 throwExp("养兽暂未开放");
             }
 
-            // 幂等：同一个 orderNo 的 FEED 订单只处理一次
-            UserPetRecord uk = new UserPetRecord();
-            uk.setUserId(userId);
-            uk.setRecordType(PET_RECORD_TYPE_FEED);
-            uk.setRecordKey(orderNo);
-            uk.setPetId(0L);
-            uk.setFromUserId(0L);
-            uk.setLevel(0);
-
-            UserPetRecord exist = userPetRecordService.findOneByUk(uk);
-            if (exist != null && safeInt(exist.getStatus()) == 1
-                    && exist.getPayloadJson() != null && !exist.getPayloadJson().isEmpty()) {
-                return JSONObject.parseObject(exist.getPayloadJson());
-            }
 
             // 锁定 user_pet_user（不存在则初始化）
             initUserPetUserIfAbsent(userId);
@@ -424,10 +422,7 @@ public class ManagerGamePetService  extends BaseService {
             try {
                 userPetRecordService.insert(record);
             } catch (DuplicateKeyException e) {
-                UserPetRecord old = userPetRecordService.findOneByUk(uk);
-                if (old != null && old.getPayloadJson() != null && !old.getPayloadJson().isEmpty()) {
-                    return JSONObject.parseObject(old.getPayloadJson());
-                }
+                // 极小概率 orderNo 冲突：不影响主流程（喂养已完成），忽略本次流水落库失败
             }
 
             return result;
@@ -461,20 +456,6 @@ public class ManagerGamePetService  extends BaseService {
                 throwExp("养兽暂未开放");
             }
 
-            // 幂等：同一个 orderNo 的 CLAIM 订单只处理一次（orderNo 由服务端生成，主要用于落库追踪）
-            UserPetRecord uk = new UserPetRecord();
-            uk.setUserId(userId);
-            uk.setRecordType(PET_RECORD_TYPE_CLAIM);
-            uk.setRecordKey(orderNo);
-            uk.setPetId(0L);
-            uk.setFromUserId(0L);
-            uk.setLevel(0);
-
-            UserPetRecord exist = userPetRecordService.findOneByUk(uk);
-            if (exist != null && safeInt(exist.getStatus()) == 1
-                    && exist.getPayloadJson() != null && !exist.getPayloadJson().isEmpty()) {
-                return JSONObject.parseObject(exist.getPayloadJson());
-            }
 
             initUserPetUserIfAbsent(userId);
             UserPetUser petUserUser = userPetUserService.lockByUserId(userId);
@@ -523,6 +504,8 @@ public class ManagerGamePetService  extends BaseService {
             record.setPetId(0L);
             record.setFromUserId(0L);
             record.setLevel(0);
+            record.setHungerBefore(safeInt(petUserUser.getHungerHours()));
+            record.setHungerAfter(safeInt(petUserUser.getHungerHours()));
             record.setCapitalType(yieldCapitalType);
             record.setAmount(pending);
             record.setStatus(1);
@@ -533,12 +516,7 @@ public class ManagerGamePetService  extends BaseService {
             try {
                 userPetRecordService.insert(record);
             } catch (DuplicateKeyException e) {
-                UserPetRecord old = userPetRecordService.findOneByUk(uk);
-                if (old != null && safeInt(old.getStatus()) == 1
-                        && old.getPayloadJson() != null && !old.getPayloadJson().isEmpty()) {
-                    return JSONObject.parseObject(old.getPayloadJson());
-                }
-                throw e;
+                // 极小概率 orderNo 冲突：不影响主流程（解锁已完成），忽略本次流水落库失败
             }
 
             return result;
@@ -576,20 +554,6 @@ public class ManagerGamePetService  extends BaseService {
                 throwExp("养兽暂未开放");
             }
 
-            // 幂等：同一个 orderNo 的 UNLOCK 订单只处理一次（orderNo 由服务端生成，主要用于落库追踪）
-            UserPetRecord uk = new UserPetRecord();
-            uk.setUserId(userId);
-            uk.setRecordType(PET_RECORD_TYPE_UNLOCK);
-            uk.setRecordKey(orderNo);
-            uk.setPetId(0L);
-            uk.setFromUserId(0L);
-            uk.setLevel(unlockLevel);
-
-            UserPetRecord exist = userPetRecordService.findOneByUk(uk);
-            if (exist != null && safeInt(exist.getStatus()) == 1
-                    && exist.getPayloadJson() != null && !exist.getPayloadJson().isEmpty()) {
-                return JSONObject.parseObject(exist.getPayloadJson());
-            }
 
             initUserPetUserIfAbsent(userId);
             UserPetUser petUserUser = userPetUserService.lockByUserId(userId);
@@ -675,6 +639,8 @@ public class ManagerGamePetService  extends BaseService {
             record.setPetId(0L);
             record.setFromUserId(0L);
             record.setLevel(unlockLevel);
+            record.setHungerBefore(safeInt(petUserUser.getHungerHours()));
+            record.setHungerAfter(safeInt(petUserUser.getHungerHours()));
             record.setCapitalType(dicPet.getUnlockContribCapitalType());
             record.setAmount(BigDecimal.ZERO);
             record.setStatus(1);
@@ -685,12 +651,7 @@ public class ManagerGamePetService  extends BaseService {
             try {
                 userPetRecordService.insert(record);
             } catch (DuplicateKeyException e) {
-                UserPetRecord old = userPetRecordService.findOneByUk(uk);
-                if (old != null && safeInt(old.getStatus()) == 1
-                        && old.getPayloadJson() != null && !old.getPayloadJson().isEmpty()) {
-                    return JSONObject.parseObject(old.getPayloadJson());
-                }
-                throw e;
+                // 极小概率 orderNo 冲突：不影响主流程（解锁已完成），忽略本次流水落库失败
             }
 
             return result;
@@ -798,6 +759,38 @@ public class ManagerGamePetService  extends BaseService {
         // 解锁差额（直推 + 1/2代贡献）
         resp.put("unlockNeed", buildUnlockNeed(dicPet, petUser, levelPeople.getOrDefault(1, 0), contribLevel12));
 
+// 各代分润（用于前端展示：每代 今日/累计/人数/是否已解锁/还差条件）
+        JSONObject unlockNeed = resp.getJSONObject("unlockNeed");
+        JSONObject levelDividend = new JSONObject();
+        for (int lv = 1; lv <= 5; lv++) {
+            JSONObject one = new JSONObject();
+            one.put("people", levelPeople.getOrDefault(lv, 0));
+
+            BigDecimal todayLv = safeDecimal(userPetRecordService.sumTodayDividendByLevel(userId, lv));
+            BigDecimal totalLv = safeDecimal(userPetRecordService.sumTotalDividendByLevel(userId, lv));
+            one.put("todayAmount", format6(todayLv));
+            one.put("totalAmount", format6(totalLv));
+
+            int enabled = 1;
+            if (lv == 3) {
+                enabled = safeInt(petUser.getUnlockLv3());
+            } else if (lv == 4) {
+                enabled = safeInt(petUser.getUnlockLv4());
+            } else if (lv == 5) {
+                enabled = safeInt(petUser.getUnlockLv5());
+            }
+            one.put("enabled", enabled);
+
+            // 3-5代若未解锁，返回还差多少（直接引用 unlockNeed 的“差额”口径）
+            if (lv >= 3) {
+                one.put("needDirect", unlockNeed == null ? 0 : unlockNeed.getInteger("lv" + lv + "NeedDirect"));
+                one.put("needContrib", unlockNeed == null ? format6(BigDecimal.ZERO) : unlockNeed.getString("lv" + lv + "NeedContrib"));
+            }
+
+            levelDividend.put("lv" + lv, one);
+        }
+        resp.put("levelDividend", levelDividend);
+
         return resp;
     }
 
@@ -833,6 +826,15 @@ public class ManagerGamePetService  extends BaseService {
      */
     private void settleToCurrentHour(Long userId, UserPetUser petUser, DicPet dicPet) {
         Date now = new Date();
+        Integer yieldCapitalType = dicPet.getYieldCapitalType();
+        Integer dividendCapitalType = dicPet.getDividendCapitalType();
+        if (yieldCapitalType == null) {
+            throwExp("产出资产类型未配置(yield_capital_type)");
+        }
+        if (dividendCapitalType == null) {
+            throwExp("分润资产类型未配置(dividend_capital_type)");
+        }
+
         Date currentHour = truncateToHour(now);
 
         Date lastSettle = petUser.getLastSettleTime();
@@ -936,7 +938,7 @@ public class ManagerGamePetService  extends BaseService {
             settleRecord.setLevel(0);
             settleRecord.setHungerBefore(hungerBefore);
             settleRecord.setHungerAfter(hungerAfter);
-            settleRecord.setCapitalType(PET_YIELD_CAPITAL_TYPE);
+            settleRecord.setCapitalType(yieldCapitalType);
             settleRecord.setAmount(hourYield.yieldAmount);
             settleRecord.setChangesJson(null);
             settleRecord.setPayloadJson(buildSettlePayload(hourYield).toJSONString());
@@ -950,7 +952,7 @@ public class ManagerGamePetService  extends BaseService {
             totalYield = totalYield.add(hourYield.yieldAmount);
 
             // 分润（按 hour 维度写幂等记录）
-            settleDividendForHour(userId, recordKey, profitFixed, hungerBefore, hungerAfter);
+            settleDividendForHour(userId, recordKey, profitFixed, dividendCapitalType, hungerBefore, hungerAfter);
 
             hourStart = new Date(hourStart.getTime() + HOUR_MS);
             if (hungerHours <= 0) {
@@ -967,10 +969,15 @@ public class ManagerGamePetService  extends BaseService {
 
     private void settleDividendForHour(Long fromUserId, String recordKey,
                                        Map<Integer, BigDecimal> profitFixed,
+                                       Integer dividendCapitalType,
                                        int hungerBefore, int hungerAfter) {
 
         if (profitFixed == null || profitFixed.isEmpty()) {
             return;
+        }
+
+        if (dividendCapitalType == null) {
+            throwExp("分润资产类型未配置(dividend_capital_type)");
         }
 
         List<Long> uplines = getUplineChain(fromUserId, 5);
@@ -1025,7 +1032,7 @@ public class ManagerGamePetService  extends BaseService {
             dividendRecord.setLevel(level);
             dividendRecord.setHungerBefore(hungerBefore);
             dividendRecord.setHungerAfter(hungerAfter);
-            dividendRecord.setCapitalType(PET_YIELD_CAPITAL_TYPE);
+            dividendRecord.setCapitalType(dividendCapitalType);
             dividendRecord.setAmount(amountPerHour);
             dividendRecord.setChangesJson(null);
 

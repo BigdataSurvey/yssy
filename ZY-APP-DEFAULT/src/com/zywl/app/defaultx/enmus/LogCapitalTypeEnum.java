@@ -164,6 +164,9 @@ public enum LogCapitalTypeEnum {
     pet_claim_yield("养宠-领取产出", 1046),
     pet_dividend("养宠-上级分润", 1047),
     pet_unlock("养宠-分润等级解锁", 1048),
+    bounty_publish_pay("悬赏任务-发布任务预付扣费", 1101),
+    bounty_cancel_refund("悬赏任务-取消任务托管退款", 1102),
+    bounty_order_reward("悬赏任务-订单完成发放奖励", 1103),
 
     ;
 
