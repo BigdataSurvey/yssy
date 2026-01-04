@@ -2,36 +2,44 @@
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.zywl.app.defaultx.mapper.GuildMapper">
 
-   <insert id="insert" parameterType="Guild" useGeneratedKeys="true" keyProperty="id" keyColumn="id">
-		insert into t_guild
-		(
-               `id`,
-               `user_id`,
-               `guild_name`,
-               `member_number`,
-               `bail_amount`,
-               `remark`,
-		       `type`,
-		        `free_num`,
-               `status`,
-		       `create_time`,
-               `apply_time`
-		)
-		values
-		(
-               #{id},
-               #{userId},
-               #{guildName},
-               #{memberNumber},
-               #{bailAmount},
-               #{remark},
-		       #{type},
-		        #{freeNum},
-               #{status},
-		        #{createTime},
-		        #{applyTime}
-		)
-	</insert>
+    <insert id="insert" parameterType="Guild" useGeneratedKeys="true" keyProperty="id" keyColumn="id">
+        insert into t_guild
+        (
+            `id`,
+            `user_id`,
+            `guild_name`,
+            `member_number`,
+            `bail_amount`,
+            `need_member_number`,
+            `fee_rate`,
+            `fee_amount`,
+            `pay_amount`,
+            `remark`,
+            `type`,
+            `free_num`,
+            `status`,
+            `create_time`,
+            `apply_time`
+        )
+        values
+            (
+                #{id},
+                #{userId},
+                #{guildName},
+                #{memberNumber},
+                #{bailAmount},
+                #{needMemberNumber},
+                #{feeRate},
+                #{feeAmount},
+                #{payAmount},
+                #{remark},
+                #{type},
+                #{freeNum},
+                #{status},
+                #{createTime},
+                #{applyTime}
+            )
+    </insert>
 
     <sql id="conditions">
         <if test="id != null">
@@ -69,10 +77,10 @@
             limit #{start}, #{limit}
         </if>
     </select>
-	
-	<select id="findAll" resultType="Guild">
-	    select * from t_guild where status=1
-	</select>
+
+    <select id="findAll" resultType="Guild">
+        select * from t_guild where status=1
+    </select>
 
     <select id="findByUserId" resultType="Guild">
         select * from t_guild where user_id=#{userId}
@@ -86,8 +94,8 @@
     <select id="findOne" resultType="Guild">
         select * from t_guild where id = #{id}
     </select>
-   		
-   	<update id="updateStatus" parameterType="Guild">
+
+    <update id="updateStatus" parameterType="Guild">
         update t_guild
         <set>
             status = ${status}
@@ -97,8 +105,8 @@
 
     <update id="updateMemberNumber">
         update t_guild set
-            member_number = member_number+#{memberNumber},
-            free_num = free_num + #{freeNum}
+                           member_number = member_number+#{memberNumber},
+                           free_num = free_num + #{freeNum}
         where id= #{id}
     </update>
 
@@ -114,6 +122,6 @@
     <delete id="delete">
         delete from t_guild where id= #{id}
     </delete>
-	
+
 
 </mapper>

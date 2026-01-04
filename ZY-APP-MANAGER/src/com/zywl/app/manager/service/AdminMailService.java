@@ -137,7 +137,10 @@ public class AdminMailService extends BaseService {
 
     @ServiceMethod(code = "001")
     public Object getEmailList(AdminSocketServer adminSocketServer, Command webCommand, JSONObject params) {
-        int page = params.getIntValue("page", 0);
+        int page = params.getIntValue("page", 1);
+        if (page <= 0) {
+            page = 1;
+        }
         int limit = params.getIntValue("limit", 10);
         long fromUserId = params.getLongValue("fromUserId", 0);
         long toUserId = params.getLongValue("toUserId", 0);
@@ -146,7 +149,7 @@ public class AdminMailService extends BaseService {
         Integer end = page * limit;
         Map<String, Object> condition = new HashMap<>();
         condition.put("start", start);
-        condition.put("limit", 10);
+        condition.put("limit", limit);
         if (fromUserId > 0) {
             condition.put("fromUserId", fromUserId);
         }
@@ -271,14 +274,17 @@ public class AdminMailService extends BaseService {
      */
     @ServiceMethod(code = "010", description = "获取渠道申请列表")
     public Object getChannelApplyList(AdminSocketServer adminSocketServer, Command webCommand, JSONObject params) {
-        int page = params.getIntValue("page", 0);
+        int page = params.getIntValue("page", 1);
+        if (page <= 0) {
+            page = 1;
+        }
         int limit = params.getIntValue("limit", 10);
 
         Integer start = (page - 1) * limit;
         Integer end = page * limit;
         JSONObject condition = new JSONObject();
         condition.put("start", start);
-        condition.put("limit", 10);
+        condition.put("limit", limit);
         condition.put("status", 0);
 
         Long count = applyForService.count("countByConditions", condition);
@@ -297,7 +303,10 @@ public class AdminMailService extends BaseService {
      */
     @ServiceMethod(code = "026", description = "获取店长列表")
     public Object getShopList(AdminSocketServer adminSocketServer, Command webCommand, JSONObject params) {
-        int page = params.getIntValue("page", 0);
+        int page = params.getIntValue("page", 1);
+        if (page <= 0) {
+            page = 1;
+        }
         int limit = params.getIntValue("limit", 10);
         int status = params.getIntValue("status", -1);
 
@@ -305,7 +314,7 @@ public class AdminMailService extends BaseService {
         Integer end = page * limit;
         Map<String, Object> condition = new HashMap<>();
         condition.put("start", start);
-        condition.put("limit", 10);
+        condition.put("limit", limit);
         if (status >= 0) {
             condition.put("status", status);
         }
@@ -333,7 +342,10 @@ public class AdminMailService extends BaseService {
      */
     @ServiceMethod(code = "011", description = "获取渠道列表")
     public Object getChannelList(AdminSocketServer adminSocketServer, Command webCommand, JSONObject params) {
-        int page = params.getIntValue("page", 0);
+        int page = params.getIntValue("page", 1);
+        if (page <= 0) {
+            page = 1;
+        }
         int limit = params.getIntValue("limit", 10);
         int status = params.getIntValue("status", -1);
 
@@ -341,7 +353,7 @@ public class AdminMailService extends BaseService {
         Integer end = page * limit;
         Map<String, Object> condition = new HashMap<>();
         condition.put("start", start);
-        condition.put("limit", 10);
+        condition.put("limit", limit);
         if (status >= 0) {
             condition.put("status", status);
         }
@@ -443,7 +455,10 @@ public class AdminMailService extends BaseService {
     @ServiceMethod(code = "020", description = "获取公会列表")
     public Object getGuildList(AdminSocketServer adminSocketServer, Command webCommand, JSONObject params) {
         checkNull(params);
-        int page = params.getIntValue("page", 0);
+        int page = params.getIntValue("page", 1);
+        if (page <= 0) {
+            page = 1;
+        }
         int limit = params.getIntValue("limit", 10);
         int status = params.getIntValue("status", -1);
         long guildId = params.getLongValue("guildId", -1);
@@ -454,12 +469,12 @@ public class AdminMailService extends BaseService {
         Integer end = page * limit;
         Map<String, Object> condition = new HashMap<>();
         condition.put("start", start);
-        condition.put("limit", 10);
+        condition.put("limit", limit);
         if (status >= 0) {
             condition.put("status", status);
         }
         if (guildId >= 0) {
-            condition.put("guildId", guildId);
+            condition.put("id", guildId);
         }
         if (userId >= 0) {
             User user = userCacheService.getUserInfoById(userId);
@@ -500,7 +515,17 @@ public class AdminMailService extends BaseService {
         guild.setUserId(userId);
         guild.setStatus(action);
 
-        Guild guild1 = guildService.findByUserId(userId);
+        Guild guild1 = null;
+        Map<String, Object> q = new HashMap<>();
+        q.put("userId", userId);
+        q.put("status", 2);
+        List<Guild> pending = guildService.findByConditions(q);
+        if (pending != null && !pending.isEmpty()) {
+            guild1 = pending.get(0);
+        }
+        if (guild1 == null) {
+            throwExp("未找到待审核公会申请");
+        }
         if (action == 1) {
             //同意
             managerGuildService.passApplyGuild(guild1.getId(), userId);
@@ -520,7 +545,10 @@ public class AdminMailService extends BaseService {
     @ServiceMethod(code = "022", description = "获取公会成员列表")
     public Object searchGuilMember(AdminSocketServer adminSocketServer, Command webCommand, JSONObject params) {
         checkNull(params);
-        int page = params.getIntValue("page", 0);
+        int page = params.getIntValue("page", 1);
+        if (page <= 0) {
+            page = 1;
+        }
         int limit = params.getIntValue("limit", 10);
         long guildId = params.getLongValue("guildId", -1);
         long userId = params.getLongValue("userId", -1);
@@ -530,9 +558,9 @@ public class AdminMailService extends BaseService {
         Map<String, Object> condition = new HashMap<>();
 
         condition.put("start", start);
-        condition.put("limit", 10);
+        condition.put("limit", limit);
         if (guildId >= 0) {
-            condition.put("guildId", guildId);
+            condition.put("id", guildId);
         }
         if (userId >= 0) {
             User user = userCacheService.getUserInfoById(userId);
@@ -620,7 +648,10 @@ public class AdminMailService extends BaseService {
     @ServiceMethod(code = "030", description = "查询货币日志")
     public Object searchTreasureLog(AdminSocketServer adminSocketServer, Command webCommand, JSONObject params) {
         checkNull(params);
-        int page = params.getIntValue("page", 0);
+        int page = params.getIntValue("page", 1);
+        if (page <= 0) {
+            page = 1;
+        }
         int limit = params.getIntValue("limit", 10);
         long userId = params.getLongValue("userId", 0);
         String userNo = params.getString("userNo");
@@ -632,7 +663,7 @@ public class AdminMailService extends BaseService {
         Integer end = page * limit;
         JSONObject condition = new JSONObject();
         condition.put("start", start);
-        condition.put("limit", 10);
+        condition.put("limit", limit);
 
         if (user != null) {
             condition.put("tableName", LogUserCapital.tablePrefix + user.getId().toString().charAt(user.getId().toString().length() - 1));
@@ -661,7 +692,10 @@ public class AdminMailService extends BaseService {
     @ServiceMethod(code = "040", description = "查询背包日志")
     public Object searchBackpackLog(AdminSocketServer adminSocketServer, Command webCommand, JSONObject params) {
         checkNull(params);
-        int page = params.getIntValue("page", 0);
+        int page = params.getIntValue("page", 1);
+        if (page <= 0) {
+            page = 1;
+        }
         int limit = params.getIntValue("limit", 10);
         long userId = params.getLongValue("userId", 0);
         String userNo = params.getString("userNo");
@@ -673,7 +707,7 @@ public class AdminMailService extends BaseService {
         Integer end = page * limit;
         JSONObject condition = new JSONObject();
         condition.put("start", start);
-        condition.put("limit", 10);
+        condition.put("limit", limit);
 
         if (user != null) {
             condition.put("tableName", LogUserBackpack.tablePrefix + user.getId().toString().charAt(user.getId().toString().length() - 1));
@@ -704,7 +738,10 @@ public class AdminMailService extends BaseService {
     @ServiceMethod(code = "041", description = "查询背包详情")
     public Object searchBackpackInfo(AdminSocketServer adminSocketServer, Command webCommand, JSONObject params) {
         checkNull(params);
-        int page = params.getIntValue("page", 0);
+        int page = params.getIntValue("page", 1);
+        if (page <= 0) {
+            page = 1;
+        }
         int limit = params.getIntValue("limit", 10);
         long userId = params.getLongValue("userId", 0);
         String userNo = params.getString("userNo");
@@ -716,7 +753,7 @@ public class AdminMailService extends BaseService {
         Integer end = page * limit;
         Map<String, Object> condition = new HashMap<>();
         condition.put("start", start);
-        condition.put("limit", 10);
+        condition.put("limit", limit);
 
         if (user != null) {
             condition.put("tableName", Backpack.tablePrefix + user.getId().toString().charAt(user.getId().toString().length() - 1));
@@ -745,7 +782,10 @@ public class AdminMailService extends BaseService {
     @ServiceMethod(code = "050", description = "查询资产信息")
     public Object searchTreasureInfo(AdminSocketServer adminSocketServer, Command webCommand, JSONObject params) {
         checkNull(params);
-        int page = params.getIntValue("page", 0);
+        int page = params.getIntValue("page", 1);
+        if (page <= 0) {
+            page = 1;
+        }
         int limit = params.getIntValue("limit", 10);
         long userId = params.getLongValue("userId", 0);
         String userNo = params.getString("userNo");
@@ -757,7 +797,7 @@ public class AdminMailService extends BaseService {
         Integer end = page * limit;
         Map<String, Object> condition = new HashMap<>();
         condition.put("start", start);
-        condition.put("limit", 10);
+        condition.put("limit", limit);
 
         if (user != null) {
             condition.put("userId", user.getId());
@@ -783,7 +823,10 @@ public class AdminMailService extends BaseService {
     @ServiceMethod(code = "051", description = "查询资产排行信息")
     public Object searchTreasureRankInfo(AdminSocketServer adminSocketServer, Command webCommand, JSONObject params) {
         checkNull(params);
-        int page = params.getIntValue("page", 0);
+        int page = params.getIntValue("page", 1);
+        if (page <= 0) {
+            page = 1;
+        }
         int limit = params.getIntValue("limit", 10);
         long capitalType = params.getLongValue("capitalType", 2);
 
@@ -791,7 +834,7 @@ public class AdminMailService extends BaseService {
         Integer end = page * limit;
         Map<String, Object> condition = new HashMap<>();
         condition.put("start", start);
-        condition.put("limit", 10);
+        condition.put("limit", limit);
         condition.put("capitalType", capitalType);
         long count = userCapitalService.count("countRank", condition);
         List<UserCapital> list = userCapitalService.findList("findRank", condition);
@@ -832,7 +875,10 @@ public class AdminMailService extends BaseService {
     @ServiceMethod(code = "052", description = "查询文房排行信息")
     public Object searchItemRankInfo(AdminSocketServer adminSocketServer, Command webCommand, JSONObject params) {
         checkNull(params);
-        int page = params.getIntValue("page", 0);
+        int page = params.getIntValue("page", 1);
+        if (page <= 0) {
+            page = 1;
+        }
         int limit = params.getIntValue("limit", 10);
         String itemId = null;
         List<BackpackVo> backpackTopList = backpackService.getBackpackTopList(itemId);
@@ -848,7 +894,10 @@ public class AdminMailService extends BaseService {
     @ServiceMethod(code = "070", description = "查询角色信息")
     public Object searchPlayerInfo(AdminSocketServer adminSocketServer, Command webCommand, JSONObject params) {
         checkNull(params);
-        int page = params.getIntValue("page", 0);
+        int page = params.getIntValue("page", 1);
+        if (page <= 0) {
+            page = 1;
+        }
         int limit = params.getIntValue("limit", 10);
         long userId = params.getLongValue("userId", 0);
         String userNo = params.getString("userNo");
@@ -860,7 +909,7 @@ public class AdminMailService extends BaseService {
         Integer end = page * limit;
         Map<String, Object> condition = new HashMap<>();
         condition.put("start", start);
-        condition.put("limit", 10);
+        condition.put("limit", limit);
 
         if (user != null) {
             condition.put("userId", user.getId());
@@ -928,7 +977,10 @@ public class AdminMailService extends BaseService {
     public Object searchBanLogin(AdminSocketServer adminSocketServer, Command webCommand, JSONObject params) {
         checkNull(params);
 
-        int page = params.getIntValue("page", 0);
+        int page = params.getIntValue("page", 1);
+        if (page <= 0) {
+            page = 1;
+        }
         int limit = params.getIntValue("limit", 10);
         long userId = params.getLongValue("userId", 0);
         String userNo = params.getString("userNo");
@@ -937,7 +989,7 @@ public class AdminMailService extends BaseService {
         Integer start = (page - 1) * limit;
         JSONObject condition = new JSONObject();
         condition.put("start", start);
-        condition.put("limit", 10);
+        condition.put("limit", limit);
 
         if (userId > 0) {
             condition.put("userId", userId);
@@ -963,7 +1015,10 @@ public class AdminMailService extends BaseService {
     @ServiceMethod(code = "080", description = "查询交易行信息")
     public Object searchTransactionInfo(AdminSocketServer adminSocketServer, Command webCommand, JSONObject params) {
         checkNull(params);
-        int page = params.getIntValue("page", 0);
+        int page = params.getIntValue("page", 1);
+        if (page <= 0) {
+            page = 1;
+        }
         int limit = params.getIntValue("limit", 10);
         long userId = params.getLongValue("userId", 0);
         String userNo = params.getString("userNo");
@@ -975,7 +1030,7 @@ public class AdminMailService extends BaseService {
         Integer end = page * limit;
         Map<String, Object> condition = new HashMap<>();
         condition.put("start", start);
-        condition.put("limit", 10);
+        condition.put("limit", limit);
         condition.put("status", 1);
 
         if (user != null) {
@@ -1044,7 +1099,10 @@ public class AdminMailService extends BaseService {
     @ServiceMethod(code = "100", description = "查询靓号信息")
     public Object searchGoodNo(AdminSocketServer adminSocketServer, Command webCommand, JSONObject params) {
         checkNull(params);
-        int page = params.getIntValue("page", 0);
+        int page = params.getIntValue("page", 1);
+        if (page <= 0) {
+            page = 1;
+        }
         int limit = params.getIntValue("limit", 10);
         String goodNo = params.getString("goodNo");
 
@@ -1052,7 +1110,7 @@ public class AdminMailService extends BaseService {
         Integer end = page * limit;
         Map<String, Object> condition = new HashMap<>();
         condition.put("start", start);
-        condition.put("limit", 10);
+        condition.put("limit", limit);
 
         if (goodNo != null && !goodNo.isEmpty()) {
             condition.put("goodNo", goodNo);
@@ -1127,7 +1185,10 @@ public class AdminMailService extends BaseService {
 
     @ServiceMethod(code = "111", description = "获取提现数据列表")
     public Object getCashData(AdminSocketServer adminSocketServer, Command webCommand, JSONObject params) {
-        int page = params.getIntValue("page", 0);
+        int page = params.getIntValue("page", 1);
+        if (page <= 0) {
+            page = 1;
+        }
         int limit = params.getIntValue("limit", 10);
         int status = params.getIntValue("status", -1);
 
@@ -1141,7 +1202,7 @@ public class AdminMailService extends BaseService {
         Integer end = page * limit;
         Map<String, Object> condition = new HashMap<>();
         condition.put("start", start);
-        condition.put("limit", 10);
+        condition.put("limit", limit);
         if (status >= 0) {
             condition.put("status", status);
         }
@@ -1221,7 +1282,10 @@ public class AdminMailService extends BaseService {
 
     @ServiceMethod(code = "113", description = "获取充值数据")
     public Object getOrderList(AdminSocketServer adminSocketServer, Command webCommand, JSONObject params) {
-        int page = params.getIntValue("page", 0);
+        int page = params.getIntValue("page", 1);
+        if (page <= 0) {
+            page = 1;
+        }
         int limit = params.getIntValue("limit", 10);
         int status = params.getIntValue("status", -1);
 
@@ -1235,7 +1299,7 @@ public class AdminMailService extends BaseService {
         Integer end = page * limit;
         Map<String, Object> condition = new HashMap<>();
         condition.put("start", start);
-        condition.put("limit", 10);
+        condition.put("limit", limit);
         if (status >= 0) {
             condition.put("status", status);
         }
@@ -1280,7 +1344,10 @@ public class AdminMailService extends BaseService {
     @ServiceMethod(code = "120", description = "查询用户信息")
     public Object searchUserInfo(AdminSocketServer adminSocketServer, Command webCommand, JSONObject params) {
         checkNull(params);
-        int page = params.getIntValue("page", 0);
+        int page = params.getIntValue("page", 1);
+        if (page <= 0) {
+            page = 1;
+        }
         int limit = params.getIntValue("limit", 10);
         long userId = params.getLongValue("userId", 0);
         String userNo = params.getString("userNo");
@@ -1291,7 +1358,7 @@ public class AdminMailService extends BaseService {
         Integer end = page * limit;
         Map<String, Object> condition = new HashMap<>();
         condition.put("start", start);
-        condition.put("limit", 10);
+        condition.put("limit", limit);
 
         if (userId > 0) {
             condition.put("userId", userId);
@@ -1429,14 +1496,17 @@ public class AdminMailService extends BaseService {
     public Object getAdminLog(AdminSocketServer adminSocketServer, Command webCommand, JSONObject params) {
         checkNull(params);
         checkAuth(adminSocketServer);
-        int page = params.getIntValue("page", 0);
+        int page = params.getIntValue("page", 1);
+        if (page <= 0) {
+            page = 1;
+        }
         int limit = params.getIntValue("limit", 10);
 
         Integer start = (page - 1) * limit;
         Integer end = page * limit;
         JSONObject condition = new JSONObject();
         condition.put("start", start);
-        condition.put("limit", 10);
+        condition.put("limit", limit);
 
         long count = adminLogService.count("countByConditions", condition);
         List<AdminLog> list = adminLogService.findList("findByConditions", condition);
@@ -1451,7 +1521,10 @@ public class AdminMailService extends BaseService {
     public Object searchShuMeiRule(AdminSocketServer adminSocketServer, Command webCommand, JSONObject params) {
         checkNull(params);
         checkAuth(adminSocketServer);
-        int page = params.getIntValue("page", 0);
+        int page = params.getIntValue("page", 1);
+        if (page <= 0) {
+            page = 1;
+        }
         int limit = params.getIntValue("limit", 10);
         String model = params.getString("models");
         int status = params.getIntValue("status", -1);
@@ -1459,7 +1532,7 @@ public class AdminMailService extends BaseService {
         Integer start = (page - 1) * limit;
         Map<String, Object> condition = new HashMap<>();
         condition.put("start", start);
-        condition.put("limit", 10);
+        condition.put("limit", limit);
 
         if (model != null && !model.isEmpty()) {
             condition.put("models", model);

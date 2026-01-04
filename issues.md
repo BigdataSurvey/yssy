@@ -1,7 +1,7 @@
 我向你上传了一个"yssy.zip"这个文件,是一个压缩包；这个压缩包下的游戏项目,叫"小丑大逃杀"的后端代码,请你解压之后详细分析,深度分析每一个文件的作用,以及各个模块之间的关系,请详细分析并给出你的答案;
 
 这个后端项目采用分模块的分布式架构,主要划分为不同的模块,各自职责明确;具体不同模块之间的说明在我上传的"YSSY后端核心模块架构与功能详解.pdf"中可以参考,请你深度分析该PDF;
-我同时上传了"yssy-Tree_20260101234232.txt"该项目的目录树,来供你参考；
+我同时上传了"yssy-Tree_20260104135709.txt"该项目的目录树,来供你参考；
 
 我简单说一下,
 其中ZY-APP-BASE、ZY-APP-DEFAULT、ZY-APP-WS、ZY-APP-SERVER、ZY-APP-MANAGER、ZY-APP-LOG、ZY-KEYFACTORY为核心模块;
@@ -201,6 +201,7 @@ UserCapitalService.findUserCapitalByUserIdAndCapitalType
 
 扣除用户资产
 UserCapitalService.subUserBalance
+但是扣除资产最好的方法是在UserCapitalService.java中新增一个对应需求的扣除资产的方法；比如subUserBalanceBySendMail、subUserBalanceByBuyLion 这些都很独立
 增加资产
 UserCapitalService.addUserBalance
 添加资产
@@ -234,7 +235,7 @@ yssy\ZY-APP-MANAGER\src\com\zywl\app\manager\service\manager\ManagerGameFarmServ
 “种地需求”的实现中的：1.启动加载静态表进 Map：PlayGameService.initFarm → DIC_FARM；2.登录同步静态表：syncTableInfo 下发 farmTable（版本来自 CONFIG，数据来自静态 Map）;3.运行期热更新：updateGameKey(FARM_TABLE_VERSION) 重载 Map + push 在线玩家;4.奖励统一入口：收割奖励用 dic_farm.reward(JSON) → addReward; 5.常用方法校验用户使用 User user = loadAndCheckUser(userId); 检查背包道具使用 gameService.checkUserItemNumber；更新背包使用 gameService.updateUserBackpack；读取配置使用 managerConfigService.getString(Config...); 校验资产使用 userCapitalService.findUserCapitalByUserIdAndCapitalType(userId, capitalTypeId)；扣除资产使用  userCapitalService.subUserBalance；清理资产缓存使用 userCapitalCacheService.deltedUserCapitalCache；这些都可以作为使用模版；
 
 
-这是我们的开发要求和规范请你牢记后我们开始开始新的需求
+这是我们的开发要求和规范请你牢记后向我复述一遍并保存到记忆后 我们开始开始新的需求；
 
 
 

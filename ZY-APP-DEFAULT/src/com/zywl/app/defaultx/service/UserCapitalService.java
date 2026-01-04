@@ -865,8 +865,7 @@ public class UserCapitalService extends DaoService {
     }
 
     @Transactional
-    public void subUserBalanceByGuild(Long userId, BigDecimal amount, Long dataId) {
-        int capitalType = UserCapitalTypeEnum.currency_2.getValue();
+    public void subUserBalanceByGuild(Long userId, BigDecimal amount, Long dataId,int capitalType) {
         UserCapital userCapital = userCapitalCacheService.getUserCapitalCacheByType(userId, capitalType);
         int a = subUserBalance(amount, userId, capitalType, userCapital.getBalance(), userCapital.getOccupyBalance(), null, dataId, LogCapitalTypeEnum.guild, null);
         if (a < 1) {
@@ -892,6 +891,83 @@ public class UserCapitalService extends DaoService {
             }
         }
     }
+
+
+    // 悬赏任务发布：预付扣费（托管资金 + 平台手续费）
+    @Transactional
+    public void subUserBalanceByBountyPublish(Long userId,
+                                              BigDecimal amount,
+                                              Integer capitalType,
+                                              String orderNo,
+                                              Long bountyTaskId,
+                                              LogCapitalTypeEnum logType) {
+
+        if (userId == null || userId <= 0) {
+            throwExp("userId不能为空");
+        }
+        if (amount == null || amount.compareTo(BigDecimal.ZERO) <= 0) {
+            throwExp("amount参数错误");
+        }
+        if (orderNo == null || orderNo.trim().isEmpty()) {
+            throwExp("orderNo不能为空");
+        }
+        if (bountyTaskId == null || bountyTaskId <= 0) {
+            throwExp("bountyTaskId不能为空");
+        }
+
+        // 默认资产类型为核心积分
+        if (capitalType == null) {
+            capitalType = UserCapitalTypeEnum.hxjf.getValue();
+        }
+
+        // 默认日志类型：悬赏任务发布预付扣费
+        if (logType == null) {
+            logType = LogCapitalTypeEnum.bounty_publish_pay;
+        }
+
+        // 从缓存获取用户资产
+        UserCapital userCapital = userCapitalCacheService.getUserCapitalCacheByType(userId, capitalType);
+        if (userCapital == null) {
+            throwExp("资产不存在");
+        }
+
+        int a = subUserBalance(
+                amount,
+                userId,
+                capitalType,
+                userCapital.getBalance(),
+                userCapital.getOccupyBalance(),
+                orderNo,
+                bountyTaskId,
+                logType,
+                TableNameConstant.BOUNTY_TASK
+        );
+
+        if (a < 1) {
+            // 清理缓存后按币种重试一次
+            userCapitalCacheService.deltedUserCapitalCache(userId, capitalType);
+            userCapital = userCapitalCacheService.getUserCapitalCacheByType(userId, capitalType);
+            if (userCapital == null) {
+                throwExp("资产不存在");
+            }
+
+            int b = subUserBalance(
+                    amount,
+                    userId,
+                    capitalType,
+                    userCapital.getBalance(),
+                    userCapital.getOccupyBalance(),
+                    orderNo,
+                    bountyTaskId,
+                    logType,
+                    TableNameConstant.BOUNTY_TASK
+            );
+            if (b < 1) {
+                throwExp("扣除资产失败，请稍后重试");
+            }
+        }
+    }
+
 
 
     //扣除用户资产并清理缓存

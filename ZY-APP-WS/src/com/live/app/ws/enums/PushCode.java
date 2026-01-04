@@ -411,8 +411,10 @@ public enum PushCode {
 	 * 推箱子
 	 */
 	updatePbxInfo,
-	updatePbxStatus
-
-
+	updatePbxStatus,
+	/*成为会长*/
+	BECOME_GUILD_MASTER,
+	/*重置身份*/
+	deleteGuild,
 
 }

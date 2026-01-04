@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.zywl.app.defaultx.mapper.BountyFeePoolMapper">
+
+    <!-- 通用字段映射 -->
+    <resultMap id="BaseResultMap" type="com.zywl.app.base.bean.BountyFeePool">
+        <id     column="id"          property="id"/>
+        <result column="pool_cents"  property="poolCents"/>
+        <result column="create_time" property="createTime"/>
+        <result column="update_time" property="updateTime"/>
+    </resultMap>
+
+    <!-- 通用列 -->
+    <sql id="Base_Column_List">
+        id,
+        pool_cents,
+        create_time,
+        update_time
+    </sql>
+
+    <!-- 主键查询 -->
+    <select id="selectByPrimaryKey" parameterType="long" resultMap="BaseResultMap">
+        select
+        <include refid="Base_Column_List"/>
+        from t_bounty_fee_pool
+        where id = #{id}
+    </select>
+
+    <!-- 初始化（若已存在则忽略） -->
+    <insert id="insertIgnore" parameterType="long">
+        insert ignore into t_bounty_fee_pool(id, pool_cents, create_time, update_time)
+        values(#{id}, 0, now(), now())
+    </insert>
+
+    <!-- 奖池累加 -->
+    <update id="addPoolCents" parameterType="map">
+        update t_bounty_fee_pool
+        set pool_cents = pool_cents + #{deltaCents},
+            update_time = now()
+        where id = #{id}
+    </update>
+
+</mapper>

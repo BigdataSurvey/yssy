@@ -141,10 +141,6 @@ public class Config extends BaseBean {
 
 	public static final String ROLE_VERSION = "VERSION_ROLE";
 
-
-
-
-
 	//开通公会质押价格
 	public static final String GUILD_FEE = "GUILD_FEE";
 
@@ -156,6 +152,10 @@ public class Config extends BaseBean {
 
 	//添加公会成员质押价格
 	public static final String GUILD_MEMBER_FEE = "GUILD_MEMBER_FEE";
+
+	// 创建公会手续费比例（例如 0.08 表示 8%）
+	public static final String GUILD_CREATE_FEE_RATE = "GUILD_CREATE_FEE_RATE";
+
 
 	//当前开通渠道需要的收益
 	public static final String CHANNEL_FEE="CHANNEL_FEE";
@@ -251,6 +251,9 @@ public class Config extends BaseBean {
 
 	// 气球树：欢乐值与气球道具兑换比例
 	public static final String JOY_EXCHANGE_RATE = "JOY_EXCHANGE_RATE";
+
+	// 悬赏任务：发布平台手续费率
+	public static final String BOUNTY_FEE_RATE = "BOUNTY_FEE_RATE";
 
 
 

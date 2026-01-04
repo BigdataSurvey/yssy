@@ -111,5 +111,9 @@ public class TableNameConstant {
 	public final static String GAME_CARDS = "t_game_cards";
 
 	public final static String CHAT = "t_chat";
+	//悬赏任务：任务表
+	public final static String BOUNTY_TASK = "t_bounty_task";
+	//悬赏任务：接单订单表
+	public final static String BOUNTY_TASK_ORDER = "t_bounty_task_order";
 
 }
