@@ -29,17 +29,29 @@ public class ServerNoticeService extends BaseService {
 	@Autowired
 	private NoticeService noticeService;
 
-
-
-
-	@ServiceMethod(code = "001", description = "查看邮件列表")
-	public Object getMailInfo(final AppSocket appSocket, Command appCommand, JSONObject params) {
+	@ServiceMethod(code = "001", description = "查看公告列表")
+	public Object getNoticeHistory(final AppSocket appSocket, Command appCommand, JSONObject params) {
+		checkNull(params);
 		return noticeService.findHistoryNotice();
 	}
 
+	/**
+	 * 新增查看公告详情 不然公告多了列表返回很大 前端渲染就慢
+	 * **/
+	@ServiceMethod(code = "002", description = "查看公告详情")
+	public Object getNoticeInfo(final AppSocket appSocket, Command appCommand, JSONObject params) {
+		checkNull(params);
+		Long noticeId = params.getLong("noticeId");
+		if (noticeId == null || noticeId <= 0) {
+			throwExp("参数错误");
+		}
+		Object notice = noticeService.getNoticeById(noticeId);
+		if (notice == null) {
+			throwExp("公告不存在");
+		}
+		return notice;
 
-
-
+	}
 
 	public static void setOpenNotice(boolean open){
 		if(open){
@@ -60,3 +72,4 @@ public class ServerNoticeService extends BaseService {
 		return logger;
 	}
 }
+

@@ -30,7 +30,6 @@ public class TradingService extends DaoService {
 
     public TradingService() {
         super("TradingMapper");
-        // TODO Auto-generated constructor stub
     }
 
     @Transactional
