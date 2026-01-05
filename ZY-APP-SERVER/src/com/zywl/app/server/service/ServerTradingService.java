@@ -41,7 +41,10 @@ import com.zywl.app.server.context.MessageCodeContext;
 import com.zywl.app.server.socket.AppSocket;
 
 import javax.annotation.PostConstruct;
-
+/**
+ * @Description: 交易行 Manager Service
+ * @Task: 003 (MessageCodeContext.BOUNTY_TASK)
+ */
 @Service
 @ServiceClass(code = MessageCodeContext.TRADING_SERVER)
 public class ServerTradingService extends BaseService {
@@ -72,11 +75,6 @@ public class ServerTradingService extends BaseService {
 
     @Autowired
     private TradingRecordService tradingRecordService;
-
-
-
-
-
 
     @ServiceMethod(code = "001", description = "交易行物品上架")
     public Async listing(final AppSocket appSocket, Command appCommand, JSONObject params) {
