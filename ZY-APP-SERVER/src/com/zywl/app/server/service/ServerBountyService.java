@@ -13,6 +13,14 @@ import com.zywl.app.server.socket.AppSocket;
 import com.zywl.app.server.util.RequestManagerListener;
 import org.springframework.stereotype.Service;
 
+/**
+ * @Author: lzx
+ * @Create: 2026/1/3
+ * @Version: V1.0
+ * @Description: 悬赏任务 Manager Service
+ * @Task: 088 (MessageCodeContext.BOUNTY_TASK)
+ */
+
 @Service
 @ServiceClass(code = MessageCodeContext.BOUNTY_TASK)
 public class ServerBountyService extends BaseService {

@@ -625,8 +625,11 @@ public class ManagerBountyService extends BaseService {
         int offset = (pageNo - 1) * pageSize;
 
         Map<String, Object> q = new HashMap<>();
+        List<Integer> statuses = new ArrayList<>();
+        statuses.add(ORDER_STATUS_SUBMIT);
+        statuses.add(ORDER_STATUS_APPEAL);
         q.put("publisherUserId", userId);
-        q.put("status", ORDER_STATUS_SUBMIT);
+        q.put("statuses", statuses);
         q.put("offset", offset);
         q.put("limit", pageSize);
 
@@ -659,36 +662,50 @@ public class ManagerBountyService extends BaseService {
         BountyTaskOrder order = bountyTaskOrderService.findById(orderId);
         if (order == null) throwExp("订单不存在");
         if (!Objects.equals(order.getPublisherUserId(), userId)) throwExp("无权限");
-        if (order.getStatus() != ORDER_STATUS_SUBMIT) throwExp("订单状态不可审核");
+        if (order.getStatus() != ORDER_STATUS_SUBMIT && order.getStatus() != ORDER_STATUS_APPEAL) {
+            throwExp("订单状态不可审核");
+        }
+        boolean isAppeal = (order.getStatus() == ORDER_STATUS_APPEAL);
+        if (isAppeal) {
+            if (order.getAppealStatus() == null || order.getAppealStatus() != APPEAL_STATUS_DOING) {
+                throwExp("申诉状态不可处理");
+            }
+        }
 
         BountyTask task = bountyTaskService.findById(order.getTaskId());
         if (task == null) throwExp("任务不存在");
         if (task.getEscrowAmount() == null || task.getEscrowAmount().compareTo(order.getUnitPrice()) < 0) {
             throwExp("托管金不足");
         }
-
+        //发放资产奖励给接单者
         JSONArray rewards = new JSONArray();
         JSONObject r = new JSONObject();
         r.put("type", 1);
-        r.put("id", UserCapitalTypeEnum.hxjf.getValue());
+        r.put("id", String.valueOf(order.getCapitalType()));
         r.put("number", order.getUnitPrice());
         rewards.add(r);
         playGameService.addReward(order.getUserId(), rewards, LogCapitalTypeEnum.bounty_order_reward, LogUserBackpackTypeEnum.bounty);
-
-        if (order.getStatus() == ORDER_STATUS_APPEAL) {
-            order.setAppealStatus(APPEAL_STATUS_DONE);
-        }
+        Date now = new Date();
         order.setStatus(ORDER_STATUS_DONE);
+        order.setAuditTime(now);
+        order.setUpdateTime(now);
 
-        order.setAuditTime(new Date());
-        order.setUpdateTime(new Date());
+        // todo 申诉单由发布者二次审核
+        if (isAppeal) {
+            order.setAppealStatus(APPEAL_STATUS_DONE);
+            order.setAppealHandleUserId(userId);
+            order.setAppealHandleTime(now);
+            order.setAppealHandleReason(params.getString("appealHandleReason"));
+        }
+        // 审核通过后不再保留驳回原因
+        order.setRejectReason(null);
         bountyTaskOrderService.updateOrder(order);
 
         Map<String, Object> upd = new HashMap<>();
         upd.put("taskId", task.getId());
         upd.put("finishCountDelta", 1);
         bountyTaskService.updateCounts(upd);
-
+        //扣托管基金
         task.setEscrowAmount(task.getEscrowAmount().subtract(order.getUnitPrice()));
         if (task.getEscrowAmount().compareTo(BigDecimal.ZERO) < 0) task.setEscrowAmount(BigDecimal.ZERO);
         bountyTaskService.updateTask(task);
@@ -705,25 +722,36 @@ public class ManagerBountyService extends BaseService {
     @Transactional
     @ServiceMethod(code = "014", description = "悬赏任务-审核驳回")
     public JSONObject auditReject(ManagerSocketServer socket, JSONObject params) {
+        Date now = new Date();
         checkNull(params);
         checkNull(params.get("userId"), params.get("orderId"), params.get("rejectReason"));
         Long userId = params.getLong("userId");
         Long orderId = params.getLong("orderId");
         String rejectReason = params.getString("rejectReason");
+        rejectReason = rejectReason.trim();
 
         BountyTaskOrder order = bountyTaskOrderService.findById(orderId);
         if (order == null) throwExp("订单不存在");
         if (!Objects.equals(order.getPublisherUserId(), userId)) throwExp("无权限");
-        if (order.getStatus() != ORDER_STATUS_SUBMIT) throwExp("订单状态不可驳回");
-
-        if (order.getStatus() == ORDER_STATUS_APPEAL) {
-            order.setAppealStatus(APPEAL_STATUS_DONE);
+        if (order.getStatus() != ORDER_STATUS_SUBMIT && order.getStatus() != ORDER_STATUS_APPEAL) {
+            throwExp("订单状态不可驳回");
         }
-        order.setStatus(ORDER_STATUS_REJECT);
+        boolean isAppeal = (order.getStatus() == ORDER_STATUS_APPEAL);
+        if (isAppeal) {
+            if (order.getAppealStatus() == null || order.getAppealStatus() != APPEAL_STATUS_DOING) {
+                throwExp("申诉状态不可处理");
+            }
+            // 申诉被驳回 记录处理人/时间/原因
+            order.setAppealStatus(APPEAL_STATUS_DONE);
+            order.setAppealHandleUserId(userId);
+            order.setAppealHandleTime(now);
+            order.setAppealHandleReason(rejectReason);
+        }
 
+        order.setStatus(ORDER_STATUS_REJECT);
         order.setRejectReason(rejectReason);
-        order.setAuditTime(new Date());
-        order.setUpdateTime(new Date());
+        order.setAuditTime(now);
+        order.setUpdateTime(now);
         bountyTaskOrderService.updateOrder(order);
 
         JSONObject res = new JSONObject();
@@ -863,6 +891,10 @@ public class ManagerBountyService extends BaseService {
         j.put("rejectReason", o.getRejectReason());
         j.put("appealStatus", o.getAppealStatus());
         j.put("appealReason", o.getAppealReason());
+        j.put("appealTime", o.getAppealTime());
+        j.put("appealHandleReason", o.getAppealHandleReason());
+        j.put("appealHandleTime", o.getAppealHandleTime());
+        j.put("appealHandleUserId", o.getAppealHandleUserId());
         return j;
     }
 
