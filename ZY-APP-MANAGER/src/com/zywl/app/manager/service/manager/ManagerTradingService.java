@@ -93,16 +93,6 @@ public class ManagerTradingService extends BaseService {
     public void _construct() {
         Config config = configService.getConfigByKey(Config.SYS_TRADING_USER_ID);
         sysUserId = Long.parseLong(config.getValue());
-
-       /* new Timer("每秒清理已完成的交易订单").schedule(new TimerTask() {
-            public void run() {
-                try {
-                     tradingService.deletedNumberZero();
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
-            }
-        }, 0, 2000 );*/
     }
 
     public void setSysUserId(long userId) {
@@ -220,6 +210,9 @@ public class ManagerTradingService extends BaseService {
             int number = data.getIntValue("number");
             BigDecimal price = data.getBigDecimal("price");
             Trading trading = tradingService.findById(tradingId);
+            if (trading == null) {
+                throwExp("订单不存在或已下架");
+            }
             if (trading.getStatus() == 2) {
                 throwExp("该订单已取消");
             }
@@ -241,7 +234,8 @@ public class ManagerTradingService extends BaseService {
                 if (b < 1) {
                     throwExp("订单已完成");
                 }
-                userCapitalService.addUserBalanceByCancelAskBuy(userId, itemId, price.multiply(new BigDecimal(number)));
+                // todo lzx
+                userCapitalService.addUserBalanceByCancelAskBuy(userId, itemId, price.multiply(new BigDecimal(trading.getItemNumber())));
                 gameBaseService.pushCapitalUpdate(userId,UserCapitalTypeEnum.hxjf.getValue());
                 lockCacheService.deleteLock("sell" + tradingId);
             }
@@ -274,7 +268,8 @@ public class ManagerTradingService extends BaseService {
                     UserCapitalTypeEnum.hxjf.getValue());
             BigDecimal balance = userCapital.getBalance();
             BigDecimal occupyBalance = userCapital.getOccupyBalance();
-            if (userCapital.getBalance().compareTo(price.multiply(new BigDecimal(number))) <= 0) {
+            //todo lzx :余额校验使用 < 0，允许余额刚好等于所需金额
+            if (userCapital.getBalance().compareTo(price.multiply(new BigDecimal(number))) < 0) {
                 // 余额不够 无法添加求购信息
                 throwExp("余额不足");
             }
@@ -319,7 +314,8 @@ public class ManagerTradingService extends BaseService {
             BigDecimal balance = userCapital.getBalance();
             BigDecimal sellUserBalance = sellUserCapital.getBalance();
             int tradingItemNumber = trading.getItemNumber();
-            BigDecimal occupyBalance = userCapital.getBalance();
+            BigDecimal occupyBalance = userCapital.getOccupyBalance();
+            // 获取正确的冻结余额
             BigDecimal sellUserOccupyBalance = sellUserCapital.getOccupyBalance();
             //更新购买者用户资产 更新售卖者用户资产  更新玩家道具数量  更新交易行数据
             String orderNo = OrderUtil.getOrder5Number();

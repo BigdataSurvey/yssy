@@ -103,9 +103,13 @@ public class ServerTradingService extends BaseService {
         if (countByUserId >= 99) {
             throwExp("超过可发布订单数量");
         }
-        if (GameBaseService.itemMap.containsKey(itemId.toString()) && GameBaseService.itemMap.get(itemId.toString()).getIsTrading()==0){
+
+        // 增加 NPE 检查
+        Item itemCfg = GameBaseService.itemMap.get(itemId.toString());
+        if (itemCfg != null && (itemCfg.getIsTrading() == null || itemCfg.getIsTrading() == 0)){
             throwExp("非法请求");
         }
+
         // 校验通过 物品充足 通知manager处理上架数据
         JSONObject data = new JSONObject();
         data.put("itemId", itemId);
@@ -131,7 +135,6 @@ public class ServerTradingService extends BaseService {
         checkNull(params);
         checkNull(params.get("tradingId"));
 
-        String key = "buy";
         Long tradingId = params.getLong("tradingId");
         long userId = appSocket.getWsidBean().getUserId();
 
@@ -163,7 +166,6 @@ public class ServerTradingService extends BaseService {
                 }
             });
         } else {
-            lockCacheService.deleteLock(key);
             throwExp("下架失败！请稍后重试！");
         }
         return async();
@@ -203,7 +205,10 @@ public class ServerTradingService extends BaseService {
         if (countByUserId > 99) {
             throwExp("超过可上架数量");
         }
-        if (GameBaseService.itemMap.containsKey(itemId.toString()) && GameBaseService.itemMap.get(itemId.toString()).getIsTrading()==0){
+
+        //todo 增加 NPE 检查
+        Item itemCfg = GameBaseService.itemMap.get(itemId.toString());
+        if (itemCfg != null && (itemCfg.getIsTrading() == null || itemCfg.getIsTrading() == 0)){
             throwExp("非法请求");
         }
 
@@ -241,7 +246,8 @@ public class ServerTradingService extends BaseService {
         String key = "sell" + tradingId;
         // 验证是否能取消求购 判断是否是本人上架 判断该求购数量是否小于等于0
         Trading trading = tradingCacheService.getTradingInfoById(tradingId);
-        if (tradingId == trading.getId() && trading.getUserId() == userId && trading.getItemNumber() > 0) {
+        //todo 增加 NPE 检查
+        if (trading != null && tradingId == trading.getId() && trading.getUserId() == userId && trading.getItemNumber() > 0) {
             // 是本人上架
             JSONObject data = new JSONObject();
             data.put("tradingId", tradingId);
@@ -322,10 +328,16 @@ public class ServerTradingService extends BaseService {
         }
         long tradingId = params.getLong("tradingId");
         Trading trading = tradingCacheService.getTradingInfoById(tradingId);
+
+        if (trading == null) {
+            throwExp("售卖失败，订单不存在！");
+        }
+
         BigDecimal price = trading.getItemPrice();
-        long itemId = trading == null ? 0L : trading.getItemId();
+        long itemId = trading.getItemId();
+
         // 验证用户是否有足够的道具 并且该求购数据正常
-        if (trading != null && trading.getType() == TradingTypeEnum.askbuy.getValue()
+        if (trading.getType() == TradingTypeEnum.askbuy.getValue()
                 && trading.getItemNumber() >= number) {
             // 验证通过 获取求购人冻结余额
             JSONObject data = new JSONObject();
