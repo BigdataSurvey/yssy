@@ -334,12 +334,11 @@ public class ManagerConfigService extends BaseService {
 			gameService.updateUserAchievement();
 			//managerGameBaseService.persistenceTaskData();
 			//managerGameBaseService.persistencePrizeDrawData();
-		} else if (key.equals("CESHITANCHUANG")) {
-			//测试弹窗
+		} else if (key.equals(Config.HOME_POPUP) || key.equals("CESHITANCHUANG")) {
+			//公告推送
 			JSONObject object = new JSONObject();
 			object.put("notice", value);
 			Push.push(PushCode.sendNotice, null, object);
-
 		} else if (key.equals(Config.APP_VERSION)) {
 			//把版本表缓存更新到内存
 			versionService.reloadCache();

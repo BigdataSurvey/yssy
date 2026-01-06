@@ -39,11 +39,13 @@ import com.zywl.app.defaultx.service.TradingRecordService;
 import com.zywl.app.defaultx.service.TradingService;
 import com.zywl.app.server.context.MessageCodeContext;
 import com.zywl.app.server.socket.AppSocket;
+import com.zywl.app.server.util.RequestManagerListener;
 
 import javax.annotation.PostConstruct;
 /**
- * @Description: 交易行 Manager Service
+ * @Description: 玩家交易行 Server Service
  * @Task: 003 (MessageCodeContext.BOUNTY_TASK)
+ * 由requestManagerService统一做转发;
  */
 @Service
 @ServiceClass(code = MessageCodeContext.TRADING_SERVER)
@@ -53,28 +55,21 @@ public class ServerTradingService extends BaseService {
 
     @Autowired
     private UserBackpackCacheService userBackpackCacheService;
-
     @Autowired
     private RequestManagerService requestManagerService;
-
     @Autowired
     private TradingCacheService tradingCacheService;
-
-
     @Autowired
     private ItemCacheService itemCacheService;
-
     @Autowired
     private UserCacheService userCacheService;
-
     @Autowired
     private TradingService tradingService;
-
     @Autowired
     private LockCacheService lockCacheService;
-
     @Autowired
     private TradingRecordService tradingRecordService;
+
 
     @ServiceMethod(code = "001", description = "交易行物品上架")
     public Async listing(final AppSocket appSocket, Command appCommand, JSONObject params) {
@@ -100,7 +95,7 @@ public class ServerTradingService extends BaseService {
         } catch (Exception e) {
             throwExp("道具价格有误！");
         }
-        System.out.println(price);
+
         if (price.compareTo(BigDecimal.ZERO) < 1) {
             throwExp("道具价格不能小于0");
         }
@@ -108,9 +103,13 @@ public class ServerTradingService extends BaseService {
         if (countByUserId >= 99) {
             throwExp("超过可发布订单数量");
         }
-        if (GameBaseService.itemMap.containsKey(itemId.toString()) && GameBaseService.itemMap.get(itemId.toString()).getIsTrading()==0){
+
+        // 增加 NPE 检查
+        Item itemCfg = GameBaseService.itemMap.get(itemId.toString());
+        if (itemCfg != null && (itemCfg.getIsTrading() == null || itemCfg.getIsTrading() == 0)){
             throwExp("非法请求");
         }
+
         // 校验通过 物品充足 通知manager处理上架数据
         JSONObject data = new JSONObject();
         data.put("itemId", itemId);
@@ -131,18 +130,22 @@ public class ServerTradingService extends BaseService {
         return async();
     }
 
-    @ServiceMethod(code = "002", description = "交易行物品下架")
+    @ServiceMethod(code = "002",  description = "交易市场下架/取消求购")
     public Async delist(final AppSocket appSocket, Command appCommand, JSONObject params) {
         checkNull(params);
         checkNull(params.get("tradingId"));
-        String key = "buy";
-        long tradingId = params.getLong("tradingId");
+
+        Long tradingId = params.getLong("tradingId");
         long userId = appSocket.getWsidBean().getUserId();
-        User user = userCacheService.getUserInfoById(userId);
+
         // 获取用户上架信息，判断传过来的是否真的是自己的上架信息
         Trading trading = tradingCacheService.getTradingInfoById(tradingId);
+        if (trading == null) {
+            throwExp("订单不存在或已下架");
+        }
+
         long itemId = trading.getItemId();
-        if (trading.getId() == tradingId && trading.getUserId() == userId) {
+        if (Objects.equals(trading.getId(), tradingId) && trading.getUserId() == userId) {
             // 存在该物品 可以下架 通知manager修改数据
             JSONObject data = new JSONObject();
             data.put("tradingId", tradingId);
@@ -163,7 +166,6 @@ public class ServerTradingService extends BaseService {
                 }
             });
         } else {
-            lockCacheService.deleteLock(key);
             throwExp("下架失败！请稍后重试！");
         }
         return async();
@@ -203,7 +205,10 @@ public class ServerTradingService extends BaseService {
         if (countByUserId > 99) {
             throwExp("超过可上架数量");
         }
-        if (GameBaseService.itemMap.containsKey(itemId.toString()) && GameBaseService.itemMap.get(itemId.toString()).getIsTrading()==0){
+
+        //todo 增加 NPE 检查
+        Item itemCfg = GameBaseService.itemMap.get(itemId.toString());
+        if (itemCfg != null && (itemCfg.getIsTrading() == null || itemCfg.getIsTrading() == 0)){
             throwExp("非法请求");
         }
 
@@ -241,7 +246,8 @@ public class ServerTradingService extends BaseService {
         String key = "sell" + tradingId;
         // 验证是否能取消求购 判断是否是本人上架 判断该求购数量是否小于等于0
         Trading trading = tradingCacheService.getTradingInfoById(tradingId);
-        if (tradingId == trading.getId() && trading.getUserId() == userId && trading.getItemNumber() > 0) {
+        //todo 增加 NPE 检查
+        if (trading != null && tradingId == trading.getId() && trading.getUserId() == userId && trading.getItemNumber() > 0) {
             // 是本人上架
             JSONObject data = new JSONObject();
             data.put("tradingId", tradingId);
@@ -322,10 +328,16 @@ public class ServerTradingService extends BaseService {
         }
         long tradingId = params.getLong("tradingId");
         Trading trading = tradingCacheService.getTradingInfoById(tradingId);
+
+        if (trading == null) {
+            throwExp("售卖失败，订单不存在！");
+        }
+
         BigDecimal price = trading.getItemPrice();
-        long itemId = trading == null ? 0L : trading.getItemId();
+        long itemId = trading.getItemId();
+
         // 验证用户是否有足够的道具 并且该求购数据正常
-        if (trading != null && trading.getType() == TradingTypeEnum.askbuy.getValue()
+        if (trading.getType() == TradingTypeEnum.askbuy.getValue()
                 && trading.getItemNumber() >= number) {
             // 验证通过 获取求购人冻结余额
             JSONObject data = new JSONObject();
@@ -356,73 +368,55 @@ public class ServerTradingService extends BaseService {
     }
 
     @ServiceMethod(code = "007", description = "交易行-获取交易行物品数据")
-    public JSONObject getTradingInfo(final AppSocket appSocket, Command appCommand, JSONObject params) {
-        Long time = System.currentTimeMillis();
+    public Object getTradingInfo(final AppSocket appSocket, Command appCommand, JSONObject params) {
         checkNull(params);
         checkNull(params.get("type"), params.get("page"), params.get("num"));
-        Integer type = params.getIntValue("type");
-        if (type!=0 && type!=1){
-            throwExp("非法参数");
-        }
-        Long userId = null;
-        Long itemId = !params.containsKey("itemId") || params.getLong("itemId") == 0L ? null : params.getLong("itemId");
-        Integer itemType = null;
-        User user = userCacheService.getUserInfoById(appSocket.getWsidBean().getUserId());
-        if (params.containsKey("itemType")) {
-            itemType = params.getIntValue("itemType");
-        }
-        int page = params.getIntValue("page");
-        int num = params.getIntValue("num");
-        List<TradingVo> tradings;
-        tradings = tradingCacheService.getTradingCache(page,
-                num, itemId, itemType, userId, type);
-        JSONObject result = new JSONObject();
-        result.put("tradings", tradings);
-        result.put("type", type);
-        result.put("itemId", itemId);
-        return result;
+
+        params.put("userId", appSocket.getWsidBean().getUserId());
+        Command managerCmd = CommandBuilder.builder()
+                .request("300007", params)
+                .build();
+        Executer.request(TargetSocketType.manager, managerCmd, new RequestManagerListener(appCommand));
+        return async();
     }
 
     @ServiceMethod(code = "009", description = "交易行-获取我的交易行物品数据")
-    public JSONObject getMyTradingInfo(final AppSocket appSocket, Command appCommand, JSONObject params) {
-        Long time = System.currentTimeMillis();
+    public Object getMyTradingInfo(final AppSocket appSocket, Command appCommand, JSONObject params) {
         checkNull(params);
         checkNull(params.get("type"), params.get("page"), params.get("num"));
-        Integer type = params.getIntValue("type");
-        if (type!=2 && type!=3){
-            throwExp("非法参数");
-        }
-        Long userId = appSocket.getWsidBean().getUserId();
-        Long itemId = !params.containsKey("itemId") || params.getLong("itemId") == 0L ? null : params.getLong("itemId");
-        Integer itemType = null;
-        User user = userCacheService.getUserInfoById(appSocket.getWsidBean().getUserId());
-        if (params.containsKey("itemType")) {
-            itemType = params.getIntValue("itemType");
-        }
-        int page = params.getIntValue("page");
-        int num = params.getIntValue("num");
-        List<TradingVo> tradings;
-        tradings = tradingCacheService.getTradingCache(page,
-                num, itemId, itemType, userId, type);
-        JSONObject result = new JSONObject();
-        result.put("tradings", tradings);
-        result.put("type", type);
-        result.put("itemId", itemId);
-        return result;
+
+        params.put("userId", appSocket.getWsidBean().getUserId());
+        Command managerCmd = CommandBuilder.builder()
+                .request("300009", params)
+                .build();
+        Executer.request(TargetSocketType.manager, managerCmd, new RequestManagerListener(appCommand));
+        return async();
     }
 
     @ServiceMethod(code = "008", description = "获取交易行记录")
-    public JSONObject getTradingRecord(final AppSocket appSocket, Command appCommand, JSONObject params) {
+    public Object getTradingRecord(final AppSocket appSocket, Command appCommand, JSONObject params) {
         checkNull(params);
-        checkNull(params.get("page"), params.get("num"),params.get("type"));
-        Long userId = appSocket.getWsidBean().getUserId();
-        int type = params.getIntValue("type");
-        User user = userCacheService.getUserInfoById(appSocket.getWsidBean().getUserId());
-        JSONObject result = new JSONObject();
-        List<TradingRecordVo> list = tradingRecordService.getMyRecord(userId, params.getIntValue("page"),
-                params.getIntValue("num"),type);
-        result.put("myRecord", list);
-        return result;
+        checkNull(params.get("page"), params.get("num"), params.get("type"));
+
+        params.put("userId", appSocket.getWsidBean().getUserId());
+        Command managerCmd = CommandBuilder.builder()
+                .request("300008", params)
+                .build();
+        Executer.request(TargetSocketType.manager, managerCmd, new RequestManagerListener(appCommand));
+        return async();
+    }
+
+    @ServiceMethod(code = "010", description = "可交易道具列表")
+    public Object getTradingItemList(final AppSocket appSocket, Command appCommand, JSONObject params) {
+        if (params == null) {
+            params = new JSONObject();
+        }
+        params.put("userId", appSocket.getWsidBean().getUserId());
+        Command managerCmd = CommandBuilder.builder()
+                .request("300010", params)
+                .build();
+        Executer.request(TargetSocketType.manager, managerCmd, new RequestManagerListener(appCommand));
+        return async();
     }
 
     public static void main(String[] args) {

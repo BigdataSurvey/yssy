@@ -1,3 +1,4 @@
+/*
 package com.zywl.app.service;
 
 import com.alibaba.fastjson2.JSON;
@@ -602,9 +603,11 @@ public class BattleRoyaleService2 extends BaseService {
         return new JSONObject();
     }
 
-    /**
+    */
+/**
      * 初始化最近开奖结果
-     */
+     *//*
+
     public void initHistoryResult() {
         logger.info("更新大逃杀历史开奖结果");
         long time = System.currentTimeMillis();
@@ -937,12 +940,14 @@ public class BattleRoyaleService2 extends BaseService {
         // 先开奖
         List<Integer> killList;
         killList = getKillList(getResultCount());
-       /* if (ROOM.getNextResult() != null) {
+       */
+/* if (ROOM.getNextResult() != null) {
             killList = ROOM.getNextResult();
         } else {
             killList = getKillList(getResultCount());
         }
-        ROOM.setNextResult(getKillList(getResultCount()));*/
+        ROOM.setNextResult(getKillList(getResultCount()));*//*
+
 
         gameLotteryResultService.drawLottery(1L, ROOM.getPeridosNum() == null ? "1" : ROOM.getPeridosNum(),
                 String.valueOf(killList), ROOM.getAllBetAmount(), BigDecimal.ZERO, BigDecimal.ONE, ROOM.getBetNum(), 0, 0);
@@ -1052,3 +1057,4 @@ public class BattleRoyaleService2 extends BaseService {
     }
 
 }
+*/

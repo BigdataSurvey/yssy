@@ -1174,7 +1174,7 @@ public class SpringInDebug {
         //我的待审核列表
         //getPendingAuditTest();
 
-        //审核被驳回
+        //审核被驳回000000000000
         //getAuditRejectTest();
 
         //申诉

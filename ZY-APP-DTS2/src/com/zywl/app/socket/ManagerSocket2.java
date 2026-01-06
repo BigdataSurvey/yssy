@@ -17,7 +17,7 @@ import com.zywl.app.defaultx.service.GameService;
 import com.zywl.app.defaultx.service.IncomeRecordService;
 import com.zywl.app.defaultx.service.VersionService;
 import com.zywl.app.defaultx.util.SpringUtil;
-import com.zywl.app.service.BattleRoyaleService2;
+//import com.zywl.app.service.BattleRoyaleService2;
 import com.zywl.app.service.ServerStateService;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -30,7 +30,7 @@ public class ManagerSocket2 extends BaseClientSocket {
 	private static final Log logger = LogFactory.getLog(ManagerSocket2.class);
 
 	private VersionService versionService;
-	private BattleRoyaleService2 battleRoyaleService2;
+	//private BattleRoyaleService2 battleRoyaleService2;
 	private GameService gameService;
 	private IncomeRecordService incomeRecordService;
 
@@ -39,7 +39,7 @@ public class ManagerSocket2 extends BaseClientSocket {
 		super(socketType, false, reconnect, server, shakeHandsDatas);
 		versionService = SpringUtil.getService(VersionService.class);
 		incomeRecordService = SpringUtil.getService(IncomeRecordService.class);
-		battleRoyaleService2 = SpringUtil.getService(BattleRoyaleService2.class);
+		//battleRoyaleService2 = SpringUtil.getService(BattleRoyaleService2.class);
 		gameService = SpringUtil.getService(GameService.class);
 		Push.addPushSuport(PushCode.cancelBet, new DefaultPushHandler() {
 			public void onRegist(BaseSocket baseSocket, PushBean pushBean) {
@@ -75,26 +75,26 @@ public class ManagerSocket2 extends BaseClientSocket {
 					Config config = pushData.toJavaObject(Config.class);
 					if (config.getKey().equals(Config.DTS2_STATUS)){
 						int status = Integer.parseInt(config.getValue());
-						BattleRoyaleService2.STATUS=status;
+						//BattleRoyaleService2.STATUS=status;
 						gameService.updateGameStatus(GameTypeEnum.battleRoyale.getValue(),status);
 					}
 					if (config.getKey().equals(Config.DAILY_STOLEN_COUNT)){
 						BigDecimal status = new BigDecimal(config.getValue());
 						logger.info("调整飞仙手续费："+status);
-						battleRoyaleService2.updateRate(status);
+						//battleRoyaleService2.updateRate(status);
 						//gameService.updateGameStatus(GameTypeEnum.battleRoyale.getValue(),status);
 					}
 					if (config.getKey().equals(Config.GAME_DTS2_NEED_BOT)){
-						BattleRoyaleService2.NEED_BOT=Integer.parseInt(config.getValue());
+						//BattleRoyaleService2.NEED_BOT=Integer.parseInt(config.getValue());
 					}
 					if (config.getKey().equals(Config.QNYH_RATE)){
-						battleRoyaleService2.initRate();
+						//battleRoyaleService2.initRate();
 					}
 					if (config.getKey().equals(Config.DTS_BOT_MONEY)){
-						battleRoyaleService2.initBotMoney();
+						//battleRoyaleService2.initBotMoney();
 					}
 					if (config.getKey().equals(Config.DTS_KILL_RATE)){
-						BattleRoyaleService2.KILL_RATE= Integer.parseInt(config.getValue());
+						//BattleRoyaleService2.KILL_RATE= Integer.parseInt(config.getValue());
 					}
 				}
 			}

@@ -1,5 +1,4 @@
 package com.zywl.app.manager.service;
-
 import com.alibaba.fastjson2.JSON;
 import com.alibaba.fastjson2.JSONArray;
 import com.alibaba.fastjson2.JSONObject;
@@ -40,7 +39,9 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 /**
- * @author Administrator
+ * @Author: lzx
+ * @Description: 后台管理; 并非只用于邮件管理；所有需要走后台的业务都走这里
+ * @Task: 021 (MessageCodeContext.ADMIN_EMAIL_SERVER)
  */
 @Service
 @ServiceClass(code = MessageCodeContext.ADMIN_EMAIL_SERVER)
@@ -114,6 +115,9 @@ public class AdminMailService extends BaseService {
     private UserMineService userMineService;
     @Autowired
     private ShopManagerService shopManagerService;
+    /*公告*/
+    @Autowired
+    private NoticeService noticeService;
 
 
     private void checkAuth(AdminSocketServer adminSocketServer) {
@@ -1576,4 +1580,189 @@ public class AdminMailService extends BaseService {
         logger.info(loginService.getShuMeiModels());
         return new Object();
     }
+
+    /**
+     * 公告-历史列表
+     * 在 014001 ServerNoticeService 中同样查询了历史公告,通过 AppSocket 直接对接客户端；这里用AdminSocketServer给管理员；
+     * **/
+    @ServiceMethod(code = "160", description = "公告-历史列表")
+    public Object getNoticeHistory(AdminSocketServer adminSocketServer, Command webCommand, JSONObject params) {
+        checkNull(params);
+        checkAuth(adminSocketServer);
+
+        int page = params.getIntValue("page", 1);
+        if (page <= 0) {
+            page = 1;
+        }
+        int limit = params.getIntValue("limit", 20);
+        if (limit <= 0) {
+            limit = 20;
+        }
+
+        List<Notice> all = noticeService.findAll();
+        long count = all == null ? 0L : all.size();
+
+        List<Notice> list = new ArrayList<>();
+        if (all != null && !all.isEmpty()) {
+            int start = (page - 1) * limit;
+            if (start < all.size()) {
+                int end = Math.min(start + limit, all.size());
+                list = all.subList(start, end);
+            }
+        }
+
+        JSONObject data = new JSONObject();
+        data.put("list", list);
+        data.put("count", count);
+        return data;
+    }
+
+    /**
+     * 公告-新增
+     * 在 ManagerNoticeService 中同样有该接口,只不过现在adminSocketServer是后台入口,所以Manager端暂时没用
+     * **/
+    @ServiceMethod(code = "161", description = "公告-新增")
+    public Object addNotice(AdminSocketServer adminSocketServer, Command webCommand, JSONObject params) {
+        checkNull(params);
+        checkAuth(adminSocketServer);
+
+        String title = params.getString("title");
+        String context = params.getString("context");
+        Integer type = params.getInteger("type");
+        Integer push = params.getInteger("push");
+
+        if (title == null || title.trim().isEmpty()) {
+            throwExp("公告标题不能为空");
+        }
+        if (context == null || context.trim().isEmpty()) {
+            throwExp("公告内容不能为空");
+        }
+        if (type == null) {
+            type = 1;
+        }
+
+        Notice notice = new Notice();
+        notice.setTitle(title.trim());
+        notice.setContext(context.trim());
+        notice.setType(type);
+        notice.setCreateTime(new Date());
+
+        noticeService.insert(notice);
+        // 新增后立即推送给在线用户
+        if (push != null && push == 1) {
+            JSONObject data = new JSONObject();
+            data.put("notice", notice.getContext());
+            Push.push(PushCode.sendNotice, null, data);
+        }
+
+        JSONObject resp = new JSONObject();
+        resp.put("notice", notice);
+        return resp;
+    }
+
+    /**
+     * 公告-编辑
+     * 在 ManagerNoticeService 中同样有该接口,只不过现在adminSocketServer是后台入口,所以Manager端暂时没用
+     * **/
+    @ServiceMethod(code = "162", description = "公告-编辑")
+    public Object updateNotice(AdminSocketServer adminSocketServer, Command webCommand, JSONObject params) {
+        checkNull(params);
+        checkAuth(adminSocketServer);
+
+        Long id = params.getLong("id");
+        if (id == null || id <= 0) {
+            throwExp("id不能为空");
+        }
+
+        String title = params.getString("title");
+        String context = params.getString("context");
+        Integer type = params.getInteger("type");
+        Integer push = params.getInteger("push");
+
+        if (title == null || title.trim().isEmpty()) {
+            throwExp("title不能为空");
+        }
+        if (context == null || context.trim().isEmpty()) {
+            throwExp("context不能为空");
+        }
+        if (type == null) {
+            type = 1;
+        }
+
+        Notice notice = new Notice();
+        notice.setId(id);
+        notice.setTitle(title.trim());
+        notice.setContext(context.trim());
+        notice.setType(type);
+
+        int rows = noticeService.update(notice);
+        // 编辑后立即推送给在线用户
+        if (push != null && push == 1) {
+            JSONObject data = new JSONObject();
+            data.put("notice", context.trim());
+            Push.push(PushCode.sendNotice, null, data);
+        }
+
+        JSONObject resp = new JSONObject();
+        resp.put("rows", rows);
+        return resp;
+    }
+
+    /**
+     * 公告-删除
+     * 在 ManagerNoticeService 中同样有该接口,只不过现在adminSocketServer是后台入口,所以Manager端暂时没用
+     * **/
+    @ServiceMethod(code = "163", description = "公告-删除")
+    public Object deleteNotice(AdminSocketServer adminSocketServer, Command webCommand, JSONObject params) {
+        checkNull(params);
+        checkAuth(adminSocketServer);
+
+        Long id = params.getLong("id");
+        if (id == null || id <= 0) {
+            throwExp("id不能为空");
+        }
+
+        JSONObject condition = new JSONObject();
+        condition.put("id", id);
+        int rows = noticeService.execute("deleteNoticeById", condition);
+
+        JSONObject resp = new JSONObject();
+        resp.put("rows", rows);
+        return resp;
+    }
+
+    /**
+     * 公告-推送
+     * 在 ManagerNoticeService 中同样有该接口,只不过现在adminSocketServer是后台入口,所以Manager端暂时没用
+     * **/
+    @ServiceMethod(code = "164", description = "公告-推送")
+    public Object pushNotice(AdminSocketServer adminSocketServer, Command webCommand, JSONObject params) {
+        checkNull(params);
+        checkAuth(adminSocketServer);
+
+        Long id = params.getLong("id");
+        String noticeText = params.getString("notice");
+
+        if ((noticeText == null || noticeText.trim().isEmpty()) && id != null && id > 0) {
+            JSONObject p = new JSONObject();
+            p.put("id", id);
+            Notice notice = noticeService.findOne(p);
+            if (notice == null) {
+                throwExp("公告不存在");
+            }
+            noticeText = notice.getContext();
+        }
+
+        if (noticeText == null || noticeText.trim().isEmpty()) {
+            throwExp("notice不能为空");
+        }
+        JSONObject data = new JSONObject();
+        data.put("notice", noticeText.trim());
+        Push.push(PushCode.sendNotice, null, data);
+
+        JSONObject resp = new JSONObject();
+        resp.put("success", true);
+        return resp;
+    }
+
 }

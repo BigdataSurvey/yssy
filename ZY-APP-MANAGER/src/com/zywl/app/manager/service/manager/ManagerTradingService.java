@@ -1,9 +1,11 @@
 package com.zywl.app.manager.service.manager;
-
+import com.alibaba.fastjson2.JSONArray;
 import com.alibaba.fastjson2.JSONObject;
 import com.live.app.ws.enums.PushCode;
 import com.live.app.ws.util.Push;
 import com.zywl.app.base.bean.*;
+import com.zywl.app.base.bean.vo.TradingRecordVo;
+import com.zywl.app.base.bean.vo.TradingVo;
 import com.zywl.app.base.service.BaseService;
 import com.zywl.app.base.util.LockUtil;
 import com.zywl.app.base.util.OrderUtil;
@@ -16,6 +18,7 @@ import com.zywl.app.defaultx.enmus.TradingTypeEnum;
 import com.zywl.app.defaultx.enmus.UserCapitalTypeEnum;
 import com.zywl.app.defaultx.service.BackpackService;
 import com.zywl.app.defaultx.service.ConfigService;
+import com.zywl.app.defaultx.service.TradingRecordService;
 import com.zywl.app.defaultx.service.TradingService;
 import com.zywl.app.defaultx.service.UserCapitalService;
 import com.zywl.app.manager.context.MessageCodeContext;
@@ -25,11 +28,16 @@ import com.zywl.app.manager.socket.ManagerSocketServer;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
 import javax.annotation.PostConstruct;
 import java.math.BigDecimal;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+
+/**
+ * @Description: 玩家交易行 Manager Service
+ * @Task: 300 (MessageCodeContext.BOUNTY_TASK)
+ */
 
 @Service
 @ServiceClass(code = MessageCodeContext.TRADING_SERVER)
@@ -59,8 +67,10 @@ public class ManagerTradingService extends BaseService {
     private TradingCacheService tradingCacheService;
 
     @Autowired
-    private PlayGameService gameService;
+    private TradingRecordService tradingRecordService;
 
+    @Autowired
+    private PlayGameService gameService;
 
     @Autowired
     private UserCapitalCacheService userCapitalCacheService;
@@ -83,16 +93,6 @@ public class ManagerTradingService extends BaseService {
     public void _construct() {
         Config config = configService.getConfigByKey(Config.SYS_TRADING_USER_ID);
         sysUserId = Long.parseLong(config.getValue());
-
-       /* new Timer("每秒清理已完成的交易订单").schedule(new TimerTask() {
-            public void run() {
-                try {
-                     tradingService.deletedNumberZero();
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
-            }
-        }, 0, 2000 );*/
     }
 
     public void setSysUserId(long userId) {
@@ -150,12 +150,12 @@ public class ManagerTradingService extends BaseService {
         if (orderType == 0) {
             gameService.updateUserBackpack(userId.toString(), itemId.toString(), -number, LogUserBackpackTypeEnum.listing);
         } else {
-            UserCapital userCapital = userCapitalCacheService.getUserCapitalCacheByType(userId, UserCapitalTypeEnum.currency_2.getValue());
+            UserCapital userCapital = userCapitalCacheService.getUserCapitalCacheByType(userId, UserCapitalTypeEnum.hxjf.getValue());
             userCapitalService.subUserBalanceByAskBuy(userId, itemId, price, userCapital.getBalance(), userCapital.getOccupyBalance());
             JSONObject pushData = new JSONObject();
-            userCapital = userCapitalCacheService.getUserCapitalCacheByType(userId, UserCapitalTypeEnum.currency_2.getValue());
+            userCapital = userCapitalCacheService.getUserCapitalCacheByType(userId, UserCapitalTypeEnum.hxjf.getValue());
             pushData.put("userId", userId);
-            pushData.put("capitalType", UserCapitalTypeEnum.currency_2.getValue());
+            pushData.put("capitalType", UserCapitalTypeEnum.hxjf.getValue());
             pushData.put("balance", userCapital.getBalance());
             Push.push(PushCode.updateUserCapital, managerSocketService.getServerIdByUserId(userId), pushData);
         }
@@ -210,6 +210,9 @@ public class ManagerTradingService extends BaseService {
             int number = data.getIntValue("number");
             BigDecimal price = data.getBigDecimal("price");
             Trading trading = tradingService.findById(tradingId);
+            if (trading == null) {
+                throwExp("订单不存在或已下架");
+            }
             if (trading.getStatus() == 2) {
                 throwExp("该订单已取消");
             }
@@ -231,8 +234,9 @@ public class ManagerTradingService extends BaseService {
                 if (b < 1) {
                     throwExp("订单已完成");
                 }
-                userCapitalService.addUserBalanceByCancelAskBuy(userId, itemId, price.multiply(new BigDecimal(number)));
-                gameBaseService.pushCapitalUpdate(userId,UserCapitalTypeEnum.currency_2.getValue());
+                // todo lzx
+                userCapitalService.addUserBalanceByCancelAskBuy(userId, itemId, price.multiply(new BigDecimal(trading.getItemNumber())));
+                gameBaseService.pushCapitalUpdate(userId,UserCapitalTypeEnum.hxjf.getValue());
                 lockCacheService.deleteLock("sell" + tradingId);
             }
             JSONObject result = new JSONObject();
@@ -261,17 +265,18 @@ public class ManagerTradingService extends BaseService {
             }
             Item item = itemCacheService.getItemInfoById(itemId);
             UserCapital userCapital = userCapitalCacheService.getUserCapitalCacheByType(userId,
-                    UserCapitalTypeEnum.currency_2.getValue());
+                    UserCapitalTypeEnum.hxjf.getValue());
             BigDecimal balance = userCapital.getBalance();
             BigDecimal occupyBalance = userCapital.getOccupyBalance();
-            if (userCapital.getBalance().compareTo(price.multiply(new BigDecimal(number))) <= 0) {
+            //todo lzx :余额校验使用 < 0，允许余额刚好等于所需金额
+            if (userCapital.getBalance().compareTo(price.multiply(new BigDecimal(number))) < 0) {
                 // 余额不够 无法添加求购信息
                 throwExp("余额不足");
             }
             //更新用户资产  添加交易行数据
             userCapitalService.subUserBalanceByAskBuy(userId, itemId, price.multiply(new BigDecimal(number)), balance, occupyBalance);
             JSONObject pushData = new JSONObject();
-            gameBaseService.pushCapitalUpdate(userId,UserCapitalTypeEnum.currency_2.getValue());
+            gameBaseService.pushCapitalUpdate(userId,UserCapitalTypeEnum.hxjf.getValue());
             tradingService.addTrading(userId, itemId, number, price, TradingTypeEnum.askbuy.getValue(), item.getType());
             JSONObject result = new JSONObject();
             // TODO 返回数据未定义
@@ -294,9 +299,9 @@ public class ManagerTradingService extends BaseService {
             Long userId = data.getLong("userId");
             int number = data.getIntValue("number");
             UserCapital userCapital = userCapitalCacheService.getUserCapitalCacheByType(userId,
-                    UserCapitalTypeEnum.currency_2.getValue());
+                    UserCapitalTypeEnum.hxjf.getValue());
             if (userCapital.getBalance().compareTo(trading.getItemPrice().multiply(new BigDecimal(number))) == -1) {
-                throwExp(UserCapitalTypeEnum.currency_2.getName() + "不足");
+                throwExp(UserCapitalTypeEnum.hxjf.getName() + "不足");
             }
             if (trading.getUserId().toString().equals(userId.toString())){
                 throwExp("不能购买自己发布的订单~");
@@ -304,20 +309,21 @@ public class ManagerTradingService extends BaseService {
             Long itemId = trading.getItemId();
             Long sellUserId = trading.getUserId();
             UserCapital sellUserCapital = userCapitalCacheService.getUserCapitalCacheByType(trading.getUserId(),
-                    UserCapitalTypeEnum.currency_2.getValue());
+                    UserCapitalTypeEnum.hxjf.getValue());
             BigDecimal price = trading.getItemPrice();
             BigDecimal balance = userCapital.getBalance();
             BigDecimal sellUserBalance = sellUserCapital.getBalance();
             int tradingItemNumber = trading.getItemNumber();
-            BigDecimal occupyBalance = userCapital.getBalance();
+            BigDecimal occupyBalance = userCapital.getOccupyBalance();
+            // 获取正确的冻结余额
             BigDecimal sellUserOccupyBalance = sellUserCapital.getOccupyBalance();
             //更新购买者用户资产 更新售卖者用户资产  更新玩家道具数量  更新交易行数据
             String orderNo = OrderUtil.getOrder5Number();
             tradingService.subItemNumberByTradingId(tradingId, TradingTypeEnum.sell.getValue(), itemId, sellUserId, number, tradingItemNumber);
             userCapitalService.subUserBalanceByTradingBuy(userId,tradingId, itemId, price.multiply(new BigDecimal(number)), balance, occupyBalance, orderNo, number, price);
-            gameBaseService.pushCapitalUpdate(userId,UserCapitalTypeEnum.currency_2.getValue());
+            gameBaseService.pushCapitalUpdate(userId,UserCapitalTypeEnum.hxjf.getValue());
             userCapitalService.addUserBalanceByTradingSell(sellUserId, tradingId,itemId, price.multiply(new BigDecimal(number)), sellUserBalance, sellUserOccupyBalance, orderNo, number, price);
-            gameBaseService.pushCapitalUpdate(sellUserId,UserCapitalTypeEnum.currency_2.getValue());
+            gameBaseService.pushCapitalUpdate(sellUserId,UserCapitalTypeEnum.hxjf.getValue());
             gameService.updateUserBackpack(userId.toString(), itemId.toString(), number, LogUserBackpackTypeEnum.buy);
             JSONObject result = new JSONObject();
             result.put("itemId", itemId);
@@ -344,9 +350,9 @@ public class ManagerTradingService extends BaseService {
         }
         synchronized (LockUtil.getlock(trading.getUserId().toString())) {
 
-            UserCapital myCapital = userCapitalCacheService.getUserCapitalCacheByType(userId, UserCapitalTypeEnum.currency_2.getValue());
+            UserCapital myCapital = userCapitalCacheService.getUserCapitalCacheByType(userId, UserCapitalTypeEnum.hxjf.getValue());
             Long askBuyUserId = data.getLong("askBuyUserId");
-            UserCapital askBuyCapital = userCapitalCacheService.getUserCapitalCacheByType(askBuyUserId, UserCapitalTypeEnum.currency_2.getValue());
+            UserCapital askBuyCapital = userCapitalCacheService.getUserCapitalCacheByType(askBuyUserId, UserCapitalTypeEnum.hxjf.getValue());
             BigDecimal askBuyBalance = askBuyCapital.getBalance();
             BigDecimal askBuyUserOccupyBalance = askBuyCapital.getOccupyBalance();
             BigDecimal balance = myCapital.getBalance();
@@ -368,16 +374,16 @@ public class ManagerTradingService extends BaseService {
             BigDecimal amount = price.multiply(new BigDecimal(number));
             //添加用户资产  包含了交易记录 流水记录
             userCapitalService.addUserBalanceByTradingSell(userId,tradingId, itemId, amount, balance, occupyBalance, orderNo, number, price);
-            UserCapital userCapital = userCapitalCacheService.getUserCapitalCacheByType(userId, UserCapitalTypeEnum.currency_2.getValue());
+            UserCapital userCapital = userCapitalCacheService.getUserCapitalCacheByType(userId, UserCapitalTypeEnum.hxjf.getValue());
             JSONObject pushData = new JSONObject();
             pushData.put("userId", userId);
-            pushData.put("capitalType", UserCapitalTypeEnum.currency_2.getValue());
+            pushData.put("capitalType", UserCapitalTypeEnum.hxjf.getValue());
             pushData.put("balance", userCapital.getBalance());
             Push.push(PushCode.updateUserCapital, managerSocketService.getServerIdByUserId(userId), pushData);
             //减少用户冻结资产  包含交易记录 流水记录
             int res = userCapitalService.subUserOccupyBalanceByAskBuyItem(askBuyUserId, tradingId,itemId, price, number, askBuyBalance, askBuyUserOccupyBalance, orderNo);
             if (res < 1) {
-                userCapitalCacheService.deltedUserCapitalCache(userId, UserCapitalTypeEnum.currency_2.getValue());
+                userCapitalCacheService.deltedUserCapitalCache(userId, UserCapitalTypeEnum.hxjf.getValue());
                 PlayGameService.playerItems.remove(userId.toString());
             }
             //更新道具数量 售出者减 求购者加  包含物品流水
@@ -389,6 +395,113 @@ public class ManagerTradingService extends BaseService {
             return result;
         }
 
+    }
+
+    @ServiceMethod(code = "007", description = "交易行列表")
+    public JSONObject getTradingInfo(ManagerSocketServer adminSocketServer, JSONObject params) {
+        checkNull(params);
+        Integer type = params.getInteger("type");
+        if (type == null || (type != 0 && type != 1)) {
+            throwExp("type error");
+        }
+        Integer page = params.getInteger("page");
+        Integer num = params.getInteger("num");
+        if (page == null || page < 1) {
+            page = 1;
+        }
+        if (num == null || num < 1 || num > 50) {
+            num = 20;
+        }
+        Long itemId = params.getLong("itemId");
+        Integer itemType = params.getInteger("itemType");
+        List<TradingVo> list = tradingCacheService.getTradingCache(page, num, itemId, itemType, null, type);
+        JSONObject result = new JSONObject();
+        result.put("list", list);
+        return result;
+    }
+
+    @ServiceMethod(code = "009", description = "我的交易行列表")
+    public JSONObject getMyTradingInfo(ManagerSocketServer adminSocketServer, JSONObject params) {
+        checkNull(params);
+        Long userId = params.getLong("userId");
+        if (userId == null || userId < 1) {
+            throwExp("userId error");
+        }
+        Integer type = params.getInteger("type");
+        if (type == null || (type != 2 && type != 3)) {
+            throwExp("type error");
+        }
+        Integer page = params.getInteger("page");
+        Integer num = params.getInteger("num");
+        if (page == null || page < 1) {
+            page = 1;
+        }
+        if (num == null || num < 1 || num > 50) {
+            num = 20;
+        }
+        Long itemId = params.getLong("itemId");
+        Integer itemType = params.getInteger("itemType");
+        List<TradingVo> list = tradingCacheService.getTradingCache(page, num, itemId, itemType, userId, type);
+        JSONObject result = new JSONObject();
+        result.put("list", list);
+        return result;
+    }
+
+    @ServiceMethod(code = "008", description = "交易记录")
+    public JSONObject getTradingRecord(ManagerSocketServer adminSocketServer, JSONObject params) {
+        checkNull(params);
+        Long userId = params.getLong("userId");
+        if (userId == null || userId < 1) {
+            throwExp("userId error");
+        }
+        Integer type = params.getInteger("type");
+        if (type == null || (type != 0 && type != 1)) {
+            throwExp("type error");
+        }
+        Integer page = params.getInteger("page");
+        Integer num = params.getInteger("num");
+        if (page == null || page < 1) {
+            page = 1;
+        }
+        if (num == null || num < 1 || num > 50) {
+            num = 20;
+        }
+        List<TradingRecordVo> list = tradingRecordService.getMyRecord(userId, page, num, type);
+        JSONObject result = new JSONObject();
+        result.put("list", list);
+        return result;
+    }
+
+    @ServiceMethod(code = "010", description = "可交易道具")
+    public JSONObject getTradableItems(ManagerSocketServer adminSocketServer, JSONObject params) {
+        JSONArray items = new JSONArray();
+        for (Item item : PlayGameService.itemMap.values()) {
+            if (item == null) {
+                continue;
+            }
+            if (item.getStatus() == null || item.getStatus() != 1) {
+                continue;
+            }
+            if (item.getIsTrading() == null || item.getIsTrading() != 1) {
+                continue;
+            }
+            // 资产货币不进入交易行
+            if (item.getType() != null && item.getType() == 4) {
+                continue;
+            }
+            JSONObject vo = new JSONObject();
+            vo.put("id", item.getId());
+            vo.put("name", item.getName());
+            vo.put("type", item.getType());
+            vo.put("icon", item.getIcon());
+            vo.put("quality", item.getQuality());
+            vo.put("context", item.getContext());
+            vo.put("tradPrice", item.getTradPrice());
+            items.add(vo);
+        }
+        JSONObject result = new JSONObject();
+        result.put("items", items);
+        return result;
     }
 
 

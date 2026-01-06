@@ -22,7 +22,7 @@ public class ServerManagerService2 {
 			shakeHandsDatas.put("address", serverProperties.get("server.address"));
 			shakeHandsDatas.put("host", serverProperties.get("server.host"));
 			shakeHandsDatas.put("weight", serverProperties.get("server.weight"));
-			shakeHandsDatas.put("gameId", 1);
+			shakeHandsDatas.put("gameId", 12);
 			managerSocket2 = new ManagerSocket2(TargetSocketType.dts2, -1, managerProperties.get("manager.ws.address"), shakeHandsDatas);
 			managerSocket2.connect();
 		}

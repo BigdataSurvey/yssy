@@ -308,11 +308,11 @@ public class UserCapitalService extends DaoService {
     @Transactional
     public void subUserBalanceByAskBuy(Long userId, Long itemId, BigDecimal amount, BigDecimal balance, BigDecimal occupyBalance) {
         // 求购不添加求购记录 只有资产流水 但是求购的资产会被冻结 需要解冻资产
-        int a = subUserBalanceAndAddOccupyBalance(amount, userId, UserCapitalTypeEnum.currency_2.getValue(), balance, occupyBalance, null, null, LogCapitalTypeEnum.askbuy, null);
+        int a = subUserBalanceAndAddOccupyBalance(amount, userId, UserCapitalTypeEnum.hxjf.getValue(), balance, occupyBalance, null, null, LogCapitalTypeEnum.askbuy, null);
         if (a < 1) {
-            userCapitalCacheService.deltedUserCapitalCache(userId, UserCapitalTypeEnum.currency_2.getValue());
-            UserCapital userCapital = userCapitalCacheService.getUserCapitalCacheByType(userId, UserCapitalTypeEnum.currency_2.getValue());
-            int b = subUserBalanceAndAddOccupyBalance(amount, userId, UserCapitalTypeEnum.currency_2.getValue(), userCapital.getBalance(), userCapital.getOccupyBalance(), null, null, LogCapitalTypeEnum.askbuy, null);
+            userCapitalCacheService.deltedUserCapitalCache(userId, UserCapitalTypeEnum.hxjf.getValue());
+            UserCapital userCapital = userCapitalCacheService.getUserCapitalCacheByType(userId, UserCapitalTypeEnum.hxjf.getValue());
+            int b = subUserBalanceAndAddOccupyBalance(amount, userId, UserCapitalTypeEnum.hxjf.getValue(), userCapital.getBalance(), userCapital.getOccupyBalance(), null, null, LogCapitalTypeEnum.askbuy, null);
             if (b < 1) {
                 throwExp("添加求购失败，请重试");
             }
@@ -368,13 +368,13 @@ public class UserCapitalService extends DaoService {
     @Transactional
     public void addUserBalanceByCancelAskBuy(Long userId, Long itemId, BigDecimal amount) {
         // 查询撤销的的单子有多少钱
-        UserCapital userCapital = userCapitalCacheService.getUserCapitalCacheByType(userId, UserCapitalTypeEnum.currency_2.getValue());
+        UserCapital userCapital = userCapitalCacheService.getUserCapitalCacheByType(userId, UserCapitalTypeEnum.hxjf.getValue());
         // 求购不添加求购记录 只有资产流水 但是求购的资产会被冻结 需要解冻资产
-        int a = addUserBalanceAndSubOccupyBalance(amount, userId, UserCapitalTypeEnum.currency_2.getValue(), userCapital.getBalance(), userCapital.getOccupyBalance(), null, null, LogCapitalTypeEnum.cancel_askbuy, null);
+        int a = addUserBalanceAndSubOccupyBalance(amount, userId, UserCapitalTypeEnum.hxjf.getValue(), userCapital.getBalance(), userCapital.getOccupyBalance(), null, null, LogCapitalTypeEnum.cancel_askbuy, null);
         if (a < 1) {
-            userCapitalCacheService.deltedUserCapitalCache(userId, UserCapitalTypeEnum.currency_2.getValue());
-            userCapital = userCapitalCacheService.getUserCapitalCacheByType(userId, UserCapitalTypeEnum.currency_2.getValue());
-            int b = addUserBalanceAndSubOccupyBalance(amount, userId, UserCapitalTypeEnum.currency_2.getValue(), userCapital.getBalance(), userCapital.getOccupyBalance(), null, null, LogCapitalTypeEnum.cancel_askbuy, null);
+            userCapitalCacheService.deltedUserCapitalCache(userId, UserCapitalTypeEnum.hxjf.getValue());
+            userCapital = userCapitalCacheService.getUserCapitalCacheByType(userId, UserCapitalTypeEnum.hxjf.getValue());
+            int b = addUserBalanceAndSubOccupyBalance(amount, userId, UserCapitalTypeEnum.hxjf.getValue(), userCapital.getBalance(), userCapital.getOccupyBalance(), null, null, LogCapitalTypeEnum.cancel_askbuy, null);
             if (b < 1) {
                 throwExp("取消求购失败，请重试！");
             }
@@ -390,11 +390,11 @@ public class UserCapitalService extends DaoService {
         Long tradingId = tradingRecordService.addTradingRecord(userId,tradId, itemId, orderNo, amount, BigDecimal.ZERO, TradingRecordTypeEnum.buy.getValue(), TradingRecordTypeEnum.buy.getName(), number, price);
 
         // 扣除资产
-        int a = subUserBalance(amount, userId, UserCapitalTypeEnum.currency_2.getValue(), balanceBefore, occupyBalanceBefore, orderNo, tradingId, LogCapitalTypeEnum.buy, TableNameConstant.TRADING_RECORD);
+        int a = subUserBalance(amount, userId, UserCapitalTypeEnum.hxjf.getValue(), balanceBefore, occupyBalanceBefore, orderNo, tradingId, LogCapitalTypeEnum.buy, TableNameConstant.TRADING_RECORD);
         if (a < 1) {
-            userCapitalCacheService.deltedUserCapitalCache(userId, UserCapitalTypeEnum.currency_2.getValue());
-            UserCapital userCapital = userCapitalCacheService.getUserCapitalCacheByType(userId, UserCapitalTypeEnum.currency_2.getValue());
-            int b = subUserBalance(amount, userId, UserCapitalTypeEnum.currency_2.getValue(), userCapital.getBalance(), userCapital.getOccupyBalance(), orderNo, tradingId, LogCapitalTypeEnum.buy, TableNameConstant.TRADING_RECORD);
+            userCapitalCacheService.deltedUserCapitalCache(userId, UserCapitalTypeEnum.hxjf.getValue());
+            UserCapital userCapital = userCapitalCacheService.getUserCapitalCacheByType(userId, UserCapitalTypeEnum.hxjf.getValue());
+            int b = subUserBalance(amount, userId, UserCapitalTypeEnum.hxjf.getValue(), userCapital.getBalance(), userCapital.getOccupyBalance(), orderNo, tradingId, LogCapitalTypeEnum.buy, TableNameConstant.TRADING_RECORD);
             if (b < 1) {
                 throwExp("有其他玩家正在购买，请刷新后重新购买!");
             }
@@ -424,11 +424,11 @@ public class UserCapitalService extends DaoService {
         // 交易记录
         Long tradingId = tradingRecordService.addTradingRecord(userId,tradId, itemId, orderNo, amount, fee, TradingRecordTypeEnum.sell.getValue(), TradingRecordTypeEnum.sell.getName(), number, price);
         // 增加资产
-        int a = addUserBalance(amount.subtract(fee), userId, UserCapitalTypeEnum.currency_2.getValue(), balanceBefore, occupyBalanceBefore, orderNo, tradingId, LogCapitalTypeEnum.sell, TableNameConstant.TRADING_RECORD);
+        int a = addUserBalance(amount.subtract(fee), userId, UserCapitalTypeEnum.hxjf.getValue(), balanceBefore, occupyBalanceBefore, orderNo, tradingId, LogCapitalTypeEnum.sell, TableNameConstant.TRADING_RECORD);
         if (a < 1) {
-            userCapitalCacheService.deltedUserCapitalCache(userId, UserCapitalTypeEnum.currency_2.getValue());
-            UserCapital userCapital = userCapitalCacheService.getUserCapitalCacheByType(userId, UserCapitalTypeEnum.currency_2.getValue());
-            int b = addUserBalance(amount.subtract(fee), userId, UserCapitalTypeEnum.currency_2.getValue(), userCapital.getBalance(), userCapital.getOccupyBalance(), orderNo, tradingId, LogCapitalTypeEnum.sell, TableNameConstant.TRADING_RECORD);
+            userCapitalCacheService.deltedUserCapitalCache(userId, UserCapitalTypeEnum.hxjf.getValue());
+            UserCapital userCapital = userCapitalCacheService.getUserCapitalCacheByType(userId, UserCapitalTypeEnum.hxjf.getValue());
+            int b = addUserBalance(amount.subtract(fee), userId, UserCapitalTypeEnum.hxjf.getValue(), userCapital.getBalance(), userCapital.getOccupyBalance(), orderNo, tradingId, LogCapitalTypeEnum.sell, TableNameConstant.TRADING_RECORD);
             if (b < 1) {
                 throwExp("有其他玩家正在购买，请刷新后重新购买!");
             }
@@ -1266,12 +1266,12 @@ public class UserCapitalService extends DaoService {
         // 交易记录
         Long tradingId = tradingRecordService.addTradingRecord(userId, tradId,itemId, orderNo, amount, BigDecimal.ZERO, TradingRecordTypeEnum.askbuy.getValue(), TradingRecordTypeEnum.askbuy.getName(), number, price);
         // 减少冻结资产
-        int a = subUserOccupyBalance(amount, userId, UserCapitalTypeEnum.currency_2.getValue(), balanceBefore, occupyBalanceBefore, orderNo, tradingId, LogCapitalTypeEnum.askbuy_sucess, TableNameConstant.TRADING_RECORD);
+        int a = subUserOccupyBalance(amount, userId, UserCapitalTypeEnum.hxjf.getValue(), balanceBefore, occupyBalanceBefore, orderNo, tradingId, LogCapitalTypeEnum.askbuy_sucess, TableNameConstant.TRADING_RECORD);
         // 清理缓存
         if (a < 1) {
-            userCapitalCacheService.deltedUserCapitalCache(userId, UserCapitalTypeEnum.currency_2.getValue());
-            UserCapital userCapital = userCapitalCacheService.getUserCapitalCacheByType(userId, UserCapitalTypeEnum.currency_2.getValue());
-            int b = subUserOccupyBalance(amount, userId, UserCapitalTypeEnum.currency_2.getValue(), userCapital.getBalance(), userCapital.getOccupyBalance(), orderNo, tradingId, LogCapitalTypeEnum.askbuy_sucess, TableNameConstant.TRADING_RECORD);
+            userCapitalCacheService.deltedUserCapitalCache(userId, UserCapitalTypeEnum.hxjf.getValue());
+            UserCapital userCapital = userCapitalCacheService.getUserCapitalCacheByType(userId, UserCapitalTypeEnum.hxjf.getValue());
+            int b = subUserOccupyBalance(amount, userId, UserCapitalTypeEnum.hxjf.getValue(), userCapital.getBalance(), userCapital.getOccupyBalance(), orderNo, tradingId, LogCapitalTypeEnum.askbuy_sucess, TableNameConstant.TRADING_RECORD);
             if (b < 1) {
                 return b;
             }
@@ -1603,7 +1603,7 @@ public class UserCapitalService extends DaoService {
     }
 
     @Transactional
-    private int addUserBalance2(BigDecimal amount, Long userId, Integer capitalType) {
+    public int addUserBalance2(BigDecimal amount, Long userId, Integer capitalType) {
         Map<String,Object> params = new HashedMap<>();
         params.put("userId", userId);
         params.put("capitalType", capitalType);

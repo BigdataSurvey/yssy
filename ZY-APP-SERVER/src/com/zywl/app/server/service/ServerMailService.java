@@ -50,7 +50,6 @@ public class ServerMailService extends BaseService{
 	@Autowired
 	private ActiveGiftRecordService activeGiftRecordService;
 
-
 	@ServiceMethod(code = "001", description = "查看邮件列表")
 	public JSONObject getMailInfo(final AppSocket appSocket, Command appCommand, JSONObject params) {
 		checkNull(params);
@@ -61,12 +60,13 @@ public class ServerMailService extends BaseService{
 		int num = params.getIntValue("num");
 		// 1 收件箱，2 发件箱
 		int type = params.getIntValue("type");
+		// todo 新增一个userNO
+		String searchUserNo = params.getString("userNO");
 
 		if (type != 1 && type != 2) {
 			throwExp("邮件类型错误");
 		}
-
-		return getMailInfo(userId, page, num, type);
+		return getMailInfo(userId, page, num, type, searchUserNo);
 	}
 
 	@ServiceMethod(code = "002", description = "发送邮件 (转赠)")
@@ -185,16 +185,32 @@ public class ServerMailService extends BaseService{
 		return null;
 	}
 
-	public JSONObject getMailInfo(Long userId, int page, int num, int type) {
+	/**
+	 * 获取邮件信息
+	 * **/
+	public JSONObject getMailInfo(Long userId, int page, int num, int type, String searchUserNo) {
 		User user = userCacheService.getUserInfoById(userId);
 		if (user == null) {
 			throwExp("未查询到邮件信息！");
 		}
 		UserMail userMail = userMailService.findUserReadMailInfo(userId);
 		JSONArray userReadMails = (userMail != null ? userMail.getReadMailList() : null);
-		// 根据 type 查询对应列表
-		List<Mail> myMail = mailService.findMyEmail(userId, type, page, num);
-		//发件人
+
+		List<Mail> myMail;
+
+		if (searchUserNo != null && !searchUserNo.isEmpty()) {
+			// 如果userNO不为空，查询指定用户的邮件
+			User targetUser = userCacheService.getUserInfoByUserNo(searchUserNo);
+			if (targetUser != null) {
+				myMail = mailService.findByUserId(targetUser.getId(), userId, page, num, type);
+			} else {
+				myMail = new ArrayList<>();
+			}
+		} else {
+			// 如果 userNO 为空，保持原有逻辑
+			myMail = mailService.findMyEmail(userId, type, page, num);
+		}
+
 		List<Long> fromIds = new ArrayList<>();
 		for (Mail m : myMail) {
 			Long fromId = m.getFromUserId();

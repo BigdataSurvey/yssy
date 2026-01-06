@@ -21,7 +21,7 @@ public class Achievement extends BaseBean{
 
 
 	
-	private JSONArray reward;
+	private String reward;
 	
 	private Integer sort;
 	
@@ -50,11 +50,11 @@ public class Achievement extends BaseBean{
 		this.condition = condition;
 	}
 
-	public JSONArray getReward() {
+	public String getReward() {
 		return reward;
 	}
 
-	public void setReward(JSONArray reward) {
+	public void String(String reward) {
 		this.reward = reward;
 	}
 

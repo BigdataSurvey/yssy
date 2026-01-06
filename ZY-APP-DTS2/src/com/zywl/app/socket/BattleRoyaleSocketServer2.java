@@ -25,7 +25,7 @@ import com.zywl.app.defaultx.service.TaskOrderService;
 import com.zywl.app.defaultx.service.UserCapitalService;
 import com.zywl.app.defaultx.util.SpringUtil;
 import com.zywl.app.service.BattleRoyaleRequsetMangerService2;
-import com.zywl.app.service.BattleRoyaleService2;
+//import com.zywl.app.service.BattleRoyaleService2;
 
 @ServerEndpoint(value = "/BattleRoyale2Server" + SocketConstants.SOCKET_CONNECT_SHAKE_HANDS, configurator = HttpSessionConfigurator.class)
 public class BattleRoyaleSocketServer2 extends BaseServerSocket {
@@ -44,7 +44,7 @@ public class BattleRoyaleSocketServer2 extends BaseServerSocket {
 	/** 全局配置读取 */
 	private PropertiesUtil globalProperties;
 
-	private BattleRoyaleService2 battleRoyaleService2;
+	//private BattleRoyaleService2 battleRoyaleService2;
 
 	private LotterySyncCapitalService lotterySyncCapitalService;
 
@@ -62,7 +62,7 @@ public class BattleRoyaleSocketServer2 extends BaseServerSocket {
 		requestService = SpringUtil.getService(BattleRoyaleRequsetMangerService2.class);
 		userCapitalService = SpringUtil.getService(UserCapitalService.class);
 		taskOrderService = SpringUtil.getService(TaskOrderService.class);
-		battleRoyaleService2 = SpringUtil.getService(BattleRoyaleService2.class);
+		//battleRoyaleService2 = SpringUtil.getService(BattleRoyaleService2.class);
 	}
 
 	public ConnectedData onConnect(JSONObject shakeHandsData) {
@@ -99,74 +99,11 @@ public class BattleRoyaleSocketServer2 extends BaseServerSocket {
 	}
 
 	private void initPush() {
-		// PBX
+		// PBX：允许 PbxService 内 Push.push(updatePbxInfo/updatePbxStatus) 发到已连接的 SERVER
 		Push.addPushSuport(PushCode.updatePbxInfo, new DefaultPushHandler());
 		Push.addPushSuport(PushCode.updatePbxStatus, new DefaultPushHandler());
 
-		// 注册加入房间推送
-		Push.registPush(new PushBean(PushCode.updateDts2Info), new PushListener() {
-			public void onRegist(BaseSocket baseSocket, Object data) {}
-			public void onReceive(BaseSocket baseSocket, Object data) {
-				if (data != null) {
-					BattleRoyaleSocketServer2 managerSocketServer = ((BattleRoyaleSocketServer2) baseSocket);
-					JSONObject pushData = (JSONObject) data;
-					long userId = pushData.getLongValue("userId");
-					String userNo = pushData.getString("userNo");
-					int group = pushData.getIntValue("group");
-					String sessionId = pushData.getString("sessionId");
-					logger.debug("用户[" + userNo + "]加入" + managerSocketServer.getName() + "房间" + pushData.toJSONString());
-
-					logger.debug("updateDts2Info userId=" + userId + ", userNo=" + userNo + ", group=" + group + ", sessionId=" + sessionId);
-				}
-			}
-		}, this);
-
-		// 注册加入房间推送
-		Push.registPush(new PushBean(PushCode.rollbackCapital), new PushListener() {
-			public void onRegist(BaseSocket baseSocket, Object data) {}
-			public void onReceive(BaseSocket baseSocket, Object data) {}
-		}, this);
-
-
-		// 注册更新游戏状态推送
-		Push.registPush(new PushBean(PushCode.updateDts2Status), new PushListener() {
-			public void onRegist(BaseSocket baseSocket, Object data) {}
-
-			public void onReceive(BaseSocket baseSocket, Object data) {
-				JSONObject json = (JSONObject) data;
-				int gameId = json.getIntValue("gameId");
-				if (gameId == 1) {
-					BattleRoyaleService2.STATUS = json.getIntValue("status");
-				}
-			}
-		}, this);
-
-		// 注册APP离线推送
-		Push.registPush(new PushBean(PushCode.syncAppOffline), new PushListener() {
-			public void onRegist(BaseSocket baseSocket, Object data) {}
-
-			public void onReceive(BaseSocket baseSocket, Object data) {
-				if (data != null) {
-					JSONObject pushData = (JSONObject) data;
-					String userId = pushData.getString("userId");
-					if (userId!=null && BattleRoyaleService2.ROOM.getPlayers().containsKey(userId)) {
-						logger.info("id：" + userId + "在倩女幽魂房间离线");
-						//判断是否是观众席，观众席的话 移除，通知房间所有人
-						if (BattleRoyaleService2.ROOM.getLookList().containsKey(userId)) {
-							BattleRoyaleService2.ROOM.getLookList().remove(userId);
-							//Push.push(PushCode.updateDts2Info, null, BattleRoyaleService2.ROOM.pushResult(2, userId, null, null));
-							BattleRoyaleService2.ROOM.getPlayers().remove(userId);
-						}
-						if (!BattleRoyaleService2.ROOM.getUserBetInfo().containsKey(userId)) {
-							BattleRoyaleService2.ROOM.setLookNum(BattleRoyaleService2.ROOM.getLookNum() - 1);
-						}
-					}
-
-				}
-			}
-		}, this);
-
-		// 注册服务器可用状态
+		// 服务器可用状态（通用）
 		Push.registPush(new PushBean(PushCode.syncIsService), new PushListener() {
 			public void onRegist(BaseSocket baseSocket, Object data) {
 				if (data != null) {
@@ -180,9 +117,8 @@ public class BattleRoyaleSocketServer2 extends BaseServerSocket {
 				}
 			}
 		}, this);
-
-
 	}
+
 
 	public String getName() {
 		return name;

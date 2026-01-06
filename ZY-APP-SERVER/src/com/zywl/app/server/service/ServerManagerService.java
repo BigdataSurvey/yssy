@@ -21,7 +21,7 @@ public class ServerManagerService {
 	private BattleRoyaleSocket battleRoyaleSocket;
 
 	private BattleRoyale2Socket battleRoyale2Socket;
-
+	private BattleRoyale3Socket battleRoyale3Socket;
 	private LhdSocket lhdSocket;
 
 	private DgsSocket dgsSocket;
@@ -99,6 +99,20 @@ public class ServerManagerService {
 			shakeHandsDatas.put("weight", serverProperties.get("server.weight"));
 			battleRoyale2Socket = new BattleRoyale2Socket(TargetSocketType.dts2, -1, managerProperties.get("dts2Server.ws.address"), shakeHandsDatas);
 			battleRoyale2Socket.connect();
+		}
+	}
+
+	public void connectDts3Server(){
+		if(battleRoyale3Socket == null){
+			PropertiesUtil managerProperties = new PropertiesUtil("manager.properties");
+			PropertiesUtil serverProperties = new PropertiesUtil("config.properties");
+			JSONObject shakeHandsDatas = new JSONObject();
+			shakeHandsDatas.put("name", serverProperties.get("server.name"));
+			shakeHandsDatas.put("address", serverProperties.get("template.server"));
+			shakeHandsDatas.put("host", serverProperties.get("template.server"));
+			shakeHandsDatas.put("weight", serverProperties.get("server.weight"));
+			battleRoyale3Socket = new BattleRoyale3Socket(TargetSocketType.dts3, -1, managerProperties.get("dts3Server.ws.address"), shakeHandsDatas);
+			battleRoyale3Socket.connect();
 		}
 	}
 
