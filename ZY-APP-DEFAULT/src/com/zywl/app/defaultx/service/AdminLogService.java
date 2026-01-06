@@ -35,7 +35,7 @@ public class AdminLogService extends DaoService {
 		adminLog.setAdminAccount(admin.getUsername());
 		adminLog.setAdminName(admin.getName());
 		adminLog.setAction(action);
-		adminLog.setContent(content);
+		adminLog.setContent(String.valueOf(content));
 		adminLog.setRecordTime(new Date());
 		save(adminLog);
 	}

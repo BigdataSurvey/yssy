@@ -31,6 +31,7 @@ public enum TargetSocketType {
 	nh,
 	dgs,
 	dts2,
+	dts3,
 	nxq,
 	//算卦
 	sg,
@@ -41,7 +42,7 @@ public enum TargetSocketType {
 
 	public static TargetSocketType getServerEnum(int gameId) {
 		if (gameId==1) {
-			return dts2;
+			return dts3;
 		}else if(gameId==2) {
 			return starChange;
 		}else if(gameId==3) {

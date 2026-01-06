@@ -206,7 +206,7 @@ public class PbxService extends BaseService {
                 t.setDaemon(true);
                 return t;
             });
-            // 每秒 tick 一次：检测期号切换并触发上一期自动结算
+            // 每秒tick一次-检测期号切换并触发上一期自动结算
             periodScheduler.scheduleAtFixedRate(() -> {
                 try {
                     tickPeriod();
@@ -219,7 +219,7 @@ public class PbxService extends BaseService {
 
     private void tickPeriod() {
         long nowMs = System.currentTimeMillis();
-        // Step1：每秒推进“期状态机”，并对在线玩家推送倒计时与奖池信息
+        // 每秒推进期状态机，并对在线玩家推送倒计时与奖池信息
         ensureCurrentPeriod(nowMs);
         if (onlineUserState.isEmpty()) {
             return;
