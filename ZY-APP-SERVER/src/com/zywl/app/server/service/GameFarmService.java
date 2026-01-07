@@ -109,4 +109,24 @@ public class GameFarmService extends BaseService {
         );
         return async();
     }
+
+    /**
+     * 一阶种子兑换（核心积分）
+     * {"seedItemId":1101,"number":1}
+     */
+    @ServiceMethod(code = "005", description = "一阶种子兑换")
+    public Object exchangeSeed(final AppSocket appSocket, Command appCommand, JSONObject params) {
+        checkNull(params);
+        long userId = appSocket.getWsidBean().getUserId();
+        params.put("userId", userId);
+        Command managerCmd = CommandBuilder.builder()
+                .request("036005", params)
+                .build();
+        Executer.request(
+                TargetSocketType.manager,
+                managerCmd,
+                new RequestManagerListener(appCommand)
+        );
+        return async();
+    }
 }

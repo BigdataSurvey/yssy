@@ -291,6 +291,26 @@ public class SpringInDebug {
 
 
     /**
+     * 兑换种子
+     */
+    public static void exchangeSeedInTest() {
+        try {
+            ManagerGameFarmService svc = ctx.getBean(ManagerGameFarmService.class);
+            JSONObject params = new JSONObject();
+            params.put("userId", 937223L);
+            params.put("seedItemId",1101);
+            params.put("number",8);
+            System.out.println("=开始== 用户兑换种子 测试返回 ===");
+            JSONObject resp = (JSONObject) svc.exchangeSeed(fakeSocket, params);
+            System.out.println("=结束== 用户兑换种子 测试返回 ===");
+            System.out.println(resp.toJSONString());
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+
+    /**
      * 商城信息 037
      */
     public static void shopInfoInTest() {
@@ -1151,7 +1171,7 @@ public class SpringInDebug {
         //getTopTest();
 
         //悬赏任务-发布任务
-        getPublishTaskTest();
+        //getPublishTaskTest();
 
         //任务详情
         //getTaskDetailTest();
@@ -1185,6 +1205,9 @@ public class SpringInDebug {
 
         //审核通过
         //getAuditApproveTest();
+
+        //种子兑换
+        exchangeSeedInTest();
 
     }
 

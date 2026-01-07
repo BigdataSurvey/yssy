@@ -103,7 +103,7 @@ public class BattleRoyaleSocketServer extends BaseServerSocket {
 
 			public void onReceive(BaseSocket baseSocket, Object data) {
 				logger.debug("BattleRoyaleSocketServer.initPush.updateGameDiyData.onReceive");
-				Push.push(PushCode.updateGameDiyData, "1", data);
+				Push.push(PushCode.updateGameDiyData, "7", data);
 			}
 		}, this);
 

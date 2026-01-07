@@ -2,14 +2,14 @@ package com.zywl.app.defaultx.enmus;
 
 /**
  *  用户背包变动类型
- * 
+ *
  * @author DOE
  *
  */
 public enum LogUserBackpackTypeEnum {
 	test("测试",0),
-	use("使用", 1), 
-	listing("上架", 2), 
+	use("使用", 1),
+	listing("上架", 2),
 	delist("下架", 3),
 	events("活动获取",4),
 	buy("交易行购买",5),
@@ -53,13 +53,13 @@ public enum LogUserBackpackTypeEnum {
 	harvest("种植收益",1012),
 	balloon_exchange("兑换气球",1013),
 	bounty("悬赏任务",1014),
-
+	seed_exchange("种子兑换",1015),
 	;
-	
+
 	private String name;
 
 	private int value;
-	
+
 	private LogUserBackpackTypeEnum(String name, int value) {
 		this.name = name;
 		this.value = value;

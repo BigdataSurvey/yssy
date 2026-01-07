@@ -579,10 +579,112 @@ public class ManagerGameBaseService extends BaseService {
             Collection<DailyTask> values = PlayGameService.dailyTaskInfo.values();
             JSONObject result = new JSONObject();
             result.put("taskList", userTaskList);
+
+            // dayNow 签到进度
+            result.put("dayNow", cardGameCacheService.getUserDayNowByWeekSign(userId));
+            // boxList（宝箱奖励数组：达成/可领/已领状态）
+            int signNow = 0;
+            for (Object o : userTaskList) {
+                if (!(o instanceof JSONObject)) {
+                    continue;
+                }
+                JSONObject t = (JSONObject) o;
+                if (t.getIntValue("status") == 2) {
+                    signNow++;
+                }
+            }
+            result.put("boxList", buildDailyTaskBoxList(userId, signNow));
+
             result.put("duoYou", managerConfigService.getInteger(Config.PLAYGAME_1_STATUS));
             result.put("xianWan", managerConfigService.getInteger(Config.PLAYGAME_2_STATUS));
             return result;
         }
+    }
+
+    /**
+     * 每日任务宝箱列表：配置来自 t_config.DAILY_TASK_BOX_CONFIG（JSON 数组）。
+     *
+     * 配置元素建议字段：
+     * - id / boxId: 宝箱ID
+     * - condition: 达成条件（以已领取任务数 signNow 为进度）
+     * - reward: 奖励 JSONArray
+     */
+    private JSONArray buildDailyTaskBoxList(Long userId, int signNow) {
+        JSONArray boxList = new JSONArray();
+
+        String cfgStr = managerConfigService.getString(Config.DAILY_TASK_BOX_CONFIG);
+        if (cfgStr == null || cfgStr.trim().isEmpty()) {
+            return boxList;
+        }
+
+        JSONArray cfgArr;
+        try {
+            cfgArr = JSONArray.parseArray(cfgStr);
+        } catch (Exception e) {
+            return boxList;
+        }
+
+        List<JSONObject> tmp = new ArrayList<>();
+        for (int i = 0; i < cfgArr.size(); i++) {
+            JSONObject cfg = cfgArr.getJSONObject(i);
+            if (cfg == null) {
+                continue;
+            }
+
+            String idStr = cfg.getString("id");
+            if (idStr == null) {
+                idStr = cfg.getString("boxId");
+            }
+            if (idStr == null) {
+                continue;
+            }
+
+            int boxId;
+            try {
+                boxId = Integer.parseInt(idStr);
+            } catch (Exception ignored) {
+                continue;
+            }
+
+            int condition = cfg.getIntValue("condition");
+            JSONArray reward = cfg.getJSONArray("reward");
+            if (reward == null) {
+                Object r = cfg.get("reward");
+                if (r instanceof String) {
+                    try {
+                        reward = JSONArray.parseArray((String) r);
+                    } catch (Exception ignored) {
+                        reward = new JSONArray();
+                    }
+                } else {
+                    reward = new JSONArray();
+                }
+            }
+
+            // 领取状态（默认读 redis：APP_USER_DAILY_TASK_AP::<date>:<userId>[boxId]）
+            String claimed = cardGameCacheService.getUserDtApStatus(userId, String.valueOf(boxId));
+            int status;
+            if (claimed != null && !"0".equals(claimed)) {
+                status = 2;
+            } else if (signNow >= condition) {
+                status = 1;
+            } else {
+                status = 0;
+            }
+
+            JSONObject o = new JSONObject();
+            o.put("id", boxId);
+            o.put("condition", condition);
+            o.put("reward", reward);
+            o.put("status", status);
+            tmp.add(o);
+        }
+
+        tmp.sort(Comparator.comparingInt(a -> a.getIntValue("condition")));
+        for (JSONObject o : tmp) {
+            boxList.add(o);
+        }
+        return boxList;
     }
     //51391375
 

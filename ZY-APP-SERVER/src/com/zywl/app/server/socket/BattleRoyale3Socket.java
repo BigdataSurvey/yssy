@@ -64,57 +64,18 @@ public class BattleRoyale3Socket extends BaseClientSocket {
     public void onConnect(Object data) {
         CountDownLatch downLatch = new CountDownLatch(2);
 
-        // 先注册 大逃杀 推送
-        Push.registPush(new PushBean(PushCode.updateDts2Info), new PushListener() {
+        // DTS3(大逃杀，gameId=1) 与 SERVER 的推送通道：DTS3 侧 Push.push(updateDts3Info/updateDts3Status)
+        // SERVER 侧需要向 DTS3 注册 updateDts3Info/updateDts3Status（而不是 updateDts2Info/updateDts2Status），
+        // 否则 DTS3 会提示“服务器未提供该推送服务updateDts2Info/updateDts2Status”。
+
+        // DTS3 房间信息（批量 JSONArray）
+        Push.registPush(new PushBean(PushCode.updateDts3Info), new PushListener() {
             @Override
-            public void onRegist(BaseSocket baseSocket, Object data) { }
-
-            @Override
-            public void onReceive(BaseSocket baseSocket, Object data) {
-                logger.info("收到大逃杀3信息变更" + data);
-                JSONObject obj = JSONObject.from(data);
-                String gameId = obj.getString("gameId");
-                if ("1".equals(gameId)) {
-                    Push.push(PushCode.updateDts2Info, gameId, obj);
-                }
-            }
-        }, this);
-
-        Push.registPush(new PushBean(PushCode.updatePbxStatus), new PushListener() {
-            @Override
-            public void onRegist(BaseSocket baseSocket, Object data) { }
-
-            @Override
-            public void onReceive(BaseSocket baseSocket, Object data) {
-                logger.info("收到大逃杀3状态变更" + data);
-                JSONObject obj = JSONObject.from(data);
-                String gameId = obj.getString("gameId");
-                JSONArray ids = obj.getJSONArray("userIds");
-                if ("1".equals(gameId) && ids != null) {
-                    for (Object id : ids) {
-                        String userId = (String) id;
-                        JSONObject result = new JSONObject();
-                        result.put("userId", userId);
-                        result.put("gameStatus", obj.get("status"));
-                        result.put("userSettleInfo", obj.get("userSettleInfo"));
-                        Push.push(PushCode.updatePbxStatus, userId, result);
-                    }
-                }
-            }
-        }, this);
-
-        // 资产回滚
-        Push.registPush(new PushBean(PushCode.rollbackCapital), new PushListener() {
-            public void onRegist(BaseSocket baseSocket, Object data) { }
-            public void onReceive(BaseSocket baseSocket, Object data) { }
-        }, this);
-
-        // DTS3 房间信息
-        Push.registPush(new PushBean(PushCode.updateDts2Info), new PushListener() {
             public void onRegist(BaseSocket baseSocket, Object data) {
                 downLatch.countDown();
             }
 
+            @Override
             public void onReceive(BaseSocket baseSocket, Object data) {
                 logger.info("收到大逃杀3房间信息变更" + data);
                 JSONArray array = JSONArray.from(data);
@@ -122,24 +83,28 @@ public class BattleRoyale3Socket extends BaseClientSocket {
                     JSONObject obj = JSONObject.from(o);
                     String gameId = obj.getString("gameId");
                     if ("1".equals(gameId)) {
+                        // 对玩家端统一透传 updateRoomDate（客户端原有口径）
                         Push.push(PushCode.updateRoomDate, gameId, obj);
                     }
                 }
             }
         }, this);
 
-        // DTS3 游戏状态
-        Push.registPush(new PushBean(PushCode.updateDts2Status), new PushListener() {
+        // DTS3 游戏状态（JSONObject）
+        Push.registPush(new PushBean(PushCode.updateDts3Status), new PushListener() {
+            @Override
             public void onRegist(BaseSocket baseSocket, Object data) {
                 downLatch.countDown();
             }
 
+            @Override
+            @SuppressWarnings("unchecked")
             public void onReceive(BaseSocket baseSocket, Object data) {
                 logger.info("大逃杀3游戏状态变更" + data);
                 JSONObject obj = JSONObject.from(data);
                 String gameId = obj.getString("gameId");
                 JSONArray ids = obj.getJSONArray("userIds");
-                if ("1".equals(gameId)) {
+                if ("1".equals(gameId) && ids != null) {
                     for (Object id : ids) {
                         JSONObject result = new JSONObject();
                         String userId = (String) id;

@@ -23,8 +23,8 @@ public class ServerManagerService {
 	private BattleRoyale2Socket battleRoyale2Socket;
 	private BattleRoyale3Socket battleRoyale3Socket;
 	private LhdSocket lhdSocket;
-
 	private DgsSocket dgsSocket;
+
 	private PbxSocket pbxSocket;
 
 
@@ -74,6 +74,9 @@ public class ServerManagerService {
 		}
 	}
 
+	/**
+	 * 大逃杀 单杀
+	 * **/
 	public void connectBattleRoyaleServer(){
 		if(battleRoyaleSocket == null){
 			PropertiesUtil managerProperties = new PropertiesUtil("manager.properties");
@@ -85,6 +88,20 @@ public class ServerManagerService {
 			shakeHandsDatas.put("weight", serverProperties.get("server.weight"));
 			battleRoyaleSocket = new BattleRoyaleSocket(TargetSocketType.battleRoyale, -1, managerProperties.get("battleRoyale.ws.address"), shakeHandsDatas);
 			battleRoyaleSocket.connect();
+		}
+	}
+
+	public void connectDtsServer(){
+		if(battleRoyale2Socket == null){
+			PropertiesUtil managerProperties = new PropertiesUtil("manager.properties");
+			PropertiesUtil serverProperties = new PropertiesUtil("config.properties");
+			JSONObject shakeHandsDatas = new JSONObject();
+			shakeHandsDatas.put("name", serverProperties.get("server.name"));
+			shakeHandsDatas.put("address", serverProperties.get("template.server"));
+			shakeHandsDatas.put("host", serverProperties.get("template.server"));
+			shakeHandsDatas.put("weight", serverProperties.get("server.weight"));
+			battleRoyale2Socket = new BattleRoyale2Socket(TargetSocketType.dts2, -1, managerProperties.get("dts2Server.ws.address"), shakeHandsDatas);
+			battleRoyale2Socket.connect();
 		}
 	}
 

@@ -18,6 +18,7 @@ import com.zywl.app.defaultx.service.card.DicFarmService;
 import com.zywl.app.manager.context.MessageCodeContext;
 import com.zywl.app.manager.service.PlayGameService;
 import com.zywl.app.manager.socket.ManagerSocketServer;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -87,6 +88,9 @@ public class ManagerGameFarmService extends BaseService {
     @Autowired
     private ManagerJoyService managerJoyService;
 
+    @Autowired
+    private ManagerGameBaseService managerGameBaseService;
+
     static class JoyTrigger {
         int itemQuality;
         String eventId;
@@ -97,7 +101,6 @@ public class ManagerGameFarmService extends BaseService {
             this.sourceType = sourceType;
         }
     }
-
 
 
     /**
@@ -294,16 +297,8 @@ public class ManagerGameFarmService extends BaseService {
 
     /**
      * 003 - 果实成熟收割 / 一键收割（线性产出 + 多次领取）
-     *
-     * landIndex：
-     *   1~9  表示单块收割；
-     *   -1   表示一键收割全部已成熟地块。
-     *
-     * 收益发放完全改为：
-     *   - 从 dic_farm.reward 取出 JSON 数组；
-     *   - 汇总所有奖励后，统一走 PlayGameService.addReward；
-     *     - 资产：由 dic_item.type = 4 决定，走 UserCapital；
-     *     - 其他：走背包。
+     * landIndex：  1~9  表示单块收割；  -1   表示一键收割全部已成熟地块。
+     * 收益发放为： dic_farm.reward 取出 JSON 数组； 汇总所有奖励后，统一走 PlayGameService.addReward； 资产：由 dic_item.type = 4 决定，走 UserCapital； 其他：走背包。
      */
 
     @ServiceMethod(code = "003", description = "收割 / 一键收割")
@@ -480,22 +475,7 @@ public class ManagerGameFarmService extends BaseService {
 
 
     /**
-     * 对单块土地，在当前时间点计算“本次新增可领取的奖励”，追加到 allRewards / gainMap。
-     *
-     * 规则：
-     *   - startSec = land.startTime
-     *   - endSec   = startSec + growSeconds
-     *   - curSec   = min(nowSec, endSec)
-     *   - lastHarvestSec:
-     *         若 lastHarvestTime 为 null，则等于 startSec（视为从未收割过）
-     *         否则 clamp 到 [startSec, endSec]
-     *
-     *   对于 reward 中每条 {number = baseNum}：
-     *       producedTotal  = floor(baseNum * (curSec - startSec) / growSeconds)
-     *       producedBefore = floor(baseNum * (lastHarvestSec - startSec) / growSeconds)
-     *       delta          = producedTotal - producedBefore
-     *
-     *   若 delta > 0，则表示本次可以新增领取 delta 个。
+     * 对单块土地，在当前时间点计算 本次新增可领取的奖励 追加到 allRewards / gainMap。
      */
     private boolean appendLandHarvestRewards(UserFarmLand land, long nowSec, JSONArray allRewards, Map<String, BigDecimal> gainMap) {
         Integer seedItemId = land.getSeedItemId();
@@ -806,6 +786,98 @@ public class ManagerGameFarmService extends BaseService {
         result.put("land", landJson);
         result.put("realName", realName);
         result.put("vip", isVip);
+        return result;
+    }
+
+    /**
+     * 一阶种子兑换：使用配置指定的资产兑换一阶种子
+     */
+    @ServiceMethod(code = "005", description = "一阶种子兑换")
+    @Transactional
+    public JSONObject exchangeSeed(ManagerSocketServer socket, JSONObject data) {
+        checkNull(data);
+        Long userId = data.getLong("userId");
+        Integer seedItemId = data.getInteger("seedItemId");
+        Integer number = data.getInteger("number");
+        if (userId == null || seedItemId == null || number == null) {
+            throwExp("参数不完整");
+        }
+        if (number <= 0) {
+            throwExp("兑换数量必须大于0");
+        }
+
+        // 校验用户
+        loadAndCheckUser(userId);
+
+        // 配置解析
+        String cfgStr = managerConfigService.getString(Config.SEED_EXCHANGE_CONFIG);
+        if (StringUtils.isBlank(cfgStr)) {
+            throwExp("兑换配置缺失：" + Config.SEED_EXCHANGE_CONFIG);
+        }
+        JSONObject cfg = JSONObject.parseObject(cfgStr);
+        Integer defaultCapitalTypeId = cfg.getInteger("capitalTypeId");
+        Integer feeSwitch = cfg.getInteger("feeSwitch");
+        boolean feeEnabled = (feeSwitch != null && feeSwitch == 1);
+        JSONArray rules = cfg.getJSONArray("rules");
+        if (defaultCapitalTypeId == null || rules == null || rules.isEmpty()) {
+            throwExp("兑换配置不完整：" + Config.SEED_EXCHANGE_CONFIG);
+        }
+
+        JSONObject rule = null;
+        for (int i = 0; i < rules.size(); i++) {
+            JSONObject r = rules.getJSONObject(i);
+            if (r != null && seedItemId.equals(r.getInteger("seedItemId"))) {
+                rule = r;
+                break;
+            }
+        }
+        if (rule == null) {
+            throwExp("该种子暂不支持兑换");
+        }
+        // 基础校验：必须存在且为“种子&基础道具(2)”
+        Item seedItem = PlayGameService.itemMap.get(String.valueOf(seedItemId));
+        if (seedItem == null || seedItem.getType() == null || seedItem.getType() != 2) {
+            throwExp("无效种子");
+        }
+        Integer ruleCapitalTypeId = rule.getInteger("capitalTypeId");
+        int payCapitalTypeId = (ruleCapitalTypeId != null ? ruleCapitalTypeId : defaultCapitalTypeId);
+        Integer costPer = rule.getInteger("cost");
+        Integer feePer = rule.getInteger("fee");
+        if (costPer == null || costPer <= 0) {
+            throwExp("兑换配置缺失：cost");
+        }
+        if (feePer == null || feePer < 0) {
+            feePer = 0;
+        }
+        int feeAppliedPer = feeEnabled ? feePer : 0;
+        long singleCost = (long) costPer + (long) feeAppliedPer;
+        BigDecimal totalCost = BigDecimal.valueOf(singleCost)
+                .multiply(BigDecimal.valueOf(number));
+
+        // 扣费
+        String orderNo = "SEED_EXCHANGE_" + userId + "_" + seedItemId + "_" + System.currentTimeMillis();
+        userCapitalService.subUserBalanceBySeedExchange(userId, totalCost,payCapitalTypeId, orderNo, null,LogCapitalTypeEnum.seed_exchange);
+        userCapitalCacheService.deltedUserCapitalCache(userId, payCapitalTypeId);
+        managerGameBaseService.pushCapitalUpdate(userId, payCapitalTypeId);
+
+        // 发放种子（走统一奖励入口，背包日志为 seed_exchange）
+        JSONArray rewards = new JSONArray();
+        JSONObject reward = new JSONObject();
+        reward.put("type", 1);
+        reward.put("id", String.valueOf(seedItemId));
+        reward.put("number", number);
+        rewards.add(reward);
+        gameService.addReward(userId, rewards, LogCapitalTypeEnum.seed_exchange, LogUserBackpackTypeEnum.seed_exchange);
+
+        JSONObject result = new JSONObject();
+        result.put("userId", userId);
+        result.put("seedItemId", seedItemId);
+        result.put("number", number);
+        result.put("capitalTypeId", payCapitalTypeId);
+        result.put("costPerSeed", costPer);
+        result.put("feePerSeed", feeAppliedPer);
+        result.put("feeEnabled", feeEnabled ? 1 : 0);
+        result.put("totalCost", totalCost);
         return result;
     }
 

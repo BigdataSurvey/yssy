@@ -221,6 +221,12 @@ public class Config extends BaseBean {
 	// 失败时向奖池注入的比例
 	public static final String SEED_SYN_FAIL_POOL_RATE = "SEED_SYN_FAIL_POOL_RATE";
 
+	// ==================== 一阶种子兑换（核心积分） ====================
+	/**
+	 * 一阶种子兑换配置（推荐：单 Key JSON 配置，减少 t_config 配置项数量）。
+	 */
+	public static final String SEED_EXCHANGE_CONFIG = "SEED_EXCHANGE_CONFIG";
+
 	// 是否启用暗概率 1是0否
 	public static final String SEED_SYN_DARK_SWITCH = "SEED_SYN_DARK_SWITCH";
 
@@ -255,6 +261,7 @@ public class Config extends BaseBean {
 	// 悬赏任务：发布平台手续费率
 	public static final String BOUNTY_FEE_RATE = "BOUNTY_FEE_RATE";
 
+	public static final String DAILY_TASK_BOX_CONFIG = "DAILY_TASK_BOX_CONFIG";
 
 
 	private String key;

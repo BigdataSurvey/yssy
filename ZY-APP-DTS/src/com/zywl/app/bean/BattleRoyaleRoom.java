@@ -8,6 +8,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
+import com.zywl.app.defaultx.enmus.GameTypeEnum;
 import org.apache.commons.collections4.map.HashedMap;
 
 import com.alibaba.fastjson2.JSONObject;
@@ -326,7 +327,7 @@ public class BattleRoyaleRoom extends BaseBean{
 		JSONObject pushResult = new JSONObject();
 		pushResult.put("type", type);
 		pushResult.put("userId", userId);
-		pushResult.put("gameId", 1);
+		pushResult.put("gameId", GameTypeEnum.battleRoyale.getValue());
 		if (type==1) {
 			//下注 更换房间
 			pushResult.put("roomId", bet);

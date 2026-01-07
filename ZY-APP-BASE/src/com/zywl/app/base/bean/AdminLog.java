@@ -9,7 +9,7 @@ public class AdminLog {
     private String adminAccount;
     private String adminName;
     private String action;
-    private String content;
+    private JSONObject content;
     private Date recordTime;
 
     public Integer getId() {
@@ -44,11 +44,11 @@ public class AdminLog {
         this.action = action;
     }
 
-    public String getContent() {
+    public JSONObject getContent() {
         return content;
     }
 
-    public void setContent(String content) {
+    public void setContent(JSONObject content) {
         this.content = content;
     }
 

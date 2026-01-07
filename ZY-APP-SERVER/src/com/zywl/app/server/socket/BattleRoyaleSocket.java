@@ -91,7 +91,7 @@ public class BattleRoyaleSocket extends BaseClientSocket {
 			public void onReceive(BaseSocket baseSocket, Object data) {
 				logger.info("大逃杀diy数据" + data);
 				JSONObject object = JSONObject.from(data);
-				Push.push(PushCode.updateGameDiyData, "1", object);
+				Push.push(PushCode.updateGameDiyData, "7", object);
 
 			}
 		}, this);
@@ -106,7 +106,7 @@ public class BattleRoyaleSocket extends BaseClientSocket {
 				for (Object o : array) {
 					JSONObject obj = JSONObject.from(o);
 					String gameId = obj.getString("gameId");
-					if ("1".equals(gameId)) {
+					if ("7".equals(gameId)) {
 						Push.push(PushCode.updateRoomDate, gameId, obj);
 					}
 				}
@@ -124,7 +124,7 @@ public class BattleRoyaleSocket extends BaseClientSocket {
 				JSONObject obj = JSONObject.from(data);
 				String gameId = obj.getString("gameId");
 				JSONArray ids = obj.getJSONArray("userIds");
-				if ("1".equals(gameId)) {
+				if ("7".equals(gameId)) {
 					for (Object id : ids) {
 						JSONObject result = new JSONObject();
 						String userId = (String) id;
