@@ -13,7 +13,7 @@ public class BountyFeePool extends BaseBean {
 
     private Long id;
 
-    /** 奖池余额（单位：分，long） */
+    /** 奖池余额 */
     private Long poolCents;
 
     /** 创建时间 */

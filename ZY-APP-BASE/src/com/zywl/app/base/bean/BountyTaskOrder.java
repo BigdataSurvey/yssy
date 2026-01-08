@@ -1,16 +1,15 @@
 package com.zywl.app.base.bean;
 
 import com.zywl.app.base.BaseBean;
-
 import java.math.BigDecimal;
 import java.util.Date;
 
 /**
- * @author:
- * @time: 2026-01-03 13:02
- * @desc: 悬赏任务-接单/提交明细实体
+ * @Author: lzx
+ * @Create: 2026-01-03
+ * @Version: V1.0
+ * @Description: 悬赏任务-接单/提交明细 Bean
  */
-
 public class BountyTaskOrder extends BaseBean {
 
     private Long id;
@@ -18,24 +17,18 @@ public class BountyTaskOrder extends BaseBean {
     /** 任务ID */
     private Long taskId;
 
-    /** 发布者用户ID（冗余字段，便于查询） */
+    /** 发布者用户ID */
     private Long publisherUserId;
 
     /** 接单用户ID */
     private Long userId;
 
-    /** 订单号（用于幂等与日志关联，建议唯一） */
+    /** 订单号 */
     private String orderNo;
 
     /**
      * 状态：
-     * 0=待完成(已接单未提交)
-     * 1=待审核(已提交等待发布者审核)
-     * 2=已完成(审核通过)
-     * 3=未通过(驳回，可重新提交或申诉)
-     * 4=申诉中(等待后台处理)
-     * 5=已取消(接单用户取消参与)
-     * 6=已超时(超过接单时限)
+     * BountyStatusEnum
      */
     private Integer status;
 
@@ -51,7 +44,7 @@ public class BountyTaskOrder extends BaseBean {
     /** 审核时间 */
     private Date auditTime;
 
-    /** 提交材料图片（建议存JSON字符串数组，1~10张） */
+    /** 提交材料图片*/
     private String submitImgs;
 
     /** 参与者在活动/软件中的个人ID */
@@ -75,20 +68,20 @@ public class BountyTaskOrder extends BaseBean {
      */
     private Integer appealStatus;
 
-    /** 申诉处理原因（后台填写） */
+    /** 申诉处理原因*/
     private String appealHandleReason;
 
     /** 申诉处理时间 */
     private Date appealHandleTime;
 
-    /** 申诉处理人（后台用户ID，若无后台账号体系可先存0） */
+    /** 申诉处理人 */
     private Long appealHandleUserId;
 
 
-    /** 单价快照（用于结算，核心资产1001） */
+    /** 单价快照 */
     private BigDecimal unitPrice;
 
-    /** 币种类型（固定1001，留作字段快照） */
+    /** 币种类型 */
     private Integer capitalType;
 
     private Date createTime;
