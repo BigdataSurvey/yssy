@@ -189,4 +189,15 @@ public class ServerBountyService extends BaseService {
         Executer.request(TargetSocketType.manager, managerCmd, new RequestManagerListener(appCommand));
         return async();
     }
+
+    @ServiceMethod(code = "015", description = "悬赏任务-OSS直传签名")
+    public Object getOssDirectUploadPolicy(final AppSocket appSocket, Command appCommand, JSONObject params) {
+        checkNull(params);
+        long userId = appSocket.getWsidBean().getUserId();
+        params.put("userId", userId);
+
+        Command managerCmd = CommandBuilder.builder().request("039015", params).build();
+        Executer.request(TargetSocketType.manager, managerCmd, new RequestManagerListener(appCommand));
+        return async();
+    }
 }

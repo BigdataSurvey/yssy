@@ -34,6 +34,7 @@ public enum LogCapitalTypeEnum {
     task_forzen("秘境转入冻结", 24),
     task_success("秘境转入成功", 25),
     exchange("兑换商品", 26),
+    seed_exchange("种子兑换", 1051),
     sign("补签", 27),
     sign_reward("签到奖励", 28),
     dic_prize("抽奖奖励",101),
@@ -155,7 +156,6 @@ public enum LogCapitalTypeEnum {
     zyt_receive("镇妖塔收益领取",1038),
     unlockLand("解锁土地",1039),
     balloon_exchange("兑换气球",1040),
-
     game_bet_pbx("推箱子下注",1041),
     game_bet_win_pbx("推箱子中奖",1042),
     game_week_rank_pbx("推箱子周榜分红",1043),

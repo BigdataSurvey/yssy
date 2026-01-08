@@ -198,7 +198,9 @@ public class BattleRoyaleService extends BaseService {
         Push.addPushSuport(PushCode.updateUserCapital, new DefaultPushHandler());
         Push.addPushSuport(PushCode.updateRoomDate, new DefaultPushHandler());
         Push.addPushSuport(PushCode.updateGameStatus, new DefaultPushHandler());
+        Push.addPushSuport(PushCode.updateGameDiyData, new DefaultPushHandler());
     }
+
 
     @Transactional
     @ServiceMethod(code = "101", description = "用户加入大逃杀房间")
@@ -469,8 +471,8 @@ public class BattleRoyaleService extends BaseService {
     public void initHistoryResult() {
         logger.info("更新大逃杀历史开奖结果");
         long time = System.currentTimeMillis();
-        List<GameLotteryResult> result100 = gameLotteryResultService.findHistoryResultByGameId(1L, 100);
-        List<GameLotteryResult> result20 = gameLotteryResultService.findHistoryResultByGameId(1L, 20);
+        List<GameLotteryResult> result100 = gameLotteryResultService.findHistoryResultByGameId(7L, 100);
+        List<GameLotteryResult> result20 = gameLotteryResultService.findHistoryResultByGameId(7L, 20);
         JSONObject result1 = new JSONObject();
         for (GameLotteryResult gameLotteryResult : result100) {
             String lotteryResult = gameLotteryResult.getLotteryResult();
@@ -804,14 +806,16 @@ public class BattleRoyaleService extends BaseService {
             result = r.nextInt(OPTIONS_NUM);
         }
         ROOM.setNextResult(r.nextInt(OPTIONS_NUM));
-        gameLotteryResultService.drawLottery(1L, ROOM.getPeridosNum() == null ? "1" : ROOM.getPeridosNum(),
+        gameLotteryResultService.drawLottery(7L, ROOM.getPeridosNum() == null ? "1" : ROOM.getPeridosNum(),
                 String.valueOf(result), ROOM.getAllBetAmount(), BigDecimal.ZERO, BigDecimal.ONE, ROOM.getBetNum(), 0, 0);
         return String.valueOf(result);
     }
 
     public void initGameSetting() {
         logger.info("初始化大逃杀游戏配置");
-        Game game = gameService.findGameById(1L);
+        Long gid = Long.valueOf(GameTypeEnum.battleRoyale.getValue());
+        Game game = gameService.findGameById(gid);
+
         if (game != null) {
             GAME_SETTING = JSON.parseObject(game.getGameSetting());
             PEOPLE_NUM = GAME_SETTING.getIntValue("peopleNum");

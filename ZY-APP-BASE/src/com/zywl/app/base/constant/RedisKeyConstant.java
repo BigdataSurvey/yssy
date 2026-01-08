@@ -408,6 +408,7 @@ public class RedisKeyConstant {
 
 	public final static String POINT_RANK_LIST_LAST_3="t:app:lastPointList3:";
 	public final static String HEART_LIST_LAST_3="t:app:lastHeartList3:";
+	public static final String APP_USER_DAILY_TASK_WEEK_SIGN = "t:app:user:dailyTaskWeekSign:";
 
 }
 

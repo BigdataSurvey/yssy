@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <!DOCTYPE configuration PUBLIC "-//mybatis.org//DTD Config 3.0//EN"
-"http://mybatis.org/dtd/mybatis-3-config.dtd">
+		"http://mybatis.org/dtd/mybatis-3-config.dtd">
 <configuration>
 
 	<settings>
@@ -14,9 +14,7 @@
 
 		<setting name="defaultStatementTimeout" value="10000" />
 
-		<setting name="logImpl" value="NO_LOGGING" />
-
-		<!--<setting name="logImpl" value="LOG4J" />-->
+		<setting name="logImpl" value="LOG4J" />
 
 		<setting name="mapUnderscoreToCamelCase" value="true" />
 
@@ -26,8 +24,10 @@
 		<package name="com.zywl.app.base.bean" />
 	</typeAliases>
 	<typeHandlers>
-		<typeHandler handler="com.zywl.app.defaultx.util.JSONArrayTypeHandler" javaType="com.alibaba.fastjson2.JSONArray" />
-		<typeHandler handler="com.zywl.app.defaultx.util.JSONObjectTypeHandler" javaType="com.alibaba.fastjson2.JSONObject" />
+		<typeHandler handler="com.zywl.app.defaultx.util.JSONArrayTypeHandler"
+					 javaType="com.alibaba.fastjson2.JSONArray"/>
+		<typeHandler handler="com.zywl.app.defaultx.util.JSONObjectTypeHandler"
+					 javaType="com.alibaba.fastjson2.JSONObject"/>
 	</typeHandlers>
 	<plugins>
 		<plugin interceptor="com.zywl.app.defaultx.dbutil.PaginationInterceptor">

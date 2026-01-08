@@ -6,7 +6,7 @@ import java.util.Date;
  * @Author: lzx
  * @Create: 2026-01-03
  * @Version: V1.0
- * @Description: 悬赏任务-任务配置表实体
+ * @Description: 悬赏任务 Bean
  */
 
 public class BountyTask extends BaseBean {
@@ -25,19 +25,19 @@ public class BountyTask extends BaseBean {
     /** 任务描述 */
     private String taskDesc;
 
-    /** 任务步骤（建议存JSON字符串，前端自行解析展示） */
+    /** 任务步骤*/
     private String taskSteps;
 
-    /** 任务视频URL（可为空） */
+    /** 任务视频URL */
     private String videoUrl;
 
-    /** 下载/二维码图片（建议存JSON字符串数组） */
+    /** 下载/二维码图片 */
     private String downloadImgs;
 
     /** 活动ID字段提示文案（例如："请输入你的XX软件ID"） */
     private String idTip;
 
-    /** 单价（核心资产1001） */
+    /** 单价 */
     private BigDecimal unitPrice;
 
     /** 总名额 */
@@ -52,22 +52,22 @@ public class BountyTask extends BaseBean {
     /** 状态：1=上架/进行中；2=已取消；3=已结束（可选） */
     private Integer status;
 
-    /** 热度/参与人数（用于排序与展示） */
+    /** 热度/参与人数 */
     private Integer joinCount;
 
-    /** 完成数量（用于展示与排序） */
+    /** 完成数量 */
     private Integer finishCount;
 
-    /** 币种类型（固定1001，留作字段快照） */
+    /** 币种类型 */
     private Integer capitalType;
 
     /** 托管金额（单价*总名额） */
     private BigDecimal escrowAmount;
 
-    /** 平台手续费金额（单次发布收取，不退） */
+    /** 平台手续费金额 */
     private BigDecimal feeAmount;
 
-    /** 平台手续费率（快照，默认0.05，可由t_config调整） */
+    /** 平台手续费率 */
     private BigDecimal feeRate;
 
     private Date createTime;

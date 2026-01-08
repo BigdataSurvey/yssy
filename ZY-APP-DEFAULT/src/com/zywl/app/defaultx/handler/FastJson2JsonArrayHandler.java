@@ -10,19 +10,24 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 
-// 声明这个Handler专门处理 JSONArray 类型
+/**
+ * @Author: lzx
+ * @Create: 2025/12/24
+ * @Version: V1.0
+ * @Description: 声明这个Handler专门处理 JSONArray 类型
+ */
 @MappedTypes(JSONArray.class)
 public class FastJson2JsonArrayHandler extends BaseTypeHandler<JSONArray> {
 
     @Override
     public void setNonNullParameter(PreparedStatement ps, int i, JSONArray parameter, JdbcType jdbcType) throws SQLException {
-        // 插入数据库时：将 JSONArray 转为 JSON 字符串
+        // 插入数据库时将JSONArray转为JSON 字符串
         ps.setString(i, parameter.toJSONString());
     }
 
     @Override
     public JSONArray getNullableResult(ResultSet rs, String columnName) throws SQLException {
-        // 查询时（根据列名）：将数据库的 String 转回 JSONArray
+        // 查询时将数据库的String转回JSONArray
         String sqlJson = rs.getString(columnName);
         return parse(sqlJson);
     }

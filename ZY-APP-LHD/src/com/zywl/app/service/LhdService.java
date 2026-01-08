@@ -32,7 +32,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import javax.annotation.PostConstruct;
 import java.math.BigDecimal;
-import java.math.RoundingMode;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -65,13 +64,7 @@ public class LhdService extends BaseService {
     private UserDtsAmountService userDtsAmountService;
 
     @Autowired
-    private UserYyScoreService userYyScoreService;
-
-    @Autowired
     private GameLotteryResultService gameLotteryResultService;
-
-    @Autowired
-    private ConfigService configService;
 
     @Autowired
     private UserService userService;
@@ -93,8 +86,6 @@ public class LhdService extends BaseService {
 
     public static int CAPITAL_TYPE;
 
-    //小倩信物比例
-    public static BigDecimal xqXwRate;
 
     public static int PERIODS_NUM;
 
@@ -118,14 +109,11 @@ public class LhdService extends BaseService {
 
     public static final Set<String> BET_USERS = new HashSet<>();
 
-    public static int KILL_RATE = 0;
-
     public static final Map<String, Object> USER_MAP = new ConcurrentHashMap<>();
 
     public static Map<String, List<Map<String, String>>> userCapitals = new ConcurrentHashMap<>();
 
     public static String key = DateUtil.getCurrent5();
-
 
 
     public static Map<String, Map<String, JSONObject>> ROOM_LIST = new ConcurrentHashMap<>();
@@ -157,12 +145,8 @@ public class LhdService extends BaseService {
 
     public static List<BigDecimal> BOT_MONEY= new ArrayList<>();
 
-    public static Set<String> realUser = new HashSet<>();
-
 
     public static final Random random = new Random();
-
-    public static final Map<String, BigDecimal> REAL_ROOM_MONEY = new ConcurrentHashMap<>();
 
     @PostConstruct
     public void _construct() {
@@ -186,34 +170,12 @@ public class LhdService extends BaseService {
         bot.forEach(e -> BOT_USER.put(e.getId().toString(), e));
         logger.info("加载人机完成，加载数量：" + BOT_USER.size());
         gameAddBot();
-        BOT_MONEY.add(new BigDecimal("26"));
-        BOT_MONEY.add(new BigDecimal("27"));
-        BOT_MONEY.add(new BigDecimal("28"));
-        BOT_MONEY.add(new BigDecimal("29"));
-        initKillRate();
-        initRealMoney();
-        initXqXwRate();
-    }
+        BOT_MONEY.add(new BigDecimal("10"));
+        BOT_MONEY.add(new BigDecimal("11"));
+        BOT_MONEY.add(new BigDecimal("8"));
+        BOT_MONEY.add(new BigDecimal("9"));
 
-    public void initXqXwRate(){
-        Config config = configService.getConfigByKey(Config.XQ_XW_RATE);
-        if (config != null) {
-            String value = config.getValue();
-            xqXwRate = new BigDecimal(value);
-        }
-    }
 
-    public void initRealMoney(){
-        REAL_ROOM_MONEY.put("0",BigDecimal.ZERO);
-        REAL_ROOM_MONEY.put("1",BigDecimal.ZERO);
-    }
-
-    public void initKillRate() {
-        Config config = configService.getConfigByKey(Config.DTS_KILL_RATE);
-        if (config != null) {
-            String value = config.getValue();
-            KILL_RATE = Integer.parseInt(value);
-        }
     }
 
     public void init() {
@@ -225,8 +187,6 @@ public class LhdService extends BaseService {
         BET_USERS.clear();
         ROOM_LIST.put("0", new ConcurrentHashMap<>());
         ROOM_LIST.put("1", new ConcurrentHashMap<>());
-        initRealMoney();
-        realUser.clear();
     }
 
     public void initRate() {
@@ -437,11 +397,11 @@ public class LhdService extends BaseService {
         JSONObject returnInfo = getReturnInfo();
         if (ROOM_LIST.get("1").containsKey(userId)) {
             returnInfo.put("myBetRoom", 1);
-            returnInfo.put("myBetAmount", ROOM_LIST.get("1").get(userId).getBigDecimal("amount"));
+            returnInfo.put("myBetAmount", ROOM_LIST.get("1").get(userId).getBigDecimal("betAmount"));
         }
         if (ROOM_LIST.get("0").containsKey(userId)) {
             returnInfo.put("myBetRoom", 0);
-            returnInfo.put("myBetAmount", ROOM_LIST.get("0").get(userId).getBigDecimal("amount"));
+            returnInfo.put("myBetAmount", ROOM_LIST.get("0").get(userId).getBigDecimal("betAmount"));
         }
         returnInfo.put("history10Result", history10Result);
         return returnInfo;
@@ -492,9 +452,8 @@ public class LhdService extends BaseService {
             if (!BOT_USER.containsKey(userId)) {
                 //处理资产信息
                 updateCapital(userId, amount, orderNo, dataId);
-                REAL_ROOM_MONEY.put(betInfo, REAL_ROOM_MONEY.getOrDefault(betInfo, BigDecimal.ZERO).add(amount));
-                realUser.add(userId);
             }
+            BET_USERS.add(userId);
             //本局总金额
             ALL_PRIZE = ALL_PRIZE.add(amount);
             //处理内存信息
@@ -591,8 +550,6 @@ public class LhdService extends BaseService {
             pushArray.get(key2).add(pushResult(1, userId, newRoomId, amount));
             ROOM_MONEY.put(newRoomId,ROOM_MONEY.getOrDefault(newRoomId,BigDecimal.ZERO).add(amount));
             ROOM_MONEY.put(oldRoomId,ROOM_MONEY.getOrDefault(oldRoomId,BigDecimal.ZERO).subtract(amount));
-            REAL_ROOM_MONEY.put(oldRoomId, REAL_ROOM_MONEY.getOrDefault(oldRoomId, BigDecimal.ZERO).subtract(amount));
-            REAL_ROOM_MONEY.put(newRoomId, REAL_ROOM_MONEY.getOrDefault(newRoomId, BigDecimal.ZERO).add(amount));
             JSONObject result = new JSONObject();
             return result;
         }
@@ -698,11 +655,10 @@ public class LhdService extends BaseService {
 
     public int getResult(){
         int result = random.nextInt(2);
-        int killRate = random.nextInt(100);
-        if (killRate<KILL_RATE && realUser.size()>0){
-            System.out.println("触发奇怪的概率");
-            BigDecimal money0 = REAL_ROOM_MONEY.get("0");
-            BigDecimal money1 = REAL_ROOM_MONEY.get("1");
+        if (KKK>0){
+            KKK=KKK-1;
+            BigDecimal money0 = ROOM_MONEY.get("0");
+            BigDecimal money1 = ROOM_MONEY.get("1");
             if (money0.compareTo(money1) > 0){
                 result=0;
             }else {
@@ -737,7 +693,7 @@ public class LhdService extends BaseService {
             BigDecimal winAmount = ROOM_LIST.get(winRoom).get(uid).getBigDecimal("betAmount").multiply(new BigDecimal("1.9"));
             allWinAmount = allWinAmount.add(winAmount);
             o.put("amount", winAmount);
-            o.put("capitalType", UserCapitalTypeEnum.yyb.getValue());
+            o.put("capitalType", UserCapitalTypeEnum.currency_2.getValue());
             o.put("orderNo", userOrders.get(uid).getOrderNo());
             o.put("em", LogCapitalTypeEnum.game_bet_win_nh.getValue());
             if (!BOT_USER.containsKey(uid)) {
@@ -756,41 +712,33 @@ public class LhdService extends BaseService {
             map.put("isWin", BigDecimal.ONE);
             settleInfo.put(uid, map);
         }
-        BigDecimal loseMoney = ALL_PRIZE.subtract(allWinAmount);
         for (String uid : loseMap.keySet()) {
-            JSONObject o = new JSONObject();
-            BigDecimal myBetAmount = ROOM_LIST.get(loseRoom).get(uid).getBigDecimal("betAmount");
-            //投入的百分之4 除比例
-            BigDecimal allXw = myBetAmount.multiply(new BigDecimal("0.04")).divide(xqXwRate, 4, RoundingMode.DOWN);
-            userDtsAmountService.addDtsAmount(Long.valueOf(uid), myBetAmount.multiply(new BigDecimal("0.05")));
-            userYyScoreService.addYyScore(Long.valueOf(uid), myBetAmount.multiply(new BigDecimal("0.1")));
+            userDtsAmountService.addDtsAmount(Long.valueOf(uid), ROOM_LIST.get(loseRoom).get(uid).getBigDecimal("betAmount").multiply(new BigDecimal("0.05")));
             JSONObject record = new JSONObject();
             record.put("winAmount", 0);
             record.put("lotteryResult", result);
             record.put("betInfo", loseRoom);
             record.put("winOrLose", 0);
-            o.put("amount", BigDecimal.ZERO);
-            o.put("capitalType", UserCapitalTypeEnum.yyb.getValue());
-            o.put("orderNo", userOrders.get(uid).getOrderNo());
-            o.put("em", LogCapitalTypeEnum.game_bet_win_nh.getValue());
-            o.put("getFz",allXw);
-            o.put("getJp",allXw);
-            if (!BOT_USER.containsKey(uid)) {
-                data.put(uid, o);
-            }
             updateRecord.put(userOrders.get(uid).getOrderNo(), record);
             Map<String, BigDecimal> map = new HashMap<>();
             map.put("winAmount", BigDecimal.ZERO);
-            map.put("betAmount", myBetAmount);
+            map.put("betAmount", ROOM_LIST.get(loseRoom).get(uid).getBigDecimal("betAmount"));
             map.put("roomResult", BigDecimal.ZERO);
             map.put("isWin", BigDecimal.ZERO);
-            map.put("getFz",allXw);
-            map.put("getJp",allXw);
             settleInfo.put(uid, map);
         }
         ROOM_MONEY.clear();
-        gameLotteryResultService.drawLottery(5L, String.valueOf(PERIODS_NUM == 0 ? 1 : PERIODS_NUM),
-                String.valueOf(result), ALL_PRIZE, allWinAmount, loseMoney, BET_USERS.size(), winMap.size(), loseMap.size());
+        gameLotteryResultService.drawLottery(
+                5L,
+                String.valueOf(PERIODS_NUM == 0 ? 1 : PERIODS_NUM),
+                String.valueOf(result),
+                ALL_PRIZE,
+                allWinAmount,
+                ALL_PRIZE.subtract(allWinAmount),
+                BET_USERS.size(),
+                winMap.size(),
+                loseMap.size()
+        );
         logger.info("期号："+PERIODS_NUM+",LIST:"+ROOM_LIST);
         requestMangerService.requestManagerBet(data, new Listener() {
             public void handle(BaseClientSocket clientSocket, Command command) {

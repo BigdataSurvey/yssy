@@ -24,6 +24,7 @@ import com.zywl.app.defaultx.service.UserMailService;
 import com.zywl.app.server.context.MessageCodeContext;
 import com.zywl.app.server.socket.AppSocket;
 import com.zywl.app.server.util.RequestManagerListener;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -61,8 +62,15 @@ public class ServerMailService extends BaseService{
 		// 1 收件箱，2 发件箱
 		int type = params.getIntValue("type");
 		// todo 新增一个userNO
-		String searchUserNo = params.getString("userNO");
+		String searchUserNo = params.getString("userNo");
 
+		searchUserNo = StringUtils.trimToNull(searchUserNo);
+		if (searchUserNo != null) {
+			String lower = searchUserNo.toLowerCase();
+			if ("null".equals(lower) || "undefined".equals(lower)) {
+				searchUserNo = null;
+			}
+		}
 		if (type != 1 && type != 2) {
 			throwExp("邮件类型错误");
 		}
@@ -198,7 +206,7 @@ public class ServerMailService extends BaseService{
 
 		List<Mail> myMail;
 
-		if (searchUserNo != null && !searchUserNo.isEmpty()) {
+		if (StringUtils.isNotBlank(searchUserNo)) {
 			// 如果userNO不为空，查询指定用户的邮件
 			User targetUser = userCacheService.getUserInfoByUserNo(searchUserNo);
 			if (targetUser != null) {

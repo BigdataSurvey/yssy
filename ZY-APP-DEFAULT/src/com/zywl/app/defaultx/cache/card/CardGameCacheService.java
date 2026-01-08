@@ -245,10 +245,84 @@ public class CardGameCacheService extends RedisService {
         String key = RedisKeyConstant.APP_USER_DAILY_TASK_SIGN + DateUtil.format2(new Date()) + ":" + userId;
         set(key,1);
         expire(key, 86400);
+
+        // 本周签到进度（周一为第一天）。
+        String weekKey = RedisKeyConstant.APP_USER_DAILY_TASK_WEEK_SIGN + DateUtil.getFirstDayOfWeek(new Date()) + ":" + userId;
+        long mask = 0L;
+        String cur = get(weekKey);
+        if (cur != null) {
+            try {
+                mask = Long.parseLong(cur);
+            } catch (Exception ignored) {
+                mask = 0L;
+            }
+        }
+
+        java.util.Calendar calendar = java.util.Calendar.getInstance();
+        calendar.setFirstDayOfWeek(java.util.Calendar.MONDAY);
+        // 1=周日,2=周一...
+        int dow = calendar.get(java.util.Calendar.DAY_OF_WEEK);
+        // 周一=0 ... 周日=6
+        int idx = (dow + 5) % 7;
+        mask = mask | (1L << idx);
+        set(weekKey, String.valueOf(mask));
+
+        // 过期时间设置到下周一（含缓冲），确保每周自动重置。
+        String weekStart = DateUtil.getFirstDayOfWeek(new Date());
+        java.util.Date weekStartDate = DateUtil.parseDate(weekStart, "yyyy-MM-dd");
+        java.util.Calendar cal = java.util.Calendar.getInstance();
+        cal.setTime(weekStartDate);
+        cal.add(java.util.Calendar.DATE, 7);
+        long ttl = (cal.getTimeInMillis() - System.currentTimeMillis()) / 1000L;
+        if (ttl < 1) {
+            ttl = 86400L;
+        }
+        // 额外 1 小时 buffer，避免边界时刻抖动
+        expire(weekKey, ttl + 3600L);
     }
 
+    /**
+     * 获取本周签到掩码（周一为第一天）。
+     */
+    public long getUserWeekSignMask(Long userId) {
+        String weekKey = RedisKeyConstant.APP_USER_DAILY_TASK_WEEK_SIGN + DateUtil.getFirstDayOfWeek(new Date()) + ":" + userId;
+        String cur = get(weekKey);
+        if (cur == null) {
+            set(weekKey, "0");
+            expire(weekKey, 86400L * 9);
+            return 0L;
+        }
+        try {
+            return Long.parseLong(cur);
+        } catch (Exception e) {
+            return 0L;
+        }
+    }
 
+    /**
+     * 本周已签到天数（包含今天，如果已签）。
+     */
+    public int getUserWeekSignedDays(Long userId) {
+        long mask = getUserWeekSignMask(userId);
+        return Long.bitCount(mask);
+    }
 
+    /**
+     * 签到进度 = 本周已签到天数 +（今日未签 ? 1 : 0）。
+     * 取值范围 1~7。
+     */
+    public int getUserDayNowByWeekSign(Long userId) {
+        int signedDays = getUserWeekSignedDays(userId);
+        long todaySign = getUserTodaySign(userId);
+        int dayNow = signedDays + (todaySign == 1L ? 0 : 1);
+        if (dayNow < 1) {
+            dayNow = 1;
+        }
+        if (dayNow > 7) {
+            dayNow = 7;
+        }
+        return dayNow;
+    }
 
 
     public void updateUserDtApInfo(Long userId, String item, Object object) {
