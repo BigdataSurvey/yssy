@@ -262,6 +262,8 @@ public class Config extends BaseBean {
 	public static final String BOUNTY_FEE_RATE = "BOUNTY_FEE_RATE";
 
 	public static final String DAILY_TASK_BOX_CONFIG = "DAILY_TASK_BOX_CONFIG";
+	// 阿里云 OSS 直传配置
+	public static final String ALIYUN_OSS_CONFIG = "ALIYUN_OSS_CONFIG";
 
 
 	private String key;

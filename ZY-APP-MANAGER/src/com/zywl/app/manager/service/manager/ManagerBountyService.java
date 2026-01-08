@@ -1,4 +1,5 @@
 package com.zywl.app.manager.service.manager;
+
 import com.alibaba.fastjson2.JSONArray;
 import com.alibaba.fastjson2.JSONObject;
 import com.zywl.app.base.bean.BountyTask;
@@ -18,45 +19,44 @@ import com.zywl.app.defaultx.service.BountyTaskService;
 import com.zywl.app.defaultx.service.UserCapitalService;
 import com.zywl.app.manager.context.MessageCodeContext;
 import com.zywl.app.manager.service.PlayGameService;
+import com.zywl.app.manager.service.oss.AliOssDirectUploadService;
 import com.zywl.app.manager.socket.ManagerSocketServer;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
+
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.net.URI;
 import java.util.*;
 
 /**
  * @Author: lzx
  * @Create: 2026/1/3
- * @Version: V1.0
+ * @Version: V1.1 (Fixed Full)
  * @Description: 悬赏任务 Manager Service
  * @Task: 039 (MessageCodeContext.BOUNTY_TASK)
  */
+@Slf4j
 @Service
 @ServiceClass(code = MessageCodeContext.BOUNTY_TASK)
 public class ManagerBountyService extends BaseService {
 
-    //上架
+    // 上架
     private static final int TASK_STATUS_ONLINE = 1;
-    //取消
+    // 取消
     private static final int TASK_STATUS_CANCEL = 2;
 
-    /*订单状态*/
-    // 待完成/进行中
-    private static final int ORDER_STATUS_DOING = 0;
-    // 已提交待审核
-    private static final int ORDER_STATUS_SUBMIT = 1;
-    // 已完成
-    private static final int ORDER_STATUS_DONE = 2;
-    // 已驳回
-    private static final int ORDER_STATUS_REJECT = 3;
-    // 申诉中
-    private static final int ORDER_STATUS_APPEAL = 4;
-    // 已取消
-    private static final int ORDER_STATUS_CANCEL = 5;
-    // 已超时
-    private static final int ORDER_STATUS_TIMEOUT = 6;
+    /* 订单状态 */
+    private static final int ORDER_STATUS_DOING = 0;   // 进行中
+    private static final int ORDER_STATUS_SUBMIT = 1;  // 已提交待审核
+    private static final int ORDER_STATUS_DONE = 2;    // 已完成
+    private static final int ORDER_STATUS_REJECT = 3;  // 已驳回
+    private static final int ORDER_STATUS_APPEAL = 4;  // 申诉中
+    private static final int ORDER_STATUS_CANCEL = 5;  // 已取消
+    private static final int ORDER_STATUS_TIMEOUT = 6; // 已超时
 
     // 申诉处理状态
     private static final int APPEAL_STATUS_NONE = 0;
@@ -65,28 +65,24 @@ public class ManagerBountyService extends BaseService {
 
     @Autowired
     private UserCacheService userCacheService;
-
     @Autowired
     private PlayGameService playGameService;
-
     @Autowired
     private ManagerConfigService managerConfigService;
-
     @Autowired
     private UserCapitalService userCapitalService;
-
     @Autowired
     private BountyTaskService bountyTaskService;
-
     @Autowired
     private BountyTaskOrderService bountyTaskOrderService;
-
     @Autowired
     private BountyFeePoolService bountyFeePoolService;
+    @Autowired
+    private AliOssDirectUploadService aliOssDirectUploadService;
 
     /**
      * 悬赏任务-大厅列表
-     * **/
+     **/
     @ServiceMethod(code = "001", description = "悬赏任务-大厅列表")
     public JSONObject listTasks(ManagerSocketServer socket, JSONObject params) {
         checkNull(params);
@@ -145,7 +141,7 @@ public class ManagerBountyService extends BaseService {
 
     /**
      * 悬赏任务-任务详情
-     * **/
+     **/
     @ServiceMethod(code = "002", description = "悬赏任务-任务详情")
     public JSONObject getTaskDetail(ManagerSocketServer socket, JSONObject params) {
         checkNull(params);
@@ -176,7 +172,7 @@ public class ManagerBountyService extends BaseService {
 
     /**
      * 悬赏任务-发布
-     * **/
+     **/
     @Transactional
     @ServiceMethod(code = "003", description = "悬赏任务-发布")
     public JSONObject publishTask(ManagerSocketServer socket, JSONObject params) {
@@ -185,7 +181,6 @@ public class ManagerBountyService extends BaseService {
         Long userId = params.getLong("userId");
         loadAndCheckUser(userId);
 
-        // 必填
         checkNull(params.get("taskName"), params.get("taskTitle"), params.get("taskDesc"),
                 params.get("unitPrice"), params.get("quotaTotal"), params.get("takeLimitHours"),
                 params.get("downloadImgs"), params.get("idTip"));
@@ -194,11 +189,11 @@ public class ManagerBountyService extends BaseService {
         String taskTitle = params.getString("taskTitle");
         String taskDesc = params.getString("taskDesc");
         String taskSteps = params.getString("taskSteps");
-        String videoUrl = params.getString("videoUrl");
+        // 使用新方法校验 OSS URL
+        String videoUrl = canonicalizeAndCheckOssUrl(params.getString("videoUrl"), "videoUrl", true);
 
-        // 下载图可以是JSON串
-        String downloadImgs = params.getString("downloadImgs");
-        // 个人ID提示文案
+        // 使用新方法校验图片数组
+        String downloadImgs = normalizeAndCheckImgArray(params.getString("downloadImgs"), "downloadImgs", 1, 9);
         String idTip = params.getString("idTip");
 
         BigDecimal unitPrice = params.getBigDecimal("unitPrice");
@@ -209,16 +204,14 @@ public class ManagerBountyService extends BaseService {
         if (quotaTotal == null || quotaTotal <= 0) throwExp("名额错误");
         if (takeLimitHours == null || takeLimitHours < 1 || takeLimitHours > 72) throwExp("接单时限范围1~72小时");
 
-        // 读取手续费比例
         String feeRateStr = managerConfigService.getString(Config.BOUNTY_FEE_RATE);
-        if (feeRateStr == null || feeRateStr.trim().isEmpty()) throwExp("手续费配置缺失");
+        if (!StringUtils.hasText(feeRateStr)) throwExp("手续费配置缺失");
         BigDecimal feeRate = new BigDecimal(feeRateStr);
-        // 托管金=单价*名额
+
         BigDecimal prepay = unitPrice.multiply(new BigDecimal(quotaTotal));
         BigDecimal feeAmount = prepay.multiply(feeRate).setScale(2, RoundingMode.HALF_UP);
         BigDecimal totalPay = prepay.add(feeAmount);
 
-        // 先写DB
         BountyTask task = new BountyTask();
         task.setUserId(userId);
         task.setTaskName(taskName);
@@ -245,13 +238,11 @@ public class ManagerBountyService extends BaseService {
 
         Long taskId = bountyTaskService.addTask(task);
 
-        // 扣费
         String orderNo = "BOUNTY_PUB_" + taskId;
         userCapitalService.subUserBalanceByBountyPublish(
                 userId, totalPay, UserCapitalTypeEnum.hxjf.getValue(), orderNo, taskId, LogCapitalTypeEnum.bounty_publish_pay
         );
 
-        // 手续费进奖池
         bountyFeePoolService.initIfAbsent();
         bountyFeePoolService.addPoolCents(toCents(feeAmount));
 
@@ -263,10 +254,9 @@ public class ManagerBountyService extends BaseService {
         return res;
     }
 
-
     /**
      * 悬赏任务-取消任务
-     * **/
+     **/
     @Transactional
     @ServiceMethod(code = "004", description = "悬赏任务-取消任务")
     public JSONObject cancelTask(ManagerSocketServer socket, JSONObject params) {
@@ -315,7 +305,7 @@ public class ManagerBountyService extends BaseService {
 
     /**
      * 悬赏任务-接单
-     * **/
+     **/
     @Transactional
     @ServiceMethod(code = "005", description = "悬赏任务-接单")
     public JSONObject takeTask(ManagerSocketServer socket, JSONObject params) {
@@ -324,6 +314,7 @@ public class ManagerBountyService extends BaseService {
         Long userId = params.getLong("userId");
         Long taskId = params.getLong("taskId");
         loadAndCheckUser(userId);
+
         String orderNo = "BOUNTY_" + System.currentTimeMillis() + "_" + userId + "_" + taskId;
         BountyTask task = bountyTaskService.findById(taskId);
         if (task == null) throwExp("任务不存在");
@@ -364,9 +355,9 @@ public class ManagerBountyService extends BaseService {
         return res;
     }
 
-   /**
-    * 悬赏任务-取消接单
-    * **/
+    /**
+     * 悬赏任务-取消接单
+     **/
     @Transactional
     @ServiceMethod(code = "006", description = "悬赏任务-取消接单")
     public JSONObject cancelOrder(ManagerSocketServer socket, JSONObject params) {
@@ -409,7 +400,7 @@ public class ManagerBountyService extends BaseService {
 
     /**
      * 悬赏任务-完成任务提交材料
-     * **/
+     **/
     @Transactional
     @ServiceMethod(code = "007", description = "悬赏任务-完成任务提交材料")
     public JSONObject submitOrder(ManagerSocketServer socket, JSONObject params) {
@@ -452,7 +443,7 @@ public class ManagerBountyService extends BaseService {
 
     /**
      * 悬赏任务-重新提交
-     * **/
+     **/
     @Transactional
     @ServiceMethod(code = "008", description = "悬赏任务-重新提交")
     public JSONObject resubmitOrder(ManagerSocketServer socket, JSONObject params) {
@@ -493,7 +484,7 @@ public class ManagerBountyService extends BaseService {
 
     /**
      * 悬赏任务-申诉
-     * **/
+     **/
     @Transactional
     @ServiceMethod(code = "009", description = "悬赏任务-申诉")
     public JSONObject appealOrder(ManagerSocketServer socket, JSONObject params) {
@@ -528,7 +519,7 @@ public class ManagerBountyService extends BaseService {
 
     /**
      * 悬赏任务-我的接单列表
-     * **/
+     **/
     @ServiceMethod(code = "010", description = "悬赏任务-我的接单列表")
     public JSONObject myOrders(ManagerSocketServer socket, JSONObject params) {
         checkNull(params);
@@ -573,7 +564,7 @@ public class ManagerBountyService extends BaseService {
 
     /**
      * 悬赏任务-我的发布列表
-     * **/
+     **/
     @ServiceMethod(code = "011", description = "悬赏任务-我的发布列表")
     public JSONObject myPublish(ManagerSocketServer socket, JSONObject params) {
         checkNull(params);
@@ -610,7 +601,7 @@ public class ManagerBountyService extends BaseService {
 
     /**
      * 悬赏任务-我发布的待审核列表
-     * **/
+     **/
     @ServiceMethod(code = "012", description = "悬赏任务-我发布的待审核列表")
     public JSONObject pendingAudit(ManagerSocketServer socket, JSONObject params) {
         checkNull(params);
@@ -650,7 +641,7 @@ public class ManagerBountyService extends BaseService {
 
     /**
      * 悬赏任务-审核通过
-     * **/
+     **/
     @Transactional
     @ServiceMethod(code = "013", description = "悬赏任务-审核通过")
     public JSONObject auditApprove(ManagerSocketServer socket, JSONObject params) {
@@ -677,7 +668,7 @@ public class ManagerBountyService extends BaseService {
         if (task.getEscrowAmount() == null || task.getEscrowAmount().compareTo(order.getUnitPrice()) < 0) {
             throwExp("托管金不足");
         }
-        //发放资产奖励给接单者
+        // 发放资产奖励给接单者
         JSONArray rewards = new JSONArray();
         JSONObject r = new JSONObject();
         r.put("type", 1);
@@ -690,14 +681,12 @@ public class ManagerBountyService extends BaseService {
         order.setAuditTime(now);
         order.setUpdateTime(now);
 
-        // todo 申诉单由发布者二次审核
         if (isAppeal) {
             order.setAppealStatus(APPEAL_STATUS_DONE);
             order.setAppealHandleUserId(userId);
             order.setAppealHandleTime(now);
             order.setAppealHandleReason(params.getString("appealHandleReason"));
         }
-        // 审核通过后不再保留驳回原因
         order.setRejectReason(null);
         bountyTaskOrderService.updateOrder(order);
 
@@ -705,7 +694,7 @@ public class ManagerBountyService extends BaseService {
         upd.put("taskId", task.getId());
         upd.put("finishCountDelta", 1);
         bountyTaskService.updateCounts(upd);
-        //扣托管基金
+        // 扣托管基金
         task.setEscrowAmount(task.getEscrowAmount().subtract(order.getUnitPrice()));
         if (task.getEscrowAmount().compareTo(BigDecimal.ZERO) < 0) task.setEscrowAmount(BigDecimal.ZERO);
         bountyTaskService.updateTask(task);
@@ -718,7 +707,7 @@ public class ManagerBountyService extends BaseService {
 
     /**
      * 悬赏任务-审核驳回
-     * **/
+     **/
     @Transactional
     @ServiceMethod(code = "014", description = "悬赏任务-审核驳回")
     public JSONObject auditReject(ManagerSocketServer socket, JSONObject params) {
@@ -741,7 +730,6 @@ public class ManagerBountyService extends BaseService {
             if (order.getAppealStatus() == null || order.getAppealStatus() != APPEAL_STATUS_DOING) {
                 throwExp("申诉状态不可处理");
             }
-            // 申诉被驳回 记录处理人/时间/原因
             order.setAppealStatus(APPEAL_STATUS_DONE);
             order.setAppealHandleUserId(userId);
             order.setAppealHandleTime(now);
@@ -761,6 +749,133 @@ public class ManagerBountyService extends BaseService {
         return res;
     }
 
+
+    /**
+     * 悬赏任务-OSS 直传签名
+     **/
+    @ServiceMethod(code = "015", description = "悬赏任务-OSS直传签名")
+    public JSONObject getOssDirectUploadPolicy(ManagerSocketServer socket, JSONObject params) {
+        checkNull(params);
+        checkNull(params.get("userId"));
+        Long userId = params.getLong("userId");
+        loadAndCheckUser(userId);
+
+        String biz = params.getString("biz");
+        if (!StringUtils.hasText(biz)) {
+            biz = "bounty";
+        }
+        String suffix = params.getString("suffix");
+        return aliOssDirectUploadService.buildPostPolicy(biz, userId, suffix);
+    }
+
+    // ================= Private Helper Methods =================
+
+    /**
+     * OSS URL 归一化与校验 (核心修复方法)
+     */
+    private String canonicalizeAndCheckOssUrl(String raw, String fieldName, boolean allowEmpty) {
+        if (!StringUtils.hasText(raw)) {
+            if (allowEmpty) return null;
+            throwExp(fieldName + "不能为空");
+            return null;
+        }
+
+        String v = raw.trim();
+        // 1) 已是完整 URL：校验是否为我们的 OSS 域名
+        if (v.startsWith("http://") || v.startsWith("https://")) {
+            checkOssUrlHostAllowed(v, fieldName);
+            return v;
+        }
+
+        // 2) 只是 objectKey：拼接 URLPrefix
+        String urlPrefix = aliOssDirectUploadService.buildUrlPrefix();
+        if (!StringUtils.hasText(urlPrefix)) {
+            throwExp("OSS 配置缺失，无法生成" + fieldName + "地址");
+            return null;
+        }
+        while (v.startsWith("/")) v = v.substring(1);
+        return urlPrefix + "/" + v;
+    }
+
+    /**
+     * 校验 URL Host 是否合法 (防止用户填写外部图床链接)
+     * 修复了调用 aliOssDirectUploadService 的方法
+     */
+    private void checkOssUrlHostAllowed(String url, String fieldName) {
+        JSONObject cfg = aliOssDirectUploadService.getOssConfig();
+        // 如果系统没配 OSS，跳过校验
+        if (cfg == null || cfg.isEmpty()) return;
+
+        String urlPrefix = aliOssDirectUploadService.buildUrlPrefix();
+        String standardHost = aliOssDirectUploadService.buildHost();
+
+        String allowedHost1 = null;
+        String allowedHost2 = null;
+        try {
+            if (StringUtils.hasText(urlPrefix)) allowedHost1 = URI.create(urlPrefix).getHost();
+            if (StringUtils.hasText(standardHost)) allowedHost2 = URI.create(standardHost).getHost();
+        } catch (Exception ignored) {
+        }
+
+        String inputHost;
+        try {
+            inputHost = URI.create(url).getHost();
+        } catch (Exception e) {
+            throwExp(fieldName + "地址格式错误");
+            return;
+        }
+
+        if (inputHost == null) {
+            throwExp(fieldName + "地址格式错误");
+            return;
+        }
+
+        // 只要匹配其中一个域名即可 (CDN域名 或 OSS原生域名)
+        boolean match1 = allowedHost1 != null && inputHost.equalsIgnoreCase(allowedHost1);
+        boolean match2 = allowedHost2 != null && inputHost.equalsIgnoreCase(allowedHost2);
+
+        if (!match1 && !match2) {
+            throwExp(fieldName + "非法，请上传至官方服务器");
+        }
+    }
+
+    /**
+     * JSON 数组字符串转 URL 数组字符串
+     */
+    private String normalizeAndCheckImgArray(String jsonArrStr, String fieldName, int min, int max) {
+        if (!StringUtils.hasText(jsonArrStr)) {
+            throwExp(fieldName + "不能为空");
+            return null;
+        }
+
+        JSONArray arr;
+        String s = jsonArrStr.trim();
+        try {
+            if (!s.startsWith("[")) {
+                // 兼容单个字符串的情况
+                arr = new JSONArray();
+                arr.add(s);
+            } else {
+                arr = JSONArray.parseArray(s);
+            }
+        } catch (Exception e) {
+            throwExp(fieldName + "格式错误");
+            return null;
+        }
+
+        if (arr == null || arr.isEmpty()) throwExp(fieldName + "至少需要" + min + "张");
+        if (arr.size() < min || arr.size() > max) {
+            throwExp(fieldName + "数量范围必须是" + min + "~" + max);
+        }
+        for (int i = 0; i < arr.size(); i++) {
+            String v = arr.getString(i);
+            if (!StringUtils.hasText(v)) {
+                throwExp(fieldName + "第" + (i + 1) + "项为空");
+            }
+            arr.set(i, canonicalizeAndCheckOssUrl(v, fieldName, false));
+        }
+        return arr.toJSONString();
+    }
 
     private User loadAndCheckUser(Long userId) {
         Map<Long, User> users = userCacheService.loadUsers(userId);
@@ -787,7 +902,7 @@ public class ManagerBountyService extends BaseService {
         if (o.getStatus() == ORDER_STATUS_CANCEL) return false;
         if (o.getStatus() == ORDER_STATUS_TIMEOUT) return false;
 
-        // SUBMIT-待审核 不受到任务期限deadline的影响,提交后可等待审核
+        // SUBMIT-待审核 不受到任务期限deadline的影响
         if (o.getStatus() == ORDER_STATUS_SUBMIT) return true;
 
         // DOING / REJECT / APPEAL 受 deadline 影响
@@ -797,18 +912,9 @@ public class ManagerBountyService extends BaseService {
         return true;
     }
 
-    /**
-     * 统一超时刷新入口：
-     * 若订单处于 DOING/REJECT/APPEAL 且当前时间超过 deadlineTime，则标记 TIMEOUT
-     * 若任务仍在线，则释放 quotaRemain +1,舅是允许重新接单，将 joinCount -1
-     * 若任务已取消，则不释放 quotaRemain  任务已下架，但是仍将 joinCount -1
-     */
     private void refreshTimeoutIfNeeded(BountyTask task, BountyTaskOrder o) {
         if (task == null || o == null || o.getStatus() == null) return;
-
-        if (o.getStatus() != ORDER_STATUS_DOING
-                && o.getStatus() != ORDER_STATUS_REJECT
-                && o.getStatus() != ORDER_STATUS_APPEAL) {
+        if (o.getStatus() != ORDER_STATUS_DOING && o.getStatus() != ORDER_STATUS_REJECT && o.getStatus() != ORDER_STATUS_APPEAL) {
             return;
         }
         if (o.getDeadlineTime() == null) return;
@@ -826,26 +932,9 @@ public class ManagerBountyService extends BaseService {
         bountyTaskService.updateCounts(upd);
     }
 
-    private String normalizeAndCheckImgArray(String jsonArrStr, String fieldName, int min, int max) {
-        if (jsonArrStr == null) throwExp(fieldName + "不能为空");
-        JSONArray arr;
-        try {
-            arr = JSONArray.parseArray(jsonArrStr);
-        } catch (Exception e) {
-            throwExp(fieldName + "格式错误，必须是JSON数组字符串");
-            return null;
-        }
-        if (arr == null || arr.isEmpty()) throwExp(fieldName + "至少需要" + min + "张");
-        if (arr.size() < min || arr.size() > max) {
-            throwExp(fieldName + "数量范围必须是" + min + "~" + max);
-        }
-        for (int i = 0; i < arr.size(); i++) {
-            String v = arr.getString(i);
-            if (v == null || v.trim().isEmpty()) {
-                throwExp(fieldName + "第" + (i + 1) + "项为空");
-            }
-        }
-        return arr.toJSONString();
+    private long toCents(BigDecimal amount) {
+        if (amount == null) return 0L;
+        return amount.multiply(new BigDecimal("100")).setScale(0, RoundingMode.HALF_UP).longValue();
     }
 
     private JSONObject beanToJson(BountyTask t) {
@@ -898,6 +987,28 @@ public class ManagerBountyService extends BaseService {
         return j;
     }
 
+    private List<Integer> buildMyOrderStatusList(Integer tabType) {
+        if (tabType == null || tabType == 0) return null;
+        switch (tabType) {
+            case 1:
+                return Arrays.asList(ORDER_STATUS_DOING, ORDER_STATUS_REJECT, ORDER_STATUS_APPEAL);
+            case 2:
+                return Collections.singletonList(ORDER_STATUS_SUBMIT);
+            case 3:
+                return Collections.singletonList(ORDER_STATUS_DONE);
+            case 4:
+                return Collections.singletonList(ORDER_STATUS_REJECT);
+            case 5:
+                return Collections.singletonList(ORDER_STATUS_APPEAL);
+            case 6:
+                return Collections.singletonList(ORDER_STATUS_CANCEL);
+            case 7:
+                return Collections.singletonList(ORDER_STATUS_TIMEOUT);
+            default:
+                return null;
+        }
+    }
+
     private Date addHours(Date now, Integer h) {
         if (now == null || h == null) return null;
         Calendar c = Calendar.getInstance();
@@ -905,40 +1016,4 @@ public class ManagerBountyService extends BaseService {
         c.add(Calendar.HOUR_OF_DAY, h);
         return c.getTime();
     }
-
-    private long toCents(BigDecimal amount) {
-        if (amount == null) return 0L;
-        return amount.multiply(new BigDecimal("100")).setScale(0, RoundingMode.HALF_UP).longValue();
-    }
-
-    private List<Integer> buildMyOrderStatusList(Integer tabType) {
-        // 全部
-        if (tabType == null || tabType == 0) return null;
-        switch (tabType) {
-            // 进行中
-            case 1:
-                return Arrays.asList(ORDER_STATUS_DOING, ORDER_STATUS_REJECT, ORDER_STATUS_APPEAL);
-            // 待审核
-            case 2:
-                return Collections.singletonList(ORDER_STATUS_SUBMIT);
-            // 已完成
-            case 3:
-                return Collections.singletonList(ORDER_STATUS_DONE);
-            // 已驳回
-            case 4:
-                return Collections.singletonList(ORDER_STATUS_REJECT);
-            // 申诉中
-            case 5:
-                return Collections.singletonList(ORDER_STATUS_APPEAL);
-            // 已取消
-            case 6:
-                return Collections.singletonList(ORDER_STATUS_CANCEL);
-            // 已超时
-            case 7:
-                return Collections.singletonList(ORDER_STATUS_TIMEOUT);
-            default:
-                return null;
-        }
-    }
 }
-

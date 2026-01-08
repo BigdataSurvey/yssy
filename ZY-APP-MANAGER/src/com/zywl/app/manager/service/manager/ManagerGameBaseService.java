@@ -582,15 +582,15 @@ public class ManagerGameBaseService extends BaseService {
 
             // dayNow 签到进度
             result.put("dayNow", cardGameCacheService.getUserDayNowByWeekSign(userId));
-            // boxList（宝箱奖励数组：达成/可领/已领状态）
+            // boxList
             int signNow = 0;
-            for (Object o : userTaskList) {
-                if (!(o instanceof JSONObject)) {
-                    continue;
-                }
-                JSONObject t = (JSONObject) o;
-                if (t.getIntValue("status") == 2) {
-                    signNow++;
+            // 已领取任务数 为进度
+            Map<Integer, UserDailyTaskVo> taskMap = cardGameCacheService.getUserTask(userId);
+            if (taskMap != null && !taskMap.isEmpty()) {
+                for (UserDailyTaskVo vo : taskMap.values()) {
+                    if (vo != null && vo.getStatus() == 2) {
+                        signNow++;
+                    }
                 }
             }
             result.put("boxList", buildDailyTaskBoxList(userId, signNow));
@@ -661,7 +661,7 @@ public class ManagerGameBaseService extends BaseService {
                 }
             }
 
-            // 领取状态（默认读 redis：APP_USER_DAILY_TASK_AP::<date>:<userId>[boxId]）
+            // 领取状态
             String claimed = cardGameCacheService.getUserDtApStatus(userId, String.valueOf(boxId));
             int status;
             if (claimed != null && !"0".equals(claimed)) {
