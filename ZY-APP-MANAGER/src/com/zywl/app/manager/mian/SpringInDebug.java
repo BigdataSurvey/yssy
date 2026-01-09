@@ -1,46 +1,55 @@
 package com.zywl.app.manager.mian;
-import com.zywl.app.manager.service.manager.ManagerBountyService;
-import java.math.BigDecimal;
 
-import cn.hutool.core.lang.UUID;
 import com.alibaba.fastjson2.JSONObject;
+import com.zywl.app.base.bean.Guild;
+import com.zywl.app.defaultx.enmus.ItemIdEnum;
+import com.zywl.app.defaultx.service.GuildMemberService;
+import com.zywl.app.defaultx.service.GuildService;
 import com.zywl.app.defaultx.util.SpringUtil;
 import com.zywl.app.manager.service.manager.*;
 import com.zywl.app.manager.socket.ManagerSocketServer;
 import org.springframework.beans.factory.NoSuchBeanDefinitionException;
-import org.springframework.context.ApplicationContext;
 import org.springframework.context.support.ClassPathXmlApplicationContext;
-import com.zywl.app.defaultx.enmus.ItemIdEnum;
 
 import java.lang.reflect.Field;
+import java.math.BigDecimal;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
 
 /**
  * @author lzx
- * 本地Debug工具类，手动调用不同Manager方法。
+ * 本地Debug工具类 - 全量完整版
  * ❌❌❌ todo:::  如果要运行测试就要注释AliPayCashService的初始化信息; 因为不知道为啥加载不到支付宝的证书文件 FileNotFoundException: File '/alipayRootCert.crt' does not exist
  */
 public class SpringInDebug {
-    // todo 不这样私有静态加载空指针..
+    /**
+     * 上下文初始化
+     */
     private static ClassPathXmlApplicationContext ctx;
     private static ManagerSocketServer fakeSocket;
+
+    // 常用测试账号
     private static final Long MY_USER_ID = 937223L;
     private static final Long FRIEND_USER_ID = 928765L;
+    private static final Long OTHER_USER_ID = 937228L;
+    private static final String FRIEND_USER_NO = "76105190";
 
-    private static final String TEST_GUILD_NAME = "A工会测试";
-    // 计划招募人数（用于“质押=人数*单价”的版本；旧代码会忽略该字段）
+    // 公会测试相关
+    private static final String TEST_GUILD_NAME = "A工会测试-Debug";
     private static final Integer TEST_NEED_MEMBER_NUMBER = 20;
-    private static Long TEST_GUILD_ID = null;
+    private static Long TEST_GUILD_ID = 61L;
 
     static {
         try {
             //todo:${redis.pool.maxIdle}是一个占位符在spring-redis.xml... 直接注册PropertyPlaceholderConfigurer;不然报错: For input string: "${redis.pool.maxIdle}".
-            System.setProperty("redis.pool.maxIdle",   "8");
-            System.setProperty("redis.pool.maxTotal",  "50");
-            System.setProperty("redis.pool.minIdle",   "0");
-            System.setProperty("redis.host",           "127.0.0.1");
-            System.setProperty("redis.port",           "6379");
-            System.setProperty("redis.timeout",        "2000");
-
+            System.setProperty("redis.pool.maxIdle", "8");
+            System.setProperty("redis.pool.maxTotal", "50");
+            System.setProperty("redis.pool.minIdle", "0");
+            System.setProperty("redis.host", "127.0.0.1");
+            System.setProperty("redis.port", "6379");
+            System.setProperty("redis.timeout", "2000");
             //todo 项目配置文件不配置加载不到汇报错：No qualifying bean of type 'com.zywl.app.manager.service.manager.card.ManagerSignService' available
             //不写找不到包就会无法实例化该bean
             String[] cfgs = {
@@ -51,390 +60,432 @@ public class SpringInDebug {
             };
             ctx = new ClassPathXmlApplicationContext(cfgs);
             ctx.registerShutdownHook();
-
             // 反射,把 ctx 注入到 SpringUtil.applicationContext 不然报错
             Field f = SpringUtil.class.getDeclaredField("applicationContext");
             f.setAccessible(true);
             f.set(null, ctx);
-
             //todo: 使用Spring容器获取的实例，不能去new 不然报错: No qualifying bean of type 'com.zywl.app.manager.socket.ManagerSocketServer' available  java.lang.NullPointerException at com.zywl.app.defaultx.util.SpringUtil.getService(SpringUtil.java:45)
             try {
                 fakeSocket = ctx.getBean(ManagerSocketServer.class);
             } catch (NoSuchBeanDefinitionException e) {
-                // Spring中没有Bean定义 就手动new.
+                //Spring中未进行Bean定义，手动new出来
                 fakeSocket = new ManagerSocketServer() {
-                    private final String id = "DEBUG-" + java.util.UUID.randomUUID();
+                    private final String id = "DEBUG-" + UUID.randomUUID();
                     @Override
                     public String getId() { return id; }
                 };
             }
-
+            System.out.println("✅ Spring上下文初始化完成");
         } catch (Exception e) {
-            throw new RuntimeException("初始化SpringContext失败", e);
+            throw new RuntimeException("❌ 初始化SpringContext失败", e);
         }
     }
 
 
     /**
-     * 合成道具（种子 3 合 1 调试）
+     * 合成道具（种子 3 合 1）
      */
     public static void synInTest() {
+        String module = "基础模块";
+        String funcName = "道具合成";
+        System.out.println("=[" + module + "]-" + funcName + "-测试-开始=========>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>==========");
+        long start = System.currentTimeMillis();
         try {
             ManagerGameBaseService svc = ctx.getBean(ManagerGameBaseService.class);
             JSONObject params = new JSONObject();
-
-            params.put("userId", 937223L);
-
+            params.put("userId", MY_USER_ID);
             params.put("itemId", 1102);
-
             params.put("number", 10);
-
-            JSONObject resp = (JSONObject) svc.syn(fakeSocket, params);
-            System.out.println("=== 道具合成 测试返回 ===");
-            System.out.println(resp.toJSONString());
+            Object resp = svc.syn(fakeSocket, params);
+            printResult(resp);
         } catch (Exception e) {
             e.printStackTrace();
         }
+        System.out.println("=【" + module + "-" + funcName + "-测试-结束】=用时：" + (System.currentTimeMillis() - start) + "ms=====>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>=============");
     }
 
-
-
     /**
-     * 背包测试
-     * **/
+     * 背包列表
+     */
     public static void backpackTest() {
+        String module = "基础模块";
+        String funcName = "背包列表";
+        System.out.println("=[" + module + "]-" + funcName + "-测试-开始=========>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>==========");
+        long start = System.currentTimeMillis();
         try {
             ManagerGameBaseService svc = ctx.getBean(ManagerGameBaseService.class);
             JSONObject params = new JSONObject();
-            params.put("userId", 928364);
+            params.put("userId", MY_USER_ID); // 原代码 928364
             JSONObject resp = svc.backpack(fakeSocket, params);
-            System.out.println("=== 背包测试返回 ===");
-            System.out.println(resp.toJSONString());
+            printResult(resp);
         } catch (Exception e) {
             e.printStackTrace();
         }
+        System.out.println("=【" + module + "-" + funcName + "-测试-结束】=用时：" + (System.currentTimeMillis() - start) + "ms=====>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>=============");
     }
 
     /**
-     * 背包道具出售系统测试
-     * **/
+     * 背包道具出售给系统
+     */
     public static void sellItemToSysTest() {
+        String module = "基础模块";
+        String funcName = "道具回收/出售";
+        System.out.println("=[" + module + "]-" + funcName + "-测试-开始=========>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>==========");
+        long start = System.currentTimeMillis();
         try {
             ManagerGameBaseService svc = ctx.getBean(ManagerGameBaseService.class);
             JSONObject params = new JSONObject();
-            params.put("userId", 928364);
+            params.put("userId", MY_USER_ID); // 原代码 928364
             params.put("itemId", 16);
             params.put("num", 1000);
             JSONObject resp = (JSONObject) svc.sellItemToSys(fakeSocket, params);
-            System.out.println("=== 背包道具出售系统测试返回 ===");
-            System.out.println(resp.toJSONString());
+            printResult(resp);
         } catch (Exception e) {
             e.printStackTrace();
         }
-    }
-
-
-    /**
-     * 邮件发送（转赠）测试
-     *  - FROM_USER_ID  : 发送人 user_id
-     *  - TO_USER_ID    : 收件人 user_id
-     *  - TO_USER_NO    : 收件人 user_no
-     */
-    public static void sendMailTest() {
-        // TODO：这里改成你本地真实存在的两个用户
-        long   FROM_USER_ID = 937223L;
-        long   TO_USER_ID   = 937226L;
-        String TO_USER_NO   = "43626293";
-
-        try {
-            ManagerMailService svc = ctx.getBean(ManagerMailService.class);
-
-            JSONObject params = new JSONObject();
-            // 发送人 / 收件人
-            params.put("userId", FROM_USER_ID);
-            params.put("toUserId", TO_USER_ID);
-            params.put("toUserNo", TO_USER_NO);
-
-            // 转赠的道具
-            params.put("itemId", ItemIdEnum.CORE_POINT.getValue());
-
-            // 转赠数量
-            params.put("amount", 100);
-
-            // 邮件标
-            params.put("title",   "【测试】好友转赠核心积分");
-            params.put("context", "本邮件为本地Debug测试用，转赠 100 核心积分，请在游戏内勿当真~");
-
-            JSONObject resp = svc.sendMail(fakeSocket, params);
-            System.out.println("=== 发送邮件（转赠）测试返回 ===");
-            System.out.println(resp.toJSONString());
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
+        System.out.println("=【" + module + "-" + funcName + "-测试-结束】=用时：" + (System.currentTimeMillis() - start) + "ms=====>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>=============");
     }
 
     /**
-     * 邮件领取测试 - 全部领取（mailId = 0）
-     *
+     * 商城信息
      */
-    public static void readMailAllTest() {
-        // TODO：改成“收件方”的 user_id（上面 TO_USER_ID）
-        long USER_ID = 937226L;
-
+    public static void shopInfoInTest() {
+        String module = "商城模块";
+        String funcName = "商城列表信息";
+        System.out.println("=[" + module + "]-" + funcName + "-测试-开始=========>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>==========");
+        long start = System.currentTimeMillis();
         try {
-            ManagerMailService svc = ctx.getBean(ManagerMailService.class);
-
+            ManagerGameBaseService svc = ctx.getBean(ManagerGameBaseService.class);
             JSONObject params = new JSONObject();
-            params.put("userId", USER_ID);
-            // mailId = 0 全部领取
-            params.put("mailId", 0L);
-
-            JSONObject resp = svc.userReadMail(fakeSocket, params);
-            System.out.println("=== 领取邮件（全部）测试返回 ===");
-            System.out.println(resp.toJSONString());
+            params.put("userId", MY_USER_ID);
+            params.put("type", 1);
+            Object respObj = svc.shopInfo(fakeSocket, params);
+            printResult(respObj);
         } catch (Exception e) {
             e.printStackTrace();
         }
+        System.out.println("=【" + module + "-" + funcName + "-测试-结束】=用时：" + (System.currentTimeMillis() - start) + "ms=====>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>=============");
     }
 
     /**
-     * 邮件领取测试 - 单封领取
+     * 商城购买
      */
-    public static void readMailOneTest() {
-        // TODO：改成收件人的 user_id（同上）和你要测试的 mailId
-        long USER_ID = 937226L;
-        long MAIL_ID = 123456L;  // 把这里改成 sendMailTest 返回里的 mailId
-
+    public static void buyInTest() {
+        String module = "商城模块";
+        String funcName = "商品购买";
+        System.out.println("=[" + module + "]-" + funcName + "-测试-开始=========>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>==========");
+        long start = System.currentTimeMillis();
         try {
-            ManagerMailService svc = ctx.getBean(ManagerMailService.class);
-
+            ManagerGameBaseService svc = ctx.getBean(ManagerGameBaseService.class);
             JSONObject params = new JSONObject();
-            params.put("userId", USER_ID);
-            params.put("mailId", MAIL_ID);
-
-            JSONObject resp = svc.userReadMail(fakeSocket, params);
-            System.out.println("=== 领取邮件（单封）测试返回 ===");
-            System.out.println(resp.toJSONString());
+            params.put("userId", MY_USER_ID);
+            params.put("id", 3);
+            params.put("number", 2);
+            params.put("type", 1);
+            Object respObj = svc.buy(fakeSocket, params);
+            printResult(respObj);
         } catch (Exception e) {
             e.printStackTrace();
         }
+        System.out.println("=【" + module + "-" + funcName + "-测试-结束】=用时：" + (System.currentTimeMillis() - start) + "ms=====>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>=============");
     }
+
+    /**
+     * 排行榜
+     */
+    private static void getTopTest() {
+        String module = "基础模块";
+        String funcName = "排行榜";
+        System.out.println("=[" + module + "]-" + funcName + "-测试-开始=========>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>==========");
+        long start = System.currentTimeMillis();
+        try {
+            ManagerGameBaseService svc = ctx.getBean(ManagerGameBaseService.class);
+            JSONObject p = new JSONObject();
+            p.put("userId", MY_USER_ID);
+            p.put("type", 7); // 1邀请拉新/2VIP/7资产消耗
+            p.put("capitalType", 0);
+            JSONObject r = svc.getTop(null, p);
+            printResult(r);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        System.out.println("=【" + module + "-" + funcName + "-测试-结束】=用时：" + (System.currentTimeMillis() - start) + "ms=====>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>=============");
+    }
+
+    // =================================================================================================================
+    //                                         2. 农场种植模块 (Farm)
+    // =================================================================================================================
 
     /**
      * 用户土地信息
      */
     public static void myFarmInfoInTest() {
+        String module = "农场模块";
+        String funcName = "获取土地信息";
+        System.out.println("=[" + module + "]-" + funcName + "-测试-开始=========>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>==========");
+        long start = System.currentTimeMillis();
         try {
             ManagerGameFarmService svc = ctx.getBean(ManagerGameFarmService.class);
             JSONObject params = new JSONObject();
-            params.put("userId", 937223L);
+            params.put("userId", MY_USER_ID);
             JSONObject resp = (JSONObject) svc.getMyFarmInfo(fakeSocket, params);
-            System.out.println("=== 用户土地信息 测试返回 ===");
-            System.out.println(resp.toJSONString());
+            printResult(resp);
         } catch (Exception e) {
             e.printStackTrace();
         }
+        System.out.println("=【" + module + "-" + funcName + "-测试-结束】=用时：" + (System.currentTimeMillis() - start) + "ms=====>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>=============");
     }
 
     /**
-     * 用户土地种植
+     * 种植
      */
     public static void plantInTest() {
+        String module = "农场模块";
+        String funcName = "种植";
+        System.out.println("=[" + module + "]-" + funcName + "-测试-开始=========>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>==========");
+        long start = System.currentTimeMillis();
         try {
             ManagerGameFarmService svc = ctx.getBean(ManagerGameFarmService.class);
             JSONObject params = new JSONObject();
-            params.put("landIndex",8);
-            params.put("seedItemId",1305);
-            params.put("userId", 937223L);
-
+            params.put("userId", MY_USER_ID);
+            params.put("landIndex", 8);
+            params.put("seedItemId", 1305);
             JSONObject resp = (JSONObject) svc.plant(fakeSocket, params);
-            System.out.println("=== 用户土地种植 测试返回 ===");
-            System.out.println(resp.toJSONString());
+            printResult(resp);
         } catch (Exception e) {
             e.printStackTrace();
         }
+        System.out.println("=【" + module + "-" + funcName + "-测试-结束】=用时：" + (System.currentTimeMillis() - start) + "ms=====>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>=============");
     }
 
     /**
-     * 用户种地收割 单个/一键
+     * 收割
      */
     public static void harvestInTest() {
+        String module = "农场模块";
+        String funcName = "收割";
+        System.out.println("=[" + module + "]-" + funcName + "-测试-开始=========>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>==========");
+        long start = System.currentTimeMillis();
         try {
             ManagerGameFarmService svc = ctx.getBean(ManagerGameFarmService.class);
             JSONObject params = new JSONObject();
-            params.put("userId", 937223L);
-            params.put("landIndex",-1);
+            params.put("userId", MY_USER_ID);
+            params.put("landIndex", -1);
             JSONObject resp = (JSONObject) svc.harvest(fakeSocket, params);
-            System.out.println("=== 用户种地收割 测试返回 ===");
-            System.out.println(resp.toJSONString());
+            printResult(resp);
         } catch (Exception e) {
             e.printStackTrace();
         }
+        System.out.println("=【" + module + "-" + funcName + "-测试-结束】=用时：" + (System.currentTimeMillis() - start) + "ms=====>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>=============");
     }
 
     /**
-     * 用户解锁/购买土地
+     * 解锁/购买土地
      */
     public static void unlockLandInTest() {
+        String module = "农场模块";
+        String funcName = "解锁土地";
+        System.out.println("=[" + module + "]-" + funcName + "-测试-开始=========>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>==========");
+        long start = System.currentTimeMillis();
         try {
             ManagerGameFarmService svc = ctx.getBean(ManagerGameFarmService.class);
             JSONObject params = new JSONObject();
-            params.put("userId", 937223L);
-            params.put("landIndex",8);
+            params.put("userId", MY_USER_ID);
+            params.put("landIndex", 8);
             JSONObject resp = (JSONObject) svc.unlockLand(fakeSocket, params);
-            System.out.println("=== 用户解锁/购买土地 测试返回 ===");
-            System.out.println(resp.toJSONString());
+            printResult(resp);
         } catch (Exception e) {
             e.printStackTrace();
         }
+        System.out.println("=【" + module + "-" + funcName + "-测试-结束】=用时：" + (System.currentTimeMillis() - start) + "ms=====>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>=============");
     }
-
 
     /**
      * 兑换种子
      */
     public static void exchangeSeedInTest() {
+        String module = "农场模块";
+        String funcName = "兑换种子";
+        System.out.println("=[" + module + "]-" + funcName + "-测试-开始=========>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>==========");
+        long start = System.currentTimeMillis();
         try {
             ManagerGameFarmService svc = ctx.getBean(ManagerGameFarmService.class);
             JSONObject params = new JSONObject();
-            params.put("userId", 937223L);
-            params.put("seedItemId",1101);
-            params.put("number",8);
-            System.out.println("=开始== 用户兑换种子 测试返回 ===");
+            params.put("userId", MY_USER_ID);
+            params.put("seedItemId", 1101);
+            params.put("number", 8);
             JSONObject resp = (JSONObject) svc.exchangeSeed(fakeSocket, params);
-            System.out.println("=结束== 用户兑换种子 测试返回 ===");
-            System.out.println(resp.toJSONString());
+            printResult(resp);
         } catch (Exception e) {
             e.printStackTrace();
         }
+        System.out.println("=【" + module + "-" + funcName + "-测试-结束】=用时：" + (System.currentTimeMillis() - start) + "ms=====>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>=============");
     }
 
+    // =================================================================================================================
+    //                                         3. 邮件模块 (Mail)
+    // =================================================================================================================
 
     /**
-     * 商城信息 037
+     * 邮件发送（转赠）
      */
-    public static void shopInfoInTest() {
+    public static void sendMailTest() {
+        String module = "邮件模块";
+        String funcName = "发送/转赠";
+        System.out.println("=[" + module + "]-" + funcName + "-测试-开始=========>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>==========");
+        long start = System.currentTimeMillis();
         try {
-            ManagerGameBaseService svc = ctx.getBean(ManagerGameBaseService.class);
-            JSONObject params = new JSONObject();
-            params.put("userId", 937223L);
-            params.put("type",1);
-            Object respObj = svc.shopInfo(fakeSocket, params);
-            System.out.println("=== 商城信息 测试返回 ===");
-            System.out.println(JSONObject.toJSONString(respObj));
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-    }
-
-    /**
-     * 商城购买 035
-     */
-    public static void buyInTest() {
-        try {
-            ManagerGameBaseService svc = ctx.getBean(ManagerGameBaseService.class);
+            ManagerMailService svc = ctx.getBean(ManagerMailService.class);
             JSONObject params = new JSONObject();
             params.put("userId", MY_USER_ID);
-            params.put("id",3);
-            params.put("number",2);
-            params.put("type",1);
-            Object respObj = svc.buy(fakeSocket, params);
-            System.out.println("=== 商城购买 测试返回 ===");
-            System.out.println(JSONObject.toJSONString(respObj));
+            params.put("toUserId", OTHER_USER_ID);
+            params.put("toUserNo", FRIEND_USER_NO);
+            params.put("itemId", ItemIdEnum.CORE_POINT.getValue());
+            params.put("amount", 100);
+            params.put("title", "【测试】好友转赠");
+            params.put("context", "本邮件为本地Debug测试用");
+            JSONObject resp = svc.sendMail(fakeSocket, params);
+            printResult(resp);
         } catch (Exception e) {
             e.printStackTrace();
         }
+        System.out.println("=【" + module + "-" + funcName + "-测试-结束】=用时：" + (System.currentTimeMillis() - start) + "ms=====>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>=============");
     }
 
+    /**
+     * 邮件领取 - 全部
+     */
+    public static void readMailAllTest() {
+        String module = "邮件模块";
+        String funcName = "一键领取";
+        System.out.println("=[" + module + "]-" + funcName + "-测试-开始=========>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>==========");
+        long start = System.currentTimeMillis();
+        try {
+            ManagerMailService svc = ctx.getBean(ManagerMailService.class);
+            JSONObject params = new JSONObject();
+            params.put("userId", OTHER_USER_ID);
+            params.put("mailId", 0L);
+            JSONObject resp = svc.userReadMail(fakeSocket, params);
+            printResult(resp);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        System.out.println("=【" + module + "-" + funcName + "-测试-结束】=用时：" + (System.currentTimeMillis() - start) + "ms=====>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>=============");
+    }
 
-    /** 001 查询我的欢乐值与可兑气球数量 */
+    /**
+     * 邮件领取 - 单封
+     */
+    public static void readMailOneTest() {
+        long MAIL_ID = 123456L;
+        String module = "邮件模块";
+        String funcName = "单封领取";
+        System.out.println("=[" + module + "]-" + funcName + "-测试-开始=========>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>==========");
+        long start = System.currentTimeMillis();
+        try {
+            ManagerMailService svc = ctx.getBean(ManagerMailService.class);
+            JSONObject params = new JSONObject();
+            params.put("userId", MY_USER_ID);
+            params.put("mailId", MAIL_ID);
+            JSONObject resp = svc.userReadMail(fakeSocket, params);
+            printResult(resp);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        System.out.println("=【" + module + "-" + funcName + "-测试-结束】=用时：" + (System.currentTimeMillis() - start) + "ms=====>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>=============");
+    }
+
+    // =================================================================================================================
+    //                                         4. 欢乐值模块 (Joy)
+    // =================================================================================================================
+
     public static void testJoy001_getMyJoyInfo() {
-        ManagerJoyService joyService = ctx.getBean(ManagerJoyService.class);
-
-        JSONObject params = new JSONObject();
-        params.put("userId", MY_USER_ID);
-
-        System.out.println("========== [JOY 001] getMyJoyInfo ==========");
-        JSONObject result = joyService.getMyJoyInfo(null, params);
-        System.out.println(result == null ? "null" : result.toJSONString());
+        String module = "欢乐值模块";
+        String funcName = "获取信息";
+        System.out.println("=[" + module + "]-" + funcName + "-测试-开始=========>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>==========");
+        long start = System.currentTimeMillis();
+        try {
+            ManagerJoyService svc = ctx.getBean(ManagerJoyService.class);
+            JSONObject params = new JSONObject();
+            params.put("userId", MY_USER_ID);
+            JSONObject result = svc.getMyJoyInfo(null, params);
+            printResult(result);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        System.out.println("=【" + module + "-" + funcName + "-测试-结束】=用时：" + (System.currentTimeMillis() - start) + "ms=====>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>=============");
     }
 
-    /** 002 兑换气球（欢乐值 -> 气球道具入背包） */
     private static void testJoy002_exchangeJoyToBalloon() {
-        ManagerJoyService joyService = ctx.getBean(ManagerJoyService.class);
-
-        JSONObject params = new JSONObject();
-        params.put("userId", MY_USER_ID);
-        JSONObject result = joyService.exchangeJoyToBalloon(null, params);
-
-        System.out.println("========== [JOY 002] exchangeJoyToBalloon ==========");
+        String module = "欢乐值模块";
+        String funcName = "兑换气球";
+        System.out.println("=[" + module + "]-" + funcName + "-测试-开始=========>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>==========");
+        long start = System.currentTimeMillis();
         try {
-            System.out.println(result == null ? "null" : result.toJSONString());
+            ManagerJoyService svc = ctx.getBean(ManagerJoyService.class);
+            JSONObject params = new JSONObject();
+            params.put("userId", MY_USER_ID);
+            JSONObject result = svc.exchangeJoyToBalloon(null, params);
+            printResult(result);
         } catch (Exception e) {
-            System.out.println("==============================[JOY 002] EXCEPTION: " + e.getMessage());
             e.printStackTrace();
         }
+        System.out.println("=【" + module + "-" + funcName + "-测试-结束】=用时：" + (System.currentTimeMillis() - start) + "ms=====>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>=============");
     }
 
-    /** 003 查看某个好友对我的欢乐值贡献 */
     private static void testJoy003_getFriendJoyContrib() {
-        ManagerJoyService joyService = ctx.getBean(ManagerJoyService.class);
-
-        JSONObject params = new JSONObject();
-        params.put("userId", MY_USER_ID);
-        params.put("friendUserId", FRIEND_USER_ID);
-        JSONObject result = joyService.getFriendJoyContrib(null, params);
-        System.out.println(result == null ? "null" : result.toJSONString());
-        System.out.println("========== ========== [JOY 003] getFriendJoyContrib ==========");
-
-    }
-
-    /**
-     * 分发欢乐值
-     * - 会沿 triggerUserId 的 parentId 链路，给 1~5 代上级入账
-     * - 使用 eventId + receiverUserId 做幂等：重复调用不会重复入账
-     *
-     * 注意：
-     * - 如果用 MY_USER_ID 作为 triggerUserId，那收益会入到 MY_USER_ID 的上级，不会入到 MY_USER_ID 自己
-     * - 如果要让 MY_USER_ID 获得收益，用“MY_USER_ID 的下级用户”作为 triggerUserId
-     */
-    private static void testJoyDistributeJoy() {
-        ManagerJoyService joyService = ctx.getBean(ManagerJoyService.class);
-
-        // 测试用户的下级用户ID
-        Long triggerUserId = 937226L;
-        int itemQuality = 2;
-        String sourceType = "FARM_HARVEST";
-
-        String eventId = "DEBUG_" + sourceType + "_" + UUID.randomUUID();
-
-        System.out.println("========== [JOY] distributeJoy ==========");
+        String module = "欢乐值模块";
+        String funcName = "好友贡献查询";
+        System.out.println("=[" + module + "]-" + funcName + "-测试-开始=========>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>==========");
+        long start = System.currentTimeMillis();
         try {
-            joyService.distributeJoy(triggerUserId, itemQuality, eventId, sourceType);
-            System.out.println("[========== ========== ========== JOY] distributeJoy OK. eventId=" + eventId);
+            ManagerJoyService svc = ctx.getBean(ManagerJoyService.class);
+            JSONObject params = new JSONObject();
+            params.put("userId", MY_USER_ID);
+            params.put("friendUserId", FRIEND_USER_ID);
+            JSONObject result = svc.getFriendJoyContrib(null, params);
+            printResult(result);
         } catch (Exception e) {
-            System.out.println("[JOY] distributeJoy EXCEPTION: " + e.getMessage());
             e.printStackTrace();
         }
+        System.out.println("=【" + module + "-" + funcName + "-测试-结束】=用时：" + (System.currentTimeMillis() - start) + "ms=====>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>=============");
     }
 
+    private static void testJoyDistributeJoy() {
+        String module = "欢乐值模块";
+        String funcName = "分发欢乐值逻辑";
+        System.out.println("=[" + module + "]-" + funcName + "-测试-开始=========>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>==========");
+        long start = System.currentTimeMillis();
+        try {
+            ManagerJoyService svc = ctx.getBean(ManagerJoyService.class);
+            Long triggerUserId = 937226L;
+            int itemQuality = 2;
+            String sourceType = "FARM_HARVEST";
+            String eventId = "DEBUG_" + sourceType + "_" + UUID.randomUUID();
+            svc.distributeJoy(triggerUserId, itemQuality, eventId, sourceType);
+            System.out.println("运行结果========= OK. eventId=" + eventId);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        System.out.println("=【" + module + "-" + funcName + "-测试-结束】=用时：" + (System.currentTimeMillis() - start) + "ms=====>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>=============");
+    }
 
-    /**
-     * 查询某个用户最新的一条“待审核/已通过”等指定状态的公会记录 id
-     */
+    // =================================================================================================================
+    //                                         5. 公会模块 (Guild)
+    // =================================================================================================================
+
+    // 查询最新的公会ID
     private static Long queryLatestGuildId(Long userId, Integer status) {
-        com.zywl.app.defaultx.service.GuildService guildService = ctx.getBean(com.zywl.app.defaultx.service.GuildService.class);
-        java.util.Map<String, Object> q = new java.util.HashMap<>();
+        GuildService guildService = ctx.getBean(GuildService.class);
+        Map<String, Object> q = new HashMap<>();
         q.put("userId", userId);
         if (status != null) {
             q.put("status", status);
         }
-        java.util.List<com.zywl.app.base.bean.Guild> list = guildService.findByConditions(q);
-        if (list == null || list.isEmpty()) {
-            return null;
-        }
+        List<Guild> list = guildService.findByConditions(q);
+        if (list == null || list.isEmpty()) return null;
         long max = 0;
-        for (com.zywl.app.base.bean.Guild g : list) {
+        for (Guild g : list) {
             if (g != null && g.getId() != null && g.getId() > max) {
                 max = g.getId();
             }
@@ -442,506 +493,549 @@ public class SpringInDebug {
         return max == 0 ? null : max;
     }
 
-    /**
-     * 001：获取公会列表
-     */
-    private static void guildGetListTest() {
-        ManagerGuildService guildService = ctx.getBean(ManagerGuildService.class);
-        JSONObject p = new JSONObject();
-        p.put("userId", MY_USER_ID);
-        System.out.println("========== [GUILD][001 获取公会列表] 测试 ==========");
+    public static void guildGetListTest() {
+        String module = "公会模块";
+        String funcName = "获取公会列表";
+        System.out.println("=[" + module + "]-" + funcName + "-测试-开始=========>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>==========");
+        long start = System.currentTimeMillis();
         try {
-            JSONObject r = guildService.getGuilds(fakeSocket, p);
-            System.out.println(r == null ? "null" : r.toJSONString());
-            System.out.println("[GUILD][001] OK");
+            ManagerGuildService svc = ctx.getBean(ManagerGuildService.class);
+            JSONObject p = new JSONObject();
+            p.put("userId", MY_USER_ID);
+            JSONObject r = svc.getGuilds(fakeSocket, p);
+            printResult(r);
         } catch (Exception e) {
-            System.out.println("[GUILD][001][异常]: " + e.getMessage());
             e.printStackTrace();
         }
+        System.out.println("=【" + module + "-" + funcName + "-测试-结束】=用时：" + (System.currentTimeMillis() - start) + "ms=====>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>=============");
     }
 
-    /**
-     * 002：创建公会
-     */
-    private static void guildCreateTest() {
-        ManagerGuildService guildService = ctx.getBean(ManagerGuildService.class);
-
-        JSONObject p = new JSONObject();
-        p.put("userId", MY_USER_ID);
-        p.put("guildName", TEST_GUILD_NAME);
-        //计划找那人数
-        p.put("needMemberNumber", TEST_NEED_MEMBER_NUMBER);
-        System.out.println("========== [GUILD][002 创建公会] 测试 ==========");
+    public static void guildCreateTest() {
+        String module = "公会模块";
+        String funcName = "创建公会";
+        System.out.println("=[" + module + "]-" + funcName + "-测试-开始=========>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>==========");
+        long start = System.currentTimeMillis();
         try {
-            JSONObject r = guildService.createGuild(fakeSocket, p);
-            System.out.println(r == null ? "null" : r.toJSONString());
+            ManagerGuildService svc = ctx.getBean(ManagerGuildService.class);
+            JSONObject p = new JSONObject();
+            p.put("userId", MY_USER_ID);
+            p.put("guildName", TEST_GUILD_NAME);
+            p.put("needMemberNumber", TEST_NEED_MEMBER_NUMBER);
+            JSONObject r = svc.createGuild(fakeSocket, p);
+            printResult(r);
 
-            Long gid = null;
             if (r != null && r.getLong("guildId") != null) {
-                gid = r.getLong("guildId");
+                TEST_GUILD_ID = r.getLong("guildId");
             } else {
-                // 优先按“审核中 status=2”查；如果查不到，再不带 status 查
-                gid = queryLatestGuildId(MY_USER_ID, 2);
-                if (gid == null) {
-                    gid = queryLatestGuildId(MY_USER_ID, null);
-                }
-            }
-            TEST_GUILD_ID = gid;
-            System.out.println("[GUILD][002] guildId = " + TEST_GUILD_ID);
-            System.out.println("[GUILD][002] OK");
-        } catch (Exception e) {
-            System.out.println("[GUILD][002][异常]: " + e.getMessage());
-            e.printStackTrace();
-        }
-    }
-
-    /**
-     * 审核通过 非 WS
-     * 仅当你实现了“创建公会需审核”时使用。
-     */
-    private static void guildApproveTest() {
-        ManagerGuildService guildService = ctx.getBean(ManagerGuildService.class);
-        System.out.println("========== [GUILD][审核通过] 测试 ==========");
-        try {
-            if (TEST_GUILD_ID == null) {
                 TEST_GUILD_ID = queryLatestGuildId(MY_USER_ID, 2);
+                if (TEST_GUILD_ID == null) TEST_GUILD_ID = queryLatestGuildId(MY_USER_ID, null);
             }
-            if (TEST_GUILD_ID == null) {
-                throw new RuntimeException("未找到待审核公会记录（status=2），请先执行 guildCreateTest()");
-            }
-            guildService.passApplyGuild(TEST_GUILD_ID, MY_USER_ID);
-            System.out.println("[GUILD][审核通过] guildId=" + TEST_GUILD_ID + " OK");
+            System.out.println("当前测试 GuildID: " + TEST_GUILD_ID);
         } catch (Exception e) {
-            System.out.println("[GUILD][审核通过][异常]: " + e.getMessage());
             e.printStackTrace();
         }
+        System.out.println("=【" + module + "-" + funcName + "-测试-结束】=用时：" + (System.currentTimeMillis() - start) + "ms=====>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>=============");
     }
 
-    /**
-     * 审核拒绝非 WS 指令
-     * 仅当你实现了“创建公会需审核”时使用。
-     */
-    private static void guildRefuseTest() {
-        ManagerGuildService guildService = ctx.getBean(ManagerGuildService.class);
-        System.out.println("========== [GUILD][审核拒绝] 测试 ==========");
+    public static void guildApproveTest() {
+        String module = "公会模块";
+        String funcName = "审核公会-通过";
+        System.out.println("=[" + module + "]-" + funcName + "-测试-开始=========>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>==========");
+        long start = System.currentTimeMillis();
         try {
-            if (TEST_GUILD_ID == null) {
-                TEST_GUILD_ID = queryLatestGuildId(MY_USER_ID, 2);
-            }
-            if (TEST_GUILD_ID == null) {
-                throw new RuntimeException("未找到待审核公会记录（status=2），请先执行 guildCreateTest()");
-            }
-            guildService.refuseApplyGuild(TEST_GUILD_ID, MY_USER_ID);
-            System.out.println("[GUILD][审核拒绝] guildId=" + TEST_GUILD_ID + " OK");
+            ManagerGuildService svc = ctx.getBean(ManagerGuildService.class);
+            if (TEST_GUILD_ID == null) TEST_GUILD_ID = queryLatestGuildId(MY_USER_ID, 2);
+            if (TEST_GUILD_ID == null) throw new RuntimeException("无待审核公会");
+            svc.passApplyGuild(TEST_GUILD_ID, MY_USER_ID);
+            System.out.println("运行结果========= 审核通过成功 GuildID: " + TEST_GUILD_ID);
         } catch (Exception e) {
-            System.out.println("[GUILD][审核拒绝][异常]: " + e.getMessage());
             e.printStackTrace();
         }
+        System.out.println("=【" + module + "-" + funcName + "-测试-结束】=用时：" + (System.currentTimeMillis() - start) + "ms=====>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>=============");
     }
 
-    /**
-     * 003：公会详情
-     */
-    private static void guildInfoTest() {
-        ManagerGuildService guildService = ctx.getBean(ManagerGuildService.class);
-
-        JSONObject p = new JSONObject();
-        p.put("userId", MY_USER_ID);
-        if (TEST_GUILD_ID == null) {
-            TEST_GUILD_ID = queryLatestGuildId(MY_USER_ID, null);
-        }
-        p.put("guildId", TEST_GUILD_ID);
-        System.out.println("========== [GUILD][003 公会详情] 测试 ==========");
+    public static void guildRefuseTest() {
+        String module = "公会模块";
+        String funcName = "审核公会-拒绝";
+        System.out.println("=[" + module + "]-" + funcName + "-测试-开始=========>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>==========");
+        long start = System.currentTimeMillis();
         try {
-            Object r = guildService.getGuildInfo(fakeSocket, p);
-            System.out.println(r == null ? "null" : r.toString());
-            System.out.println("[GUILD][003] OK");
+            ManagerGuildService svc = ctx.getBean(ManagerGuildService.class);
+            if (TEST_GUILD_ID == null) TEST_GUILD_ID = queryLatestGuildId(MY_USER_ID, 2);
+            if (TEST_GUILD_ID == null) throw new RuntimeException("无待审核公会");
+            svc.refuseApplyGuild(TEST_GUILD_ID, MY_USER_ID);
+            System.out.println("运行结果========= 审核拒绝成功 GuildID: " + TEST_GUILD_ID);
         } catch (Exception e) {
-            System.out.println("[GUILD][003][异常]: " + e.getMessage());
             e.printStackTrace();
         }
+        System.out.println("=【" + module + "-" + funcName + "-测试-结束】=用时：" + (System.currentTimeMillis() - start) + "ms=====>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>=============");
     }
 
-    /**
-     * 004：添加成员
-     */
-    private static void guildAddMemberTest() {
-        ManagerGuildService guildService = ctx.getBean(ManagerGuildService.class);
-
-        if (TEST_GUILD_ID == null) {
-            TEST_GUILD_ID = queryLatestGuildId(MY_USER_ID, null);
-        }
-        JSONObject p = new JSONObject();
-        p.put("guildId", TEST_GUILD_ID);
-        p.put("userId", 853859);      // 被邀请加入的成员
-        p.put("createUserId", FRIEND_USER_ID);    // 会长/邀请人
-        p.put("memberRoleId",4);
-        System.out.println("========== [GUILD][004 添加成员] 测试 ==========");
+    public static void guildInfoTest() {
+        String module = "公会模块";
+        String funcName = "公会详情";
+        System.out.println("=[" + module + "]-" + funcName + "-测试-开始=========>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>==========");
+        long start = System.currentTimeMillis();
         try {
-            JSONObject r = guildService.addGuildMember(fakeSocket, p);
-            System.out.println(r == null ? "null" : r.toJSONString());
-            System.out.println("[GUILD][004] OK");
+            ManagerGuildService svc = ctx.getBean(ManagerGuildService.class);
+            if (TEST_GUILD_ID == null) TEST_GUILD_ID = queryLatestGuildId(MY_USER_ID, null);
+            JSONObject p = new JSONObject();
+            p.put("userId", MY_USER_ID);
+            p.put("guildId", TEST_GUILD_ID);
+            Object r = svc.getGuildInfo(fakeSocket, p);
+            printResult(r);
         } catch (Exception e) {
-            System.out.println("[GUILD][004][异常]: " + e.getMessage());
             e.printStackTrace();
         }
+        System.out.println("=【" + module + "-" + funcName + "-测试-结束】=用时：" + (System.currentTimeMillis() - start) + "ms=====>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>=============");
     }
 
-    /**
-     * 005：成员列表
-     */
-    private static void guildMemberListTest() {
-        ManagerGuildService guildService = ctx.getBean(ManagerGuildService.class);
-
-        if (TEST_GUILD_ID == null) {
-            TEST_GUILD_ID = queryLatestGuildId(MY_USER_ID, null);
-        }
-        JSONObject p = new JSONObject();
-        p.put("guildId", TEST_GUILD_ID);
-        p.put("userId", MY_USER_ID);
-        System.out.println("========== [GUILD][005 成员列表] 测试 ==========");
+    public static void guildAddMemberTest() {
+        String module = "公会模块";
+        String funcName = "直接添加成员";
+        System.out.println("=[" + module + "]-" + funcName + "-测试-开始=========>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>==========");
+        long start = System.currentTimeMillis();
         try {
-            JSONObject r = guildService.myGuild(fakeSocket, p);
-            System.out.println(r == null ? "null" : r.toJSONString());
-            System.out.println("[GUILD][005] OK");
+            ManagerGuildService svc = ctx.getBean(ManagerGuildService.class);
+            if (TEST_GUILD_ID == null) TEST_GUILD_ID = queryLatestGuildId(MY_USER_ID, null);
+            JSONObject p = new JSONObject();
+            p.put("guildId", TEST_GUILD_ID);
+            p.put("userId", 853859);      // 被邀请人
+            p.put("createUserId", FRIEND_USER_ID);    // 邀请人
+            p.put("memberRoleId", 4);
+            JSONObject r = svc.addGuildMember(fakeSocket, p);
+            printResult(r);
         } catch (Exception e) {
-            System.out.println("[GUILD][005][异常]: " + e.getMessage());
             e.printStackTrace();
         }
+        System.out.println("=【" + module + "-" + funcName + "-测试-结束】=用时：" + (System.currentTimeMillis() - start) + "ms=====>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>=============");
     }
 
-    /**
-     * 为了测试 007（发放佣金/领取），需要先人为给某个成员塞一点 profitBalance。
-     */
+    public static void guildMemberListTest() {
+        String module = "公会模块";
+        String funcName = "成员列表";
+        System.out.println("=[" + module + "]-" + funcName + "-测试-开始=========>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>==========");
+        long start = System.currentTimeMillis();
+        try {
+            ManagerGuildService svc = ctx.getBean(ManagerGuildService.class);
+            if (TEST_GUILD_ID == null) TEST_GUILD_ID = queryLatestGuildId(MY_USER_ID, null);
+            JSONObject p = new JSONObject();
+            p.put("guildId", TEST_GUILD_ID);
+            p.put("userId", MY_USER_ID);
+            JSONObject r = svc.myGuild(fakeSocket, p);
+            printResult(r);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        System.out.println("=【" + module + "-" + funcName + "-测试-结束】=用时：" + (System.currentTimeMillis() - start) + "ms=====>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>=============");
+    }
+
     private static void guildAddProfitBalanceForTest() {
-        com.zywl.app.defaultx.service.GuildMemberService memberService = ctx.getBean(com.zywl.app.defaultx.service.GuildMemberService.class);
-        System.out.println("========== [GUILD][准备数据] 给成员增加 profitBalance ==========");
+        String module = "公会模块";
+        String funcName = "准备数据-增加余额";
+        System.out.println("=[" + module + "]-" + funcName + "-测试-开始=========>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>==========");
+        long start = System.currentTimeMillis();
         try {
-            memberService.addProfitBalance(FRIEND_USER_ID, new java.math.BigDecimal("100"));
-            System.out.println("[GUILD][准备数据] OK");
+            GuildMemberService memberService = ctx.getBean(GuildMemberService.class);
+            memberService.addProfitBalance(FRIEND_USER_ID, new BigDecimal("100"));
+            System.out.println("运行结果========= OK");
         } catch (Exception e) {
-            System.out.println("[GUILD][准备数据][异常]: " + e.getMessage());
             e.printStackTrace();
         }
+        System.out.println("=【" + module + "-" + funcName + "-测试-结束】=用时：" + (System.currentTimeMillis() - start) + "ms=====>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>=============");
     }
 
-    /**
-     * 007：发放佣金
-     * - 注意：当前实现是“把 member.profitBalance 转给 operatorUserId（操作人/会长）”
-     */
-    private static void guildReceiveTest() {
-        ManagerGuildService guildService = ctx.getBean(ManagerGuildService.class);
-
-        if (TEST_GUILD_ID == null) {
-            TEST_GUILD_ID = queryLatestGuildId(MY_USER_ID, null);
-        }
-        JSONObject p = new JSONObject();
-        p.put("guildId", TEST_GUILD_ID);
-        p.put("userId", FRIEND_USER_ID);       // 被发放/被清零 profitBalance 的成员
-        p.put("operatorUserId", MY_USER_ID);   // 实际入账的人（会长）
-        System.out.println("========== [GUILD][007 发放佣金] 测试 ==========");
+    public static void guildReceiveTest() {
+        String module = "公会模块";
+        String funcName = "发放/领取佣金";
+        System.out.println("=[" + module + "]-" + funcName + "-测试-开始=========>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>==========");
+        long start = System.currentTimeMillis();
         try {
-            Object r = guildService.receive(fakeSocket, p);
-            System.out.println(r == null ? "null" : r.toString());
-            System.out.println("[GUILD][007] OK");
+            ManagerGuildService svc = ctx.getBean(ManagerGuildService.class);
+            if (TEST_GUILD_ID == null) TEST_GUILD_ID = queryLatestGuildId(MY_USER_ID, null);
+            JSONObject p = new JSONObject();
+            p.put("guildId", TEST_GUILD_ID);
+            p.put("userId", FRIEND_USER_ID);
+            p.put("operatorUserId", MY_USER_ID);
+            Object r = svc.receive(fakeSocket, p);
+            printResult(r);
         } catch (Exception e) {
-            System.out.println("[GUILD][007][异常]: " + e.getMessage());
             e.printStackTrace();
         }
+        System.out.println("=【" + module + "-" + funcName + "-测试-结束】=用时：" + (System.currentTimeMillis() - start) + "ms=====>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>=============");
     }
 
-    /**
-     * 009：修改比例
-     */
     private static void guildUpdateRateTest() {
-        ManagerGuildService guildService = ctx.getBean(ManagerGuildService.class);
-
-        JSONObject p = new JSONObject();
-        p.put("userId", FRIEND_USER_ID);
-        p.put("rate", "8"); // 这里传字符串也可以，被 getBigDecimal 解析
-        System.out.println("========== [GUILD][009 修改比例] 测试 ==========");
+        String module = "公会模块";
+        String funcName = "修改比例";
+        System.out.println("=[" + module + "]-" + funcName + "-测试-开始=========>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>==========");
+        long start = System.currentTimeMillis();
         try {
-            JSONObject r = guildService.updateRate(fakeSocket, p);
-            System.out.println(r == null ? "null" : r.toJSONString());
-            System.out.println("[GUILD][009] OK");
+            ManagerGuildService svc = ctx.getBean(ManagerGuildService.class);
+            JSONObject p = new JSONObject();
+            p.put("userId", FRIEND_USER_ID);
+            p.put("rate", "8");
+            JSONObject r = svc.updateRate(fakeSocket, p);
+            printResult(r);
         } catch (Exception e) {
-            System.out.println("[GUILD][009][异常]: " + e.getMessage());
             e.printStackTrace();
         }
+        System.out.println("=【" + module + "-" + funcName + "-测试-结束】=用时：" + (System.currentTimeMillis() - start) + "ms=====>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>=============");
     }
 
-    //养宠物信息
-    private static void getPetInfoTest() {
-        ManagerGamePetService getPetService = ctx.getBean(ManagerGamePetService.class);
-        JSONObject params = new JSONObject();
-        params.put("userId", MY_USER_ID);
-        System.out.println("========== [获取养宠信息] 测试 ==========");
+    public static void guildApplyJoinTest() {
+        String module = "公会模块";
+        String funcName = "申请加入";
+        System.out.println("=[" + module + "]-" + funcName + "-测试-开始=========>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>==========");
+        long start = System.currentTimeMillis();
         try {
-            JSONObject result = getPetService.getPetInfo(null, params);
-            System.out.println(result == null ? "null" : result.toJSONString());
-            System.out.println("[========== ========== ========== 获取养宠信息 OK" );
+            ManagerGuildService svc = ctx.getBean(ManagerGuildService.class);
+            if (TEST_GUILD_ID == null) {
+                TEST_GUILD_ID = queryLatestGuildId(MY_USER_ID, 1);
+                if (TEST_GUILD_ID == null) TEST_GUILD_ID = queryLatestGuildId(MY_USER_ID, null);
+            }
+            if (TEST_GUILD_ID == null) throw new RuntimeException("无公会可申请");
+            JSONObject p = new JSONObject();
+            p.put("userId", FRIEND_USER_ID);
+            p.put("guildId", TEST_GUILD_ID);
+            JSONObject r = svc.applyJoinGuild(fakeSocket, p);
+            printResult(r);
         } catch (Exception e) {
-            System.out.println("[获取养宠信息][=====================异常]: " + e.getMessage());
             e.printStackTrace();
         }
+        System.out.println("=【" + module + "-" + funcName + "-测试-结束】=用时：" + (System.currentTimeMillis() - start) + "ms=====>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>=============");
     }
 
-    //购买宠物
-    private static void getPayPetTest() {
-        ManagerGamePetService getPetService = ctx.getBean(ManagerGamePetService.class);
-        JSONObject params = new JSONObject();
-        params.put("userId", MY_USER_ID);
-        params.put("buyCount", 2);
-        System.out.println("========== [购买养宠] 测试 ==========");
+    public static void guildGetJoinApplyListTest() {
+        String module = "公会模块";
+        String funcName = "获取入会申请列表";
+        System.out.println("=[" + module + "]-" + funcName + "-测试-开始=========>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>==========");
+        long start = System.currentTimeMillis();
         try {
-            JSONObject result = getPetService.buyLion(null, params);
-            System.out.println(result == null ? "null" : result.toJSONString());
-            System.out.println("[========== ========== ========== 购买养宠 OK" );
+            ManagerGuildService svc = ctx.getBean(ManagerGuildService.class);
+            JSONObject p = new JSONObject();
+            p.put("userId", MY_USER_ID);
+            JSONObject r = svc.getJoinApplyList(fakeSocket, p);
+            printResult(r);
         } catch (Exception e) {
-            System.out.println("[购买养宠][=====================异常]: " + e.getMessage());
             e.printStackTrace();
         }
+        System.out.println("=【" + module + "-" + funcName + "-测试-结束】=用时：" + (System.currentTimeMillis() - start) + "ms=====>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>=============");
     }
 
-    //喂养宠物
-    private static void getFeedLionTest() {
-        ManagerGamePetService getPetService = ctx.getBean(ManagerGamePetService.class);
-        JSONObject params = new JSONObject();
-        params.put("userId", MY_USER_ID);
-        params.put("feedTimes", 1);
-        System.out.println("========== [喂养宠物] 测试 ==========");
+    public static void guildAuditJoinApplyTest(int pass) {
+        String module = "公会模块";
+        String funcName = "审核入会申请(pass=" + pass + ")";
+        System.out.println("=[" + module + "]-" + funcName + "-测试-开始=========>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>==========");
+        long start = System.currentTimeMillis();
         try {
-            JSONObject result = getPetService.feedLion(null, params);
-            System.out.println(result == null ? "null" : result.toJSONString());
-            System.out.println("[========== ========== ========== 喂养宠物 OK" );
+            ManagerGuildService svc = ctx.getBean(ManagerGuildService.class);
+            JSONObject p = new JSONObject();
+            p.put("userId", MY_USER_ID);
+            p.put("applyUserId", FRIEND_USER_ID);
+            p.put("pass", pass);
+            JSONObject r = svc.auditJoinApply(fakeSocket, p);
+            printResult(r);
         } catch (Exception e) {
-            System.out.println("[喂养宠物][=====================异常]: " + e.getMessage());
             e.printStackTrace();
         }
+        System.out.println("=【" + module + "-" + funcName + "-测试-结束】=用时：" + (System.currentTimeMillis() - start) + "ms=====>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>=============");
     }
 
+    // =================================================================================================================
+    //                                         6. 宠物模块 (Pet)
+    // =================================================================================================================
 
-    //领取宠物收益信息
-    private static void getClaimYieldTest() {
-        ManagerGamePetService getPetService = ctx.getBean(ManagerGamePetService.class);
-        JSONObject params = new JSONObject();
-        params.put("userId", MY_USER_ID);
-        System.out.println("========== [领取养宠产出] 测试 ==========");
+    public static void getPetInfoTest() {
+        String module = "宠物模块";
+        String funcName = "获取信息";
+        System.out.println("=[" + module + "]-" + funcName + "-测试-开始=========>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>==========");
+        long start = System.currentTimeMillis();
         try {
-            JSONObject result = getPetService.claimYield(null, params);
-            System.out.println(result == null ? "null" : result.toJSONString());
-            System.out.println("[========== ========== ========== 领取养宠产出 OK" );
+            ManagerGamePetService svc = ctx.getBean(ManagerGamePetService.class);
+            JSONObject p = new JSONObject();
+            p.put("userId", MY_USER_ID);
+            JSONObject r = svc.getPetInfo(null, p);
+            printResult(r);
         } catch (Exception e) {
-            System.out.println("[领取养宠产出][=====================异常]: " + e.getMessage());
             e.printStackTrace();
         }
+        System.out.println("=【" + module + "-" + funcName + "-测试-结束】=用时：" + (System.currentTimeMillis() - start) + "ms=====>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>=============");
     }
 
-    private static void unlockLv3Test() {
-        ManagerGamePetService svc = ctx.getBean(ManagerGamePetService.class);
-        JSONObject p = new JSONObject();
-        p.put("userId", 928765L);     // 你的1代上级
-        p.put("unlockLevel", 3);
-        System.out.println("========== [解锁3代分润] 测试 ==========");
+    public static void getPayPetTest() {
+        String module = "宠物模块";
+        String funcName = "购买宠物";
+        System.out.println("=[" + module + "]-" + funcName + "-测试-开始=========>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>==========");
+        long start = System.currentTimeMillis();
         try {
+            ManagerGamePetService svc = ctx.getBean(ManagerGamePetService.class);
+            JSONObject p = new JSONObject();
+            p.put("userId", MY_USER_ID);
+            p.put("buyCount", 2);
+            JSONObject r = svc.buyLion(null, p);
+            printResult(r);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        System.out.println("=【" + module + "-" + funcName + "-测试-结束】=用时：" + (System.currentTimeMillis() - start) + "ms=====>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>=============");
+    }
+
+    public static void getFeedLionTest() {
+        String module = "宠物模块";
+        String funcName = "喂养";
+        System.out.println("=[" + module + "]-" + funcName + "-测试-开始=========>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>==========");
+        long start = System.currentTimeMillis();
+        try {
+            ManagerGamePetService svc = ctx.getBean(ManagerGamePetService.class);
+            JSONObject p = new JSONObject();
+            p.put("userId", MY_USER_ID);
+            p.put("feedTimes", 1);
+            JSONObject r = svc.feedLion(null, p);
+            printResult(r);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        System.out.println("=【" + module + "-" + funcName + "-测试-结束】=用时：" + (System.currentTimeMillis() - start) + "ms=====>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>=============");
+    }
+
+    public static void getClaimYieldTest() {
+        String module = "宠物模块";
+        String funcName = "领取产出";
+        System.out.println("=[" + module + "]-" + funcName + "-测试-开始=========>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>==========");
+        long start = System.currentTimeMillis();
+        try {
+            ManagerGamePetService svc = ctx.getBean(ManagerGamePetService.class);
+            JSONObject p = new JSONObject();
+            p.put("userId", MY_USER_ID);
+            JSONObject r = svc.claimYield(null, p);
+            printResult(r);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        System.out.println("=【" + module + "-" + funcName + "-测试-结束】=用时：" + (System.currentTimeMillis() - start) + "ms=====>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>=============");
+    }
+
+    public static void unlockLv3Test() {
+        String module = "宠物模块";
+        String funcName = "解锁3代分润";
+        System.out.println("=[" + module + "]-" + funcName + "-测试-开始=========>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>==========");
+        long start = System.currentTimeMillis();
+        try {
+            ManagerGamePetService svc = ctx.getBean(ManagerGamePetService.class);
+            JSONObject p = new JSONObject();
+            p.put("userId", 928765L);
+            p.put("unlockLevel", 3);
             JSONObject r = svc.unlockDividendLevel(null, p);
-            System.out.println(r == null ? "null" : r.toJSONString());
-            System.out.println("[========== 解锁3代分润 OK");
+            printResult(r);
         } catch (Exception e) {
-            System.out.println("[解锁3代分润][异常]: " + e.getMessage());
             e.printStackTrace();
         }
+        System.out.println("=【" + module + "-" + funcName + "-测试-结束】=用时：" + (System.currentTimeMillis() - start) + "ms=====>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>=============");
     }
 
-    // 排行榜测试
-    private static void getTopTest() {
-        ManagerGameBaseService svc = ctx.getBean(ManagerGameBaseService.class);
-        JSONObject p = new JSONObject();
-        p.put("userId", MY_USER_ID);
-        // 1邀请拉新/2VIP/7资产消耗
-        p.put("type", 7);
-        p.put("capitalType", 0);
-        System.out.println("========== [排行榜] 测试 ==========");
+    private static void petInviteHomeTest() {
+        String module = "宠物模块";
+        String funcName = "邀请主页";
+        System.out.println("=[" + module + "]-" + funcName + "-测试-开始=========>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>==========");
+        long start = System.currentTimeMillis();
         try {
-            JSONObject r = svc.getTop(null, p);
-            System.out.println(r == null ? "null" : r.toJSONString());
-            System.out.println("[========== 排行榜 OK");
+            ManagerGamePetService svc = ctx.getBean(ManagerGamePetService.class);
+            JSONObject params = new JSONObject();
+            params.put("userId", MY_USER_ID);
+            JSONObject res = svc.inviteHome(null, params);
+            printResult(res);
         } catch (Exception e) {
-            System.out.println("[排行榜][异常]: " + e.getMessage());
             e.printStackTrace();
         }
+        System.out.println("=【" + module + "-" + funcName + "-测试-结束】=用时：" + (System.currentTimeMillis() - start) + "ms=====>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>=============");
     }
 
-    //================================================================ 悬赏 =====================================================================//
-    /**
-     * 001 悬赏任务-大厅列表 (Worker 查看)
-     */
-    private static void getTaskListTest() {
-        System.out.println("=开始========= [悬赏任务]【001 大厅列表】 测试 ==========");
+    private static void petInviteListTest() {
+        String module = "宠物模块";
+        String funcName = "邀请列表";
+        System.out.println("=[" + module + "]-" + funcName + "-测试-开始=========>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>==========");
+        long start = System.currentTimeMillis();
+        try {
+            ManagerGamePetService svc = ctx.getBean(ManagerGamePetService.class);
+            JSONObject params = new JSONObject();
+            params.put("userId", MY_USER_ID);
+            params.put("type", 0); // 0全部 / 1未达标 / 2有效
+            params.put("page", 1);
+            params.put("pageSize", 20);
+            JSONObject res = svc.inviteList(null, params);
+            printResult(res);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        System.out.println("=【" + module + "-" + funcName + "-测试-结束】=用时：" + (System.currentTimeMillis() - start) + "ms=====>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>=============");
+    }
+
+    private static void petInviterInfoTest() {
+        String module = "宠物模块";
+        String funcName = "邀请人信息";
+        System.out.println("=[" + module + "]-" + funcName + "-测试-开始=========>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>==========");
+        long start = System.currentTimeMillis();
+        try {
+            ManagerGamePetService svc = ctx.getBean(ManagerGamePetService.class);
+            JSONObject params = new JSONObject();
+            params.put("userId", MY_USER_ID);
+            JSONObject res = svc.inviterInfo(null, params);
+            printResult(res);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        System.out.println("=【" + module + "-" + funcName + "-测试-结束】=用时：" + (System.currentTimeMillis() - start) + "ms=====>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>=============");
+    }
+
+    // =================================================================================================================
+    //                                         7. 悬赏任务模块 (Bounty)
+    // =================================================================================================================
+
+    public static void getTaskListTest() {
+        String module = "悬赏任务";
+        String funcName = "大厅列表";
+        System.out.println("=[" + module + "]-" + funcName + "-测试-开始=========>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>==========");
+        long start = System.currentTimeMillis();
         try {
             ManagerBountyService svc = ctx.getBean(ManagerBountyService.class);
             JSONObject params = new JSONObject();
-            // 接单者看列表
             params.put("userId", FRIEND_USER_ID);
             params.put("pageNo", 1);
             params.put("pageSize", 10);
-            // 可选
-            //params.put("keyword", "debug");
-            // 可选 排序
             params.put("orderType", 2);
-
             JSONObject res = svc.listTasks(null, params);
-            System.out.println("运行结果: " + res.toJSONString());
+            printResult(res);
         } catch (Exception e) {
-            System.out.println("异常: " + e.getMessage());
             e.printStackTrace();
         }
-        System.out.println("=结束========= [悬赏任务]【001 大厅列表】 测试 ==========");
+        System.out.println("=【" + module + "-" + funcName + "-测试-结束】=用时：" + (System.currentTimeMillis() - start) + "ms=====>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>=============");
     }
 
-    /**
-     * 002 悬赏任务-任务详情
-     */
     private static void getTaskDetailTest() {
-        System.out.println("=开始========= [悬赏任务]【002 任务详情】 测试 ==========");
+        String module = "悬赏任务";
+        String funcName = "任务详情";
+        System.out.println("=[" + module + "]-" + funcName + "-测试-开始=========>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>==========");
+        long start = System.currentTimeMillis();
         try {
             ManagerBountyService svc = ctx.getBean(ManagerBountyService.class);
             JSONObject params = new JSONObject();
             params.put("userId", FRIEND_USER_ID);
             params.put("taskId", 1);
-
             JSONObject res = svc.getTaskDetail(null, params);
-            System.out.println("运行结果: " + res.toJSONString());
+            printResult(res);
         } catch (Exception e) {
-            System.out.println("异常: " + e.getMessage());
             e.printStackTrace();
         }
-        System.out.println("=结束========= [悬赏任务]【002 任务详情】 测试 ==========");
+        System.out.println("=【" + module + "-" + funcName + "-测试-结束】=用时：" + (System.currentTimeMillis() - start) + "ms=====>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>=============");
     }
 
-    /**
-     * 003 悬赏任务-发布任务 (Publisher 发布)
-     * (保留你原有的方法，稍微增强了日志打印以便获取taskId)
-     */
-    private static void getPublishTaskTest() {
-        System.out.println("=开始========= [悬赏任务]【003 发布任务】 测试 ==========");
+    public static void getPublishTaskTest() {
+        String module = "悬赏任务";
+        String funcName = "发布任务";
+        System.out.println("=[" + module + "]-" + funcName + "-测试-开始=========>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>==========");
+        long start = System.currentTimeMillis();
         try {
             ManagerBountyService svc = ctx.getBean(ManagerBountyService.class);
             JSONObject pub = new JSONObject();
-            pub.put("userId", MY_USER_ID); // 发布者
-            pub.put("taskName", "test-Debug任务-" + UUID.randomUUID().toString().substring(0, 4));
+            pub.put("userId", MY_USER_ID);
+            pub.put("taskName", "Debug-" + System.currentTimeMillis());
             pub.put("taskTitle", "Debug标题测试");
-            pub.put("taskDesc", "这是一个用于本地Debug测试发布的任务");
-            pub.put("taskSteps", "1.接单\n2.提交截图");
+            pub.put("taskDesc", "描述");
+            pub.put("taskSteps", "1.步骤一");
             pub.put("videoUrl", "http://test.video/1.mp4");
             pub.put("idTip", "请提交ID");
-            pub.put("unitPrice", new BigDecimal("1.50")); // 单价
-            pub.put("quotaTotal", 5); // 总名额
-            pub.put("takeLimitHours", 2); // 限时2小时
+            pub.put("unitPrice", new BigDecimal("1.50"));
+            pub.put("quotaTotal", 5);
+            pub.put("takeLimitHours", 2);
             pub.put("downloadImgs", "[\"https://img.test/guide.png\"]");
-
-            JSONObject pubRes = svc.publishTask(null, pub);
-            System.out.println("运行结果: " + pubRes);
-            if (pubRes != null && pubRes.containsKey("taskId")) {
-                System.out.println(">>> 请更新代码中的静态变量: private static Long TEST_TASK_ID = " + pubRes.getLong("taskId") + "L;");
-            }
+            JSONObject res = svc.publishTask(null, pub);
+            printResult(res);
         } catch (Exception e) {
-            System.out.println("异常: " + e.getMessage());
             e.printStackTrace();
         }
-        System.out.println("=结束========= [悬赏任务]【003 发布任务】 测试 ==========");
+        System.out.println("=【" + module + "-" + funcName + "-测试-结束】=用时：" + (System.currentTimeMillis() - start) + "ms=====>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>=============");
     }
 
-    /**
-     * 004 悬赏任务-取消任务 (Publisher 操作)
-     */
     private static void getCancelTaskTest() {
-        System.out.println("=开始========= [悬赏任务]【004 取消任务】 测试 ==========");
+        String module = "悬赏任务";
+        String funcName = "取消任务";
+        System.out.println("=[" + module + "]-" + funcName + "-测试-开始=========>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>==========");
+        long start = System.currentTimeMillis();
         try {
             ManagerBountyService svc = ctx.getBean(ManagerBountyService.class);
             JSONObject params = new JSONObject();
-            params.put("userId", MY_USER_ID); // 必须是发布者
+            params.put("userId", MY_USER_ID);
             params.put("taskId", 1);
-
             JSONObject res = svc.cancelTask(null, params);
-            System.out.println("运行结果: " + res.toJSONString());
+            printResult(res);
         } catch (Exception e) {
-            System.out.println("异常: " + e.getMessage());
             e.printStackTrace();
         }
-        System.out.println("=结束========= [悬赏任务]【004 取消任务】 测试 ==========");
+        System.out.println("=【" + module + "-" + funcName + "-测试-结束】=用时：" + (System.currentTimeMillis() - start) + "ms=====>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>=============");
     }
 
-    /**
-     * 005 悬赏任务-接单 (Worker 操作)
-     */
     private static void getTakeTaskTest() {
-        System.out.println("=开始========= [悬赏任务]【005 接单】 测试 ==========");
-        try {
-            ManagerBountyService svc = ctx.getBean(ManagerBountyService.class);
-            JSONObject params = new JSONObject();
-            params.put("userId", MY_USER_ID); // 另一个用户接单
-            params.put("taskId", 3);
-
-            JSONObject res = svc.takeTask(null, params);
-            System.out.println("运行结果: " + res.toJSONString());
-            if (res != null && res.containsKey("orderId")) {
-            }
-        } catch (Exception e) {
-            System.out.println("异常: " + e.getMessage());
-            e.printStackTrace();
-        }
-        System.out.println("=结束========= [悬赏任务]【005 接单】 测试 ==========");
-    }
-
-    /**
-     * 006 悬赏任务-取消接单 (Worker 操作)
-     */
-    private static void getCancelOrderTest() {
-        System.out.println("=开始========= [悬赏任务]【006 取消接单/放弃】 测试 ==========");
+        String module = "悬赏任务";
+        String funcName = "接单";
+        System.out.println("=[" + module + "]-" + funcName + "-测试-开始=========>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>==========");
+        long start = System.currentTimeMillis();
         try {
             ManagerBountyService svc = ctx.getBean(ManagerBountyService.class);
             JSONObject params = new JSONObject();
             params.put("userId", MY_USER_ID);
             params.put("taskId", 3);
-
-            JSONObject res = svc.cancelOrder(null, params);
-            System.out.println("运行结果: " + res.toJSONString());
+            JSONObject res = svc.takeTask(null, params);
+            printResult(res);
         } catch (Exception e) {
-            System.out.println("异常: " + e.getMessage());
             e.printStackTrace();
         }
-        System.out.println("=结束========= [悬赏任务]【006 取消接单/放弃】 测试 ==========");
+        System.out.println("=【" + module + "-" + funcName + "-测试-结束】=用时：" + (System.currentTimeMillis() - start) + "ms=====>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>=============");
     }
 
-    /**
-     * 007 悬赏任务-提交材料 (Worker 操作)
-     */
+    private static void getCancelOrderTest() {
+        String module = "悬赏任务";
+        String funcName = "取消接单";
+        System.out.println("=[" + module + "]-" + funcName + "-测试-开始=========>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>==========");
+        long start = System.currentTimeMillis();
+        try {
+            ManagerBountyService svc = ctx.getBean(ManagerBountyService.class);
+            JSONObject params = new JSONObject();
+            params.put("userId", MY_USER_ID);
+            params.put("taskId", 3);
+            JSONObject res = svc.cancelOrder(null, params);
+            printResult(res);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        System.out.println("=【" + module + "-" + funcName + "-测试-结束】=用时：" + (System.currentTimeMillis() - start) + "ms=====>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>=============");
+    }
+
     private static void getSubmitOrderTest() {
-        System.out.println("=开始========= [悬赏任务]【007 提交材料】 测试 ==========");
+        String module = "悬赏任务";
+        String funcName = "提交材料";
+        System.out.println("=[" + module + "]-" + funcName + "-测试-开始=========>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>==========");
+        long start = System.currentTimeMillis();
         try {
             ManagerBountyService svc = ctx.getBean(ManagerBountyService.class);
             JSONObject params = new JSONObject();
             params.put("userId", MY_USER_ID);
             params.put("taskId", 3);
             params.put("submitUserId", "GameID-8888");
-            // 模拟上传后的图片数组
-            params.put("submitImgs", "[\"https://oss.test/submit1.jpg\", \"https://oss.test/submit2.jpg\"]");
-
+            params.put("submitImgs", "[\"https://oss.test/submit1.jpg\"]");
             JSONObject res = svc.submitOrder(null, params);
-            System.out.println("运行结果: " + res.toJSONString());
+            printResult(res);
         } catch (Exception e) {
-            System.out.println("异常: " + e.getMessage());
             e.printStackTrace();
         }
-        System.out.println("=结束========= [悬赏任务]【007 提交材料】 测试 ==========");
+        System.out.println("=【" + module + "-" + funcName + "-测试-结束】=用时：" + (System.currentTimeMillis() - start) + "ms=====>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>=============");
     }
 
-    /**
-     * 008 悬赏任务-重新提交 (Worker 操作 - 需先被驳回)
-     */
     private static void getResubmitOrderTest() {
-        System.out.println("=开始========= [悬赏任务]【008 重新提交】 测试 ==========");
+        String module = "悬赏任务";
+        String funcName = "重新提交";
+        System.out.println("=[" + module + "]-" + funcName + "-测试-开始=========>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>==========");
+        long start = System.currentTimeMillis();
         try {
             ManagerBountyService svc = ctx.getBean(ManagerBountyService.class);
             JSONObject params = new JSONObject();
@@ -949,274 +1043,216 @@ public class SpringInDebug {
             params.put("taskId", 3);
             params.put("submitUserId", "抖音123号");
             params.put("submitImgs", "[\"https://oss.test/fix.jpg\"]");
-
             JSONObject res = svc.resubmitOrder(null, params);
-            System.out.println("运行结果: " + res.toJSONString());
+            printResult(res);
         } catch (Exception e) {
-            System.out.println("异常: " + e.getMessage());
             e.printStackTrace();
         }
-        System.out.println("=结束========= [悬赏任务]【008 重新提交】 测试 ==========");
+        System.out.println("=【" + module + "-" + funcName + "-测试-结束】=用时：" + (System.currentTimeMillis() - start) + "ms=====>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>=============");
     }
 
-    /**
-     * 009 悬赏任务-申诉 (Worker 操作 - 需先被驳回)
-     */
     private static void getAppealOrderTest() {
-        System.out.println("=开始========= [悬赏任务]【009 申诉】 测试 ==========");
+        String module = "悬赏任务";
+        String funcName = "申诉";
+        System.out.println("=[" + module + "]-" + funcName + "-测试-开始=========>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>==========");
+        long start = System.currentTimeMillis();
         try {
             ManagerBountyService svc = ctx.getBean(ManagerBountyService.class);
             JSONObject params = new JSONObject();
             params.put("userId", MY_USER_ID);
             params.put("taskId", 3);
-            params.put("appealReason", "我已经按要求做了，请复查！");
-
+            params.put("appealReason", "我已经按要求做了");
             JSONObject res = svc.appealOrder(null, params);
-            System.out.println("运行结果: " + res.toJSONString());
+            printResult(res);
         } catch (Exception e) {
-            System.out.println("异常: " + e.getMessage());
             e.printStackTrace();
         }
-        System.out.println("=结束========= [悬赏任务]【009 申诉】 测试 ==========");
+        System.out.println("=【" + module + "-" + funcName + "-测试-结束】=用时：" + (System.currentTimeMillis() - start) + "ms=====>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>=============");
     }
 
-    /**
-     * 010 悬赏任务-我的接单列表
-     */
-    private static void getMyOrdersTest() {
-        System.out.println("=开始========= [悬赏任务]【010 我的接单列表】 测试 ==========");
+    public static void getMyOrdersTest() {
+        String module = "悬赏任务";
+        String funcName = "我的接单列表";
+        System.out.println("=[" + module + "]-" + funcName + "-测试-开始=========>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>==========");
+        long start = System.currentTimeMillis();
         try {
             ManagerBountyService svc = ctx.getBean(ManagerBountyService.class);
             JSONObject params = new JSONObject();
             params.put("userId", FRIEND_USER_ID);
             params.put("pageNo", 1);
             params.put("pageSize", 10);
-            params.put("tab", 1); // 1进行中, 2待审核, 3已完成...
-
+            params.put("tab", 1); // 1进行中, 2待审核, 3已完成
             JSONObject res = svc.myOrders(null, params);
-            System.out.println("运行结果: " + res.toJSONString());
+            printResult(res);
         } catch (Exception e) {
-            System.out.println("异常: " + e.getMessage());
             e.printStackTrace();
         }
-        System.out.println("=结束========= [悬赏任务]【010 我的接单列表】 测试 ==========");
+        System.out.println("=【" + module + "-" + funcName + "-测试-结束】=用时：" + (System.currentTimeMillis() - start) + "ms=====>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>=============");
     }
 
-    /**
-     * 011 悬赏任务-我的发布列表
-     */
     private static void getMyPublishTest() {
-        System.out.println("=开始========= [悬赏任务]【011 我的发布列表】 测试 ==========");
+        String module = "悬赏任务";
+        String funcName = "我的发布列表";
+        System.out.println("=[" + module + "]-" + funcName + "-测试-开始=========>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>==========");
+        long start = System.currentTimeMillis();
         try {
             ManagerBountyService svc = ctx.getBean(ManagerBountyService.class);
             JSONObject params = new JSONObject();
             params.put("userId", MY_USER_ID);
             params.put("pageNo", 1);
             params.put("pageSize", 10);
-
             JSONObject res = svc.myPublish(null, params);
-            System.out.println("运行结果: " + res.toJSONString());
+            printResult(res);
         } catch (Exception e) {
-            System.out.println("异常: " + e.getMessage());
             e.printStackTrace();
         }
-        System.out.println("=结束========= [悬赏任务]【011 我的发布列表】 测试 ==========");
+        System.out.println("=【" + module + "-" + funcName + "-测试-结束】=用时：" + (System.currentTimeMillis() - start) + "ms=====>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>=============");
     }
 
-    /**
-     * 012 悬赏任务-我发布的待审核列表
-     */
     private static void getPendingAuditTest() {
-        System.out.println("=开始========= [悬赏任务]【012 待审核列表】 测试 ==========");
+        String module = "悬赏任务";
+        String funcName = "待审核列表";
+        System.out.println("=[" + module + "]-" + funcName + "-测试-开始=========>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>==========");
+        long start = System.currentTimeMillis();
         try {
             ManagerBountyService svc = ctx.getBean(ManagerBountyService.class);
             JSONObject params = new JSONObject();
-            params.put("userId", 928762);
+            params.put("userId", 928762L);
             params.put("pageNo", 1);
             params.put("pageSize", 10);
-
             JSONObject res = svc.pendingAudit(null, params);
-            System.out.println("运行结果: " + res.toJSONString());
+            printResult(res);
         } catch (Exception e) {
-            System.out.println("异常: " + e.getMessage());
             e.printStackTrace();
         }
-        System.out.println("=结束========= [悬赏任务]【012 待审核列表】 测试 ==========");
+        System.out.println("=【" + module + "-" + funcName + "-测试-结束】=用时：" + (System.currentTimeMillis() - start) + "ms=====>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>=============");
     }
 
-    /**
-     * 013 悬赏任务-审核通过 (Publisher 操作)
-     */
     private static void getAuditApproveTest() {
-        System.out.println("=开始========= [悬赏任务]【013 审核通过】 测试 ==========");
+        String module = "悬赏任务";
+        String funcName = "审核通过";
+        System.out.println("=[" + module + "]-" + funcName + "-测试-开始=========>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>==========");
+        long start = System.currentTimeMillis();
         try {
             ManagerBountyService svc = ctx.getBean(ManagerBountyService.class);
             JSONObject params = new JSONObject();
-            //发布者ID
-            params.put("userId", 928762);
+            params.put("userId", 928762L);
             params.put("orderId", 1);
-
             JSONObject res = svc.auditApprove(null, params);
-            System.out.println("运行结果: " + res.toJSONString());
+            printResult(res);
         } catch (Exception e) {
-            System.out.println("异常: " + e.getMessage());
             e.printStackTrace();
         }
-        System.out.println("=结束========= [悬赏任务]【013 审核通过】 测试 ==========");
+        System.out.println("=【" + module + "-" + funcName + "-测试-结束】=用时：" + (System.currentTimeMillis() - start) + "ms=====>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>=============");
     }
 
-    /**
-     * 014 悬赏任务-审核驳回 (Publisher 操作)
-     */
     private static void getAuditRejectTest() {
-        System.out.println("=开始========= [悬赏任务]【014 审核驳回】 测试 ==========");
+        String module = "悬赏任务";
+        String funcName = "审核驳回";
+        System.out.println("=[" + module + "]-" + funcName + "-测试-开始=========>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>==========");
+        long start = System.currentTimeMillis();
         try {
             ManagerBountyService svc = ctx.getBean(ManagerBountyService.class);
             JSONObject params = new JSONObject();
-            params.put("userId", 928762);
+            params.put("userId", 928762L);
             params.put("orderId", 1);
             params.put("rejectReason", "截图不清晰，请重新提交");
-
             JSONObject res = svc.auditReject(null, params);
-            System.out.println("运行结果: " + res.toJSONString());
+            printResult(res);
         } catch (Exception e) {
-            System.out.println("异常: " + e.getMessage());
             e.printStackTrace();
         }
-        System.out.println("=结束========= [悬赏任务]【014 审核驳回】 测试 ==========");
+        System.out.println("=【" + module + "-" + funcName + "-测试-结束】=用时：" + (System.currentTimeMillis() - start) + "ms=====>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>=============");
     }
 
+    // =================================================================================================================
+    //                                         Main
+    // =================================================================================================================
 
+    /**
+     * 统一打印结果工具
+     */
+    private static void printResult(Object result) {
+        if (result == null) {
+            System.out.println("运行结果========= null");
+        } else if (result instanceof JSONObject) {
+            System.out.println("运行结果========= " + ((JSONObject) result).toJSONString());
+        } else {
+            System.out.println("运行结果========= " + JSONObject.toJSONString(result));
+        }
+    }
 
     public static void main(String[] args) {
-        // ===================== 公会 Guild 模块 =====================
-        // 一键跑完整流程：
-        // guildFullFlowTest();
+        System.out.println(">>>>>>>>>> 开始本地Debug测试 <<<<<<<<<<");
 
-        //种子合成
-        // synInTest();;
+        // --- 1. 基础模块 ---
+        // synInTest();
+        // backpackTest();
+        // sellItemToSysTest();
+        // shopInfoInTest();
+        // buyInTest();
+        // getTopTest();
 
-        //背包测试
-        //backpackTest();
+        // --- 2. 农场模块 ---
+        // myFarmInfoInTest();
+        // plantInTest();
+        // harvestInTest();
+        // unlockLandInTest();
+        // exchangeSeedInTest();
 
-        //出售背包道具给系统 测试
-        //sellItemToSysTest();;
+        // --- 3. 邮件模块 ---
+        // sendMailTest();
+        // readMailAllTest();
+        // readMailOneTest();
 
-        //发送邮件
-        //sendMailTest();
-        //{"mailId":133,"amount":100,"itemId":"1001"}
+        // --- 4. 欢乐值 ---
+        // testJoy001_getMyJoyInfo();
+        // testJoy002_exchangeJoyToBalloon();
+        // testJoy003_getFriendJoyContrib();
+        // testJoyDistributeJoy();
 
-        //领取全部邮件
-        //readMailAllTest();
+        // --- 5. 公会模块 ---
+        // guildGetListTest();
+        // guildCreateTest();
+        // guildApproveTest();
+        // guildRefuseTest();
+        // guildInfoTest();
+        // guildAddMemberTest();
+        // guildMemberListTest();
+        // guildAddProfitBalanceForTest();
+        // guildReceiveTest();
+        // guildUpdateRateTest();
+        // guildApplyJoinTest();
+        // guildGetJoinApplyListTest();
+        // guildAuditJoinApplyTest(1);
 
-        //用户土地信息
-        //myFarmInfoInTest();
+        // --- 6. 宠物模块 ---
+        // getPetInfoTest();
+        // getPayPetTest();
+        // getFeedLionTest();
+        // getClaimYieldTest();
+        // unlockLv3Test();
+        // petInviteHomeTest();
+        // petInviteListTest();
+        // petInviterInfoTest();
 
-        //用户土地种植
-        //plantInTest();
+        // --- 7. 悬赏任务 ---
+        // getTaskListTest();
+        // getTaskDetailTest();
+        // getPublishTaskTest();
+        // getCancelTaskTest();
+        // getTakeTaskTest();
+        // getCancelOrderTest();
+        // getSubmitOrderTest();
+        // getResubmitOrderTest();
+        // getAppealOrderTest();
+        // getMyOrdersTest();
+        // getMyPublishTest();
+        // getPendingAuditTest();
+        // getAuditApproveTest();
+        // getAuditRejectTest();
 
-        //用户种地收割
-        //harvestInTest();
-
-        //用户解锁/购买土地 测试返回
-        //unlockLandInTest();
-
-        //商城信息
-        //shopInfoInTest();
-
-        //商城购买
-        //buyInTest();
-
-        //查询我的欢乐值与可兑气球数量
-        //testJoy001_getMyJoyInfo();
-
-        //兑换气球
-        //testJoy002_exchangeJoyToBalloon();
-
-        // 查看好友对我的贡献值
-        //testJoy003_getFriendJoyContrib();
-
-
-        // 分配欢乐值
-        //testJoyDistributeJoy();
-
-        //工会列表
-        //guildGetListTest();
-
-        //创建工会
-        //guildCreateTest();
-
-        //邀请成员
-        //guildAddMemberTest();
-
-        //工会详情
-        //testGuild();
-
-        //获取购买宠物信息
-        //getPetInfoTest();
-
-        //购买宠物
-        //getPayPetTest();
-
-        //喂养宠物
-        //getFeedLionTest();
-
-        //领取宠物产出
-        //getClaimYieldTest();
-
-        //解锁3代分润
-        //unlockLv3Test();
-
-        //排行榜测试‘’
-        //getTopTest();
-
-        //悬赏任务-发布任务
-        //getPublishTaskTest();
-
-        //任务详情
-        //getTaskDetailTest();
-
-        //任务大厅任务
-        //getTaskListTest();
-
-        //取消任务
-        //getCancelTaskTest();
-
-        //悬赏任务接单
-        //getTakeTaskTest();
-
-        //悬赏任务取消接单
-        //getCancelOrderTest();
-
-        //完成任务提交材料
-        //getSubmitOrderTest();
-
-        //我的待审核列表
-        //getPendingAuditTest();
-
-        //审核被驳回000000000000
-        //getAuditRejectTest();
-
-        //申诉
-        //getAppealOrderTest();;
-
-        //重新提交
-        //getResubmitOrderTest();
-
-        //审核通过
-        //getAuditApproveTest();
-
-        //种子兑换
-        exchangeSeedInTest();
-
+        System.out.println(">>>>>>>>>> Debug测试结束 <<<<<<<<<<");
+        System.exit(0);
     }
-
-
-
-
-
-
 }
-
-
-
