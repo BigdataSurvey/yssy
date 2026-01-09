@@ -31,7 +31,6 @@ import java.util.List;
 @ServiceClass(code = MessageCodeContext.GUILD_SERVER)
 public class ServerGuildService extends BaseService {
 
-
     @Autowired
     private GuildCacheService guildCacheService;
 
@@ -387,5 +386,62 @@ public class ServerGuildService extends BaseService {
         return async();
     }
 
+    /**
+     * 查询用户工会ID
+     */
+    @ServiceMethod(code = "013", description = "查询用户工会ID")
+    public Object getUserGuild(final AppSocket appSocket, Command appCommand, JSONObject params) {
+        checkNull(params);
+        Long userId = appSocket.getWsidBean().getUserId();
+        User user = userCacheService.getUserInfoById(userId);
+        if (user == null) {
+            throwExp("玩家不存在");
+        }
+        GuildMember guildMember = guildMemberService.findByUserId(userId);
+        JSONObject result = new JSONObject();
+        result.put("guildId", guildMember == null ? -1L : guildMember.getGuildId());
+        return result;
+    }
+
+    @ServiceMethod(code = "014", description = "申请加入公会")
+    public Object applyJoinGuild(final AppSocket appSocket, Command appCommand, JSONObject params) {
+        checkNull(params);
+        checkNull(params.get("guildId"));
+        Long userId = appSocket.getWsidBean().getUserId();
+        params.put("userId", userId);
+        Executer.request(
+                TargetSocketType.manager,
+                CommandBuilder.builder().request("018014", params).build(),
+                new RequestManagerListener(appCommand)
+        );
+        return async();
+    }
+
+    @ServiceMethod(code = "015", description = "入会申请列表（会长/副会长）")
+    public Object getJoinApplyList(final AppSocket appSocket, Command appCommand, JSONObject params) {
+        checkNull(params);
+        Long userId = appSocket.getWsidBean().getUserId();
+        params.put("userId", userId);
+        Executer.request(
+                TargetSocketType.manager,
+                CommandBuilder.builder().request("018015", params).build(),
+                new RequestManagerListener(appCommand)
+        );
+        return async();
+    }
+
+    @ServiceMethod(code = "016", description = "审核入会申请（会长/副会长）")
+    public Object auditJoinApply(final AppSocket appSocket, Command appCommand, JSONObject params) {
+        checkNull(params);
+        checkNull(params.get("applyUserId"), params.get("pass"));
+        Long userId = appSocket.getWsidBean().getUserId();
+        params.put("userId", userId);
+        Executer.request(
+                TargetSocketType.manager,
+                CommandBuilder.builder().request("018016", params).build(),
+                new RequestManagerListener(appCommand)
+        );
+        return async();
+    }
 
 }

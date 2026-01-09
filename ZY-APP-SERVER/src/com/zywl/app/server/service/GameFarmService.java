@@ -8,6 +8,8 @@ import com.zywl.app.base.service.BaseService;
 import com.zywl.app.defaultx.annotation.ServiceClass;
 import com.zywl.app.defaultx.annotation.ServiceMethod;
 import com.zywl.app.server.context.MessageCodeContext;
+import com.zywl.app.base.bean.Config;
+import com.zywl.app.base.util.StringUtils;
 
 import com.zywl.app.server.socket.AppSocket;
 import com.zywl.app.server.util.RequestManagerListener;
@@ -27,7 +29,8 @@ import org.springframework.stereotype.Service;
 public class GameFarmService extends BaseService {
     @Autowired
     private RequestManagerService requestManagerService;
-
+    @Autowired
+    private ServerConfigService serverConfigService;
 
     /**
      * 获取农场信息
@@ -128,5 +131,18 @@ public class GameFarmService extends BaseService {
                 new RequestManagerListener(appCommand)
         );
         return async();
+    }
+
+    /**
+     * 获取种子兑换配置
+     */
+    @ServiceMethod(code = "006", description = "获取种子兑换配置")
+    public Object getExchangeConfig(final AppSocket appSocket, Command appCommand, JSONObject params) {
+        checkNull(params);
+        String cfgStr = serverConfigService.getString(Config.SEED_EXCHANGE_CONFIG);
+        if (StringUtils.isBlank(cfgStr)) {
+            throwExp("兑换配置缺失：" + Config.SEED_EXCHANGE_CONFIG);
+        }
+        return JSONObject.parseObject(cfgStr);
     }
 }

@@ -45,17 +45,16 @@ public class UserPetService extends DaoService {
 
 
     /**
-     * 查询用户第一只狮子的购买时间（buy_time 最小值）。
-     * 结算时用于将 last_settle_time 快速推进到“可能产生产出”的第一个整点，避免无意义循环。
+     * 查询用户第一只狮子的购买时间
      */
     public java.util.Date findFirstBuyTime(Long userId) {
         return (java.util.Date) findOne("findFirstBuyTime", userId);
     }
 
     /**
-     * 按 buy_time 范围统计狮子数量（不拉全量）。
-     * - startTime: buy_time >= startTime（可为空）
-     * - endTime: buy_time < endTime（可为空）
+     * 按 buy_time 范围统计狮子数量
+     * - startTime: buy_time >= startTime
+     * - endTime: buy_time < endTime
      */
     public int countByUserIdAndBuyTimeRange(Long userId, java.util.Date startTime, java.util.Date endTime) {
         Map<String, Object> params = new HashMap<>();
@@ -64,5 +63,31 @@ public class UserPetService extends DaoService {
         params.put("endTime", endTime);
         Object result = findOne("countByUserIdAndBuyTimeRange", params);
         return result == null ? 0 : (Integer) result;
+    }
+
+    /**
+     * 批量统计用户的宠物数量（避免 N+1）
+     */
+    public Map<Long, Integer> countByUserIds(List<Long> userIds) {
+        if (userIds == null || userIds.isEmpty()) {
+            return new HashMap<>();
+        }
+        Map<String, Object> params = new HashMap<>(4);
+        params.put("userIds", userIds);
+
+        List<Map<String, Object>> rows = findList("countByUserIds", params);
+        Map<Long, Integer> map = new HashMap<>();
+        if (rows != null) {
+            for (Map<String, Object> r : rows) {
+                if (r == null) continue;
+                Object uidObj = r.get("userId");
+                Object cntObj = r.get("cnt");
+                if (uidObj == null || cntObj == null) continue;
+                Long uid = Long.parseLong(String.valueOf(uidObj));
+                Integer cnt = Integer.parseInt(String.valueOf(cntObj));
+                map.put(uid, cnt);
+            }
+        }
+        return map;
     }
 }

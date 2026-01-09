@@ -28,9 +28,7 @@ public class MessageCodeContext {
 
 	public final static String MINE="067";
 
-
 	public final static String GAME_ESCORT = "072";
-
 
 	public final static String TIME_TASK ="074";
 

@@ -97,4 +97,29 @@
           AND status = 1
           AND level = #{level}
     </select>
+
+    <!-- 养宠邀请列表：汇总某个下级在指定代数为当前用户贡献的分润累计 -->
+    <select id="sumTotalDividendByFromUserAndLevel" resultType="java.math.BigDecimal">
+        select ifnull(sum(amount), 0)
+        from t_user_pet_record
+        where user_id = #{userId}
+          and from_user_id = #{fromUserId}
+          and level = #{level}
+          and record_type = #{recordType}
+          and status = 1
+    </select>
+
+    <select id="sumTotalDividendByFromUserIdsAndLevel" parameterType="map" resultType="map">
+        SELECT from_user_id AS fromUserId, IFNULL(SUM(amount),0) AS totalAmount
+        FROM t_user_pet_record
+        WHERE user_id = #{userId}
+        AND level = #{level}
+        AND record_type = #{recordType}
+        AND from_user_id IN
+        <foreach collection="fromUserIds" item="id" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+        GROUP BY from_user_id
+    </select>
+
 </mapper>

@@ -34,6 +34,13 @@ import java.util.*;
 @ServiceClass(code = MessageCodeContext.GUILD_SERVER)
 public class ManagerGuildService extends BaseService {
 
+    /**
+     * 入会申请状态
+     * 1=正式成员；2=申请中（待会长/副会长审核）；3=已拒绝
+     */
+    private static final int MEMBER_STATUS_OK = 1;
+    private static final int MEMBER_STATUS_APPLY = 2;
+    private static final int MEMBER_STATUS_REFUSE = 3;
 
     @Autowired
     private GuildService guildService;
@@ -206,7 +213,7 @@ public class ManagerGuildService extends BaseService {
         }
 
         if (user.getRoleId() != null && user.getRoleId() != 1) {
-            throwExp("已加入公会，无法重复创建");
+            throwExp("已加入公会，无法重复创建"+user.getRoleId());
         }
 
         // 若已存在审核中的申请，直接返回申请信息
@@ -289,6 +296,7 @@ public class ManagerGuildService extends BaseService {
     }
 
 
+    @Transactional
     public void passApplyGuild(long dataId, long userId) {
         Guild guild = guildService.findById(dataId);
         if (guild == null) {
@@ -306,15 +314,28 @@ public class ManagerGuildService extends BaseService {
             throwExp("身份异常");
         }
 
-        // 审核通过：先更新状态，再建立会长关系
+        // 审核通过：更新公会状态 status=1
         guildService.passGuildApply(dataId);
 
-        BigDecimal profitRate = new BigDecimal("8");
-        BigDecimal bailAmount = guild.getBailAmount() == null ? BigDecimal.ZERO : guild.getBailAmount();
-        guildMemberService.addGuildMember(dataId, userId, profitRate, 3, userId, bailAmount);
+        // 确保会长成员记录存在
+        GuildMember exist = guildMemberService.findByGuildIdAndUserId(dataId, userId);
+        if (exist == null) {
+            BigDecimal profitRate = new BigDecimal("8");
+            BigDecimal bailAmount = guild.getBailAmount() == null ? BigDecimal.ZERO : guild.getBailAmount();
+            // roleId=3==会长
+            guildMemberService.addGuildMember(dataId, userId, profitRate, 3, userId, bailAmount);
+        } else {
+        }
 
+        // 初始化统计与身份更新
         initStatics(userId, dataId);
         userService.updateUserRoleId(userId, 3);
+
+        //  清理缓存
+        userCacheService.removeUserInfoCache(userId);
+        guildCacheService.removeMember(userId);
+        guildCacheService.removeGuilds();
+
         // 成为会长通知
         sendBecomeGuildMasterNotification(userId, dataId, guild.getGuildName());
     }
@@ -540,6 +561,205 @@ public class ManagerGuildService extends BaseService {
         // 添加成员费用
         result.put("guildMemberFee", GUILD_MEMBER_FEE);
         return result;
+    }
+    @Transactional
+    @ServiceMethod(code = "014", description = "玩家申请加入公会")
+    public JSONObject applyJoinGuild(ManagerSocketServer adminSocketServer, JSONObject data) {
+        checkNull(data);
+        checkNull(data.get("userId"), data.get("guildId"));
+        Long userId = data.getLong("userId");
+        Long guildId = data.getLong("guildId");
+
+        synchronized (LockUtil.getlock(userId.toString())) {
+
+            User user = userCacheService.getUserInfoById(userId);
+            if (user == null) {
+                throwExp("玩家不存在");
+            }
+
+            // 是否已是正式成员：以 t_guild_member(status=1) 为准
+            GuildMember member = guildCacheService.getMemberByUserId(userId);
+            if (member != null) {
+                throwExp("您已加入公会");
+            }
+
+            Guild guild = guildCacheService.getGuildByGuildId(guildId);
+            if (guild == null) {
+                throwExp("公会不存在");
+            }
+            if (guild.getStatus() == null || guild.getStatus() != 1) {
+                throwExp("公会审核中，暂不可申请加入");
+            }
+
+            // 是否已有申请 同公会重复申请直接返回申请信息；不同公会则不允许重复
+            GuildMember applying = guildMemberService.findApplyByUserId(userId);
+            if (applying != null) {
+                if (applying.getGuildId() != null && applying.getGuildId().longValue() == guildId.longValue()) {
+                    JSONObject applyInfo = new JSONObject();
+                    applyInfo.put("applyId", applying.getId());
+                    applyInfo.put("guildId", applying.getGuildId());
+                    applyInfo.put("guildName", guild.getGuildName());
+                    applyInfo.put("status", applying.getStatus());
+                    applyInfo.put("applyTime", applying.getCreateTime());
+
+                    JSONObject r = new JSONObject();
+                    r.put("applyInfo", applyInfo);
+                    return r;
+                }
+                throwExp("您已有入会申请，请勿重复申请");
+            }
+
+            // 写入申请记录：status=2
+            GuildMember apply = guildMemberService.addJoinApplyReturn(guildId, userId);
+
+            JSONObject applyInfo = new JSONObject();
+            applyInfo.put("applyId", apply.getId());
+            applyInfo.put("guildId", guildId);
+            applyInfo.put("guildName", guild.getGuildName());
+            applyInfo.put("status", apply.getStatus());
+            applyInfo.put("applyTime", apply.getCreateTime());
+
+            JSONObject r = new JSONObject();
+            r.put("applyInfo", applyInfo);
+            return r;
+        }
+    }
+
+
+    @Transactional
+    @ServiceMethod(code = "015", description = "入会申请列表（会长/副会长）")
+    public JSONObject getJoinApplyList(ManagerSocketServer managerSocketServer, JSONObject params) {
+        checkNull(params);
+        checkNull(params.get("userId"));
+        Long operatorUserId = params.getLong("userId");
+
+        GuildMember operatorMember = guildCacheService.getMemberByUserId(operatorUserId);
+        if (operatorMember == null) {
+            throwExp("您没有加入公会");
+        }
+        Integer roleId = operatorMember.getRoleId();
+        if (roleId == null || (roleId != 3 && roleId != 4)) {
+            throwExp("无权限");
+        }
+
+        Long guildId = operatorMember.getGuildId();
+        List<GuildMember> applies = guildMemberService.findApplyListByGuildId(guildId);
+
+        // 组装前端需要的用户信息
+        com.alibaba.fastjson2.JSONArray list = new com.alibaba.fastjson2.JSONArray();
+        for (GuildMember gm : applies) {
+            JSONObject o = new JSONObject();
+            o.put("id", gm.getId());
+            o.put("userId", gm.getUserId());
+            o.put("guildId", gm.getGuildId());
+            o.put("createTime", gm.getCreateTime());
+            User u = userCacheService.getUserInfoById(gm.getUserId());
+            if (u != null) {
+                UserVo vo = new UserVo();
+                BeanUtils.copy(u, vo);
+                o.put("userInfo", vo);
+            }
+            list.add(o);
+        }
+
+        JSONObject result = new JSONObject();
+        result.put("list", list);
+        return result;
+    }
+
+    @Transactional
+    @ServiceMethod(code = "016", description = "审核入会申请（会长/副会长）")
+    public JSONObject auditJoinApply(ManagerSocketServer managerSocketServer, JSONObject params) {
+        checkNull(params);
+        checkNull(params.get("userId"), params.get("applyUserId"), params.get("pass"));
+        Long operatorUserId = params.getLong("userId");
+        Long applyUserId = params.getLong("applyUserId");
+        // 1=通过；0=拒绝
+        Integer pass = params.getInteger("pass");
+
+        GuildMember operatorMember = guildCacheService.getMemberByUserId(operatorUserId);
+        if (operatorMember == null) {
+            throwExp("您没有加入公会");
+        }
+        Integer operatorRoleId = operatorMember.getRoleId();
+        if (operatorRoleId == null || (operatorRoleId != 3 && operatorRoleId != 4)) {
+            throwExp("无权限");
+        }
+
+        Long guildId = operatorMember.getGuildId();
+        GuildMember apply = guildMemberService.findApplyByGuildIdAndUserId(guildId, applyUserId);
+        if (apply == null) {
+            throwExp("申请记录不存在");
+        }
+
+        synchronized (com.zywl.app.base.util.LockUtil.getlock(applyUserId.toString())) {
+
+            User applyUser = userCacheService.getUserInfoById(applyUserId);
+            if (applyUser == null) {
+                throwExp("玩家不存在");
+            }
+            if (applyUser.getRoleId() != null && applyUser.getRoleId() != 1) {
+                // 已经入会（可能被邀请入会等），直接清理申请记录
+                guildMemberService.deleteById(apply.getId());
+                throwExp("该玩家已加入公会");
+            }
+
+            Guild guild = guildService.findById(guildId);
+            if (guild == null) {
+                throwExp("公会不存在");
+            }
+            if (guild.getStatus() == null || guild.getStatus() != 1) {
+                throwExp("公会审核中，暂不可操作");
+            }
+
+            if (pass == null || pass == 0) {
+                // 拒绝 status=3
+                guildMemberService.updateApplyStatus(apply.getId(), MEMBER_STATUS_REFUSE, null, operatorUserId, null, null);
+                return new JSONObject();
+            }
+
+            // 通过
+            Integer freeNum = guild.getFreeNum() == null ? 0 : guild.getFreeNum();
+            BigDecimal joinFee = BigDecimal.ZERO;
+            if (freeNum <= 0) {
+                UserCapital operatorCapital = userCapitalService.findUserCapitalByUserIdAndCapitalType(operatorUserId, UserCapitalTypeEnum.hxjf.getValue());
+                if (operatorCapital == null || operatorCapital.getBalance() == null || operatorCapital.getBalance().compareTo(GUILD_MEMBER_FEE) < 0) {
+                    throwExp("核心积分不足，无法审核通过");
+                }
+                userCapitalService.subUserBalanceByGuild(operatorUserId, GUILD_MEMBER_FEE, guildId, UserCapitalTypeEnum.hxjf.getValue());
+                managerGameBaseService.pushCapitalUpdate(operatorUserId, UserCapitalTypeEnum.hxjf.getValue());
+                guildService.updateGuildBailAmount(GUILD_MEMBER_FEE, guildId);
+                joinFee = GUILD_MEMBER_FEE;
+            }
+
+            // 审核通过 status=1 ;申请入会默认成为普通成员
+            Integer memberRoleId = 2;
+            BigDecimal bailAmount = joinFee;
+            guildMemberService.updateApplyStatus(apply.getId(), MEMBER_STATUS_OK, memberRoleId, operatorUserId, new BigDecimal("8"), bailAmount);
+
+            initStatics(applyUserId, guildId);
+            userService.updateUserRoleId(applyUserId, memberRoleId);
+            guildService.updateGuildMemberNumber(guildId, 1, freeNum > 0 ? -1 : 0);
+
+            // 清理缓存
+            userCacheService.removeUserInfoCache(applyUserId);
+            guildCacheService.removeMember(applyUserId);
+
+            // 推送在线玩家刷新用户信息
+            try {
+                JSONObject pushDate = new JSONObject();
+                pushDate.put("userId", applyUserId);
+                User latestUser = userCacheService.getUserInfoById(applyUserId);
+                if (latestUser != null) {
+                    UserVo vo = new UserVo();
+                    BeanUtils.copy(latestUser, vo);
+                    pushDate.put("userInfo", vo);
+                }
+                Push.push(PushCode.updateUserInfo, managerSocketService.getServerIdByUserId(applyUserId), pushDate);
+            } catch (Exception ignored) {
+            }
+            return new JSONObject();
+        }
     }
 
     /**
