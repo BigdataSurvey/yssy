@@ -20,26 +20,21 @@ import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.util.*;
-
+/**
+ *
+ * **/
 @Service
 public class CardGameCacheService extends RedisService {
-
-
-
-
     @Autowired
     private UserDailyTaskService userDailyTaskService;
 
     @Autowired
     private DailyTaskService dailyTaskService;
 
-
-
     @Autowired
     private UserCacheService userCacheService;
 
     public static final List<String> LAST_WEEK_USER_IDS = new ArrayList<>();
-
 
     public long getAfkMoneyCount(Long userId) {
         String key = RedisKeyConstant.APP_USER_AFK_COUNT + DateUtil.format2(new Date()) + ":" + userId + "-";
@@ -169,19 +164,39 @@ public class CardGameCacheService extends RedisService {
     public JSONArray getDailyTask() {
         String key = RedisKeyConstant.APP_DAILY_TASK;
         Map hmget = hmget(key);
-        if (hmget.size() == 0 || hmget == null) {
-            List<DailyTask> allDailyTask = dailyTaskService.findAllDailyTask();
+        if (hmget == null || hmget.size() == 0) {
             hmget = new HashMap();
-            for (DailyTask dailyTask : allDailyTask) {
+            List<DailyTask> list = dailyTaskService.findAllDailyTask();
+            for (DailyTask dailyTask : list) {
                 hmget.put(dailyTask.getId().toString(), dailyTask);
             }
-            hmset(key, hmget);
+            hmset(key, hmget, 86400 * 7);
         }
+
         JSONArray taskList = new JSONArray();
         for (Object taskId : hmget.keySet()) {
+            String id = taskId.toString();
+            DailyTask dt = (DailyTask) hmget.get(id);
+
             UserDailyTaskVo vo = new UserDailyTaskVo();
-            String id = (String) taskId;
-            BeanUtils.copy(hmget.get(id), vo);
+            BeanUtils.copy(dt, vo);
+
+            int cond = 0;
+            try {
+                cond = Integer.parseInt(String.valueOf(dt.getCondition()));
+            } catch (Exception ignored) {}
+
+            if (cond <= 0) {
+                vo.setCondition(1);
+                vo.setSchedule(1);
+                // 1=可领取
+                vo.setStatus(1);
+            } else {
+                vo.setCondition(cond);
+                vo.setSchedule(0);
+                vo.setStatus(0);
+            }
+
             taskList.add(vo);
         }
         return taskList;

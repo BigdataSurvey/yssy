@@ -210,6 +210,10 @@ userCapitalService.addUserBalanceByAddReward
 PlayGameService.updateUserBackpack
 更新配置表
 managerConfigService.updateConfigData
+背包推送
+Push.push(PushCode.updateUserBackpack, managerSocketService.getServerIdByUserId(userId), pushData);
+
+
 
 以上对资产和道具的添加/扣除都走 PlayGameService.addReward方法
 

@@ -208,7 +208,7 @@ public class ServerLotteryGameService extends BaseService {
     @ServiceMethod(code = "002", description = "投入")
     public Async bet(final AppSocket appSocket, Command appCommand, JSONObject params) {
         checkNull(params);
-        checkNull(params.get("gameId"), params.get("betAmount"), params.get("bet"));
+        checkNull(params.get("gameId"));
 
         int gameId = params.getIntValue("gameId");
         if (!isOnline(gameId)) {
@@ -221,6 +221,30 @@ public class ServerLotteryGameService extends BaseService {
             throwExp("用户信息异常");
         }
 
+        if (gameId == 12) {
+            checkNull(params.get("elementId"));
+            BigDecimal chip = params.getBigDecimal("chip");
+            if (chip == null) {
+                chip = params.getBigDecimal("betAmount");
+            }
+            if (chip == null) {
+                throwExp("参数异常");
+            }
+
+            if (!betList.contains(chip)) {
+                throwExp("非法请求");
+            }
+
+            params.put("userId", userId);
+            params.put("headImgUrl", user.getHeadImageUrl());
+            params.put("name", user.getName());
+            params.put("betAmount", chip);
+            requestLotteryService.requestPbxBetService(params, new RequestManagerListener(appCommand));
+            return async();
+        }
+
+        checkNull(params.get("betAmount"), params.get("bet"));
+
         BigDecimal amount = params.getBigDecimal("betAmount");
         if (gameId != 5) {
             if (!betList.contains(amount)) {
@@ -232,15 +256,10 @@ public class ServerLotteryGameService extends BaseService {
         params.put("headImgUrl", user.getHeadImageUrl());
         params.put("name", user.getName());
 
-        // PBX: 102103....之前的东西还是沿用101103
-        if (gameId == 12) {
-            requestLotteryService.requestPbxBetService(params, new RequestManagerListener(appCommand));
-        } else {
-            requestLotteryService.requestBattleRoyaleBetService(params, new RequestManagerListener(appCommand));
-        }
-
+        requestLotteryService.requestBattleRoyaleBetService(params, new RequestManagerListener(appCommand));
         return async();
     }
+
 
     @ServiceMethod(code = "004", description = "离开房间")
     public Async leaveRoom(final AppSocket appSocket, Command appCommand, JSONObject params) {

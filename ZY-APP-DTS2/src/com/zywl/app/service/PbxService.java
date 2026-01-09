@@ -1457,6 +1457,7 @@ public class PbxService extends BaseService {
      */
     private JSONObject buildPbxInfoByPeriod(BigDecimal poolBalance, String periodNo, long periodStartMs, long periodEndMs, long nowMs) {
         JSONObject info = new JSONObject();
+        info.put("gameId", String.valueOf(PBX_GAME_ID));
         info.put("onlineCount", onlineUserState.size());
         info.put("gameSetting", PBX_GAME_SETTING);
         info.put("poolBalance", poolBalance);

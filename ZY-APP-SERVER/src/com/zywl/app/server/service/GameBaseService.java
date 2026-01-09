@@ -620,7 +620,9 @@ public class GameBaseService extends BaseService {
     public Object receiveUserDailyTask(AppSocket appSocket, Command command, JSONObject data) {
         checkNull(data);
         checkNull(data.get("taskId"));
-        if (i.getAndAdd(-1) < 0) {
+        // 并发保护：避免短时间内大量领奖请求压垮后端。
+        if (i.decrementAndGet() < 0) {
+            i.incrementAndGet();
             throwExp("当前领取的人数太多啦~");
         }
         long userId = appSocket.getWsidBean().getUserId();
@@ -631,23 +633,43 @@ public class GameBaseService extends BaseService {
 
         data.put("userId", userId);
         Executer.request(TargetSocketType.manager, CommandBuilder.builder().request("100115", data).build(),
-                new RequestManagerListener(command));
+                new RequestManagerListener(command) {
+                    @Override
+                    public void handle(com.live.app.ws.socket.BaseClientSocket clientSocket, Command cmd) {
+                        try {
+                            super.handle(clientSocket, cmd);
+                        } finally {
+                            i.incrementAndGet();
+                        }
+                    }
+                });
         return async();
     }
 
-    /*@ServiceMethod(code = "033", description = "每日任务活跃度领奖")
-    public Object receiveUserDailyTaskAp(AppSocket appSocket, Command command, JSONObject data) {
+    @ServiceMethod(code = "033", description = "每日任务宝箱领奖")
+    public Object receiveUserDailyTaskBox(AppSocket appSocket, Command command, JSONObject data) {
         checkNull(data);
-        checkNull(data.get("ap"));
-        if (i.getAndAdd(-1) < 0) {
+        checkNull(data.get("boxId"));
+        if (i.decrementAndGet() < 0) {
+            i.incrementAndGet();
             throwExp("当前领取的人数太多啦~");
         }
+
         long userId = appSocket.getWsidBean().getUserId();
         data.put("userId", userId);
         Executer.request(TargetSocketType.manager, CommandBuilder.builder().request("100116", data).build(),
-                new RequestManagerListener(command));
+                new RequestManagerListener(command) {
+                    @Override
+                    public void handle(com.live.app.ws.socket.BaseClientSocket clientSocket, Command cmd) {
+                        try {
+                            super.handle(clientSocket, cmd);
+                        } finally {
+                            i.incrementAndGet();
+                        }
+                    }
+                });
         return async();
-    }*/
+    }
 
    /* @ServiceMethod(code = "025", description = "购买铜钱")
     public Object buyCoin(AppSocket appSocket, Command command, JSONObject data) {

@@ -103,15 +103,10 @@ public class ManagerGamePetService  extends BaseService {
         if (userId == null || userId <= 0) {
             throwExp("userId不能为空");
         }
-
         // 用户校验
         loadAndCheckUser(userId);
-
         // 取 dic_pet
-        DicPet dicPet = getCurrentDicPet();
-        if (dicPet == null) {
-            throwExp("dic_pet配置为空，请先配置 dic_pet 并完成静态表加载/版本同步");
-        }
+        DicPet dicPet = getDicPet();
 
         initUserPetUserIfAbsent(userId);
         UserPetUser petUser = userPetUserService.lockByUserId(userId);
@@ -132,7 +127,7 @@ public class ManagerGamePetService  extends BaseService {
         // 1~5代人数统计
         Map<Integer, Integer> levelPeople = calcLevelPeople(userId, 5);
 
-        // 今日分润与贡献（只看 1+2 代贡献）
+        // 看 1+2 代贡献分润与贡献
         BigDecimal todayDividend = safeDecimal(userPetRecordService.sumTodayDividend(userId));
         BigDecimal contribLevel12 = safeDecimal(userPetRecordService.sumDividendLevel12(userId));
 
@@ -246,6 +241,8 @@ public class ManagerGamePetService  extends BaseService {
                 userPet.setUpdateTime(now);
                 userPetService.insert(userPet);
             }
+            // 推送资产变更
+            managerGameBaseService.pushCapitalUpdate(userId, costCapitalType);
 
             JSONObject result = buildPetInfoResult(userId, dicPet, userPetUser);
             result.put("orderNo", orderNo);
@@ -297,9 +294,6 @@ public class ManagerGamePetService  extends BaseService {
             loadAndCheckUser(userId);
 
             DicPet dicPet = getDicPet();
-            if (dicPet == null) {
-                throwExp("养兽配置未初始化");
-            }
             if (safeInt(dicPet.getStatus()) != 1) {
                 throwExp("养兽暂未开放");
             }
@@ -405,9 +399,6 @@ public class ManagerGamePetService  extends BaseService {
             loadAndCheckUser(userId);
 
             DicPet dicPet = getDicPet();
-            if (dicPet == null) {
-                throwExp("养兽配置未初始化");
-            }
             if (safeInt(dicPet.getStatus()) != 1) {
                 throwExp("养兽暂未开放");
             }
@@ -496,12 +487,10 @@ public class ManagerGamePetService  extends BaseService {
             loadAndCheckUser(userId);
 
             DicPet dicPet = getDicPet();
-            if (dicPet == null) {
-                throwExp("养兽配置未初始化");
-            }
             if (safeInt(dicPet.getStatus()) != 1) {
                 throwExp("养兽暂未开放");
             }
+
             initUserPetUserIfAbsent(userId);
             UserPetUser petUserUser = userPetUserService.lockByUserId(userId);
             if (petUserUser == null) {
@@ -798,7 +787,7 @@ public class ManagerGamePetService  extends BaseService {
      */
     private DicPet getDicPet() {
         if (PlayGameService.DIC_PET.isEmpty()) {
-            throwExp("dic_pet未初始化");
+            throwExp("养兽配置暂未初始化");
         }
         DicPet dicPet = PlayGameService.DIC_PET.get("1");
         if (dicPet != null) {
