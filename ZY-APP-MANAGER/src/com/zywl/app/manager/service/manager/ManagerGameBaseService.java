@@ -725,6 +725,9 @@ public class ManagerGameBaseService extends BaseService {
             if (userTaskById.getStatus() == 2) {
                 throwExp("已领取过该奖励");
             }
+            if (userTaskById.getStatus() != 1) {
+                throwExp("任务未达成");
+            }
             JSONArray rewards = dailyTask.getReward();
             JSONObject result = new JSONObject();
 
@@ -768,6 +771,118 @@ public class ManagerGameBaseService extends BaseService {
             return result;
         }
     }
+
+    @Transactional
+    @ServiceMethod(code = "116", description = "每日任务宝箱领奖")
+    @KafkaProducer(topic = KafkaTopicContext.RED_POINT, event = KafkaEventContext.DO_DAILY_TASK, sendParams = true)
+    public JSONObject receiveUserDailyTaskBox(ManagerSocketServer managerSocketServer, JSONObject params) {
+        checkNull(params);
+        checkNull(params.get("userId"), params.get("boxId"));
+        Long userId = params.getLong("userId");
+        String reqBoxId = params.getString("boxId");
+        if (reqBoxId == null || reqBoxId.trim().isEmpty()) {
+            throwExp("boxId不能为空");
+        }
+        reqBoxId = reqBoxId.trim();
+
+        JSONObject result = new JSONObject();
+        synchronized (LockUtil.getlock(userId.toString())) {
+
+            // 统计当前已领取的任务数
+            Map<Integer, UserDailyTaskVo> taskMap = cardGameCacheService.getUserTask(userId);
+            int signNow = 0;
+            if (taskMap != null && !taskMap.isEmpty()) {
+                for (UserDailyTaskVo vo : taskMap.values()) {
+                    if (vo == null) {
+                        continue;
+                    }
+                    // 任务奖励已领取
+                    if (vo.getStatus() == 2) {
+                        signNow++;
+                    }
+                }
+            }
+
+            //读取宝箱配置
+            String cfgStr = managerConfigService.getString(Config.DAILY_TASK_BOX_CONFIG);
+            if (cfgStr == null || cfgStr.trim().isEmpty()) {
+                throwExp("每日任务宝箱配置缺失");
+            }
+
+            JSONArray cfgArr;
+            try {
+                cfgArr = JSONArray.parseArray(cfgStr);
+            } catch (Exception e) {
+                throwExp("每日任务宝箱配置格式错误");
+                return null;
+            }
+            if (cfgArr == null || cfgArr.isEmpty()) {
+                throwExp("每日任务宝箱配置为空");
+            }
+
+            JSONObject boxCfg = null;
+            String boxIdStr = null;
+            for (Object o : cfgArr) {
+                if (!(o instanceof JSONObject)) {
+                    continue;
+                }
+                JSONObject obj = (JSONObject) o;
+
+                String idStr = obj.getString("boxId");
+                if (idStr == null || idStr.trim().isEmpty()) {
+                    idStr = obj.getString("id");
+                }
+                if (idStr != null && idStr.trim().equals(reqBoxId)) {
+                    boxCfg = obj;
+                    boxIdStr = idStr.trim();
+                    break;
+                }
+            }
+            if (boxCfg == null) {
+                throwExp("宝箱不存在");
+            }
+
+            String claimed = cardGameCacheService.getUserDtApStatus(userId, boxIdStr);
+            if (claimed != null && !"0".equals(claimed)) {
+                throwExp("宝箱奖励已领取");
+            }
+
+            // 达成校验
+            Integer condition = boxCfg.getInteger("condition");
+            if (condition == null) {
+                condition = 0;
+            }
+            if (signNow < condition) {
+                throwExp("宝箱条件未达成");
+            }
+
+            // 发奖reward
+            Object r = boxCfg.get("reward");
+            JSONArray reward;
+            if (r instanceof JSONArray) {
+                reward = (JSONArray) r;
+            } else if (r instanceof String) {
+                reward = JSONArray.parseArray((String) r);
+            } else {
+                reward = new JSONArray();
+            }
+
+            if (reward == null || reward.isEmpty()) {
+                throwExp("宝箱奖励配置为空");
+            }
+            gameService.addReward(userId, reward, LogCapitalTypeEnum.daily_task, LogUserBackpackTypeEnum.daily_task);
+
+            // 标记宝箱已领取
+            cardGameCacheService.updateUserDtApInfo(userId, boxIdStr, 1);
+
+            result.put("boxId", boxIdStr);
+            result.put("reward", reward);
+            result.put("signNow", signNow);
+            result.put("boxList", buildDailyTaskBoxList(userId, signNow));
+            return result;
+        }
+    }
+
 
 
     public void updateUserTask(Long userId, String taskId) {
@@ -1624,6 +1739,8 @@ public class ManagerGameBaseService extends BaseService {
                         Config.SEED_SYN_POOL,
                         newPool.toPlainString()
                 );
+                // 推送资产变更
+                pushCapitalUpdate(userId, UserCapitalTypeEnum.hxjf.getValue());
             } catch (Exception e) {
                 logger.error("更新种子合成奖池失败", e);
             }

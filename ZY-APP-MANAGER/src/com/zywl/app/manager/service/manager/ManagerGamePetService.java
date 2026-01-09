@@ -241,6 +241,8 @@ public class ManagerGamePetService  extends BaseService {
                 userPet.setUpdateTime(now);
                 userPetService.insert(userPet);
             }
+            // 推送资产变更
+            managerGameBaseService.pushCapitalUpdate(userId, costCapitalType);
 
             JSONObject result = buildPetInfoResult(userId, dicPet, userPetUser);
             result.put("orderNo", orderNo);

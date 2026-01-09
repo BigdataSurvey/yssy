@@ -10,7 +10,6 @@ import com.zywl.app.defaultx.annotation.ServiceMethod;
 import com.zywl.app.defaultx.cache.UserCacheService;
 import com.zywl.app.defaultx.cache.UserCapitalCacheService;
 import com.zywl.app.defaultx.enmus.ItemIdEnum;
-import com.zywl.app.defaultx.enmus.LogCapitalTypeEnum;
 import com.zywl.app.defaultx.enmus.LogUserBackpackTypeEnum;
 import com.zywl.app.defaultx.service.*;
 import com.zywl.app.manager.context.MessageCodeContext;
@@ -123,13 +122,6 @@ public class ManagerJoyService  extends BaseService {
     /**
      * 002 - 领取气球（用当前可用欢乐值一次性兑换成气球道具）
      *
-     * 规则：
-     *   - 从 t_user_joy.available_joy 中扣减本次用于兑换的欢乐值；
-     *   - 扣减公式：usedJoy = floor(availableJoy / joyExchangeRate) * joyExchangeRate；
-     *   - 兑换出的气球数量：exchangeCount = floor(availableJoy / joyExchangeRate)；
-     *   - totalJoy 不回退，只减少 availableJoy；
-     *   - 通过 PlayGameService.addReward 发放气球道具到背包。
-     *
      */
     @ServiceMethod(code = "002", description = "兑换气球")
     @Transactional
@@ -204,27 +196,6 @@ public class ManagerJoyService  extends BaseService {
 
     /**
      * 003 - 查看某个好友对我的欢乐值贡献
-     *
-     * 说明：
-     *   - receiverUserId = 当前用户（我的 userId）
-     *   - fromUserId     = 好友 userId
-     *   - 数据来源：t_user_joy_contrib（UserJoyContrib）
-     *
-     * 入参：
-     * {
-     *   "userId": 937223,         // 我自己
-     *   "friendUserId": 888001    // 好友ID（贡献来源）
-     * }
-     *
-     * 返回：
-     * {
-     *   "userId": 937223,
-     *   "friendUserId": 888001,
-     *   "friendNickName": "好友昵称",
-     *   "friendAvatar":   "头像URL",
-     *   "todayJoy": 12.5,         // 今日该好友对我新增的欢乐值
-     *   "totalJoy": 200.8         // 累计该好友对我贡献的欢乐值
-     * }
      */
     @ServiceMethod(code = "003", description = "查看某个好友对我的欢乐值贡献")
     @Transactional(readOnly = true)

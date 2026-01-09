@@ -479,7 +479,7 @@
 		)
 	</select>
 
-	<select id="findInviteUsersByParentIdWithType" parameterType="map" resultMap="BaseResultMap">
+	<select id="findInviteUsersByParentIdWithType" resultType="User">
 		SELECT * FROM t_user
 		WHERE parent_id = #{parentId} AND status = 1
 		<choose>
