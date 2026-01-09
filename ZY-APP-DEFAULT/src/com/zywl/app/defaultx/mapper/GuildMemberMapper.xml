@@ -104,4 +104,44 @@
 	<delete id="delete">
 		delete from t_guild_member where id= #{id}
 	</delete>
+
+
+	<select id="findById" resultType="GuildMember">
+		select * from t_guild_member where id = #{id}
+	</select>
+
+	<!-- 入会申请：status=2 -->
+	<select id="findApplyByUserId" resultType="GuildMember">
+		select * from t_guild_member
+		where user_id = #{userId} and status = 2
+		order by create_time desc
+			limit 1
+	</select>
+
+	<select id="findApplyListByGuildId" resultType="GuildMember">
+		select * from t_guild_member
+		where guild_id = #{guildId} and status = 2
+		order by create_time desc
+	</select>
+
+	<select id="findApplyByGuildIdAndUserId" resultType="GuildMember">
+		select * from t_guild_member
+		where guild_id = #{guildId} and user_id = #{userId} and status = 2
+		order by create_time desc
+			limit 1
+	</select>
+
+	<update id="updateApplyStatus" parameterType="GuildMember">
+		update t_guild_member
+		<set>
+			status = #{status},
+			<if test="roleId != null">role_id = #{roleId},</if>
+			<if test="createUserId != null">create_user_id = #{createUserId},</if>
+			<if test="profitRate != null">profit_rate = #{profitRate},</if>
+			<if test="bailAmount != null">bail_amount = #{bailAmount},</if>
+			remark = remark
+		</set>
+		where id = #{id}
+	</update>
+
 </mapper>

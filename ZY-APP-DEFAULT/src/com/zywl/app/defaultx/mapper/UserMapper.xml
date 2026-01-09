@@ -435,8 +435,77 @@
 	   	 limit #{start}, #{limit} 
 	   	 </if>
 	</select>
-	
-	
+	<!-- 邀请列表专用（不限制 vip2=1） -->
+	<select id="findInviteUsersByParentId" resultType="com.zywl.app.base.bean.User">
+		select
+			id, user_no, name, head_image_url, parent_id, status, authentication, regist_time
+		from t_user
+		where parent_id = #{parentId} and status = 1
+		order by id desc
+			limit #{start}, #{pageSize}
+	</select>
+
+
+	<!-- 邀请人数统计 -->
+	<select id="countInviteUsersByParentId" resultType="int">
+		select count(1) from t_user where parent_id=#{parentId} and status=1
+	</select>
+
+	<!-- 已认证 + 已拥有狮子 -->
+	<select id="countInviteUsersValidByParentId" resultType="int">
+		select count(1)
+		from t_user u
+		where u.parent_id = #{parentId}
+		  and u.status = 1
+		  and u.authentication = 1
+		  and exists (
+			select 1 from t_user_pet p
+			where p.user_id = u.id and p.status = 1
+		)
+	</select>
+
+	<!-- 未认证 -->
+	<select id="countInviteUsersUnqualifiedByParentId" resultType="int">
+		select count(1)
+		from t_user u
+		where u.parent_id = #{parentId}
+		and u.status = 1
+		and (
+		u.authentication is null or u.authentication != 1
+		or not exists (
+		select 1 from t_user_pet p
+		where p.user_id = u.id and p.status = 1
+		)
+		)
+	</select>
+
+	<select id="findInviteUsersByParentIdWithType" parameterType="map" resultMap="BaseResultMap">
+		SELECT * FROM t_user
+		WHERE parent_id = #{parentId} AND status = 1
+		<choose>
+			<!-- type=2 有效：认证=1 且存在宠物 -->
+			<when test="type != null and type == 2">
+				AND authentication = 1
+				AND EXISTS (SELECT 1 FROM t_user_pet p WHERE p.user_id = t_user.id AND p.status = 1)
+			</when>
+
+			<!-- type=1 未达标：未认证 或 无宠物 -->
+			<when test="type != null and type == 1">
+				AND (
+				authentication IS NULL OR authentication != 1
+				OR NOT EXISTS (SELECT 1 FROM t_user_pet p WHERE p.user_id = t_user.id AND p.status = 1)
+				)
+			</when>
+
+			<!-- type=0 全部：不额外过滤 -->
+			<otherwise></otherwise>
+		</choose>
+		ORDER BY id DESC
+		LIMIT #{start}, #{limit}
+	</select>
+
+
+
 	<select id="findByGrandfaId" resultType="User">
 		SELECT `t_user`.`id`, `t_user`.`user_no`, `t_user`.`name`, `t_user`.`head_image_url`, `t_user`.`last_login_time` , `t_user`.`role_id`, `t_user`.`is_channel`, `t_user`.`first_charge` FROM `t_user` INNER JOIN ( SELECT `id` FROM `t_user` WHERE `grandfa_id` = #{grandfaId} AND vip2=1   AND `status` = 1 ORDER BY `regist_time` DESC LIMIT #{start}, #{limit} ) `tmp_0` USING (`id`)
 	</select>

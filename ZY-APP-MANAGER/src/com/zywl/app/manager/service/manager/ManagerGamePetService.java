@@ -658,6 +658,210 @@ public class ManagerGamePetService  extends BaseService {
         }
     }
 
+    /**
+     * 038006 邀请主页：邀请码/邀请人信息/邀请统计
+     */
+    @ServiceMethod(code = "006", description = "养宠-邀请主页")
+    public JSONObject inviteHome(ManagerSocketServer socket, JSONObject params) {
+        checkNull(params);
+        Long userId = params.getLong("userId");
+        loadAndCheckUser(userId);
+
+        User user = userCacheService.getUserInfoById(userId);
+        UserPetUser petUser = getOrCreateUserPetUser(userId);
+
+        JSONObject result = new JSONObject();
+        result.put("serverTime", System.currentTimeMillis());
+
+        // 邀请码
+        result.put("inviteCode", user.getInviteCode());
+
+        // 今日/累计金币（分润口径）
+        JSONObject stat = new JSONObject();
+        stat.put("todayCoin", format6(safeDecimal(petUser.getTodayDividendAmount())));
+        stat.put("totalCoin", format6(safeDecimal(petUser.getTotalDividendAmount())));
+        result.put("stat", stat);
+
+        // 直推总人数
+        int totalDirect = userService.countInviteUsersByParentId(userId);
+        result.put("directTotal", totalDirect);
+
+        // 有效人数（认证+买过宠物），SQL 层统计，避免 N+1
+        int validDirect = userService.countInviteUsersValidByParentId(userId);
+        result.put("directValid", validDirect);
+
+        // 邀请人信息（上级）
+        result.put("inviter", buildInviterInfo(user));
+        return result;
+    }
+
+    /**
+     * 038007 邀请列表（直推）
+     * type: 0全部 / 1未达标 / 2有效
+     */
+    @ServiceMethod(code = "007", description = "养宠-邀请列表")
+    public JSONObject inviteList(ManagerSocketServer socket, JSONObject params) {
+        checkNull(params);
+        Long userId = params.getLong("userId");
+        loadAndCheckUser(userId);
+
+        Integer page = params.getInteger("page");
+        Integer pageSize = params.getInteger("pageSize");
+        Integer type = params.getInteger("type");
+        if (page == null || page <= 0) page = 1;
+        if (pageSize == null || pageSize <= 0) pageSize = 10;
+        if (type == null) type = 0;
+        if (type < 0 || type > 2) {
+            throwExp("type参数非法");
+        }
+
+        // tabTotal：前端 Tab 显示用
+        int total = userService.countInviteUsersByParentId(userId);
+        int validTotal = userService.countInviteUsersValidByParentId(userId);
+        int unqualifiedTotal = userService.countInviteUsersUnqualifiedByParentId(userId);
+
+        JSONObject tabTotal = new JSONObject();
+        tabTotal.put("all", total);
+        tabTotal.put("unqualified", unqualifiedTotal);
+        tabTotal.put("valid", validTotal);
+
+        // 分页列表：type 过滤下沉 SQL，保证“分页与过滤一致”
+        List<User> users = userService.findInviteUsersByParentIdWithType(userId, type, page, pageSize);
+
+        // 批量聚合：petCount 与 coinAmount，避免 N+1
+        List<Long> userIds = new ArrayList<>();
+        if (users != null) {
+            for (User u : users) {
+                if (u != null && u.getId() != null) userIds.add(u.getId());
+            }
+        }
+
+        Map<Long, Integer> petCountMap = userIds.isEmpty() ? new HashMap<>() : userPetService.countByUserIds(userIds);
+        Map<Long, BigDecimal> coinMap = userIds.isEmpty() ? new HashMap<>() : userPetRecordService.sumTotalDividendByFromUserIdsAndLevel(userId, userIds, 1);
+
+        JSONArray list = new JSONArray();
+        if (users != null) {
+            for (User u : users) {
+                JSONObject it = new JSONObject();
+                it.put("userId", u.getId());
+                it.put("nickName", u.getNickName());
+                it.put("avatar", u.getAvatar());
+
+                // inviteTime：注册时间=绑定时间（parent_id 绑定在注册流程完成）
+                it.put("inviteTime", formatDate(u.getRegistTime()));
+
+                int petCount = petCountMap.getOrDefault(u.getId(), 0);
+                BigDecimal coinAmount = coinMap.getOrDefault(u.getId(), BigDecimal.ZERO);
+
+                // statusText：进行中 / 未达标 / 未通过认证
+                int status;
+                String statusText;
+                if (u.getAuthentication() != null && u.getAuthentication() == 1) {
+                    if (petCount > 0) {
+                        status = 0;
+                        statusText = "进行中";
+                    } else {
+                        status = 1;
+                        statusText = "未达标";
+                    }
+                } else {
+                    status = 2;
+                    statusText = "未通过认证";
+                }
+
+                it.put("status", status);
+                it.put("statusText", statusText);
+                it.put("petCount", petCount);
+                it.put("coinAmount", format6(coinAmount));
+
+                // 体验一致性：列表 item 也给 serverTime
+                it.put("serverTime", System.currentTimeMillis());
+                list.add(it);
+            }
+        }
+
+        JSONObject result = new JSONObject();
+        result.put("serverTime", System.currentTimeMillis());
+        result.put("page", page);
+        result.put("pageSize", pageSize);
+        result.put("type", type);
+
+        result.put("total", total);
+        result.put("validTotal", validTotal);
+        result.put("unqualifiedTotal", unqualifiedTotal);
+        result.put("tabTotal", tabTotal);
+
+        result.put("list", list);
+        return result;
+    }
+
+    /**
+     * 038008 邀请人信息（本人/上级/统计/分润）
+     */
+    @ServiceMethod(code = "008", description = "养宠-邀请人信息")
+    public JSONObject inviterInfo(ManagerSocketServer socket, JSONObject params) {
+        checkNull(params);
+        Long userId = params.getLong("userId");
+        loadAndCheckUser(userId);
+
+        User user = userCacheService.getUserInfoById(userId);
+
+        JSONObject result = new JSONObject();
+        result.put("serverTime", System.currentTimeMillis());
+        result.put("userId", user.getId());
+        result.put("name", user.getName());
+        result.put("authentication", user.getAuthentication() == null ? 0 : user.getAuthentication());
+
+        // 上级
+        result.put("inviter", buildInviterInfo(user));
+
+        // 统计
+        int total = userService.countInviteUsersByParentId(userId);
+        int validTotal = userService.countInviteUsersValidByParentId(userId);
+        int unqualifiedTotal = userService.countInviteUsersUnqualifiedByParentId(userId);
+        result.put("total", total);
+        result.put("validTotal", validTotal);
+        result.put("unqualifiedTotal", unqualifiedTotal);
+
+        // 分润
+        UserPetUser petUser = getOrCreateUserPetUser(userId);
+        result.put("todayDividendAmount", format6(safeDecimal(petUser.getTodayDividendAmount())));
+        result.put("totalDividendAmount", format6(safeDecimal(petUser.getTotalDividendAmount())));
+        return result;
+    }
+
+
+
+    // ============================ 邀请功能辅助 ============================
+
+    private JSONObject buildInviterInfo(User user) {
+        if (user == null || user.getParentId() == null || user.getParentId() <= 0) {
+            return new JSONObject();
+        }
+        User parent = userCacheService.getUserInfoById(user.getParentId());
+        if (parent == null) {
+            return new JSONObject();
+        }
+        JSONObject inviter = new JSONObject();
+        inviter.put("userId", parent.getId());
+        inviter.put("name", parent.getName());
+        inviter.put("headImageUrl", parent.getHeadImageUrl());
+        inviter.put("userNo", parent.getUserNo());
+        inviter.put("wechatId", parent.getWechatId());
+        inviter.put("qq", parent.getQq());
+        return inviter;
+    }
+
+
+
+    private UserPetUser getOrCreateUserPetUser(Long userId) {
+        Date now = new Date();
+        Date nowHourBegin = truncateToHour(now);
+        return lockOrCreateUserPetUser(userId, nowHourBegin);
+    }
+
+
+
 
 
     /**
@@ -674,7 +878,6 @@ public class ManagerGamePetService  extends BaseService {
         }
         return PlayGameService.DIC_PET.values().iterator().next();
     }
-
 
 
     /**

@@ -120,4 +120,53 @@ public class GamePetService  extends BaseService {
         return async();
     }
 
+    /**
+     * 邀请-主页信息（邀请码/邀请人/统计）
+     */
+    @ServiceMethod(code = "006", description = "养宠-邀请主页")
+    public Object inviteHome(final AppSocket appSocket, Command appCommand, JSONObject params) {
+        checkNull(params);
+        long userId = appSocket.getWsidBean().getUserId();
+        params.put("userId", userId);
+        Command managerCmd = CommandBuilder.builder()
+                .request("038006", params)
+                .build();
+        Executer.request(TargetSocketType.manager, managerCmd, new RequestManagerListener(appCommand));
+        return async();
+    }
+
+    /**
+     * 邀请-直推列表（全部/未达标/有效）
+     * type: 0全部 / 1未达标 / 2有效
+     * page/pageSize: 可选
+     */
+    @ServiceMethod(code = "007", description = "养宠-邀请列表")
+    public Object inviteList(final AppSocket appSocket, Command appCommand, JSONObject params) {
+        checkNull(params);
+        long userId = appSocket.getWsidBean().getUserId();
+        params.put("userId", userId);
+        Command managerCmd = CommandBuilder.builder()
+                .request("038007", params)
+                .build();
+        Executer.request(TargetSocketType.manager, managerCmd, new RequestManagerListener(appCommand));
+        return async();
+    }
+
+    /**
+     * 邀请人信息弹窗（上级信息）
+     */
+    @ServiceMethod(code = "008", description = "养宠-邀请人信息")
+    public Object inviterInfo(final AppSocket appSocket, Command appCommand, JSONObject params) {
+        checkNull(params);
+        long userId = appSocket.getWsidBean().getUserId();
+        params.put("userId", userId);
+        Command managerCmd = CommandBuilder.builder()
+                .request("038008", params)
+                .build();
+        Executer.request(TargetSocketType.manager, managerCmd, new RequestManagerListener(appCommand));
+        return async();
+    }
+
+
+
 }

@@ -221,7 +221,6 @@ public class Config extends BaseBean {
 	// 失败时向奖池注入的比例
 	public static final String SEED_SYN_FAIL_POOL_RATE = "SEED_SYN_FAIL_POOL_RATE";
 
-	// ==================== 一阶种子兑换（核心积分） ====================
 	/**
 	 * 一阶种子兑换配置（推荐：单 Key JSON 配置，减少 t_config 配置项数量）。
 	 */

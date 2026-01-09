@@ -955,4 +955,50 @@ public class UserService extends DaoService {
         return (User) findOne("getValidById", params);
     }
 
+    /**
+     * 按 parent_id 查询下级  不强制 vip2=1
+     */
+    public List<User> findInviteUsersByParentId(Long parentId, Integer page, Integer pageSize) {
+        int start = (page - 1) * pageSize;
+        Map<String, Object> params = new HashMap<>(8);
+        params.put("parentId", parentId);
+        params.put("start", start);
+        params.put("limit", pageSize);
+        return findList("findInviteUsersByParentId", params);
+    }
+
+    /**
+     * 邀请列表（直推）- 带 type 过滤
+     * type: 0全部 / 1未达标 / 2有效
+     */
+    public List<User> findInviteUsersByParentIdWithType(Long parentId, Integer type, Integer page, Integer pageSize) {
+        int start = (page - 1) * pageSize;
+        Map<String, Object> params = new HashMap<>(8);
+        params.put("parentId", parentId);
+        params.put("type", type);
+        params.put("start", start);
+        params.put("limit", pageSize);
+        return findList("findInviteUsersByParentIdWithType", params);
+    }
+
+    public int countInviteUsersByParentId(Long parentId) {
+        Map<String, Object> params = new HashMap<>(4);
+        params.put("parentId", parentId);
+        Object result = findOne("countInviteUsersByParentId", params);
+        return result == null ? 0 : Integer.parseInt(result.toString());
+    }
+
+    public int countInviteUsersValidByParentId(Long parentId) {
+        Map<String, Object> params = new HashMap<>();
+        params.put("parentId", parentId);
+        Integer r = (Integer) findOne("countInviteUsersValidByParentId", params);
+        return r == null ? 0 : r;
+    }
+
+    public int countInviteUsersUnqualifiedByParentId(Long parentId) {
+        Map<String, Object> params = new HashMap<>(4);
+        params.put("parentId", parentId);
+        return (Integer) findOne("countInviteUsersUnqualifiedByParentId", params);
+    }
+
 }

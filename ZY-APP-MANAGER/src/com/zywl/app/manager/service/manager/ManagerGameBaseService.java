@@ -140,6 +140,8 @@ public class ManagerGameBaseService extends BaseService {
     @Autowired
     private ManagerGameFarmService managerGameFarmService;
 
+    @Autowired
+    private GuildMemberService guildMemberService;
 
     public static final LinkedList<JSONObject> CHAT_LIST = new LinkedList<>();
 
@@ -236,6 +238,7 @@ public class ManagerGameBaseService extends BaseService {
         String mineV = managerConfigService.getString(Config.MINE_VERSION);
         String roleV = managerConfigService.getString(Config.ROLE_VERSION);
         String petV = managerConfigService.getString(Config.PET_TABLE_VERSION);
+
         // 客户端传上来的 tableInfo
         JSONObject tableInfo = params.getJSONObject("tableInfo");
 
@@ -292,6 +295,7 @@ public class ManagerGameBaseService extends BaseService {
             obj.put("data", dicPets);
             tableInfos.put("petTable", obj);
         }
+
         return tableInfos;
     }
 
@@ -324,7 +328,7 @@ public class ManagerGameBaseService extends BaseService {
             //用户VIP信息,如果用户没有VIP就默认创建一条；
             UserVip userVipByUserId = userVipService.findUserVipByUserId(userId);
             result.put("vipLv", userVipByUserId == null ? 0 : userVipByUserId.getVipLevel());
-
+            //成就信息
             result.put("achievement",gameService.getUserAchievement(String.valueOf(userId)));
             //用户上级
             result.put("parentId", user.getParentId() == null ? "" : user.getParentId());
@@ -361,6 +365,11 @@ public class ManagerGameBaseService extends BaseService {
             //聊天信息
             result.put("chatInfo", getRecent(10));
             result.put("serverChat", SERVER_CHAT);
+
+            //工会信息
+            GuildMember guildMember = guildMemberService.findByUserId(userId);
+            result.put("guildId", guildMember == null ? -1L : guildMember.getGuildId());
+
             return result;
         }
     }
@@ -1392,7 +1401,6 @@ public class ManagerGameBaseService extends BaseService {
         userService.updateUserName(name, userId);
         return name;
     }
-
 
     /**
      * 046 合成道具
