@@ -442,7 +442,7 @@
 		from t_user
 		where parent_id = #{parentId} and status = 1
 		order by id desc
-			limit #{start}, #{pageSize}
+			limit #{start}, #{limit}
 	</select>
 
 
