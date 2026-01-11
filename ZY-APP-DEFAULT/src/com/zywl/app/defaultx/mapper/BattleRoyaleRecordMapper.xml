@@ -117,4 +117,13 @@
 	<delete id="deletedThreeDayRecord">
 		delete from r_battle_royale_record where create_time &lt;#{time}
 	</delete>
+
+	<select id="sumTotalsByUserId" resultType="java.util.Map">
+		select
+			ifnull(sum(bet_amount), 0) as totalInvest,
+			ifnull(sum(profit), 0) as totalGain
+		from r_battle_royale_record
+		where user_id = #{userId}
+	</select>
+
 </mapper>

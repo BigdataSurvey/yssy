@@ -22,7 +22,10 @@ import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
 import java.util.List;
-
+/**
+ * 游戏用户服务
+ * GAME_BASE_SERVER == 009
+ * **/
 @Service
 @ServiceClass(code = MessageCodeContext.USER_SERVER)
 public class ServerUserService extends BaseService {

@@ -484,30 +484,57 @@ public class ManagerGameBaseService extends BaseService {
         return result;
     }
 
+    /**
+     * 背包物品出售给系统
+     * update 20260110 lzx
+     * **/
     @Transactional
-    @ServiceMethod(code = "111", description = "出售给系统")
+    @ServiceMethod(code = "111", description = "背包物品出售给系统")
     public Object sellItemToSys(ManagerSocketServer managerSocketServer, JSONObject params) {
         checkNull(params);
         checkNull(params.get("userId"), params.get("itemId"), params.get("num"));
-        String userId = params.getString("userId");
+
+        Long userId = params.getLong("userId");
         String itemId = params.getString("itemId");
         int number = params.getIntValue("num");
-        //检查道具数量
+
+        if (number < 1) {
+            throwExp("请填写正确的出售数量");
+        }
+
+        Item item = PlayGameService.itemMap.get(itemId);
+        if (item == null) {
+            throwExp("未查询到该道具信息");
+        }
+        BigDecimal onePrice = item.getPrice();
+        if (onePrice == null || onePrice.compareTo(BigDecimal.ZERO) <= 0) {
+            throwExp("该道具不可出售");
+        }
+
+        // 背包数量校验
         gameService.checkUserItemNumber(userId, itemId, number);
-        //道具的出售价格
-        BigDecimal onePrice = PlayGameService.itemMap.get(itemId).getPrice();
+        //总价格  单价x数量
+        BigDecimal totalAmount = onePrice.multiply(BigDecimal.valueOf(number));
         //订单号
         String orderNo = OrderUtil.getOrder5Number();
-        //总价格  单价x数量
-        BigDecimal totalAmount = onePrice.multiply(new BigDecimal(String.valueOf(number)));
         //添加出售记录 拿到recordId
-        Long dataId = sellSysRecordService.addRecord(Long.parseLong(userId), Long.parseLong(itemId), number, totalAmount, orderNo);
-        //更改背包信息 不用推送背包是因为这个updateUserBackpack 里面 推送了
+        sellSysRecordService.addRecord(userId, Long.parseLong(itemId), number, totalAmount, orderNo);
+
+        // 扣除背包 不用推送背包是因为这个updateUserBackpack 里面 推送了
         gameService.updateUserBackpack(userId, itemId, -number, LogUserBackpackTypeEnum.sell_sys);
+
+        // 出售所得资产统一改为 hxjf 并统一走 addReward 完成资产更新与推送
+        JSONArray rewards = new JSONArray();
+        JSONObject reward = new JSONObject();
+        reward.put("type", 1);
+        reward.put("id", String.valueOf(UserCapitalTypeEnum.hxjf.getValue())); 
+        reward.put("number", totalAmount);
+        rewards.add(reward);
+
+        gameService.addReward(userId, rewards, LogCapitalTypeEnum.sell_sys, LogUserBackpackTypeEnum.sell_sys);
         // 更改资产信息 卖了东西要加钱
-        userCapitalService.addUserBalanceBySellToSys(totalAmount, Long.parseLong(userId), orderNo, dataId, UserCapitalTypeEnum.currency_2.getValue());
-        //推送资产变动
-        pushCapitalUpdate(Long.valueOf(userId), UserCapitalTypeEnum.currency_2.getValue());
+        //userCapitalService.addUserBalanceBySellToSys(totalAmount, Long.parseLong(userId), orderNo, dataId, UserCapitalTypeEnum.currency_2.getValue());
+
         return params;
     }
 
@@ -1079,50 +1106,61 @@ public class ManagerGameBaseService extends BaseService {
         return new ArrayList<>(tempList.subList(0, Math.min(count, tempList.size())));
     }
 
+    /**
+     *
+     * **/
     @Transactional
-    @ServiceMethod(code = "031", description = "使用道具")
+    @ServiceMethod(code = "031", description = "背包使用道具")
     public Object useItem1(ManagerSocketServer managerSocketServer, JSONObject params) {
         Long userId = params.getLong("userId");
         synchronized (LockUtil.getlock(userId)) {
             String itemId = params.getString("itemId");
             int number = params.getIntValue("number");
+            if (number < 1) {
+                throwExp("非法请求");
+            }
+            if (!"1003".equals(itemId) && !"3001".equals(itemId)) {
+                throwExp("该道具不可使用");
+            }
+
             gameService.checkUserItemNumber(userId, itemId, number);
-            JSONArray reward = new JSONArray();
-            JSONObject obj = new JSONObject();
-            obj.put("type", 1);
-            gameService.updateUserBackpack(userId,itemId,-number,LogUserBackpackTypeEnum.use);
-            if (itemId.equals("55")) {
-                obj.put("id", 2);
-                BigDecimal all = BigDecimal.ZERO;
+
+            // 先扣除背包
+            gameService.updateUserBackpack(userId, itemId, -number, LogUserBackpackTypeEnum.use);
+            // 宝箱奖励 hxjf 并统一走 addReward 完成资产更新与推送
+            BigDecimal all = BigDecimal.ZERO;
+            if ("1003".equals(itemId)) {
+                // 固定 1.5 / 个
                 for (int i = 0; i < number; i++) {
                     all = all.add(new BigDecimal("1.5"));
                 }
-                obj.put("number", all);
-                userCapitalService.addUserBalanceByAddBox(all, userId, UserCapitalTypeEnum.currency_2.getValue(), LogCapitalTypeEnum.box_reward);
-                pushCapitalUpdate(userId, UserCapitalTypeEnum.currency_2.getValue());
-            } else if (itemId.equals("56")) {
-                double all = 0.0;
-                obj.put("id", 2);
+            } else {
+                // 随机 5.00 ~ 5.49 / 个
+                Random random = new Random();
+                double sum = 0.0;
                 for (int i = 0; i < number; i++) {
-                    Random random = new Random();
                     double v = random.nextInt(50) + 500;
                     v = v / 100;
-                    all += v;
+                    sum += v;
                 }
-                BigDecimal allMoney = BigDecimal.valueOf(all);
-                obj.put("number", allMoney);
-                userCapitalService.addUserBalanceByAddBox(allMoney, userId, UserCapitalTypeEnum.currency_2.getValue(), LogCapitalTypeEnum.box_reward);
-                pushCapitalUpdate(userId, UserCapitalTypeEnum.currency_2.getValue());
+                all = BigDecimal.valueOf(sum);
             }
 
+            JSONArray reward = new JSONArray();
+            JSONObject obj = new JSONObject();
+            obj.put("type", 1);
+            obj.put("id", String.valueOf(UserCapitalTypeEnum.hxjf.getValue()));
+            obj.put("number", all);
             reward.add(obj);
+            gameService.addReward(userId, reward, LogCapitalTypeEnum.box_reward, LogUserBackpackTypeEnum.use);
+
             JSONObject result = new JSONObject();
             result.put("rewardInfo", reward);
             return result;
         }
-
-
     }
+
+
 
     @Transactional
     @ServiceMethod(code = "035", description = "商店购买")

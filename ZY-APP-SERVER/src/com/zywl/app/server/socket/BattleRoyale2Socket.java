@@ -102,14 +102,13 @@ public class BattleRoyale2Socket extends BaseClientSocket {
                         result.put("userId", userId);
                         result.put("gameStatus", obj.get("status"));
                         result.put("userSettleInfo", obj.get("userSettleInfo"));
+                        mergeUnifiedSummary(result, obj, userId);
                         Push.push(PushCode.updatePbxStatus, userId, result);
                     }
                 }
             }
         }, this);
 
-        // 注意：DTS2(PBX-only) 并未提供 rollbackCapital 推送服务；
-        // SERVER 端不应向 DTS2 注册该 pushCode，否则会出现“服务器未提供该推送服务rollbackCapital”告警。
 
         JSONObject connectedData = ((JSONObject) data).getJSONObject("responseShakeHandsData");
         if (connectedData != null) {
@@ -156,4 +155,69 @@ public class BattleRoyale2Socket extends BaseClientSocket {
     protected Log logger() {
         return logger;
     }
+
+    /**
+     * 合并统一摘要字段到推送结果：
+     */
+    private static void mergeUnifiedSummary(JSONObject result, JSONObject obj, String userId) {
+        if (result == null || obj == null) {
+            return;
+        }
+
+        JSONObject summary = null;
+
+        try {
+            Object m = obj.get("userRecordSummaryMap");
+            if (m instanceof JSONObject) {
+                JSONObject map = (JSONObject) m;
+                Object s = map.get(userId);
+                if (s instanceof JSONObject) {
+                    summary = (JSONObject) s;
+                } else if (s != null) {
+                    summary = JSONObject.from(s);
+                }
+            } else if (m instanceof java.util.Map) {
+                JSONObject map = JSONObject.from(m);
+                Object s = map.get(userId);
+                if (s instanceof JSONObject) {
+                    summary = (JSONObject) s;
+                } else if (s != null) {
+                    summary = JSONObject.from(s);
+                }
+            }
+        } catch (Exception ignore) {
+        }
+
+        if (summary == null) {
+            boolean hasAny = obj.containsKey("recent16Summary")
+                    || obj.containsKey("recent100Periods")
+                    || obj.containsKey("totalInvest")
+                    || obj.containsKey("totalGain")
+                    || obj.containsKey("serverTime");
+            if (hasAny) {
+                summary = obj;
+            }
+        }
+
+        if (summary == null) {
+            return;
+        }
+
+        if (summary.containsKey("recent16Summary")) {
+            result.put("recent16Summary", summary.get("recent16Summary"));
+        }
+        if (summary.containsKey("recent100Periods")) {
+            result.put("recent100Periods", summary.get("recent100Periods"));
+        }
+        if (summary.containsKey("totalInvest")) {
+            result.put("totalInvest", summary.get("totalInvest"));
+        }
+        if (summary.containsKey("totalGain")) {
+            result.put("totalGain", summary.get("totalGain"));
+        }
+        if (summary.containsKey("serverTime")) {
+            result.put("serverTime", summary.get("serverTime"));
+        }
+    }
+
 }

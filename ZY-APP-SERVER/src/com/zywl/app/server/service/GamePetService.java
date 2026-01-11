@@ -167,6 +167,19 @@ public class GamePetService  extends BaseService {
         return async();
     }
 
-
+    /**
+     * 部落-主页信息（部落总人数/部落1~5卡片/解锁进度）
+     */
+    @ServiceMethod(code = "009", description = "养宠-部落主页")
+    public Object tribeHome(final AppSocket appSocket, Command appCommand, JSONObject params) {
+        checkNull(params);
+        long userId = appSocket.getWsidBean().getUserId();
+        params.put("userId", userId);
+        Command managerCmd = CommandBuilder.builder()
+                .request("038009", params)
+                .build();
+        Executer.request(TargetSocketType.manager, managerCmd, new RequestManagerListener(appCommand));
+        return async();
+    }
 
 }

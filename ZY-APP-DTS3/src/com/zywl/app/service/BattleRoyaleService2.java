@@ -15,7 +15,6 @@ import com.live.app.ws.util.Executer;
 import com.live.app.ws.util.Push;
 import com.zywl.app.base.bean.*;
 import com.zywl.app.base.bean.vo.BattleRoyale2Record;
-import com.zywl.app.base.constant.TableNameConstant;
 import com.zywl.app.base.service.BaseService;
 import com.zywl.app.base.util.*;
 import com.zywl.app.bean.BattleRoyaleRoom2;
@@ -25,7 +24,6 @@ import com.zywl.app.defaultx.cache.GameCacheService;
 import com.zywl.app.defaultx.enmus.GameTypeEnum;
 import com.zywl.app.defaultx.enmus.LogCapitalTypeEnum;
 import com.zywl.app.defaultx.enmus.LotteryGameStatusEnum;
-import com.zywl.app.defaultx.enmus.UserCapitalTypeEnum;
 import com.zywl.app.defaultx.service.*;
 import com.zywl.app.socket.BattleRoyaleSocketServer2;
 import com.zywl.app.util.RequestManagerListener;
@@ -80,7 +78,7 @@ public class BattleRoyaleService2 extends BaseService {
     private GameService gameService;
 
     @Autowired
-    private BattleRoyaleRecord2Service battleRoyaleRecordService;
+    private BattleRoyaleRecord3Service battleRoyaleRecordService;
 
     @Autowired
     private GameCacheService gameCacheService;
@@ -346,7 +344,12 @@ public class BattleRoyaleService2 extends BaseService {
                 appendDts3Info(ROOM.pushResult(3, userId, null, null));
             }
         }
-        return ROOM.getReturnInfo();
+        JSONObject resp = ROOM.getReturnInfo();
+        try {
+            resp.putAll(battleRoyaleRecordService.buildUnifiedSummary(Long.parseLong(data.getString("userId")), true));
+        } catch (Exception ignore) {
+        }
+        return resp;
     }
 
     @Transactional
@@ -714,6 +717,27 @@ public class BattleRoyaleService2 extends BaseService {
             data.put("status", status);
             data.putAll(ROOM.getSettleDate());
             data.put("userSettleInfo", userBetOrderInfo);
+            JSONObject userRecordSummaryMap = new JSONObject();
+            try {
+                if (userBetOrderInfo != null) {
+                    for (String uid : userBetOrderInfo.keySet()) {
+                        BigDecimal extraGain = null;
+                        try {
+                            Map<String, String> si = userBetOrderInfo.get(uid);
+                            if (si != null && si.get("winAmount") != null) {
+                                extraGain = new BigDecimal(si.get("winAmount"));
+                            }
+                        } catch (Exception ignore) {
+                        }
+                        try {
+                            userRecordSummaryMap.put(uid, battleRoyaleRecordService.buildUnifiedSummary(Long.valueOf(uid), true, extraGain));
+                        } catch (Exception ignore) {
+                        }
+                    }
+                }
+            } catch (Exception ignore) {
+            }
+            data.put("userRecordSummaryMap", userRecordSummaryMap);
             Push.push(PushCode.updateDts3Status, null, data);
             Executer.executeService(new Runnable() {
                 @Override
@@ -885,45 +909,9 @@ public class BattleRoyaleService2 extends BaseService {
         checkNull(data);
         checkNull(data.get("userId"));
         Long userId = data.getLong("userId");
-        JSONObject history20Result = ROOM.getHistory20Reuslt();
-        JSONObject history100Result = ROOM.getHistory100Reuslt();
-        List<BattleRoyale2Record> records = battleRoyaleRecordService.findHistoryRecordByUserId(userId);
-        JSONArray resultArray = new JSONArray();
-        for (BattleRoyale2Record record : records) {
-            JSONObject obj = new JSONObject();
-            obj.put("periodsNum", record.getPeriodsNum());
-            obj.put("result", record.getLotteryResult());
-            obj.put("myBet", record.getBetInfo());
-            obj.put("betAmount", record.getBetAmount());
-            obj.put("profit", record.getProfit());
-            obj.put("create", record.getCreateTime());
-            resultArray.add(obj);
-        }
-        Map<String, Integer> his20Info = new HashMap<>();
-        Set<String> his20 = history20Result.keySet();
-        for (String s : his20) {
-            JSONArray array = JSON.parseArray(s);
-            for (Object o : array) {
-                Integer num = Integer.parseInt(o.toString());
-                his20Info.put(num.toString(), his20Info.getOrDefault(num.toString(), 0) + 1);
-            }
-        }
-
-        Map<String, Integer> his100Info = new HashMap<>();
-        Set<String> his100 = history100Result.keySet();
-        for (String s : his100) {
-            JSONArray array = JSON.parseArray(s);
-            for (Object o : array) {
-                Integer num = Integer.parseInt(o.toString());
-                his100Info.put(num.toString(), his100Info.getOrDefault(num.toString(), 0) + 1);
-            }
-        }
-        JSONObject result = new JSONObject();
-        result.put("result20", his20Info);
-        result.put("result100", his100Info);
-        result.put("myRecord", resultArray);
-        return result;
+        return battleRoyaleRecordService.buildUnifiedSummary(userId, true);
     }
+
 
 
     @Transactional

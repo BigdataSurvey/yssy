@@ -43,7 +43,10 @@ import java.net.URL;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
-
+/**
+ * 游戏基础服务
+ * GAME_BASE_SERVER == 001
+ * **/
 @Service
 @ServiceClass(code = MessageCodeContext.GAME_BASE_SERVER)
 public class GameBaseService extends BaseService {

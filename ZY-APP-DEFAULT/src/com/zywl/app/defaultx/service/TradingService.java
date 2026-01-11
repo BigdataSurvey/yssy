@@ -51,7 +51,7 @@ public class TradingService extends DaoService {
     public List<TradingVo> findTradingsByConditon(int start, int limit, Long itemId, Integer itemType, Long userId,
                                                   Integer type) {
         Map<String, Object> params = new HashedMap<>();
-        params.put("start", start * limit);
+        params.put("start", (start - 1) * limit);
         params.put("limit", limit);
         if (itemId != null) {
             params.put("itemId", itemId);

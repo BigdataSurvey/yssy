@@ -83,8 +83,6 @@ public class BattleRoyaleService extends BaseService {
     @Autowired
     private BattleRoyaleService battleRoyaleService;
 
-    @Autowired
-    private UserCapitalCacheService userCapitalCacheService;
 
     @Autowired
     private BattleRoyaleRequsetMangerService requsetMangerService;
@@ -93,27 +91,20 @@ public class BattleRoyaleService extends BaseService {
     private GameCacheService gameCacheService;
 
     private static final Object lock = new Object();
-
     private static final Object betLock = new Object();
-
-    public static Map<String, List<Map<String, String>>> userCapitals = new ConcurrentHashMap<>();
-
     public static String key = DateUtil.getCurrent5();
-
     public static Map<String, String> orderMap = new ConcurrentHashMap<>();
-
     public static Set<String> betUser = new ConcurrentHashSet<>();
-
     public static Set<String> updateRoomUser = new ConcurrentHashSet<>();
-
-    public static final Map<String,JSONArray> pushArray = new ConcurrentHashMap<>();
-
-    public static Map<String, List<Map<String, String>>> userRankCapitals = new ConcurrentHashMap<>();
     public static String key2 = DateUtil.getCurrent5();
     public static String key3 = DateUtil.getCurrent5();
     public static BigDecimal rate = new BigDecimal("0.9");
 
-
+    private static Map<String, List> userCapitals = new ConcurrentHashMap<>();
+    private static Map<String, List> userRankCapitals = new ConcurrentHashMap<>();
+    private static Map<String, List> orderArray = new ConcurrentHashMap<>();
+    private static Map<String, List> orderArray2 = new ConcurrentHashMap<>();
+    private static Map<String, JSONArray> pushArray = new ConcurrentHashMap<>();
 
 
     public void updateRate(BigDecimal a){
@@ -122,15 +113,22 @@ public class BattleRoyaleService extends BaseService {
 
     @PostConstruct
     public void _Construct() {
+        // 同步游戏配置
         initGameSetting();
+
+        // 初始化大逃杀房间
         ROOM = new BattleRoyaleRoom(OPTIONS_NUM);
-        initHistoryResult();
-        addPushSuport();
+
+        // 初始化期数与历史数据
         periodsNum();
+        initHistoryResult();
+
+        // 推送支持
+        addPushSuport();
+
+        //启动定时任务：同步资产内存、滚动推送等
         requestManagerUpdateCapital();
-
     }
-
     public void requestManagerUpdateCapital() {
         new Timer("定时推送manager修改内存数据").schedule(new TimerTask() {
             public void run() {
@@ -230,7 +228,12 @@ public class BattleRoyaleService extends BaseService {
             Map<String, Double> lastWeekTopList = gameCacheService.getLastWeekTopList(GameTypeEnum.battleRoyale.getValue(), 10);
             ROOM.setLastWeekTopThree(lastWeekTopList);
         }
-        return ROOM.getReturnInfo();
+        JSONObject resp = ROOM.getReturnInfo();
+        try {
+            resp.putAll(battleRoyaleRecordService.buildUnifiedSummary(Long.parseLong(data.getString("userId")), true));
+        } catch (Exception ignore) {
+        }
+        return resp;
     }
 
     @Transactional
@@ -590,6 +593,27 @@ public class BattleRoyaleService extends BaseService {
             data.put("status", status);
             data.putAll(ROOM.getSettleDate());
             data.put("userSettleInfo", userBetOrderInfo);
+            JSONObject userRecordSummaryMap = new JSONObject();
+            try {
+                if (userBetOrderInfo != null) {
+                    for (String uid : userBetOrderInfo.keySet()) {
+                        BigDecimal extraGain = null;
+                        try {
+                            Map<String, String> si = userBetOrderInfo.get(uid);
+                            if (si != null && si.get("winAmount") != null) {
+                                extraGain = new BigDecimal(si.get("winAmount"));
+                            }
+                        } catch (Exception ignore) {
+                        }
+                        try {
+                            userRecordSummaryMap.put(uid, battleRoyaleRecordService.buildUnifiedSummary(Long.valueOf(uid), true, extraGain));
+                        } catch (Exception ignore) {
+                        }
+                    }
+                }
+            } catch (Exception ignore) {
+            }
+            data.put("userRecordSummaryMap", userRecordSummaryMap);
             Push.push(PushCode.updateGameStatus, null, data);
             Executer.executeService(new Runnable() {
                 @Override
@@ -766,32 +790,9 @@ public class BattleRoyaleService extends BaseService {
         checkNull(data);
         checkNull(data.get("userId"));
         Long userId = data.getLong("userId");
-        JSONObject history20Result = ROOM.getHistory20Reuslt();
-        JSONObject history100Result = ROOM.getHistory100Reuslt();
-        List<BattleRoyaleRecord> records = battleRoyaleRecordService.findHistoryRecordByUserId(userId);
-        JSONArray resultArray = new JSONArray();
-        for (BattleRoyaleRecord record : records) {
-            JSONObject obj = new JSONObject();
-            obj.put("periodsNum", record.getPeriodsNum());
-            String lotteryResult = record.getLotteryResult();
-            String[] split = lotteryResult.split(",");
-            List<Integer> list = new ArrayList<>();
-            for (String s : split) {
-                list.add(Integer.parseInt(s));
-            }
-            obj.put("result", list);
-            obj.put("myBet", record.getBetInfo());
-            obj.put("betAmount", record.getBetAmount());
-            obj.put("profit", record.getProfit());
-            obj.put("create", record.getCreateTime());
-            resultArray.add(obj);
-        }
-        JSONObject result = new JSONObject();
-        result.put("result20", history20Result);
-        result.put("result100", history100Result);
-        result.put("myRecord", resultArray);
-        return result;
+        return battleRoyaleRecordService.buildUnifiedSummary(userId, true);
     }
+
     public Integer getNext(){
         return ROOM.getNextResult();
     }

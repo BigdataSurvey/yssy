@@ -14,6 +14,7 @@ import com.zywl.app.socket.BattleRoyaleSocketServer2;
 import com.live.app.ws.bean.Command;
 import com.zywl.app.base.bean.Game;
 import com.zywl.app.defaultx.service.GameService;
+import com.zywl.app.defaultx.service.BattleRoyaleRecord2Service;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -177,6 +178,9 @@ public class PbxService extends BaseService {
 
     @Autowired
     private BattleRoyaleRequsetMangerService2 requsetMangerService2;
+
+    @Autowired
+    private BattleRoyaleRecord2Service battleRoyaleRecord2Service;
 
     /**
      * 服务启动入口
@@ -572,6 +576,16 @@ public class PbxService extends BaseService {
                             BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO,
                             null, poolBalance, serverTime, "pool not enough, force lose",
                             1);
+                    try {
+                        JSONObject sum = battleRoyaleRecord2Service.buildUnifiedSummary(Long.valueOf(uid), false);
+                        if (sum != null) {
+                            JSONObject mp = new JSONObject();
+                            mp.put(uid, sum);
+                            pushStatus.put("userRecordSummaryMap", mp);
+                            pushStatus.putAll(sum);
+                        }
+                    } catch (Exception ignore) {
+                    }
                     Push.push(PushCode.updatePbxStatus, null, pushStatus);
                 }
 
@@ -692,6 +706,53 @@ public class PbxService extends BaseService {
                 }
             }
 
+            // === DB 落库：本期结算（未中奖）===
+            try {
+                JSONObject upd = new JSONObject();
+                String lotteryResult = joinResultElements(resultElements);
+
+                // === DB 落库：本期结算（中奖/有返还）===
+                try {
+                    JSONObject upd2 = new JSONObject();
+                    String lotteryResult2 = joinResultElements(resultElements);
+                    for (String uid : snapshot.userTotalBet.keySet()) {
+                        JSONObject u = userInfoMap.get(uid);
+                        BigDecimal gross = (u == null) ? BigDecimal.ZERO : u.getBigDecimal("returnAmount");
+                        BigDecimal betAmount = snapshot.userTotalBet.get(uid);
+                        String betInfo = buildBetInfo(snapshot.userElementBet.get(uid));
+                        String orderNo = "PBX-" + snapshot.periodNo + "-" + uid;
+                        JSONObject row = new JSONObject();
+                        row.put("winAmount", gross);
+                        row.put("lotteryResult", lotteryResult2);
+                        row.put("isWin", (gross != null && gross.compareTo(BigDecimal.ZERO) > 0) ? 1 : 0);
+                        row.put("betAmount", betAmount);
+                        row.put("betInfo", betInfo);
+                        upd2.put(orderNo, row);
+                    }
+                    if (!upd2.isEmpty()) {
+                        battleRoyaleRecord2Service.batchUpdateRecord(upd2);
+                    }
+                } catch (Exception ignore) {
+                }
+
+                for (String uid : snapshot.userTotalBet.keySet()) {
+                    String orderNo = "PBX-" + snapshot.periodNo + "-" + uid;
+                    BigDecimal betAmount = snapshot.userTotalBet.get(uid);
+                    String betInfo = buildBetInfo(snapshot.userElementBet.get(uid));
+                    JSONObject row = new JSONObject();
+                    row.put("winAmount", BigDecimal.ZERO);
+                    row.put("lotteryResult", lotteryResult);
+                    row.put("isWin", 0);
+                    row.put("betAmount", betAmount);
+                    row.put("betInfo", betInfo);
+                    upd.put(orderNo, row);
+                }
+                if (!upd.isEmpty()) {
+                    battleRoyaleRecord2Service.batchUpdateRecord(upd);
+                }
+            } catch (Exception ignore) {
+            }
+
             for (String uid : snapshot.userTotalBet.keySet()) {
                 JSONObject state = onlineUserState.get(uid);
                 if (state != null) {
@@ -709,6 +770,16 @@ public class PbxService extends BaseService {
                 JSONObject pushStatus = buildAutoSettleStatusPush(uid, snapshot.periodNo, resultElements,
                         gross, fee, net, balance, newPoolBalance, serverTime, null,
                         0);
+                try {
+                    JSONObject sum = battleRoyaleRecord2Service.buildUnifiedSummary(Long.valueOf(uid), false);
+                    if (sum != null) {
+                        JSONObject mp = new JSONObject();
+                        mp.put(uid, sum);
+                        pushStatus.put("userRecordSummaryMap", mp);
+                        pushStatus.putAll(sum);
+                    }
+                } catch (Exception ignore) {
+                }
                 Push.push(PushCode.updatePbxStatus, null, pushStatus);
             }
 
@@ -854,7 +925,8 @@ public class PbxService extends BaseService {
         resp.put("onlineCount", onlineUserState.size());
         resp.put("gameSetting", PBX_GAME_SETTING);
         resp.put("poolBalance", poolBalance);
-        resp.put("serverTime", serverTime);
+        resp.put("serverTimeStr", serverTime);
+        resp.put("serverTime", nowMs);
         String periodNo = ensureCurrentPeriod(nowMs);
         resp.put("periodNo", periodNo);
         long periodStartMs = getPeriodStartMs(nowMs);
@@ -868,7 +940,27 @@ public class PbxService extends BaseService {
         resp.put("myTotalReturn", myTotalReturn);
         resp.put("myTotalNet", myTotalNet);
 
+        // 统一结构：recent16Summary / recent100Periods / totalInvest / totalGain / serverTime
+        try {
+            JSONObject summary = battleRoyaleRecord2Service.buildUnifiedSummary(Long.valueOf(userId), false);
+            if (summary != null) {
+                resp.putAll(summary);
+                // 强制统一 serverTime 为毫秒时间戳
+                resp.put("serverTime", nowMs);
+            }
+        } catch (Exception ignore) {
+        }
+
         return resp;
+    }
+
+
+    @ServiceMethod(code = "108", description = "推箱子-获取统计记录(统一)")
+    public JSONObject getRecord(BattleRoyaleSocketServer2 adminSocketServer, Command lotteryCommand, JSONObject data) {
+        checkNull(data);
+        checkNull(data.get("userId"));
+        Long userId = data.getLong("userId");
+        return battleRoyaleRecord2Service.buildUnifiedSummary(userId, false);
     }
 
 
@@ -998,6 +1090,16 @@ public class PbxService extends BaseService {
                             userId, 2, true, managerOrderNo, periodNo, finalElementId, chip,
                             balance, poolBalance, fee, feeRate
                     );
+                    try {
+                        JSONObject sum = battleRoyaleRecord2Service.buildUnifiedSummary(Long.valueOf(userId), false);
+                        if (sum != null) {
+                            JSONObject mp = new JSONObject();
+                            mp.put(userId, sum);
+                            pushStatus.put("userRecordSummaryMap", mp);
+                            pushStatus.putAll(sum);
+                        }
+                    } catch (Exception ignore) {
+                    }
                     Push.push(PushCode.updatePbxStatus, null, pushStatus);
                     pushPbxInfo(lastPoolBalance);
 
@@ -1156,7 +1258,8 @@ public class PbxService extends BaseService {
         resp.put("success", true);
         resp.put("gameId", String.valueOf(PBX_GAME_ID));
         resp.put("poolBalance", poolBalance);
-        resp.put("serverTime", serverTime);
+        resp.put("serverTimeStr", serverTime);
+        resp.put("serverTime", nowMs);
         resp.put("onlineCount", onlineUserState.size());
         resp.put("gameSetting", PBX_GAME_SETTING);
         String periodNo = ensureCurrentPeriod(nowMs);
@@ -1171,6 +1274,17 @@ public class PbxService extends BaseService {
         resp.put("myTotalConsume", myTotalConsume);
         resp.put("myTotalReturn", myTotalReturn);
         resp.put("myTotalNet", myTotalNet);
+
+        // 统一结构：recent16Summary / recent100Periods / totalInvest / totalGain / serverTime
+        try {
+            JSONObject summary = battleRoyaleRecord2Service.buildUnifiedSummary(Long.valueOf(userId), false);
+            if (summary != null) {
+                resp.putAll(summary);
+                // 强制统一 serverTime 为毫秒时间戳
+                resp.put("serverTime", nowMs);
+            }
+        } catch (Exception ignore) {
+        }
 
         return resp;
     }
@@ -1727,9 +1841,6 @@ public class PbxService extends BaseService {
         return myTotalBet.stripTrailingZeros().toPlainString();
     }
 
-    // -------------------------------------------------------------------------
-    // Step C-2.1：内存聚合
-    // -------------------------------------------------------------------------
 
     /**
      * 记录一笔“扣款成功”的下注到本期聚合。
@@ -1754,6 +1865,56 @@ public class PbxService extends BaseService {
         // 周榜累计
         ensureWeek(System.currentTimeMillis());
         weekUserTotalBet.merge(userId, chip, BigDecimal::add);
+
+        // === DB 落库：r_battle_royale2_record（PBX 专用） ===
+        try {
+            String orderNo = "PBX-" + periodNo + "-" + userId;
+            Map<Integer, BigDecimal> um = periodUserElementBet.get(userId);
+            StringBuilder sb = new StringBuilder();
+            if (um != null && !um.isEmpty()) {
+                List<Integer> ks = new ArrayList<>(um.keySet());
+                Collections.sort(ks);
+                for (int i = 0; i < ks.size(); i++) {
+                    if (i > 0) sb.append(",");
+                    sb.append(ks.get(i));
+                }
+            } else {
+                sb.append(String.valueOf(elementId));
+            }
+            String betInfo = sb.toString();
+            int upd = battleRoyaleRecord2Service.addBetAmountAndInfo(chip, orderNo, betInfo);
+            if (upd < 1) {
+                battleRoyaleRecord2Service.addBattleRoyaleRecord(Long.valueOf(userId), orderNo, periodNo, betInfo, chip);
+            }
+        } catch (Exception ignore) {
+        }
+    }
+
+
+    private String buildBetInfo(Map<Integer, BigDecimal> um) {
+        if (um == null || um.isEmpty()) {
+            return "";
+        }
+        List<Integer> ks = new ArrayList<>(um.keySet());
+        Collections.sort(ks);
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < ks.size(); i++) {
+            if (i > 0) sb.append(",");
+            sb.append(ks.get(i));
+        }
+        return sb.toString();
+    }
+
+    private String joinResultElements(JSONArray resultElements) {
+        if (resultElements == null || resultElements.isEmpty()) {
+            return "";
+        }
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < resultElements.size(); i++) {
+            if (i > 0) sb.append(",");
+            sb.append(String.valueOf(resultElements.get(i)));
+        }
+        return sb.toString();
     }
 
     /**

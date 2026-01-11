@@ -1,5 +1,6 @@
 package com.zywl.app.socket;
-
+import com.alibaba.fastjson2.JSONArray;
+import com.alibaba.fastjson2.JSONObject;
 import com.alibaba.fastjson2.JSONObject;
 import com.live.app.ws.bean.Command;
 import com.live.app.ws.bean.ConnectedData;
@@ -39,17 +40,12 @@ public class BattleRoyaleSocketServer extends BaseServerSocket {
 	private double weight = 1; // 权重
 
 	private PropertiesUtil staticProperties;
-
 	private PropertiesUtil globalProperties;
 
 	private BattleRoyaleService battleRoyaleService;
-
 	private LotterySyncCapitalService lotterySyncCapitalService;
-
 	private BattleRoyaleRequsetMangerService requestService;
-
 	private UserCapitalService userCapitalService;
-
 	private TaskOrderService taskOrderService;
 
 	public BattleRoyaleSocketServer() {
@@ -96,18 +92,47 @@ public class BattleRoyaleSocketServer extends BaseServerSocket {
 
 	private void initPush() {
 
+		// 收到后需要继续转推给 SERVER
 		Push.registPush(new PushBean(PushCode.updateGameDiyData), new PushListener() {
 			public void onRegist(BaseSocket baseSocket, Object data) {
 				logger.debug("BattleRoyaleSocketServer.initPush.updateGameDiyData.onRegist");
 			}
 
 			public void onReceive(BaseSocket baseSocket, Object data) {
-				logger.debug("BattleRoyaleSocketServer.initPush.updateGameDiyData.onReceive");
-				Push.push(PushCode.updateGameDiyData, "7", data);
+				logger.debug("BattleRoyaleSocketServer.initPush.updateGameDiyData.onReceive, data=" + data);
+
+				// 如果 payload 带 gameId，且不是本服(7)就忽略
+				try {
+					if (data instanceof JSONObject) {
+						int gameId = ((JSONObject) data).getIntValue("gameId");
+						if (gameId != 0 && gameId != 7) {
+							return;
+						}
+					} else if (data instanceof JSONArray) {
+						boolean match = false;
+						for (Object o : (JSONArray) data) {
+							if (o instanceof JSONObject) {
+								int gameId = ((JSONObject) o).getIntValue("gameId");
+								if (gameId == 7) {
+									match = true;
+									break;
+								}
+							}
+						}
+						if (!match) {
+							return;
+						}
+					}
+				} catch (Exception e) {
+					logger.error("updateGameDiyData 解析异常 data=" + data, e);
+				}
+
+				//condition 必须为空
+				Push.push(PushCode.updateGameDiyData, null, data);
 			}
 		}, this);
 
-		// 注册加入房间推送
+		// 加入房间推送
 		Push.registPush(new PushBean(PushCode.updateRoomDate), new PushListener() {
 			public void onRegist(BaseSocket baseSocket, Object data) {
 			}
@@ -116,17 +141,13 @@ public class BattleRoyaleSocketServer extends BaseServerSocket {
 				if (data != null) {
 					BattleRoyaleSocketServer managerSocketServer = ((BattleRoyaleSocketServer) baseSocket);
 					JSONObject pushData = (JSONObject) data;
-					long userId = pushData.getLongValue("userId");
 					String userNo = pushData.getString("userNo");
-					int group = pushData.getIntValue("group");
-					String sessionId = pushData.getString("sessionId");
-					logger.debug(
-							"用户[" + userNo + "]加入" + managerSocketServer.getName() + "房间" + pushData.toJSONString());
+					logger.debug("用户[" + userNo + "]加入" + managerSocketServer.getName() + "房间" + pushData.toJSONString());
 				}
 			}
 		}, this);
 
-		// 注册加入房间推送
+		// 回滚资产
 		Push.registPush(new PushBean(PushCode.rollbackCapital), new PushListener() {
 			public void onRegist(BaseSocket baseSocket, Object data) {
 			}
@@ -135,20 +156,24 @@ public class BattleRoyaleSocketServer extends BaseServerSocket {
 			}
 		}, this);
 
-		// 注册更新游戏状态推送
+		// 状态变更推送收到后，必须转推给 SERVER
 		Push.registPush(new PushBean(PushCode.updateGameStatus), new PushListener() {
 			public void onRegist(BaseSocket baseSocket, Object data) {
 			}
+
 			public void onReceive(BaseSocket baseSocket, Object data) {
 				JSONObject json = (JSONObject) data;
 				int gameId = json.getIntValue("gameId");
-				if (gameId == 1) {
+				if (gameId == 7) {
 					BattleRoyaleService.STATUS = json.getIntValue("status");
+
+					// 把状态变更转推给 SERVER -- SERVER 再推给玩家
+					Push.push(PushCode.updateGameStatus, null, json);
 				}
 			}
 		}, this);
 
-		// 注册APP离线推送
+		// APP 离线推送
 		Push.registPush(new PushBean(PushCode.syncAppOffline), new PushListener() {
 			public void onRegist(BaseSocket baseSocket, Object data) {
 			}
@@ -157,12 +182,8 @@ public class BattleRoyaleSocketServer extends BaseServerSocket {
 				if (data != null) {
 					JSONObject pushData = (JSONObject) data;
 					String userId = pushData.getString("userId");
-					if (userId!=null && BattleRoyaleService.ROOM.getPlayers().containsKey(userId)) {
-						logger.info("id：" + userId + "在大逃杀房间离线");
-						//判断是否是观众席，观众席的话 移除，通知房间所有人
-						if (BattleRoyaleService.ROOM.getLookList().containsKey(userId)) {
-							BattleRoyaleService.ROOM.getLookList().remove(userId);
-							Push.push(PushCode.updateRoomDate, null, BattleRoyaleService.ROOM.pushResult(2, userId, null, null));
+					if (userId != null && BattleRoyaleService.ROOM != null) {
+						if (BattleRoyaleService.ROOM.getPlayers().containsKey(userId)) {
 							BattleRoyaleService.ROOM.getPlayers().remove(userId);
 						}
 						if (!BattleRoyaleService.ROOM.getUserBetInfo().containsKey(userId)) {
@@ -173,8 +194,7 @@ public class BattleRoyaleSocketServer extends BaseServerSocket {
 			}
 		}, this);
 
-
-		// 注册服务器可用状态
+		// 服务器可用状态
 		Push.registPush(new PushBean(PushCode.syncIsService), new PushListener() {
 			public void onRegist(BaseSocket baseSocket, Object data) {
 				if (data != null) {
@@ -188,7 +208,6 @@ public class BattleRoyaleSocketServer extends BaseServerSocket {
 				}
 			}
 		}, this);
-
 
 	}
 

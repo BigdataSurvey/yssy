@@ -64,5 +64,15 @@ public class RequestLotteryService extends BaseService {
 				listener
 		);
 	}
+
+	// 通用 更换房间
+	public void requestBattleRoyaleChangeRoom(JSONObject data, Listener listener) {
+		Executer.request(
+				TargetSocketType.getServerEnum(data.getIntValue("gameId")),
+				CommandBuilder.builder().request("101105", data).build(),
+				listener
+		);
+	}
+
 }
 
