@@ -518,8 +518,8 @@ public class SpringInDebug {
         try {
             ManagerGuildService svc = ctx.getBean(ManagerGuildService.class);
             JSONObject p = new JSONObject();
-            p.put("userId", MY_USER_ID);
-            p.put("guildName", TEST_GUILD_NAME);
+            p.put("userId", 937232L); //账号5
+            p.put("guildName", "2020测工会");
             p.put("needMemberNumber", TEST_NEED_MEMBER_NUMBER);
             JSONObject r = svc.createGuild(fakeSocket, p);
             printResult(r);
@@ -888,6 +888,23 @@ public class SpringInDebug {
         System.out.println("=【" + module + "-" + funcName + "-测试-结束】=用时：" + (System.currentTimeMillis() - start) + "ms=====>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>=============");
     }
 
+    private static void petTribeHomeInfoTest() {
+        String module = "宠物模块";
+        String funcName = "部落信息";
+        System.out.println("=[" + module + "]-" + funcName + "-测试-开始=========>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>==========");
+        long start = System.currentTimeMillis();
+        try {
+            ManagerGamePetService svc = ctx.getBean(ManagerGamePetService.class);
+            JSONObject params = new JSONObject();
+            params.put("userId", MY_USER_ID);
+            JSONObject res = svc.tribeHome(null, params);
+            printResult(res);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        System.out.println("=【" + module + "-" + funcName + "-测试-结束】=用时：" + (System.currentTimeMillis() - start) + "ms=====>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>=============");
+    }
+
     // =================================================================================================================
     //                                         7. 悬赏任务模块 (Bounty)
     // =================================================================================================================
@@ -1166,6 +1183,52 @@ public class SpringInDebug {
     }
 
     // =================================================================================================================
+    //                                         8.交易行模块
+    // =================================================================================================================
+    private static void getTradingListingTest() {
+        String module = "交易行";
+        String funcName = "交易行上架";
+        System.out.println("=[" + module + "]-" + funcName + "-测试-开始=========>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>==========");
+        long start = System.currentTimeMillis();
+        try {
+            ManagerTradingService svc = ctx.getBean(ManagerTradingService.class);
+            JSONObject params = new JSONObject();
+            params.put("userId", MY_USER_ID);
+            params.put("number", 1);
+            params.put("price", "1");
+            params.put("itemId", 1101);
+            JSONObject res = svc.userListingItem(null, params);
+            printResult(res);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        System.out.println("=【" + module + "-" + funcName + "-测试-结束】=用时：" + (System.currentTimeMillis() - start) + "ms=====>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>=============");
+    }
+
+    private static void getTradingInfoTest() {
+        String module = "交易行";
+        String funcName = "交易行列表";
+        System.out.println("=[" + module + "]-" + funcName + "-测试-开始=========>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>==========");
+        long start = System.currentTimeMillis();
+        try {
+            ManagerTradingService svc = ctx.getBean(ManagerTradingService.class);
+            JSONObject params = new JSONObject();
+            params.put("userId", MY_USER_ID);
+            params.put("type", 0);
+            params.put("itemName", "玉米种子·一阶");
+            params.put("page", 1);
+            params.put("num", 20);
+            JSONObject res = svc.getTradingInfo(null, params);
+            printResult(res);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        System.out.println("=【" + module + "-" + funcName + "-测试-结束】=用时：" + (System.currentTimeMillis() - start) + "ms=====>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>=============");
+    }
+
+
+
+    // =================================================================================================================
     //                                         Main
     // =================================================================================================================
 
@@ -1213,8 +1276,8 @@ public class SpringInDebug {
 
         // --- 5. 公会模块 ---
         // guildGetListTest();
-        // guildCreateTest();
-        // guildApproveTest();
+        //guildCreateTest();
+        //guildApproveTest();
         // guildRefuseTest();
         // guildInfoTest();
         // guildAddMemberTest();
@@ -1235,6 +1298,7 @@ public class SpringInDebug {
         // petInviteHomeTest();
         // petInviteListTest();
         // petInviterInfoTest();
+        //petTribeHomeInfoTest();
 
         // --- 7. 悬赏任务 ---
         // getTaskListTest();
@@ -1250,7 +1314,11 @@ public class SpringInDebug {
         // getMyPublishTest();
         // getPendingAuditTest();
         // getAuditApproveTest();
-        // getAuditRejectTest();
+         getAuditRejectTest();
+
+        //交易行
+        //getTradingInfoTest();
+        getTradingListingTest();
 
         System.out.println(">>>>>>>>>> Debug测试结束 <<<<<<<<<<");
         System.exit(0);
