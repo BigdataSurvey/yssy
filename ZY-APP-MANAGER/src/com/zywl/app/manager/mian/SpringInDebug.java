@@ -115,7 +115,7 @@ public class SpringInDebug {
         try {
             ManagerGameBaseService svc = ctx.getBean(ManagerGameBaseService.class);
             JSONObject params = new JSONObject();
-            params.put("userId", MY_USER_ID); // 原代码 928364
+            params.put("userId", MY_USER_ID);
             JSONObject resp = svc.backpack(fakeSocket, params);
             printResult(resp);
         } catch (Exception e) {
@@ -202,7 +202,8 @@ public class SpringInDebug {
             ManagerGameBaseService svc = ctx.getBean(ManagerGameBaseService.class);
             JSONObject p = new JSONObject();
             p.put("userId", MY_USER_ID);
-            p.put("type", 7); // 1邀请拉新/2VIP/7资产消耗
+            // 1邀请拉新/2VIP/7资产消耗
+            p.put("type", 7);
             p.put("capitalType", 0);
             JSONObject r = svc.getTop(null, p);
             printResult(r);
