@@ -20,6 +20,7 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.stream.Collectors;
 
 @Service
@@ -53,9 +54,17 @@ public class GameCacheService extends RedisService {
 
     public static Activity activity3;
 
-    public static final List<String> LAST_WEEK_USER_IDS = new ArrayList<>();
+    /**
+     * 上周榜 Top10 用户列表 按 gameId
+     * key: gameId
+     * value: 上周 Top10 的 userId 按 score 降序
+     */
+    public static final Map<Integer, List<String>> LAST_WEEK_USER_IDS_MAP = new ConcurrentHashMap<>();
 
-
+    /**
+     * 兼容旧逻辑：单杀大逃杀 gameId=7 的上周榜 Top10 用户列表
+     */
+    public static final List<String> LAST_WEEK_USER_IDS = new CopyOnWriteArrayList<>();
     @PostConstruct
     public void _construct() {
         updateLastWeekList();
@@ -72,19 +81,41 @@ public class GameCacheService extends RedisService {
     }
 
     public void updateLastWeekList() {
-        LAST_WEEK_USER_IDS.clear();
-        Map<String, Double> lastWeekTopList = getLastWeekTopList(GameTypeEnum.battleRoyale.getValue(), 10);
-        ArrayList<Map.Entry<String, Double>> list = new ArrayList(lastWeekTopList.entrySet());
-        Collections.sort(list, (a, b) -> (int) (b.getValue() - a.getValue()));
-        for (Map.Entry<String, Double> stringDoubleEntry : list) {
-            LAST_WEEK_USER_IDS.add(stringDoubleEntry.getKey());
+        // 单杀大逃杀（gameId=7）
+        updateLastWeekListByGame(GameTypeEnum.battleRoyale.getValue());
+        // 多杀大逃杀（gameId=1）
+        updateLastWeekListByGame(GameTypeEnum.dts2.getValue());
+    }
+
+    private void updateLastWeekListByGame(int gameId) {
+        Map<String, Double> lastWeekTopList = getLastWeekTopList(gameId, 10);
+        ArrayList<Map.Entry<String, Double>> list = new ArrayList<>(lastWeekTopList.entrySet());
+        Collections.sort(list, (a, b) -> Double.compare(b.getValue(), a.getValue()));
+
+        List<String> ids = new ArrayList<>();
+        for (Map.Entry<String, Double> e : list) {
+            ids.add(e.getKey());
+        }
+
+        LAST_WEEK_USER_IDS_MAP.put(gameId, ids);
+
+        // 旧逻辑里 gameId=7 仍写入 LAST_WEEK_USER_IDS
+        if (gameId == GameTypeEnum.battleRoyale.getValue()) {
+            LAST_WEEK_USER_IDS.clear();
+            LAST_WEEK_USER_IDS.addAll(ids);
         }
     }
 
+    public static List<String> getLastWeekTopUserIds(int gameId) {
+        List<String> ids = LAST_WEEK_USER_IDS_MAP.get(gameId);
+        return ids == null ? Collections.emptyList() : ids;
+    }
+
+
     public void addGameRankCache(int gameId, String userId, int number) {
-        if (gameId == 1) {
-            //倩女幽魂上周上榜这周就不上榜了
-            if (LAST_WEEK_USER_IDS.contains(userId)) {
+        if (gameId == GameTypeEnum.dts2.getValue()) {
+            // gameId=1 上周上榜这周就不上榜
+            if (getLastWeekTopUserIds(gameId).contains(userId)) {
                 return;
             }
         }
@@ -119,8 +150,10 @@ public class GameCacheService extends RedisService {
 
     public String getRankKey(int gameId) {
         String key = null;
-        if (gameId == GameTypeEnum.battleRoyale.getValue() || gameId == GameTypeEnum.dts2.getValue()) {
+        if (gameId == GameTypeEnum.battleRoyale.getValue()) {
             key = RedisKeyConstant.GAME_RANK_DTS + DateUtil.getFirstDayOfWeek(new Date());
+        } else if (gameId == GameTypeEnum.dts2.getValue()) {
+            key = RedisKeyConstant.GAME_RANK_DTS3 + DateUtil.getFirstDayOfWeek(new Date());
         } else if (gameId == GameTypeEnum.food.getValue()) {
             key = RedisKeyConstant.GAME_RANK_FOOD + DateUtil.getFirstDayOfWeek(new Date());
         } else if (gameId == GameTypeEnum.ns.getValue()) {
@@ -138,8 +171,10 @@ public class GameCacheService extends RedisService {
 
     public String getLastWeekRankKey(int gameId) {
         String key = null;
-        if (gameId == GameTypeEnum.battleRoyale.getValue() || gameId == GameTypeEnum.dts2.getValue()) {
+        if (gameId == GameTypeEnum.battleRoyale.getValue()) {
             key = RedisKeyConstant.GAME_RANK_DTS + DateUtil.getFirstDayOfLastWeek();
+        } else if (gameId == GameTypeEnum.dts2.getValue()) {
+            key = RedisKeyConstant.GAME_RANK_DTS3 + DateUtil.getFirstDayOfLastWeek();
         } else if (gameId == GameTypeEnum.food.getValue()) {
             key = RedisKeyConstant.GAME_RANK_FOOD + DateUtil.getFirstDayOfLastWeek();
         } else if (gameId == GameTypeEnum.ns.getValue()) {
@@ -190,10 +225,18 @@ public class GameCacheService extends RedisService {
     }
 
     public List<JSONObject> getLastWeekListDts() {
-        String key = RedisKeyConstant.GAME_LAST_WEEK_TOP_LIST + DateUtil.getFirstDayOfWeek(new Date());
+        return getLastWeekRankList(GameTypeEnum.battleRoyale.getValue());
+    }
+
+    public List<JSONObject> getLastWeekListDts3() {
+        return getLastWeekRankList(GameTypeEnum.dts2.getValue());
+    }
+
+    public List<JSONObject> getLastWeekRankList(int gameId) {
+        String key = getLastWeekRankListCacheKey(gameId);
         List<JSONObject> array = getList(key, JSONObject.class);
         if (array == null || array.size() == 0) {
-            Map<String, Double> lastWeekTopList = getLastWeekTopList(GameTypeEnum.dts2.getValue(), 10);
+            Map<String, Double> lastWeekTopList = getLastWeekTopList(gameId, 10);
             Set<String> ids = lastWeekTopList.keySet();
             array = new ArrayList<>();
             for (String id : ids) {
@@ -215,6 +258,16 @@ public class GameCacheService extends RedisService {
         return array;
     }
 
+    private String getLastWeekRankListCacheKey(int gameId) {
+        String week = DateUtil.getFirstDayOfLastWeek();
+        if (gameId == GameTypeEnum.battleRoyale.getValue()) {
+            return RedisKeyConstant.GAME_LAST_WEEK_TOP_LIST + week;
+        }
+        if (gameId == GameTypeEnum.dts2.getValue()) {
+            return RedisKeyConstant.GAME_LAST_WEEK_TOP_LIST_DTS3 + week;
+        }
+        return RedisKeyConstant.GAME_LAST_WEEK_TOP_LIST + gameId + ":" + week;
+    }
     public List<JSONObject> getLhdLastWeekList() {
         String key = RedisKeyConstant.GAME_LAST_WEEK_TOP_LIST_LHD + DateUtil.getFirstDayOfWeek(new Date());
         List<JSONObject> array = getList(key, JSONObject.class);
@@ -1072,11 +1125,19 @@ public class GameCacheService extends RedisService {
     }
 
     public List<JSONObject> getThisWeekListDts() {
-        String key = RedisKeyConstant.GAME_RANK_LIST_DTS;
+        return getThisWeekRankList(GameTypeEnum.battleRoyale.getValue());
+    }
+
+    public List<JSONObject> getThisWeekListDts3() {
+        return getThisWeekRankList(GameTypeEnum.dts2.getValue());
+    }
+
+    public List<JSONObject> getThisWeekRankList(int gameId) {
+        String key = getThisWeekRankListCacheKey(gameId);
         List<JSONObject> list = getList(key, JSONObject.class);
         if (list == null || list.size() == 0) {
-            Map<String, Double> lastWeekTopList = getThisWeekTopList(GameTypeEnum.dts2.getValue(), 10);
-            Set<String> ids = lastWeekTopList.keySet();
+            Map<String, Double> thisWeekTopList = getThisWeekTopList(gameId, 10);
+            Set<String> ids = thisWeekTopList.keySet();
             list = new ArrayList<>();
             for (String id : ids) {
                 User userInfoById = userCacheService.getUserInfoById(id);
@@ -1088,7 +1149,7 @@ public class GameCacheService extends RedisService {
                 info.put("userId", id);
                 info.put("userName", userInfoById.getName());
                 info.put("userNo", userInfoById.getUserNo());
-                info.put("score", lastWeekTopList.get(id));
+                info.put("score", thisWeekTopList.get(id));
                 list.add(info);
             }
             set(key, list, 60);
@@ -1097,18 +1158,29 @@ public class GameCacheService extends RedisService {
         return list;
     }
 
+    private String getThisWeekRankListCacheKey(int gameId) {
+        if (gameId == GameTypeEnum.battleRoyale.getValue()) {
+            return RedisKeyConstant.GAME_RANK_LIST_DTS;
+        }
+        if (gameId == GameTypeEnum.dts2.getValue()) {
+            return RedisKeyConstant.GAME_RANK_LIST_DTS3;
+        }
+        return RedisKeyConstant.GAME_RANK_LIST_DTS + gameId + ":";
+    }
     public static void sortByScoreDesc(List<JSONObject> list) {
         Collections.sort(list, (o1, o2) -> {
             double score1 = o1.getDoubleValue("score");
             double score2 = o2.getDoubleValue("score");
-            return Double.compare(score2, score1); // 降序
+            // 降序
+            return Double.compare(score2, score1);
         });
     }
 
-    // 安全版本（处理字段不存在情况）
+    // 安全版本
     public static void safeSortByScoreDesc(List<JSONObject> list) {
         Collections.sort(list, (o1, o2) -> {
-            double score1 = o1.getDoubleValue("score"); // 默认值0
+            // 默认值0
+            double score1 = o1.getDoubleValue("score");
             double score2 = o2.getDoubleValue("score");
             return Double.compare(score2, score1);
         });
@@ -1213,15 +1285,40 @@ public class GameCacheService extends RedisService {
     public Long getLastWeekUserRank(String userId) {
         return getZsetRank(userId, RedisKeyConstant.POINT_RANK_LIST + DateUtil.getFirstDayOfLastWeek());
     }
+    public Long getThisWeekUserRankByGame(int gameId, String userId) {
+        String key = getRankKey(gameId);
+        if (key == null) {
+            return null;
+        }
+        return getZsetRank(userId, key);
+    }
+
+    public Long getLastWeekUserRankByGame(int gameId, String userId) {
+        String key = getLastWeekRankKey(gameId);
+        if (key == null) {
+            return null;
+        }
+        return getZsetRank(userId, key);
+    }
+
+
 
     public Long getThisWeekUserRankDts(String userId) {
-        return getZsetRank(userId, RedisKeyConstant.GAME_RANK_DTS + DateUtil.getFirstDayOfWeek(new Date()));
+        return getThisWeekUserRankByGame(GameTypeEnum.battleRoyale.getValue(), userId);
     }
 
     public Long getLastWeekUserRankDts(String userId) {
-        return getZsetRank(userId, RedisKeyConstant.GAME_RANK_DTS + DateUtil.getFirstDayOfLastWeek());
+        return getLastWeekUserRankByGame(GameTypeEnum.battleRoyale.getValue(), userId);
     }
 
+
+    public Long getThisWeekUserRankDts3(String userId) {
+        return getThisWeekUserRankByGame(GameTypeEnum.dts2.getValue(), userId);
+    }
+
+    public Long getLastWeekUserRankDts3(String userId) {
+        return getLastWeekUserRankByGame(GameTypeEnum.dts2.getValue(), userId);
+    }
     public Long getThisWeekUserRankLhd(String userId) {
         String key = RedisKeyConstant.GAME_RANK_NH + DateUtil.getFirstDayOfWeek(new Date());
         return getZsetRank(userId, key);

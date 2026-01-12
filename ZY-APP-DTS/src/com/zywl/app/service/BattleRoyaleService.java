@@ -445,6 +445,7 @@ public class BattleRoyaleService extends BaseService {
                         (new BigDecimal(ROOM.getBetOptionsInfo().get(userBet).get("betAmount")).add(amount)).toString());
                 // 用户信息中资产减少
                 ROOM.setAllBetAmount(ROOM.getAllBetAmount().add(amount));
+
                 // 如果房间大于开局人数 则更改房间状态 进入游戏状态
                 System.out.println("房间下注人数：" + ROOM.getBetNum());
                 synchronized (lock) {
@@ -639,6 +640,8 @@ public class BattleRoyaleService extends BaseService {
     }
     @Transactional
     public void settle(String result, Command lotteryCommand) {
+        List<String> lastWeekTopIds = GameCacheService.getLastWeekTopUserIds(GameTypeEnum.battleRoyale.getValue());
+
         System.out.println("开奖结果：" + result);
         int winNumber = 0;
         int loseNumber = 0;
@@ -665,10 +668,10 @@ public class BattleRoyaleService extends BaseService {
             Map<String, BigDecimal> oneUserbetInfo = ROOM.getUserBetInfo().get(userId);
 
             for (String s : oneUserbetInfo.keySet()) {
-                if (result.equals(s) && GameCacheService.LAST_WEEK_USER_IDS.contains(userId)) {
+                if (result.equals(s) && lastWeekTopIds.contains(userId)) {
                     // 玩家下的注是输的房间 判断是否是免伤玩家  是的话增加免伤金额
                     BigDecimal loseAmount = oneUserbetInfo.get(s);
-                    int index = GameCacheService.LAST_WEEK_USER_IDS.indexOf(userId);
+                    int index = lastWeekTopIds.indexOf(userId);
                     BigDecimal rate = BigDecimal.ZERO;
                     if (index==0){
                         rate = new BigDecimal("0.15");
@@ -754,8 +757,8 @@ public class BattleRoyaleService extends BaseService {
             record.put("betInfo", ROOM.getUserCheckNum().get(uid));
             record.put("isWin", ROOM.getUserBetOrderInfo().get(uid).get("isWin"));
             updateRecord.put(ROOM.getUserBetOrderInfo().get(uid).get("orderNo"), record);
-            if (Integer.parseInt(ROOM.getUserBetOrderInfo().get(uid).get("isWin"))==0 && GameCacheService.LAST_WEEK_USER_IDS.contains(uid)){
-                int index = GameCacheService.LAST_WEEK_USER_IDS.indexOf(uid);
+            if (Integer.parseInt(ROOM.getUserBetOrderInfo().get(uid).get("isWin"))==0 && lastWeekTopIds.contains(uid)){
+                int index = lastWeekTopIds.indexOf(uid);
                 BigDecimal rate = BigDecimal.ZERO;
                 if (index==0){
                     rate = new BigDecimal("0.15");

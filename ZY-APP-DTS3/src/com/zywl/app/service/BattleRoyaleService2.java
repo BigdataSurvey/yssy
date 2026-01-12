@@ -584,6 +584,15 @@ public class BattleRoyaleService2 extends BaseService {
 
                 ROOM.setAllBetAmount(ROOM.getAllBetAmount().add(amount));
 
+                // 排行榜累计：按本次下注金额（按周、按 gameId 隔离）
+                if (!BOT_USER.containsKey(userId)) {
+                    int rankNumber = amount.setScale(0, BigDecimal.ROUND_DOWN).intValue();
+                    if (rankNumber > 0) {
+                        gameCacheService.addGameRankCache(GameTypeEnum.dts2.getValue(), userId, rankNumber);
+                    }
+                }
+
+
                 // 满足开局人数，切换到 gaming
                 synchronized (lock) {
                     if (ROOM.getBetNum() >= PEOPLE_NUM && ROOM.getStatus() == LotteryGameStatusEnum.ready.getValue()) {
@@ -755,6 +764,8 @@ public class BattleRoyaleService2 extends BaseService {
 
     @Transactional
     public void settle(List<Integer> killList, Command lotteryCommand) {
+        List<String> lastWeekTopIds = GameCacheService.getLastWeekTopUserIds(GameTypeEnum.dts2.getValue());
+
         List<String> result = new ArrayList<>();
         killList.forEach(e -> result.add(e.toString()));
         System.out.println("开奖结果：" + result);
@@ -783,10 +794,10 @@ public class BattleRoyaleService2 extends BaseService {
             Map<String, BigDecimal> oneUserbetInfo = ROOM.getUserBetInfo().get(userId);
 
             for (String s : oneUserbetInfo.keySet()) {
-                if (result.contains(s) && GameCacheService.LAST_WEEK_USER_IDS.contains(userId)) {
+                if (result.contains(s) && lastWeekTopIds.contains(userId)) {
                     // 玩家下的注是输的房间 判断是否是免伤玩家  是的话增加免伤金额
                     BigDecimal loseAmount = oneUserbetInfo.get(s);
-                    int index = GameCacheService.LAST_WEEK_USER_IDS.indexOf(userId);
+                    int index = lastWeekTopIds.indexOf(userId);
                     BigDecimal rate = BigDecimal.ZERO;
                     if (index == 0) {
                         rate = new BigDecimal("0.15");
@@ -871,8 +882,8 @@ public class BattleRoyaleService2 extends BaseService {
             record.put("betAmount", betAmount);
             record.put("betInfo", ROOM.getUserCheckNum().get(uid));
             record.put("isWin", ROOM.getUserBetOrderInfo().get(uid).get("isWin"));
-            if (Integer.parseInt(ROOM.getUserBetOrderInfo().get(uid).get("isWin")) == 0 && GameCacheService.LAST_WEEK_USER_IDS.contains(uid)) {
-                int index = GameCacheService.LAST_WEEK_USER_IDS.indexOf(uid);
+            if (Integer.parseInt(ROOM.getUserBetOrderInfo().get(uid).get("isWin")) == 0 && lastWeekTopIds.contains(uid)) {
+                int index = lastWeekTopIds.indexOf(uid);
                 BigDecimal rate = BigDecimal.ZERO;
                 if (index == 0) {
                     rate = new BigDecimal("0.15");

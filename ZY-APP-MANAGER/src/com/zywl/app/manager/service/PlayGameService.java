@@ -736,9 +736,10 @@ public class PlayGameService extends BaseService {
             }
 
             JSONObject obj = new JSONObject();
-            obj.put("id", itemId);                   // 道具ID
+            obj.put("id", itemId);
             obj.put("number", backpack.getItemNumber()); // 道具数量
-            obj.put("type", item.getType());         // 道具大类
+            // 道具类型
+            obj.put("type", item.getType());
 
             list.add(obj);
         }
