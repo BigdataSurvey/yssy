@@ -93,14 +93,14 @@ public class ManagerGuildService extends BaseService {
         if (config != null) {
             GUILD_FEE = new BigDecimal(config.getValue());
         } else {
-            GUILD_FEE = new BigDecimal("100000");
+            GUILD_FEE = new BigDecimal("100");
         }
 
         Config config2 = configService.getConfigByKey(Config.GUILD_MEMBER_FEE);
         if (config2 != null) {
             GUILD_MEMBER_FEE = new BigDecimal(config2.getValue());
         } else {
-            GUILD_MEMBER_FEE = new BigDecimal("5000");
+            GUILD_MEMBER_FEE = new BigDecimal("50");
         }
 
         // 创建公会手续费比例

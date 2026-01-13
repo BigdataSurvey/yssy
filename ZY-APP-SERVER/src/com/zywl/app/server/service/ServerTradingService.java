@@ -74,7 +74,7 @@ public class ServerTradingService extends BaseService {
     @ServiceMethod(code = "001", description = "交易行物品上架")
     public Async listing(final AppSocket appSocket, Command appCommand, JSONObject params) {
         checkNull(params);
-        checkNull(params.get("price"), params.get("itemId"), params.get("num"));
+        checkNull(params.get("price"), params.get("itemId"), params.get("number"));
         Long userId = appSocket.getWsidBean().getUserId();
 
         BigDecimal price = params.getBigDecimal("price");
@@ -86,7 +86,7 @@ public class ServerTradingService extends BaseService {
         if (!GameBaseService.itemMap.containsKey(itemId.toString())){
             throwExp("非法请求");
         }
-        int number = params.getIntValue("num");
+        int number = params.getIntValue("number");
         if (number < 1 || number > 99999) {
             throwExp("请输入合理的道具数量");
         }
@@ -104,7 +104,6 @@ public class ServerTradingService extends BaseService {
             throwExp("超过可发布订单数量");
         }
 
-        // 增加 NPE 检查
         Item itemCfg = GameBaseService.itemMap.get(itemId.toString());
         if (itemCfg != null && (itemCfg.getIsTrading() == null || itemCfg.getIsTrading() == 0)){
             throwExp("非法请求");

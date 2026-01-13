@@ -998,7 +998,54 @@ public class UserService extends DaoService {
     public int countInviteUsersUnqualifiedByParentId(Long parentId) {
         Map<String, Object> params = new HashMap<>(4);
         params.put("parentId", parentId);
-        return (Integer) findOne("countInviteUsersUnqualifiedByParentId", params);
+        Integer r = (Integer) findOne("countInviteUsersUnqualifiedByParentId", params);
+        return r == null ? 0 : r;
+    }
+
+    /**
+     * 邀请/部落列表：按指定用户ID集合统计与分页（用于 2~5 代列表）
+     */
+    public List<User> findInviteUsersByIdsWithType(List<Long> ids, Integer type, Integer page, Integer pageSize) {
+        if (ids == null || ids.isEmpty()) {
+            return new ArrayList<>();
+        }
+        int start = (page - 1) * pageSize;
+        Map<String, Object> params = new HashMap<>(8);
+        params.put("ids", ids);
+        params.put("type", type);
+        params.put("start", start);
+        params.put("limit", pageSize);
+        return findList("findInviteUsersByIdsWithType", params);
+    }
+
+    public int countInviteUsersByIds(List<Long> ids) {
+        if (ids == null || ids.isEmpty()) {
+            return 0;
+        }
+        Map<String, Object> params = new HashMap<>(4);
+        params.put("ids", ids);
+        Object result = findOne("countInviteUsersByIds", params);
+        return result == null ? 0 : Integer.parseInt(result.toString());
+    }
+
+    public int countInviteUsersValidByIds(List<Long> ids) {
+        if (ids == null || ids.isEmpty()) {
+            return 0;
+        }
+        Map<String, Object> params = new HashMap<>(4);
+        params.put("ids", ids);
+        Integer r = (Integer) findOne("countInviteUsersValidByIds", params);
+        return r == null ? 0 : r;
+    }
+
+    public int countInviteUsersUnqualifiedByIds(List<Long> ids) {
+        if (ids == null || ids.isEmpty()) {
+            return 0;
+        }
+        Map<String, Object> params = new HashMap<>(4);
+        params.put("ids", ids);
+        Integer r = (Integer) findOne("countInviteUsersUnqualifiedByIds", params);
+        return r == null ? 0 : r;
     }
 
 }

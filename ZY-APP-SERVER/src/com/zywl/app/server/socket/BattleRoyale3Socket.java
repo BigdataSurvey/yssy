@@ -64,11 +64,7 @@ public class BattleRoyale3Socket extends BaseClientSocket {
     public void onConnect(Object data) {
         CountDownLatch downLatch = new CountDownLatch(2);
 
-        // DTS3(大逃杀，gameId=1) 与 SERVER 的推送通道：DTS3 侧 Push.push(updateDts3Info/updateDts3Status)
-        // SERVER 侧需要向 DTS3 注册 updateDts3Info/updateDts3Status（而不是 updateDts2Info/updateDts2Status），
-        // 否则 DTS3 会提示“服务器未提供该推送服务updateDts2Info/updateDts2Status”。
-
-        // DTS3 房间信息（批量 JSONArray）
+        // DTS3 房间信息
         Push.registPush(new PushBean(PushCode.updateDts3Info), new PushListener() {
             @Override
             public void onRegist(BaseSocket baseSocket, Object data) {
@@ -83,14 +79,13 @@ public class BattleRoyale3Socket extends BaseClientSocket {
                     JSONObject obj = JSONObject.from(o);
                     String gameId = obj.getString("gameId");
                     if ("1".equals(gameId)) {
-                        // 对玩家端统一透传 updateRoomDate（客户端原有口径）
                         Push.push(PushCode.updateRoomDate, gameId, obj);
                     }
                 }
             }
         }, this);
 
-        // DTS3 游戏状态（JSONObject）
+        // DTS3 游戏状态
         Push.registPush(new PushBean(PushCode.updateDts3Status), new PushListener() {
             @Override
             public void onRegist(BaseSocket baseSocket, Object data) {
@@ -126,6 +121,7 @@ public class BattleRoyale3Socket extends BaseClientSocket {
                         result.put("roomIds", obj.get("roomIds"));
                         result.put("status", obj.get("status"));
                         result.put("userId", userId);
+                        mergeUnifiedSummary(result, obj, userId);
                         Push.push(PushCode.updateGameStatus, userId, result);
                     }
                 }
@@ -177,4 +173,69 @@ public class BattleRoyale3Socket extends BaseClientSocket {
     protected Log logger() {
         return logger;
     }
+
+    /**
+     * 合并统一摘要字段到推送结果：
+     */
+    private static void mergeUnifiedSummary(JSONObject result, JSONObject obj, String userId) {
+        if (result == null || obj == null) {
+            return;
+        }
+
+        JSONObject summary = null;
+
+        try {
+            Object m = obj.get("userRecordSummaryMap");
+            if (m instanceof JSONObject) {
+                JSONObject map = (JSONObject) m;
+                Object s = map.get(userId);
+                if (s instanceof JSONObject) {
+                    summary = (JSONObject) s;
+                } else if (s != null) {
+                    summary = JSONObject.from(s);
+                }
+            } else if (m instanceof java.util.Map) {
+                JSONObject map = JSONObject.from(m);
+                Object s = map.get(userId);
+                if (s instanceof JSONObject) {
+                    summary = (JSONObject) s;
+                } else if (s != null) {
+                    summary = JSONObject.from(s);
+                }
+            }
+        } catch (Exception ignore) {
+        }
+
+        if (summary == null) {
+            boolean hasAny = obj.containsKey("recent16Summary")
+                    || obj.containsKey("recent100Periods")
+                    || obj.containsKey("totalInvest")
+                    || obj.containsKey("totalGain")
+                    || obj.containsKey("serverTime");
+            if (hasAny) {
+                summary = obj;
+            }
+        }
+
+        if (summary == null) {
+            return;
+        }
+
+        if (summary.containsKey("recent16Summary")) {
+            result.put("recent16Summary", summary.get("recent16Summary"));
+        }
+        if (summary.containsKey("recent100Periods")) {
+            result.put("recent100Periods", summary.get("recent100Periods"));
+        }
+        if (summary.containsKey("totalInvest")) {
+            result.put("totalInvest", summary.get("totalInvest"));
+        }
+        if (summary.containsKey("totalGain")) {
+            result.put("totalGain", summary.get("totalGain"));
+        }
+        if (summary.containsKey("serverTime")) {
+            result.put("serverTime", summary.get("serverTime"));
+        }
+    }
+
 }

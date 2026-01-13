@@ -23,10 +23,12 @@ import com.zywl.app.defaultx.service.UserPetService;
 import com.zywl.app.defaultx.service.UserPetUserService;
 import com.zywl.app.defaultx.service.UserService;
 import org.springframework.transaction.annotation.Transactional;
+
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.text.SimpleDateFormat;
 import java.util.*;
+import java.util.List;
 
 /**
  * @Author: lzx
@@ -631,7 +633,8 @@ public class ManagerGamePetService  extends BaseService {
     }
 
     /**
-     * 038007 邀请列表（直推）
+     * 038007 邀请列表（部落成员列表）
+     * tribeLevel: 1~5（必传，1=狮子部落1/直推，2=狮子部落2...）
      * type: 0全部 / 1未达标 / 2有效
      */
     @ServiceMethod(code = "007", description = "养宠-邀请列表")
@@ -643,24 +646,70 @@ public class ManagerGamePetService  extends BaseService {
         Integer page = params.getInteger("page");
         Integer pageSize = params.getInteger("pageSize");
         Integer type = params.getInteger("type");
+        Integer tribeLevel = params.getInteger("tribeLevel");
+
         if (page == null || page <= 0) page = 1;
         if (pageSize == null || pageSize <= 0) pageSize = 10;
-        if (type == null) type = 0;
-        if (type < 0 || type > 2) {
-            throwExp("type参数非法");
+
+        // type 必传：0全部 / 1未达标 / 2有效
+        if (type == null) {
+            throwExp("type不能为空");
+        }
+            if (type < 0 || type > 2) {
+                throwExp("type参数非法");
+        }
+
+        // tribeLevel 默认 1（兼容老版本），新版本前端必传
+        if (tribeLevel == null) tribeLevel = 1;
+        if (tribeLevel < 1 || tribeLevel > 5) {
+            throwExp("tribeLevel参数非法");
+        }
+
+        int total = 0;
+        int validTotal = 0;
+        int unqualifiedTotal = 0;
+
+        List<User> users;
+
+        // tribeLevel=1 走原 parentId 查询（性能更好）
+        if (tribeLevel == 1) {
+            total = userService.countInviteUsersByParentId(userId);
+            validTotal = userService.countInviteUsersValidByParentId(userId);
+            unqualifiedTotal = userService.countInviteUsersUnqualifiedByParentId(userId);
+            users = userService.findInviteUsersByParentIdWithType(userId, type, page, pageSize);
+        } else {
+            // 逐层展开到指定代
+            List<Long> parents = new ArrayList<>();
+            parents.add(userId);
+            List<Long> levelUserIds = Collections.emptyList();
+            for (int lv = 1; lv <= tribeLevel; lv++) {
+                List<Long> children = userService.findIdByParentId(parents);
+                if (children == null || children.isEmpty()) {
+                    levelUserIds = Collections.emptyList();
+                    break;
+                }
+                if (lv == tribeLevel) {
+                    levelUserIds = children;
+                } else {
+                    parents = children;
+                }
+            }
+
+            if (levelUserIds == null || levelUserIds.isEmpty()) {
+                users = Collections.emptyList();
+            } else {
+                total = userService.countInviteUsersByIds(levelUserIds);
+                validTotal = userService.countInviteUsersValidByIds(levelUserIds);
+                unqualifiedTotal = userService.countInviteUsersUnqualifiedByIds(levelUserIds);
+                users = userService.findInviteUsersByIdsWithType(levelUserIds, type, page, pageSize);
+            }
         }
 
         // tabTotal
-        int total = userService.countInviteUsersByParentId(userId);
-        int validTotal = userService.countInviteUsersValidByParentId(userId);
-        int unqualifiedTotal = userService.countInviteUsersUnqualifiedByParentId(userId);
-
         JSONObject tabTotal = new JSONObject();
         tabTotal.put("all", total);
         tabTotal.put("unqualified", unqualifiedTotal);
         tabTotal.put("valid", validTotal);
-
-        List<User> users = userService.findInviteUsersByParentIdWithType(userId, type, page, pageSize);
 
         List<Long> userIds = new ArrayList<>();
         if (users != null) {
@@ -670,15 +719,19 @@ public class ManagerGamePetService  extends BaseService {
         }
 
         Map<Long, Integer> petCountMap = userIds.isEmpty() ? new HashMap<>() : userPetService.countByUserIds(userIds);
-        Map<Long, BigDecimal> coinMap = userIds.isEmpty() ? new HashMap<>() : userPetRecordService.sumTotalDividendByFromUserIdsAndLevel(userId, userIds, 1);
+        // 分润贡献按“当前部落代数”统计
+        Map<Long, BigDecimal> coinMap = userIds.isEmpty() ? new HashMap<>() :
+                userPetRecordService.sumTotalDividendByFromUserIdsAndLevel(userId, userIds, tribeLevel);
 
         JSONArray list = new JSONArray();
         if (users != null) {
             for (User u : users) {
+                if (u == null || u.getId() == null) continue;
+
                 JSONObject it = new JSONObject();
                 it.put("userId", u.getId());
                 it.put("nickName", u.getName());
-
+                it.put("headImageUrl", u.getHeadImageUrl());
                 it.put("inviteTime", formatDate(u.getRegistTime()));
 
                 int petCount = petCountMap.getOrDefault(u.getId(), 0);
@@ -703,7 +756,6 @@ public class ManagerGamePetService  extends BaseService {
                 it.put("statusText", statusText);
                 it.put("petCount", petCount);
                 it.put("coinAmount", format6(coinAmount));
-                it.put("serverTime", System.currentTimeMillis());
                 list.add(it);
             }
         }
@@ -713,6 +765,7 @@ public class ManagerGamePetService  extends BaseService {
         result.put("page", page);
         result.put("pageSize", pageSize);
         result.put("type", type);
+        result.put("tribeLevel", tribeLevel);
 
         result.put("total", total);
         result.put("validTotal", validTotal);
@@ -756,6 +809,141 @@ public class ManagerGamePetService  extends BaseService {
         result.put("todayDividendAmount", format6(safeDecimal(petUser.getTodayDividendAmount())));
         result.put("totalDividendAmount", format6(safeDecimal(petUser.getTotalDividendAmount())));
         return result;
+    }
+
+
+    /**
+     * 038009 部落主页：部落总人数/部落1~5卡片/解锁进度
+     */
+    @ServiceMethod(code = "009", description = "养宠-部落主页")
+    public JSONObject tribeHome(ManagerSocketServer socket, JSONObject params) {
+        checkNull(params);
+        Long userId = params.getLong("userId");
+        if (userId == null || userId <= 0) {
+            throwExp("userId不能为空");
+        }
+        loadAndCheckUser(userId);
+
+        DicPet dicPet = getDicPet();
+        UserPetUser petUser = getOrCreateUserPetUser(userId);
+
+        // 为了保证“今日/累计分润”统计口径正确，先追结算
+        settleToCurrentHour(userId, petUser, dicPet);
+
+        // 1~5代人数
+        Map<Integer, Integer> levelPeople = calcLevelPeople(userId, 5);
+        int totalPeople = 0;
+        for (int lv = 1; lv <= 5; lv++) {
+            totalPeople += levelPeople.getOrDefault(lv, 0);
+        }
+
+        // 1+2代贡献（用于解锁差额）
+        BigDecimal contribLevel12 = safeDecimal(userPetRecordService.sumDividendLevel12(userId));
+        JSONObject unlockNeed = buildUnlockNeed(dicPet, petUser, levelPeople.getOrDefault(1, 0), contribLevel12);
+
+        JSONArray tribeList = new JSONArray();
+        for (int lv = 1; lv <= 5; lv++) {
+            JSONObject one = new JSONObject();
+            one.put("tribeLevel", lv);
+            one.put("tribeName", "狮子部落" + lv);
+            one.put("people", levelPeople.getOrDefault(lv, 0));
+
+            BigDecimal todayLv = safeDecimal(userPetRecordService.sumTodayDividendByLevel(userId, lv));
+            BigDecimal totalLv = safeDecimal(userPetRecordService.sumTotalDividendByLevel(userId, lv));
+            one.put("todayCoin", format6(todayLv));
+            one.put("totalCoin", format6(totalLv));
+
+            int enabled = 1;
+            if (lv == 3) {
+                enabled = safeInt(petUser.getUnlockLv3());
+            } else if (lv == 4) {
+                enabled = safeInt(petUser.getUnlockLv4());
+            } else if (lv == 5) {
+                enabled = safeInt(petUser.getUnlockLv5());
+            }
+            one.put("enabled", enabled);
+
+            // 3~5 代返回解锁差额（用于前端展示“解锁进度”）
+            if (lv >= 3) {
+                // 开启该部落需要的直推总人数（配置阈值，前端用于进度条）
+                int inviteTotal = 0;
+                if (lv == 3) {
+                    inviteTotal = safeInt(dicPet.getUnlockDirectLv3());
+                } else if (lv == 4) {
+                    inviteTotal = safeInt(dicPet.getUnlockDirectLv4());
+                } else if (lv == 5) {
+                    inviteTotal = safeInt(dicPet.getUnlockDirectLv5());
+                }
+                one.put("inviteTotal", inviteTotal);
+                // 当前直推人数（lv1 人数，解锁口径统一看直推）
+                one.put("inviteNow", levelPeople.getOrDefault(1, 0));
+
+                one.put("needDirect", unlockNeed.getInteger("lv" + lv + "NeedDirect"));
+                one.put("needContrib", unlockNeed.getString("lv" + lv + "NeedContrib"));
+            }
+            tribeList.add(one);
+        }
+
+        JSONObject result = new JSONObject();
+        result.put("serverTime", System.currentTimeMillis());
+        result.put("totalPeople", totalPeople);
+        result.put("tribeList", tribeList);
+        result.put("unlockNeed", unlockNeed);
+        return result;
+    }
+    /**
+     * 获取某一代的示例成员 limit控制成员
+     */
+    private JSONArray buildTribeSampleMembers(Long userId, int level, int limit) {
+        if (level <= 0 || limit <= 0) {
+            return new JSONArray();
+        }
+
+        // 逐层展开
+        List<Long> parents = new ArrayList<>();
+        parents.add(userId);
+        List<Long> levelUserIds = Collections.emptyList();
+        for (int i = 1; i <= level; i++) {
+            List<Long> children = userService.findIdByParentId(parents);
+            if (children == null || children.isEmpty()) {
+                levelUserIds = Collections.emptyList();
+                break;
+            }
+            if (i == level) {
+                levelUserIds = children;
+            } else {
+                parents = children;
+            }
+        }
+
+        if (levelUserIds == null || levelUserIds.isEmpty()) {
+            return new JSONArray();
+        }
+
+        // 截断到 limit
+        List<Long> sampleIds;
+        if (levelUserIds.size() <= limit) {
+            sampleIds = levelUserIds;
+        } else {
+            sampleIds = levelUserIds.subList(0, limit);
+        }
+
+        Map<Long, Integer> petCountMap = userPetService.countByUserIds(sampleIds);
+        JSONArray arr = new JSONArray();
+        for (Long uid : sampleIds) {
+            User u = userCacheService.getUserInfoById(uid);
+            if (u == null) {
+                continue;
+            }
+            JSONObject it = new JSONObject();
+            it.put("userId", u.getId());
+            it.put("nickName", u.getName());
+            it.put("headImageUrl", u.getHeadImageUrl());
+            it.put("authentication", u.getAuthentication() == null ? 0 : u.getAuthentication());
+            it.put("petCount", petCountMap == null ? 0 : petCountMap.getOrDefault(u.getId(), 0));
+            arr.add(it);
+        }
+        return arr;
     }
 
     private JSONObject buildInviterInfo(User user) {

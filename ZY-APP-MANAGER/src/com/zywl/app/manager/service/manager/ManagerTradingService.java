@@ -169,25 +169,43 @@ public class ManagerTradingService extends BaseService {
         checkNull(data);
         checkNull(data.get("price"), data.get("userId"), data.get("itemId"), data.get("number"));
         Long userId = data.getLong("userId");
+
         synchronized (LockUtil.getlock(userId)){
             Long itemId = data.getLong("itemId");
+            //出售数量
             int number = data.getIntValue("number");
+            // 用户填写的出售单价
             BigDecimal price = data.getBigDecimal("price");
+
             Item item = itemCacheService.getItemInfoById(itemId);
+
+            // 道具的基础交易价格 TradPrice
             BigDecimal itemPrice = PlayGameService.itemMap.get(itemId.toString()).getTradPrice();
-            BigDecimal min = itemPrice.subtract(itemPrice.multiply(managerConfigService.getBigDecimal(Config.TRAD_MIN)));
-            BigDecimal max = itemPrice.add(itemPrice.multiply(managerConfigService.getBigDecimal(Config.TRAD_MAX)));
-            if (price.compareTo(min)<0 || price.compareTo(max)>0){
-                throwExp("价格区间不合理");
+            if (itemPrice == null) {
+                throwExp("该道具未配置基础交易价格，无法上架");
             }
-            // 验证用户是否有这个道具以及道具是否充足
+
+            // 计算允许的价格区间
+            BigDecimal min = itemPrice.subtract(itemPrice.multiply(managerConfigService.getBigDecimal(Config.TRAD_MIN)));
+
+            BigDecimal max = itemPrice.add(itemPrice.multiply(managerConfigService.getBigDecimal(Config.TRAD_MAX)));
+
+            if (price.compareTo(min) < 0 || price.compareTo(max) > 0){
+                throwExp("价格不合理，允许范围：" + min + "~" + max);
+            }
+
+            // 校验用户背包
             Map<String, Backpack> backs = gameService.getUserBackpack(userId.toString());
             if (!backs.containsKey(itemId.toString()) || backs.get(itemId.toString()).getItemNumber() < number) {
                 throwExp("道具数量不足！");
             }
-            //更新用户背包同时更新用户道具流水  再更新交易行数据
+
+            // 扣除
             gameService.updateUserBackpack(userId.toString(), itemId.toString(), -number, LogUserBackpackTypeEnum.listing);
+
+            // 生成交易行订单
             tradingService.addTrading(userId, itemId, number, price, TradingTypeEnum.sell.getValue(), item.getType());
+
             JSONObject result = new JSONObject();
             result.put("itemId", itemId);
             result.put("number", number);
@@ -360,7 +378,6 @@ public class ManagerTradingService extends BaseService {
             Long itemId = data.getLong("itemId");
             int number = data.getIntValue("number");
             BigDecimal price = data.getBigDecimal("price");
-            System.out.println("manager：" + price);
             int tradingItemNumber = data.getIntValue("tradingItemNumber");
             Map<String, Backpack> backs = gameService.getUserBackpack(userId.toString());
             if (backs == null || backs.size() == 0 || !backs.containsKey(itemId.toString()) || backs.get(itemId.toString()).getItemNumber() < number) {
@@ -400,10 +417,13 @@ public class ManagerTradingService extends BaseService {
     @ServiceMethod(code = "007", description = "交易行列表")
     public JSONObject getTradingInfo(ManagerSocketServer adminSocketServer, JSONObject params) {
         checkNull(params);
+
+        // 0=交易商城；1=我的售卖
         Integer type = params.getInteger("type");
         if (type == null || (type != 0 && type != 1)) {
             throwExp("type error");
         }
+
         Integer page = params.getInteger("page");
         Integer num = params.getInteger("num");
         if (page == null || page < 1) {
@@ -412,13 +432,51 @@ public class ManagerTradingService extends BaseService {
         if (num == null || num < 1 || num > 50) {
             num = 20;
         }
+
+        Long userId = params.getLong("userId");
+        if (type == 1) {
+            if (userId == null || userId < 1) {
+                throwExp("userId error");
+            }
+        } else {
+            userId = null;
+        }
+
         Long itemId = params.getLong("itemId");
         Integer itemType = params.getInteger("itemType");
-        List<TradingVo> list = tradingCacheService.getTradingCache(page, num, itemId, itemType, null, type);
+
+        //  itemId 未传时 itemName
+        String itemName = params.getString("itemName");
+        boolean itemNameBlank = (itemName == null || itemName.trim().isEmpty());
+
+        if (itemId == null && !itemNameBlank) {
+            String searchName = itemName.trim();
+            for (Item item : PlayGameService.itemMap.values()) {
+                if (item.getName() != null && item.getName().equals(searchName)) {
+                    itemId = item.getId();
+                    itemType = item.getType();
+                    break;
+                }
+            }
+            if (itemId == null) {
+                JSONObject result = new JSONObject();
+                result.put("list", java.util.Collections.emptyList());
+                return result;
+            }
+        }
+        List<TradingVo> list = tradingCacheService.getTradingCache(
+                page, num,
+                itemId, itemType,
+                userId,
+                TradingTypeEnum.sell.getValue()
+        );
+
         JSONObject result = new JSONObject();
         result.put("list", list);
         return result;
     }
+
+
 
     @ServiceMethod(code = "009", description = "我的交易行列表")
     public JSONObject getMyTradingInfo(ManagerSocketServer adminSocketServer, JSONObject params) {

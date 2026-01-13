@@ -86,8 +86,10 @@ public class Config extends BaseBean {
 
 	public static final String GOOD_AD = "GOOD_AD";
 	public static final String IS_REGISTER = "IS_REGISTER";
+
 	public static final String VIP_MONTH_PRICE = "VIP_MONTH_PRICE";
 	public static final String VIP_WEEK_PRICE = "VIP_WEEK_PRICE";
+
 	public static final String REAL_NAME_REWARD = "REAL_NAME_REWARD";
 
 	public static final String REGISTER_NUM = "REGISTER_NUM";

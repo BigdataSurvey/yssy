@@ -33,23 +33,19 @@ import java.util.concurrent.CountDownLatch;
 public class BattleRoyaleSocket extends BaseClientSocket {
 	private static final Log logger = LogFactory.getLog(BattleRoyaleSocket.class);
 
-	
 	private VersionService versionService;
-	
+
 	private UpdateAppService updateAppService;
-	
-	
+
 	private IncomeRecordService incomeRecordService;
-	
+
 	private ServerConfigService serverConfigService;
-	
+
 	private UserCapitalService userCapitalService;
-	
+
 	private UserCapitalCacheService userCapitalCacheService;
-	
-	
-	
-	
+
+
 	public BattleRoyaleSocket(TargetSocketType socketType, int reconnect, String server, JSONObject shakeHandsDatas) {
 		super(socketType, false, reconnect, server, shakeHandsDatas);
 		versionService = SpringUtil.getService(VersionService.class);
@@ -58,7 +54,7 @@ public class BattleRoyaleSocket extends BaseClientSocket {
 		incomeRecordService = SpringUtil.getService(IncomeRecordService.class);
 		userCapitalService = SpringUtil.getService(UserCapitalService.class);
 		userCapitalCacheService= SpringUtil.getService(UserCapitalCacheService.class);
-		
+
 		Push.addPushSuport(PushCode.syncTaskNum, new DefaultPushHandler() {
 			public void onRegist(BaseSocket baseSocket, PushBean pushBean) {
 				pushBean.setShakeHands(Executer.size() + "," + Executer.QPS());
@@ -69,10 +65,9 @@ public class BattleRoyaleSocket extends BaseClientSocket {
 				pushBean.setShakeHands(ServerStateService.isService());
 			}
 		});
-		
+
 		Push.addPushSuport(PushCode.updateRoomDate, new DefaultPushHandler());
 		Push.addPushSuport(PushCode.updateGameDiyData, new DefaultPushHandler());
-
 		Push.addPushSuport(PushCode.updateGameStatus, new DefaultPushHandler());
 	}
 
@@ -95,7 +90,7 @@ public class BattleRoyaleSocket extends BaseClientSocket {
 
 			}
 		}, this);
-		
+
 		Push.registPush(new PushBean(PushCode.updateRoomDate), new PushListener() {
 			public void onRegist(BaseSocket baseSocket, Object data) {
 				downLatch.countDown();
@@ -111,10 +106,10 @@ public class BattleRoyaleSocket extends BaseClientSocket {
 					}
 				}
 
-				
+
 			}
 		}, this);
-		
+
 		Push.registPush(new PushBean(PushCode.updateGameStatus), new PushListener() {
 			public void onRegist(BaseSocket baseSocket, Object data) {
 				downLatch.countDown();
@@ -141,22 +136,18 @@ public class BattleRoyaleSocket extends BaseClientSocket {
 								result.put("roomResult", 2);
 							}
 						}else BattleRoyale2Socket.dtsPublic(obj, result);
-                        result.put("allLoseAmount", obj.get("allLoseAmount"));
+						result.put("allLoseAmount", obj.get("allLoseAmount"));
 						result.put("roomIds", obj.get("roomIds"));
 						result.put("status", obj.get("status"));
 						result.put("userId", userId);
-						
+
+						mergeUnifiedSummary(result, obj, userId);
 						Push.push(PushCode.updateGameStatus, userId, result);
 					}
-					
+
 				}
 			}
 		}, this);
-
-
-
-
-
 
 		JSONObject connectedData = ((JSONObject)data).getJSONObject("responseShakeHandsData");
 		if(connectedData != null){
@@ -191,5 +182,69 @@ public class BattleRoyaleSocket extends BaseClientSocket {
 	protected Log logger() {
 		return logger;
 	}
-	
+
+	/**
+	 * 合并统一摘要字段到推送结果：
+	 */
+	private static void mergeUnifiedSummary(JSONObject result, JSONObject obj, String userId) {
+		if (result == null || obj == null) {
+			return;
+		}
+
+		JSONObject summary = null;
+
+		try {
+			Object m = obj.get("userRecordSummaryMap");
+			if (m instanceof JSONObject) {
+				JSONObject map = (JSONObject) m;
+				Object s = map.get(userId);
+				if (s instanceof JSONObject) {
+					summary = (JSONObject) s;
+				} else if (s != null) {
+					summary = JSONObject.from(s);
+				}
+			} else if (m instanceof java.util.Map) {
+				JSONObject map = JSONObject.from(m);
+				Object s = map.get(userId);
+				if (s instanceof JSONObject) {
+					summary = (JSONObject) s;
+				} else if (s != null) {
+					summary = JSONObject.from(s);
+				}
+			}
+		} catch (Exception ignore) {
+		}
+
+		if (summary == null) {
+			boolean hasAny = obj.containsKey("recent16Summary")
+					|| obj.containsKey("recent100Periods")
+					|| obj.containsKey("totalInvest")
+					|| obj.containsKey("totalGain")
+					|| obj.containsKey("serverTime");
+			if (hasAny) {
+				summary = obj;
+			}
+		}
+
+		if (summary == null) {
+			return;
+		}
+
+		if (summary.containsKey("recent16Summary")) {
+			result.put("recent16Summary", summary.get("recent16Summary"));
+		}
+		if (summary.containsKey("recent100Periods")) {
+			result.put("recent100Periods", summary.get("recent100Periods"));
+		}
+		if (summary.containsKey("totalInvest")) {
+			result.put("totalInvest", summary.get("totalInvest"));
+		}
+		if (summary.containsKey("totalGain")) {
+			result.put("totalGain", summary.get("totalGain"));
+		}
+		if (summary.containsKey("serverTime")) {
+			result.put("serverTime", summary.get("serverTime"));
+		}
+	}
+
 }

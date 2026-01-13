@@ -15,7 +15,6 @@ import com.live.app.ws.util.Executer;
 import com.live.app.ws.util.Push;
 import com.zywl.app.base.bean.*;
 import com.zywl.app.base.bean.vo.BattleRoyale2Record;
-import com.zywl.app.base.constant.TableNameConstant;
 import com.zywl.app.base.service.BaseService;
 import com.zywl.app.base.util.*;
 import com.zywl.app.bean.BattleRoyaleRoom2;
@@ -25,7 +24,6 @@ import com.zywl.app.defaultx.cache.GameCacheService;
 import com.zywl.app.defaultx.enmus.GameTypeEnum;
 import com.zywl.app.defaultx.enmus.LogCapitalTypeEnum;
 import com.zywl.app.defaultx.enmus.LotteryGameStatusEnum;
-import com.zywl.app.defaultx.enmus.UserCapitalTypeEnum;
 import com.zywl.app.defaultx.service.*;
 import com.zywl.app.socket.BattleRoyaleSocketServer2;
 import com.zywl.app.util.RequestManagerListener;
@@ -80,7 +78,7 @@ public class BattleRoyaleService2 extends BaseService {
     private GameService gameService;
 
     @Autowired
-    private BattleRoyaleRecord2Service battleRoyaleRecordService;
+    private BattleRoyaleRecord3Service battleRoyaleRecordService;
 
     @Autowired
     private GameCacheService gameCacheService;
@@ -346,7 +344,12 @@ public class BattleRoyaleService2 extends BaseService {
                 appendDts3Info(ROOM.pushResult(3, userId, null, null));
             }
         }
-        return ROOM.getReturnInfo();
+        JSONObject resp = ROOM.getReturnInfo();
+        try {
+            resp.putAll(battleRoyaleRecordService.buildUnifiedSummary(Long.parseLong(data.getString("userId")), true));
+        } catch (Exception ignore) {
+        }
+        return resp;
     }
 
     @Transactional
@@ -581,6 +584,15 @@ public class BattleRoyaleService2 extends BaseService {
 
                 ROOM.setAllBetAmount(ROOM.getAllBetAmount().add(amount));
 
+                // 排行榜累计：按本次下注金额（按周、按 gameId 隔离）
+                if (!BOT_USER.containsKey(userId)) {
+                    int rankNumber = amount.setScale(0, BigDecimal.ROUND_DOWN).intValue();
+                    if (rankNumber > 0) {
+                        gameCacheService.addGameRankCache(GameTypeEnum.dts2.getValue(), userId, rankNumber);
+                    }
+                }
+
+
                 // 满足开局人数，切换到 gaming
                 synchronized (lock) {
                     if (ROOM.getBetNum() >= PEOPLE_NUM && ROOM.getStatus() == LotteryGameStatusEnum.ready.getValue()) {
@@ -714,6 +726,27 @@ public class BattleRoyaleService2 extends BaseService {
             data.put("status", status);
             data.putAll(ROOM.getSettleDate());
             data.put("userSettleInfo", userBetOrderInfo);
+            JSONObject userRecordSummaryMap = new JSONObject();
+            try {
+                if (userBetOrderInfo != null) {
+                    for (String uid : userBetOrderInfo.keySet()) {
+                        BigDecimal extraGain = null;
+                        try {
+                            Map<String, String> si = userBetOrderInfo.get(uid);
+                            if (si != null && si.get("winAmount") != null) {
+                                extraGain = new BigDecimal(si.get("winAmount"));
+                            }
+                        } catch (Exception ignore) {
+                        }
+                        try {
+                            userRecordSummaryMap.put(uid, battleRoyaleRecordService.buildUnifiedSummary(Long.valueOf(uid), true, extraGain));
+                        } catch (Exception ignore) {
+                        }
+                    }
+                }
+            } catch (Exception ignore) {
+            }
+            data.put("userRecordSummaryMap", userRecordSummaryMap);
             Push.push(PushCode.updateDts3Status, null, data);
             Executer.executeService(new Runnable() {
                 @Override
@@ -731,6 +764,8 @@ public class BattleRoyaleService2 extends BaseService {
 
     @Transactional
     public void settle(List<Integer> killList, Command lotteryCommand) {
+        List<String> lastWeekTopIds = GameCacheService.getLastWeekTopUserIds(GameTypeEnum.dts2.getValue());
+
         List<String> result = new ArrayList<>();
         killList.forEach(e -> result.add(e.toString()));
         System.out.println("开奖结果：" + result);
@@ -759,10 +794,10 @@ public class BattleRoyaleService2 extends BaseService {
             Map<String, BigDecimal> oneUserbetInfo = ROOM.getUserBetInfo().get(userId);
 
             for (String s : oneUserbetInfo.keySet()) {
-                if (result.contains(s) && GameCacheService.LAST_WEEK_USER_IDS.contains(userId)) {
+                if (result.contains(s) && lastWeekTopIds.contains(userId)) {
                     // 玩家下的注是输的房间 判断是否是免伤玩家  是的话增加免伤金额
                     BigDecimal loseAmount = oneUserbetInfo.get(s);
-                    int index = GameCacheService.LAST_WEEK_USER_IDS.indexOf(userId);
+                    int index = lastWeekTopIds.indexOf(userId);
                     BigDecimal rate = BigDecimal.ZERO;
                     if (index == 0) {
                         rate = new BigDecimal("0.15");
@@ -847,8 +882,8 @@ public class BattleRoyaleService2 extends BaseService {
             record.put("betAmount", betAmount);
             record.put("betInfo", ROOM.getUserCheckNum().get(uid));
             record.put("isWin", ROOM.getUserBetOrderInfo().get(uid).get("isWin"));
-            if (Integer.parseInt(ROOM.getUserBetOrderInfo().get(uid).get("isWin")) == 0 && GameCacheService.LAST_WEEK_USER_IDS.contains(uid)) {
-                int index = GameCacheService.LAST_WEEK_USER_IDS.indexOf(uid);
+            if (Integer.parseInt(ROOM.getUserBetOrderInfo().get(uid).get("isWin")) == 0 && lastWeekTopIds.contains(uid)) {
+                int index = lastWeekTopIds.indexOf(uid);
                 BigDecimal rate = BigDecimal.ZERO;
                 if (index == 0) {
                     rate = new BigDecimal("0.15");
@@ -885,45 +920,9 @@ public class BattleRoyaleService2 extends BaseService {
         checkNull(data);
         checkNull(data.get("userId"));
         Long userId = data.getLong("userId");
-        JSONObject history20Result = ROOM.getHistory20Reuslt();
-        JSONObject history100Result = ROOM.getHistory100Reuslt();
-        List<BattleRoyale2Record> records = battleRoyaleRecordService.findHistoryRecordByUserId(userId);
-        JSONArray resultArray = new JSONArray();
-        for (BattleRoyale2Record record : records) {
-            JSONObject obj = new JSONObject();
-            obj.put("periodsNum", record.getPeriodsNum());
-            obj.put("result", record.getLotteryResult());
-            obj.put("myBet", record.getBetInfo());
-            obj.put("betAmount", record.getBetAmount());
-            obj.put("profit", record.getProfit());
-            obj.put("create", record.getCreateTime());
-            resultArray.add(obj);
-        }
-        Map<String, Integer> his20Info = new HashMap<>();
-        Set<String> his20 = history20Result.keySet();
-        for (String s : his20) {
-            JSONArray array = JSON.parseArray(s);
-            for (Object o : array) {
-                Integer num = Integer.parseInt(o.toString());
-                his20Info.put(num.toString(), his20Info.getOrDefault(num.toString(), 0) + 1);
-            }
-        }
-
-        Map<String, Integer> his100Info = new HashMap<>();
-        Set<String> his100 = history100Result.keySet();
-        for (String s : his100) {
-            JSONArray array = JSON.parseArray(s);
-            for (Object o : array) {
-                Integer num = Integer.parseInt(o.toString());
-                his100Info.put(num.toString(), his100Info.getOrDefault(num.toString(), 0) + 1);
-            }
-        }
-        JSONObject result = new JSONObject();
-        result.put("result20", his20Info);
-        result.put("result100", his100Info);
-        result.put("myRecord", resultArray);
-        return result;
+        return battleRoyaleRecordService.buildUnifiedSummary(userId, true);
     }
+
 
 
     @Transactional

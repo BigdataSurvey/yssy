@@ -8,7 +8,7 @@ package com.zywl.app.defaultx.enmus;
  */
 public enum TradingTypeEnum {
 
-	sell("道具出售", 0), 
+	sell("交易商城", 0),
 	askbuy("道具求购", 1);
 	
 	private String name;

@@ -36,6 +36,9 @@ import java.util.Date;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 
 @Service
 @ServiceClass(code = MessageCodeContext.LOTTERY_SERVER)
@@ -79,6 +82,8 @@ public class ServerLotteryGameService extends BaseService {
         Push.addPushSuport(PushCode.updateNhStatus, new DefaultPushHandler());
         Push.addPushSuport(PushCode.updateDts2Info, new DefaultPushHandler());
         Push.addPushSuport(PushCode.updateDts2Status, new DefaultPushHandler());
+        Push.addPushSuport(PushCode.updateDts3Info, new DefaultPushHandler());
+        Push.addPushSuport(PushCode.updateDts3Status, new DefaultPushHandler());
         Push.addPushSuport(PushCode.updateSgInfo, new DefaultPushHandler());
         Push.addPushSuport(PushCode.updateSgStatus, new DefaultPushHandler());
         Push.addPushSuport(PushCode.updateBtInfo, new DefaultPushHandler());
@@ -136,9 +141,8 @@ public class ServerLotteryGameService extends BaseService {
         } else if (gameId.equals("12")) {
             Push.doRemovePush(appSocket, new PushBean(PushCode.updatePbxInfo, gameId));
             Push.doRemovePush(appSocket, new PushBean(PushCode.updatePbxStatus, userId));
+        }
     }
-
-}
 
     // 判断玩法服是否在线
     public boolean isOnline(int gameId) {
@@ -223,6 +227,7 @@ public class ServerLotteryGameService extends BaseService {
 
         if (gameId == 12) {
             checkNull(params.get("elementId"));
+
             BigDecimal chip = params.getBigDecimal("chip");
             if (chip == null) {
                 chip = params.getBigDecimal("betAmount");
@@ -239,6 +244,7 @@ public class ServerLotteryGameService extends BaseService {
             params.put("headImgUrl", user.getHeadImageUrl());
             params.put("name", user.getName());
             params.put("betAmount", chip);
+
             requestLotteryService.requestPbxBetService(params, new RequestManagerListener(appCommand));
             return async();
         }
@@ -257,6 +263,35 @@ public class ServerLotteryGameService extends BaseService {
         params.put("name", user.getName());
 
         requestLotteryService.requestBattleRoyaleBetService(params, new RequestManagerListener(appCommand));
+        return async();
+    }
+
+    @ServiceMethod(code = "003", description = "切换房间（离开+加入的整合）")
+    public Object changeRoom(final AppSocket appSocket, Command appCommand, JSONObject params) {
+        checkNull(params);
+        checkNull(params.get("gameId"), params.get("bet"));
+        Long userId = appSocket.getWsidBean().getUserId();
+        Long bet = params.getLong("bet");
+
+        int gameId = params.getIntValue("gameId");
+        if (!isOnline(gameId)) {
+            throwExp("小游戏正在维护");
+        }
+
+        User user = userCacheService.getUserInfoById(userId);
+        if (user == null) {
+            throwExp("用户信息异常");
+        }
+        if (user.getRiskPlus() != null && user.getRiskPlus() == 1) {
+            throwExp("请求超时，请更换网络环境再试");
+        }
+        params.put("userId", userId);
+        params.put("userNo", user.getUserNo());
+        params.put("userName", user.getName());
+        params.put("headImgUrl", user.getHeadImageUrl());
+        params.put("gameId", gameId);
+        params.put("bet", bet);
+        requestLotteryService.requestBattleRoyaleChangeRoom(params, new RequestManagerListener(appCommand));
         return async();
     }
 
@@ -293,18 +328,27 @@ public class ServerLotteryGameService extends BaseService {
         return async();
     }
 
-
-
-@ServiceMethod(code = "015", description = "记录")
+    @ServiceMethod(code = "015", description = "记录")
     public Async recordSg(final AppSocket appSocket, Command appCommand, JSONObject params) {
         checkNull(params);
+        checkNull(params.get("gameId"));
         long userId = appSocket.getWsidBean().getUserId();
         params.put("userId", userId);
         User user = userCacheService.getUserInfoById(userId);
         if (user == null) {
             throwExp("用户信息异常");
         }
-        Executer.request(TargetSocketType.getServerEnum(params.getIntValue("gameId")), CommandBuilder.builder().request("101004", params).build(), new RequestManagerListener(appCommand));
+
+        String reqCode = "101004";
+        if (params.getIntValue("gameId") == 12) {
+            reqCode = "102108";
+        }
+
+        Executer.request(
+                TargetSocketType.getServerEnum(params.getIntValue("gameId")),
+                CommandBuilder.builder().request(reqCode, params).build(),
+                new RequestManagerListener(appCommand)
+        );
         return async();
     }
 
@@ -313,33 +357,46 @@ public class ServerLotteryGameService extends BaseService {
     public JSONObject dtsRankList(final AppSocket appSocket, Command appCommand, JSONObject params) {
         checkNull(params);
         checkNull(params.get("type"));
+        checkNull(params.get("gameId"));
+
+        int gameId = params.getIntValue("gameId");
+        if (gameId != GameTypeEnum.battleRoyale.getValue() && gameId != GameTypeEnum.dts2.getValue() && gameId != GameTypeEnum.txz.getValue()) {
+            throwExp("gameId错误");
+        }
+
         long userId = appSocket.getWsidBean().getUserId();
         params.put("userId", userId);
         User user = userCacheService.getUserInfoById(userId);
         if (user == null) {
             throwExp("用户信息异常");
         }
+
         JSONObject result = new JSONObject();
-        int type= params.getInteger("type");
-        if (type==2){
-            result.put("rankList",gameCacheService.getLastWeekListDts());
-            Double userLastWeekRankScore = gameCacheService.getUserLastWeekRankScore(GameTypeEnum.battleRoyale.getValue(), String.valueOf(userId));
-            result.put("myScore",userLastWeekRankScore==null?0.0:userLastWeekRankScore);
-            Long rank = gameCacheService.getLastWeekUserRankDts(String.valueOf(userId));
-            result.put("myRank",rank==null?-1:rank+1);
-        } else if (type==1) {
-            result.put("remainingTime", DateUtil.thisWeekRemainingTime());
-            result.put("rankList",gameCacheService.getThisWeekListDts());
-            Double userRankScore = gameCacheService.getUserRankScore(GameTypeEnum.battleRoyale.getValue(), String.valueOf(userId));
-            result.put("myScore", userRankScore ==null?0.0:userRankScore);
-            Long thisWeekUserRank = gameCacheService.getThisWeekUserRankDts(String.valueOf(userId));
-            result.put("myRank",thisWeekUserRank==null?-1:thisWeekUserRank+1);
+        int type = params.getInteger("type");
+
+        // PBX(推箱子)排行榜走 Manager 200722
+        if (gameId == GameTypeEnum.txz.getValue()) {
+            return pbxRankListFromManager(userId, type);
         }
+
+
+        if (type == 2) {
+            result.put("rankList", gameCacheService.getLastWeekRankList(gameId));
+            Double userLastWeekRankScore = gameCacheService.getUserLastWeekRankScore(gameId, String.valueOf(userId));
+            result.put("myScore", userLastWeekRankScore == null ? 0.0 : userLastWeekRankScore);
+            Long rank = gameCacheService.getLastWeekUserRankByGame(gameId, String.valueOf(userId));
+            result.put("myRank", rank == null ? -1 : rank + 1);
+        } else if (type == 1) {
+            result.put("remainingTime", DateUtil.thisWeekRemainingTime());
+            result.put("rankList", gameCacheService.getThisWeekRankList(gameId));
+            Double userRankScore = gameCacheService.getUserRankScore(gameId, String.valueOf(userId));
+            result.put("myScore", userRankScore == null ? 0.0 : userRankScore);
+            Long thisWeekUserRank = gameCacheService.getThisWeekUserRankByGame(gameId, String.valueOf(userId));
+            result.put("myRank", thisWeekUserRank == null ? -1 : thisWeekUserRank + 1);
+        }
+
         return result;
     }
-
-
-
 
     @ServiceMethod(code = "016", description = "游园宝箱")
     public JSONObject yybx(final AppSocket appSocket, Command appCommand, JSONObject params) {
@@ -475,5 +532,101 @@ public class ServerLotteryGameService extends BaseService {
         Push.doRemovePush(appSocket, new PushBean(PushCode.updateGameDiyData, gameId));
     }
 
+
+
+    /**
+     * PBX(推箱子)排行榜：调用 Manager 200722（pbxQuery）并包装为 004014 统一结构
+     * type=1 本周榜；type=2 上周榜
+     */
+    private JSONObject pbxRankListFromManager(long userId, int type) {
+        JSONObject req = new JSONObject();
+        req.put("gameId", String.valueOf(GameTypeEnum.txz.getValue()));
+        req.put("userId", String.valueOf(userId));
+
+        CountDownLatch latch = new CountDownLatch(1);
+        AtomicReference<JSONObject> ref = new AtomicReference<>();
+        AtomicReference<String> err = new AtomicReference<>();
+
+        Executer.request(
+                TargetSocketType.manager,
+                CommandBuilder.builder().request("200722", req).build(),
+                new Listener() {
+                    @Override
+                    public void handle(BaseClientSocket socket, Command command) {
+                        try {
+                            if (command != null && command.isSuccess()) {
+                                ref.set((JSONObject) command.getData());
+                            } else if (command != null) {
+                                err.set(command.getMessage());
+                            } else {
+                                err.set("manager response null");
+                            }
+                        } catch (Exception e) {
+                            err.set(e.getMessage());
+                        } finally {
+                            latch.countDown();
+                        }
+                    }
+                }
+        );
+
+        boolean ok;
+        try {
+            ok = latch.await(4, TimeUnit.SECONDS);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            ok = false;
+        }
+
+        JSONObject result = new JSONObject();
+        result.put("gameId", GameTypeEnum.txz.getValue());
+        result.put("serverTime", System.currentTimeMillis());
+
+        if (!ok || ref.get() == null) {
+            result.put("rankList", new com.alibaba.fastjson2.JSONArray());
+            result.put("myRank", -1);
+            result.put("myScore", BigDecimal.ZERO);
+            if (type == 1) {
+                result.put("remainingTime", DateUtil.thisWeekRemainingTime());
+            }
+            result.put("success", false);
+            result.put("message", err.get() == null ? "pbxRank timeout" : err.get());
+            return result;
+        }
+
+        JSONObject q = ref.get();
+        com.alibaba.fastjson2.JSONArray weekTop = q.getJSONArray("weekRankTop10");
+        com.alibaba.fastjson2.JSONArray lastTop = q.getJSONArray("lastWeekRankTop10");
+
+        if (weekTop == null) weekTop = new com.alibaba.fastjson2.JSONArray();
+        if (lastTop == null) lastTop = new com.alibaba.fastjson2.JSONArray();
+
+        if (type == 2) {
+            result.put("rankList", lastTop);
+            int myRank = q.getIntValue("myLastWeekRank");
+            result.put("myRank", myRank <= 0 ? -1 : myRank);
+            BigDecimal myScore = q.getBigDecimal("myLastWeekConsume");
+            result.put("myScore", myScore == null ? BigDecimal.ZERO : myScore);
+        } else if (type == 1) {
+            result.put("remainingTime", DateUtil.thisWeekRemainingTime());
+            result.put("rankList", weekTop);
+            int myRank = q.getIntValue("myWeekRank");
+            result.put("myRank", myRank <= 0 ? -1 : myRank);
+            BigDecimal myScore = q.getBigDecimal("myWeekConsume");
+            result.put("myScore", myScore == null ? BigDecimal.ZERO : myScore);
+        } else {
+            throwExp("参数错误");
+        }
+
+        // 透传 PBX 额外字段
+        result.put("weekDividendPool", q.getBigDecimal("weekDividendPool"));
+        result.put("lastWeekDividendPool", q.getBigDecimal("lastWeekDividendPool"));
+        result.put("poolBalance", q.getBigDecimal("poolBalance"));
+        result.put("weekSettled", q.getBooleanValue("weekSettled"));
+        result.put("lastWeekSettled", q.getBooleanValue("lastWeekSettled"));
+
+        result.put("success", true);
+        return result;
+    }
 
 }

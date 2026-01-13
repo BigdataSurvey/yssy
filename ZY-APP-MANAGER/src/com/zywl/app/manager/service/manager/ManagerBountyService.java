@@ -114,6 +114,7 @@ public class ManagerBountyService extends BaseService {
                 item.put("taskId", task.getId());
                 item.put("taskTitle", task.getTaskTitle());
                 item.put("taskName", task.getTaskName());
+                item.put("downloadImgs", task.getDownloadImgs());
                 item.put("unitPrice", task.getUnitPrice());
                 item.put("quotaTotal", task.getQuotaTotal());
                 item.put("quotaRemain", task.getQuotaRemain());
