@@ -785,9 +785,6 @@ public class GameBaseService extends BaseService {
         return async();
     }
 
-
-
-
    /* @ServiceMethod(code = "vipPrice", description = "vip价格")
     public Object vipPrice(AppSocket appSocket, Command command, JSONObject data) {
         Long userId = appSocket.getWsidBean().getUserId();

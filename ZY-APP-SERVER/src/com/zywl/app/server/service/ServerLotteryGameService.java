@@ -219,10 +219,6 @@ public class ServerLotteryGameService extends BaseService {
             throwExp("小游戏正在维护");
         }
 
-
-        if (gameId == 12) {
-            throwExp("PBX不支持切换房间(004003)");
-        }
         long userId = appSocket.getWsidBean().getUserId();
         User user = userCacheService.getUserInfoById(userId);
         if (user == null) {
@@ -231,6 +227,7 @@ public class ServerLotteryGameService extends BaseService {
 
         if (gameId == 12) {
             checkNull(params.get("elementId"));
+
             BigDecimal chip = params.getBigDecimal("chip");
             if (chip == null) {
                 chip = params.getBigDecimal("betAmount");
@@ -247,6 +244,7 @@ public class ServerLotteryGameService extends BaseService {
             params.put("headImgUrl", user.getHeadImageUrl());
             params.put("name", user.getName());
             params.put("betAmount", chip);
+
             requestLotteryService.requestPbxBetService(params, new RequestManagerListener(appCommand));
             return async();
         }

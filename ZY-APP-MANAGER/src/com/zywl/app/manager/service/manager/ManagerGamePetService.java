@@ -24,7 +24,6 @@ import com.zywl.app.defaultx.service.UserPetUserService;
 import com.zywl.app.defaultx.service.UserService;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.awt.*;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.text.SimpleDateFormat;
@@ -634,7 +633,8 @@ public class ManagerGamePetService  extends BaseService {
     }
 
     /**
-     * 038007 邀请列表（直推）
+     * 038007 邀请列表（部落成员列表）
+     * tribeLevel: 1~5（必传，1=狮子部落1/直推，2=狮子部落2...）
      * type: 0全部 / 1未达标 / 2有效
      */
     @ServiceMethod(code = "007", description = "养宠-邀请列表")
@@ -646,24 +646,70 @@ public class ManagerGamePetService  extends BaseService {
         Integer page = params.getInteger("page");
         Integer pageSize = params.getInteger("pageSize");
         Integer type = params.getInteger("type");
+        Integer tribeLevel = params.getInteger("tribeLevel");
+
         if (page == null || page <= 0) page = 1;
         if (pageSize == null || pageSize <= 0) pageSize = 10;
-        if (type == null) type = 0;
-        if (type < 0 || type > 2) {
-            throwExp("type参数非法");
+
+        // type 必传：0全部 / 1未达标 / 2有效
+        if (type == null) {
+            throwExp("type不能为空");
+        }
+            if (type < 0 || type > 2) {
+                throwExp("type参数非法");
+        }
+
+        // tribeLevel 默认 1（兼容老版本），新版本前端必传
+        if (tribeLevel == null) tribeLevel = 1;
+        if (tribeLevel < 1 || tribeLevel > 5) {
+            throwExp("tribeLevel参数非法");
+        }
+
+        int total = 0;
+        int validTotal = 0;
+        int unqualifiedTotal = 0;
+
+        List<User> users;
+
+        // tribeLevel=1 走原 parentId 查询（性能更好）
+        if (tribeLevel == 1) {
+            total = userService.countInviteUsersByParentId(userId);
+            validTotal = userService.countInviteUsersValidByParentId(userId);
+            unqualifiedTotal = userService.countInviteUsersUnqualifiedByParentId(userId);
+            users = userService.findInviteUsersByParentIdWithType(userId, type, page, pageSize);
+        } else {
+            // 逐层展开到指定代
+            List<Long> parents = new ArrayList<>();
+            parents.add(userId);
+            List<Long> levelUserIds = Collections.emptyList();
+            for (int lv = 1; lv <= tribeLevel; lv++) {
+                List<Long> children = userService.findIdByParentId(parents);
+                if (children == null || children.isEmpty()) {
+                    levelUserIds = Collections.emptyList();
+                    break;
+                }
+                if (lv == tribeLevel) {
+                    levelUserIds = children;
+                } else {
+                    parents = children;
+                }
+            }
+
+            if (levelUserIds == null || levelUserIds.isEmpty()) {
+                users = Collections.emptyList();
+            } else {
+                total = userService.countInviteUsersByIds(levelUserIds);
+                validTotal = userService.countInviteUsersValidByIds(levelUserIds);
+                unqualifiedTotal = userService.countInviteUsersUnqualifiedByIds(levelUserIds);
+                users = userService.findInviteUsersByIdsWithType(levelUserIds, type, page, pageSize);
+            }
         }
 
         // tabTotal
-        int total = userService.countInviteUsersByParentId(userId);
-        int validTotal = userService.countInviteUsersValidByParentId(userId);
-        int unqualifiedTotal = userService.countInviteUsersUnqualifiedByParentId(userId);
-
         JSONObject tabTotal = new JSONObject();
         tabTotal.put("all", total);
         tabTotal.put("unqualified", unqualifiedTotal);
         tabTotal.put("valid", validTotal);
-
-        List<User> users = userService.findInviteUsersByParentIdWithType(userId, type, page, pageSize);
 
         List<Long> userIds = new ArrayList<>();
         if (users != null) {
@@ -673,11 +719,15 @@ public class ManagerGamePetService  extends BaseService {
         }
 
         Map<Long, Integer> petCountMap = userIds.isEmpty() ? new HashMap<>() : userPetService.countByUserIds(userIds);
-        Map<Long, BigDecimal> coinMap = userIds.isEmpty() ? new HashMap<>() : userPetRecordService.sumTotalDividendByFromUserIdsAndLevel(userId, userIds, 1);
+        // 分润贡献按“当前部落代数”统计
+        Map<Long, BigDecimal> coinMap = userIds.isEmpty() ? new HashMap<>() :
+                userPetRecordService.sumTotalDividendByFromUserIdsAndLevel(userId, userIds, tribeLevel);
 
         JSONArray list = new JSONArray();
         if (users != null) {
             for (User u : users) {
+                if (u == null || u.getId() == null) continue;
+
                 JSONObject it = new JSONObject();
                 it.put("userId", u.getId());
                 it.put("nickName", u.getName());
@@ -706,7 +756,6 @@ public class ManagerGamePetService  extends BaseService {
                 it.put("statusText", statusText);
                 it.put("petCount", petCount);
                 it.put("coinAmount", format6(coinAmount));
-                it.put("serverTime", System.currentTimeMillis());
                 list.add(it);
             }
         }
@@ -716,6 +765,7 @@ public class ManagerGamePetService  extends BaseService {
         result.put("page", page);
         result.put("pageSize", pageSize);
         result.put("type", type);
+        result.put("tribeLevel", tribeLevel);
 
         result.put("total", total);
         result.put("validTotal", validTotal);
@@ -815,6 +865,19 @@ public class ManagerGamePetService  extends BaseService {
 
             // 3~5 代返回解锁差额（用于前端展示“解锁进度”）
             if (lv >= 3) {
+                // 开启该部落需要的直推总人数（配置阈值，前端用于进度条）
+                int inviteTotal = 0;
+                if (lv == 3) {
+                    inviteTotal = safeInt(dicPet.getUnlockDirectLv3());
+                } else if (lv == 4) {
+                    inviteTotal = safeInt(dicPet.getUnlockDirectLv4());
+                } else if (lv == 5) {
+                    inviteTotal = safeInt(dicPet.getUnlockDirectLv5());
+                }
+                one.put("inviteTotal", inviteTotal);
+                // 当前直推人数（lv1 人数，解锁口径统一看直推）
+                one.put("inviteNow", levelPeople.getOrDefault(1, 0));
+
                 one.put("needDirect", unlockNeed.getInteger("lv" + lv + "NeedDirect"));
                 one.put("needContrib", unlockNeed.getString("lv" + lv + "NeedContrib"));
             }

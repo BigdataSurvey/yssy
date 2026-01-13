@@ -1,5 +1,5 @@
 package com.zywl.app.base.bean.vo;
-
+import java.util.Date;
 import com.zywl.app.base.BaseBean;
 
 import java.math.BigDecimal;
@@ -19,6 +19,7 @@ public class TradingVo extends BaseBean{
 	private BigDecimal itemPrice;
 	
 	private Integer status;
+	private Date createTime;
 
 	public Long getItemId() {
 		return itemId;
@@ -77,11 +78,12 @@ public class TradingVo extends BaseBean{
 	public void setItemAllNumber(Integer itemAllNumber) {
 		this.itemAllNumber = itemAllNumber;
 	}
-
+	public Date getCreateTime() { return createTime; }
+	public void setCreateTime(Date createTime) { this.createTime = createTime; }
 	@Override
 	public String toString() {
 		return "TradingVo [id=" + id + ", userId=" + userId + ", itemId=" + itemId + ", itemNumber=" + itemNumber
-				+ ", itemPrice=" + itemPrice + ", status=" + status + "]";
+				+ ", itemPrice=" + itemPrice + ", status=" + status + ", createTime=" + createTime + "]";
 	}
 	
 	

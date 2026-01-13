@@ -417,10 +417,13 @@ public class ManagerTradingService extends BaseService {
     @ServiceMethod(code = "007", description = "交易行列表")
     public JSONObject getTradingInfo(ManagerSocketServer adminSocketServer, JSONObject params) {
         checkNull(params);
+
+        // 0=交易商城；1=我的售卖
         Integer type = params.getInteger("type");
         if (type == null || (type != 0 && type != 1)) {
             throwExp("type error");
         }
+
         Integer page = params.getInteger("page");
         Integer num = params.getInteger("num");
         if (page == null || page < 1) {
@@ -430,27 +433,50 @@ public class ManagerTradingService extends BaseService {
             num = 20;
         }
 
+        Long userId = params.getLong("userId");
+        if (type == 1) {
+            if (userId == null || userId < 1) {
+                throwExp("userId error");
+            }
+        } else {
+            userId = null;
+        }
+
         Long itemId = params.getLong("itemId");
         Integer itemType = params.getInteger("itemType");
-        //如果没有传itemId就用itemName匹配;前端要求。
-        if (itemId == null) {
-            String itemName = params.getString("itemName");
-            if (itemName != null && !itemName.trim().isEmpty()) {
-                String searchName = itemName.trim();
-                for (Item item : PlayGameService.itemMap.values()) {
-                    if (item.getName() != null && item.getName().equals(searchName)) {
-                        itemId = item.getId();
-                        itemType = item.getType();
-                        break;
-                    }
+
+        //  itemId 未传时 itemName
+        String itemName = params.getString("itemName");
+        boolean itemNameBlank = (itemName == null || itemName.trim().isEmpty());
+
+        if (itemId == null && !itemNameBlank) {
+            String searchName = itemName.trim();
+            for (Item item : PlayGameService.itemMap.values()) {
+                if (item.getName() != null && item.getName().equals(searchName)) {
+                    itemId = item.getId();
+                    itemType = item.getType();
+                    break;
                 }
             }
+            if (itemId == null) {
+                JSONObject result = new JSONObject();
+                result.put("list", java.util.Collections.emptyList());
+                return result;
+            }
         }
-        List<TradingVo> list = tradingCacheService.getTradingCache(page, num, itemId, itemType, null, type);
+        List<TradingVo> list = tradingCacheService.getTradingCache(
+                page, num,
+                itemId, itemType,
+                userId,
+                TradingTypeEnum.sell.getValue()
+        );
+
         JSONObject result = new JSONObject();
         result.put("list", list);
         return result;
     }
+
+
 
     @ServiceMethod(code = "009", description = "我的交易行列表")
     public JSONObject getMyTradingInfo(ManagerSocketServer adminSocketServer, JSONObject params) {
