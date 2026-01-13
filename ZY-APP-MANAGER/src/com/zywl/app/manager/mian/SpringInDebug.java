@@ -1197,7 +1197,7 @@ public class SpringInDebug {
             params.put("userId", MY_USER_ID);
             params.put("number", 1);
             params.put("price", "1");
-            params.put("itemId", 1101);
+            params.put("itemId", 1201);
             JSONObject res = svc.userListingItem(null, params);
             printResult(res);
         } catch (Exception e) {
@@ -1216,7 +1216,7 @@ public class SpringInDebug {
             JSONObject params = new JSONObject();
             params.put("userId", MY_USER_ID);
             params.put("type", 0);
-            params.put("itemName", "玉米种子·一阶");
+            //params.put("itemName", "玉米种子·一阶");
             params.put("page", 1);
             params.put("num", 20);
             JSONObject res = svc.getTradingInfo(null, params);
@@ -1226,7 +1226,6 @@ public class SpringInDebug {
         }
         System.out.println("=【" + module + "-" + funcName + "-测试-结束】=用时：" + (System.currentTimeMillis() - start) + "ms=====>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>=============");
     }
-
 
 
     // =================================================================================================================
@@ -1315,11 +1314,11 @@ public class SpringInDebug {
         // getMyPublishTest();
         // getPendingAuditTest();
         // getAuditApproveTest();
-         getAuditRejectTest();
+        //getAuditRejectTest();
 
         //交易行
-        //getTradingInfoTest();
-        getTradingListingTest();
+        getTradingInfoTest();
+        //getTradingListingTest();
 
         System.out.println(">>>>>>>>>> Debug测试结束 <<<<<<<<<<");
         System.exit(0);
