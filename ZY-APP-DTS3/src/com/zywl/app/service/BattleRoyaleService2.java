@@ -314,6 +314,8 @@ public class BattleRoyaleService2 extends BaseService {
         Push.addPushSuport(PushCode.updateUserCapital, new DefaultPushHandler());
         Push.addPushSuport(PushCode.updateDts3Status, new DefaultPushHandler());
         Push.addPushSuport(PushCode.updateDts3Info, new DefaultPushHandler());
+        Push.addPushSuport(PushCode.updateDts3UserLeave, new DefaultPushHandler());
+
     }
 
     @Transactional
@@ -378,6 +380,30 @@ public class BattleRoyaleService2 extends BaseService {
             ROOM.getPlayers().remove(userId);
             ROOM.getLookList().remove(userId);
         }
+        // 额外推送 离开房间的用户信息 给房间内所有用户
+        try {
+            JSONObject leave = new JSONObject();
+            leave.put("gameId", "1");
+            leave.put("userId", userId);
+
+            Map<String, String> p = ROOM.getPlayers().get(userId);
+            if (p != null) {
+                leave.put("userNo", p.get("userNo"));
+                leave.put("userName", p.get("userName"));
+                leave.put("headImgUrl", p.get("headImgUrl"));
+            }
+
+            String oldRoomId = null;
+            if (ROOM.getUserBetInfo().containsKey(userId)) {
+                for (String rid : ROOM.getUserBetInfo().get(userId).keySet()) {
+                    oldRoomId = rid;
+                    break;
+                }
+            }
+            leave.put("roomId", oldRoomId);
+
+            Push.push(PushCode.updateDts3UserLeave, "1", leave);
+        } catch (Exception ignore) {}
 
         //离开房间要推送变更
         appendDts3Info(pushResult);
@@ -399,19 +425,37 @@ public class BattleRoyaleService2 extends BaseService {
         String userName = data.getString("userName");
         String newRoomId = data.getString("bet");
 
-        if (Integer.parseInt(newRoomId) > ROOM.getOption() - 1 || Integer.parseInt(newRoomId) < 0) {
+        int idx;
+        try {
+            idx = Integer.parseInt(newRoomId);
+        } catch (Exception e) {
+            throwExp("非法操作");
+            return null;
+        }
+
+        if (idx >= 1 && idx <= ROOM.getOption()) {
+            idx = idx - 1;
+        }
+
+        if (idx > ROOM.getOption() - 1 || idx < 0) {
             throwExp("非法操作");
         }
 
+        newRoomId = String.valueOf(idx);
+
         synchronized (LockUtil.getlock(userId)) {
+            JSONObject result = new JSONObject();
+
             if (ROOM.getRoomList().get(newRoomId).containsKey(userId)) {
                 throwExp("已经在该房间了");
             }
             ROOM.getUserCheckNum().put(userId, newRoomId);
 
-            JSONObject result = new JSONObject();
             if (!ROOM.getUserBetInfo().containsKey(userId)) {
-                throwExp("点击过快");
+                ROOM.getUserCheckNum().put(userId, newRoomId);
+                result.put("bet", newRoomId);
+                result.put("preSelect", true);
+                return result;
             }
 
             Set<String> roomids = ROOM.getUserBetInfo().get(userId).keySet();

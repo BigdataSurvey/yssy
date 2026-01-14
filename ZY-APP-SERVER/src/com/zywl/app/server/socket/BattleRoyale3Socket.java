@@ -74,13 +74,37 @@ public class BattleRoyale3Socket extends BaseClientSocket {
             @Override
             public void onReceive(BaseSocket baseSocket, Object data) {
                 logger.info("收到大逃杀3房间信息变更" + data);
-                JSONArray array = JSONArray.from(data);
+                if (data == null) {
+                    return;
+                }
+
+                JSONArray array = new JSONArray();
+                if (data instanceof JSONObject) {
+                    // 如果是单对象，直接add进去
+                    array.add((JSONObject) data);
+                } else if (data instanceof JSONArray) {
+                    // 如果是数组
+                    array = (JSONArray) data;
+                } else {
+                    try {
+                        array = JSONArray.from(data);
+                    } catch (Exception e) {
+                        try {
+                            array.add(JSONObject.from(data));
+                        } catch (Exception ex) {
+                            logger.error("DTS3推送格式错误，无法解析: " + data, ex);
+                            return;
+                        }
+                    }
+                }
+
                 for (Object o : array) {
                     JSONObject obj = JSONObject.from(o);
                     String gameId = obj.getString("gameId");
                     if ("1".equals(gameId)) {
                         Push.push(PushCode.updateRoomDate, gameId, obj);
                     }
+                    logger.info("DTS3 updateDts3Info receive gameId=" + gameId + ", payload=" + obj);
                 }
             }
         }, this);
@@ -98,6 +122,7 @@ public class BattleRoyale3Socket extends BaseClientSocket {
                 logger.info("大逃杀3游戏状态变更" + data);
                 JSONObject obj = JSONObject.from(data);
                 String gameId = obj.getString("gameId");
+                logger.info("DTS3 updateDts3Status receive gameId=" + gameId + ", status=" + obj.get("status"));
                 JSONArray ids = obj.getJSONArray("userIds");
                 if ("1".equals(gameId) && ids != null) {
                     for (Object id : ids) {
@@ -125,6 +150,21 @@ public class BattleRoyale3Socket extends BaseClientSocket {
                         Push.push(PushCode.updateGameStatus, userId, result);
                     }
                 }
+            }
+        }, this);
+
+        // DTS3 用户离开房间推送
+        Push.registPush(new PushBean(PushCode.updateDts3UserLeave), new PushListener() {
+            @Override
+            public void onRegist(BaseSocket baseSocket, Object data) {}
+
+            @Override
+            public void onReceive(BaseSocket baseSocket, Object data) {
+                if (data == null) return;
+                JSONObject obj = JSONObject.from(data);
+                String gameId = obj.getString("gameId");
+                // 转推到 APP 端 condition 用 gameId
+                Push.push(PushCode.updateDts3UserLeave, gameId, obj);
             }
         }, this);
 

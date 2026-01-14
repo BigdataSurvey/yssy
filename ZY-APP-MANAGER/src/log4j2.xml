@@ -63,10 +63,23 @@
 		<Logger name="org.apache.kafka" level="ERROR"/>
 
 		<!-- 根日志（ -->
-		<Root level="DEBUG">
+		<Root level="INFO">
 			<AppenderRef ref="console"/>
 			<AppenderRef ref="RollingFile"/>
 		</Root>
+
+
+		<!-- 关闭 MyBatis-Spring 的 SqlSession/事务 DEBUG -->
+		<Logger name="org.mybatis.spring" level="INFO" additivity="false"/>
+		<Logger name="org.mybatis.spring.SqlSessionUtils" level="INFO" additivity="false"/>
+		<Logger name="org.mybatis.spring.transaction" level="INFO" additivity="false"/>
+
+		<!-- 关闭 MyBatis 本体 DEBUG（可选，但建议一起关） -->
+		<Logger name="org.apache.ibatis" level="INFO" additivity="false"/>
+
+		<!-- 关闭 Mapper SQL DEBUG（最关键：==> Preparing / Parameters） -->
+		<Logger name="com.zywl.app.defaultx.mapper" level="INFO" additivity="false"/>
+
 	</Loggers>
 
 </Configuration>

@@ -145,8 +145,6 @@ public class PbxSocket extends BaseClientSocket {
         return logger;
     }
 
-
-
     /**
      * 合并统一摘要字段到推送结果：recent16Summary/recent100Periods/totalInvest/totalGain/serverTime
      */

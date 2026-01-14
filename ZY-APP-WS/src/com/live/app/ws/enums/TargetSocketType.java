@@ -60,10 +60,10 @@ public enum TargetSocketType {
 		}else if (gameId==10) {
 			return dgs;
 		}
-		//推箱子也走12
-		else if (gameId==12){
+		else if (gameId == 12) {
 			return dts2;
 		}
+
 		return null;
 	}
 }

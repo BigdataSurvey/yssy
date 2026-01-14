@@ -1,5 +1,6 @@
 package com.zywl.app.server.socket;
-
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import com.alibaba.fastjson2.JSON;
 import com.alibaba.fastjson2.JSONArray;
 import com.alibaba.fastjson2.JSONObject;
@@ -96,6 +97,15 @@ public class AppSocket extends BaseServerSocket {
 
     @Override
     public ConnectedData onConnect(JSONObject shakeHandsData) throws AppException {
+        String logMsg1 = String.format("DEBUG onConnect wsid=%s, shakeHandsData=%s",
+                wsidBean == null ? "null" : wsidBean.getWsid(),
+                shakeHandsData.toJSONString());
+        logger.error(logMsg1);
+
+        String logMsg2 = String.format("DEBUG compare redisKey=%s, clientKey=%s",
+                wsidBean == null ? "null" : wsidBean.getWsPrivateKey(),
+                shakeHandsData.getString("wsPrivateKey"));
+        logger.error(logMsg2);
         if (!ServerStateService.isService())
             throwExp("系统繁忙，请稍后");
 
@@ -222,6 +232,11 @@ public class AppSocket extends BaseServerSocket {
     @Override
     protected String getPrivateKey(String pk) {
         wsidBean = wsidService.getWsid(pk);
+        String logMsg = String.format("DEBUG getPrivateKey pk=%s, wsidBean=%s, wsPrivateKey=%s",
+                pk,
+                wsidBean == null ? "null" : JSON.toJSONString(wsidBean),
+                wsidBean == null ? "null" : wsidBean.getWsPrivateKey());
+        logger.error(logMsg);
         return wsidBean == null ? null : wsidBean.getWsPrivateKey();
     }
 
@@ -253,9 +268,13 @@ public class AppSocket extends BaseServerSocket {
     }
 
     public void updateSocketInfo(User user, boolean syncAppChange) {
+        String logMsg = String.format("DEBUG after updateSocketInfo user=%s, getUser()=%s",
+                user == null ? "null" : user.getId(),
+                getUser() == null ? "null" : getUser().getId());
+
+        logger.error(logMsg);
         updateSocketInfo(user, syncAppChange, true, true);
     }
-
     @Override
     protected void filterCommand(Command command) {
         if (command.isPush()) {
