@@ -49,7 +49,7 @@ import java.util.concurrent.ThreadFactory;
  * @Author: lzx
  * @Create: 2025/12/20
  * @Version: V1.0
- * @Description: 推箱子 (PBX) 核心业务服务
+ * @Description: 推箱子 (PBX) 翻牌牌 核心业务服务
  */
 @Service
 @ServiceClass(code = "102")
@@ -293,9 +293,9 @@ public class PbxService extends BaseService {
         final JSONArray resultElements;
         final String resultType;
         final boolean forceLose;
-        final Integer winElement;        // triple/double 的“中奖元素”；allDiff 为 null
-        final Set<Integer> winElements;  // allDiff 的中奖元素集合；triple/double 为 null
-        final BigDecimal multiplier;     // 10 / 4 / 1.8
+        final Integer winElement;
+        final Set<Integer> winElements;
+        final BigDecimal multiplier;
 
         OutcomePick(JSONArray resultElements,
                     String resultType,

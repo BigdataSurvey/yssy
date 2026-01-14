@@ -34,6 +34,7 @@ public enum PushCode {
 	updateDts2Status,
 	updateDts3Info,
 	updateDts3Status,
+	updateDts3UserLeave,
 	updateNhInfo,
 
 	updateSgStatus,

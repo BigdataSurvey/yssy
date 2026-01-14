@@ -79,7 +79,11 @@ public class Executer {
                                     task.getDoThread().interrupt();
                                 } catch (Exception e) {
                                 }
-                                response(CommandBuilder.builder(task.getCommandId()).error("连接超时").build());
+                                Command timeoutCmd = CommandBuilder.builder(task.getCommandId())
+                                        .request(task.getCode(), null)
+                                        .error("连接超时")
+                                        .build();
+                                response(timeoutCmd);
                             }
                         }
                     }
@@ -206,6 +210,12 @@ public class Executer {
                     Listener listener = listenerPool.remove(command.getId());
                     if (listener != null) {
                         listener.handle(baseClientSocket, command);
+                    } else {
+                        logger.warn("收到服务端响应但未找到listener，响应将被丢弃："
+                                + " socketType=" + baseClientSocket.getSocketType()
+                                + " id=" + command.getId()
+                                + " code=" + command.getCode()
+                                + " body=" + JSON.toJSONString(command));
                     }
                 } catch (AppException e) {
                     logger.warn("执行异常[" + command.getId() + "]：" + e);
@@ -215,6 +225,7 @@ public class Executer {
             }
         });
     }
+
 
     public static void executeService(Runnable runnable) {
         serviceExecutor.execute(runnable);
