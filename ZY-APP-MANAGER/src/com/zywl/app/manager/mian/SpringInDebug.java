@@ -1229,6 +1229,95 @@ public class SpringInDebug {
 
 
     // =================================================================================================================
+    //                                         9.OSS
+    // =================================================================================================================
+
+    /**
+     * OSS 直传签名（Policy）
+     * 对应 ManagerOssService: 040001
+     */
+    //运行后拿到结果
+/*        >>>>>>>>>> 开始本地Debug测试 <<<<<<<<<<
+            =[OSS基础能力]-OSS直传签名(Policy)-测试-开始=========>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>==========
+    运行结果========= {"accessId":"REDACTED_ALIYUN_AKID","policy":"eyJleHBpcmF0aW9uIjoiMjAyNi0wMS0xNVQwMzo1MDoxNi4wMDBaIiwiY29uZGl0aW9ucyI6W1siY29udGVudC1sZW5ndGgtcmFuZ2UiLDAsNTI0Mjg4MF0seyJidWNrZXQiOiJ5c3N5LXVzZXIifSxbInN0YXJ0cy13aXRoIiwiJGtleSIsInlzc3kvYm91bnR5LzIwMjYwMTE1LzkzNzIyMy8iXSx7InN1Y2Nlc3NfYWN0aW9uX3N0YXR1cyI6IjIwMCJ9XX0=","signature":"KFPGGCARBvNcigty1E7iS7zU4kI=","dir":"yssy/bounty/20260115/937223/","fileName":"b9a99d32d9014048ae11afada59eb2b9.jpg","objectKey":"yssy/bounty/20260115/937223/b9a99d32d9014048ae11afada59eb2b9.jpg","host":"https://yssy-user.oss-cn-beijing.aliyuncs.com","urlPrefix":"https://yssy-user.oss-cn-beijing.aliyuncs.com","finalUrl":"https://yssy-user.oss-cn-beijing.aliyuncs.com/yssy/bounty/20260115/937223/b9a99d32d9014048ae11afada59eb2b9.jpg","expire":1768449016,"maxSize":5242880,"success_action_status":"200"}
+=【OSS基础能力-OSS直传签名(Policy)-测试-结束】=用时：497ms=====>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>=============
+            >>>>>>>>>> Debug测试结束 <<<<<<<<<<*/
+    //封装请求和结果：
+/*    PS C:\Users\Administrator> curl.exe -i -X POST "https://yssy-user.oss-cn-beijing.aliyuncs.com" -F "key=yssy/bounty/20260115/937223/b9a99d32d9014048ae11afada59eb2b9.jpg" -F "OSSAccessKeyId=REDACTED_ALIYUN_AKID" -F "policy=eyJleHBpcmF0aW9uIjoiMjAyNi0wMS0xNVQwMzo1MDoxNi4wMDBaIiwiY29uZGl0aW9ucyI6W1siY29udGVudC1sZW5ndGgtcmFuZ2UiLDAsNTI0Mjg4MF0seyJidWNrZXQiOiJ5c3N5LXVzZXIifSxbInN0YXJ0cy13aXRoIiwiJGtleSIsInlzc3kvYm91bnR5LzIwMjYwMTE1LzkzNzIyMy8iXSx7InN1Y2Nlc3NfYWN0aW9uX3N0YXR1cyI6IjIwMCJ9XX0=" -F "Signature=KFPGGCARBvNcigty1E7iS7zU4kI=" -F "success_action_status=200" -F "file=@C:\Users\Administrator\Desktop\c8afac19f696b11624253bde98cf20c3.jpeg"
+    HTTP/1.1 200 OK
+    Server: AliyunOSS
+    Date: Thu, 15 Jan 2026 03:49:23 GMT
+    Content-Length: 0
+    Connection: keep-alive
+    x-oss-request-id: 696863C3BCA41832353DC28B
+    ETag: "08B821169E2E9585F31F40D983A3B979"
+    x-oss-hash-crc64ecma: 8973854902506338371
+    Content-MD5: CLghFp4ulYXzH0DZg6O5eQ==
+    x-oss-server-time: 40*/
+    private static void ossGetDirectUploadPolicyTest() {
+        String module = "OSS基础能力";
+        String funcName = "OSS直传签名(Policy)";
+        System.out.println("=[" + module + "]-" + funcName + "-测试-开始=========>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>==========");
+        long start = System.currentTimeMillis();
+        try {
+            ManagerOssService svc = ctx.getBean(ManagerOssService.class);
+
+            JSONObject params = new JSONObject();
+            params.put("userId", MY_USER_ID);
+
+            // 业务目录（建议传具体业务：bounty/avatar/guild/...）
+            params.put("biz", "bounty");
+
+            // 文件后缀（如果你配置了 allowSuffix 白名单，这里必须在白名单内）
+            params.put("suffix", "jpg");
+
+            // 可选：前端期望 maxSize/expireSeconds（服务端会按配置裁剪）
+            params.put("maxSize", 5 * 1024 * 1024L);   // 5MB
+            params.put("expireSeconds", 120L);         // 120s
+
+            JSONObject resp = svc.getOssDirectUploadPolicy(fakeSocket, params);
+            printResult(resp);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        System.out.println("=【" + module + "-" + funcName + "-测试-结束】=用时：" + (System.currentTimeMillis() - start) + "ms=====>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>=============");
+    }
+
+    /**
+     * 规范化并校验 OSS 资源 URL
+     * 对应 ManagerOssService: 040002
+     */
+    //拿刚才的结果在来得到URL再去请求得到结果：
+    /*    =[OSS基础能力]-OSS资源URL规范化-测试-开始=========>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>==========
+                运行结果========= {"url":"https://yssy-user.oss-cn-beijing.aliyuncs.com/yssy/bounty/20260115/937223/b9a99d32d9014048ae11afada59eb2b9.jpg"}
+         =【OSS基础能力-OSS资源URL规范化-测试-结束】=用时：60ms=====>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>=============*/
+    private static void ossCanonicalizeUrlTest() {
+        String module = "OSS基础能力";
+        String funcName = "OSS资源URL规范化";
+        System.out.println("=[" + module + "]-" + funcName + "-测试-开始=========>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>==========");
+        long start = System.currentTimeMillis();
+        try {
+            ManagerOssService svc = ctx.getBean(ManagerOssService.class);
+
+            JSONObject params = new JSONObject();
+            params.put("userId", MY_USER_ID);
+            // 两种形式,或者传完整url也可以了
+            params.put("url", "yssy/bounty/20260115/937223/b9a99d32d9014048ae11afada59eb2b9.jpg");
+            // 可选：用于报错提示字段名
+            params.put("fieldName", "url");
+            // 可选：是否允许空（true -> 空则返回 null，不抛错）
+            params.put("allowEmpty", false);
+
+            JSONObject resp = svc.canonicalizeOssUrl(fakeSocket, params);
+            printResult(resp);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        System.out.println("=【" + module + "-" + funcName + "-测试-结束】=用时：" + (System.currentTimeMillis() - start) + "ms=====>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>=============");
+    }
+
+
+    // =================================================================================================================
     //                                         Main
     // =================================================================================================================
 
@@ -1317,9 +1406,12 @@ public class SpringInDebug {
         //getAuditRejectTest();
 
         //交易行
-        getTradingInfoTest();
+        //getTradingInfoTest();
         //getTradingListingTest();
 
+        // --- 9. OSS基础能力 ---
+        //ossGetDirectUploadPolicyTest();
+        ossCanonicalizeUrlTest();
         System.out.println(">>>>>>>>>> Debug测试结束 <<<<<<<<<<");
         System.exit(0);
     }
