@@ -6,6 +6,8 @@ import com.zywl.app.defaultx.enmus.ItemIdEnum;
 import com.zywl.app.defaultx.service.GuildMemberService;
 import com.zywl.app.defaultx.service.GuildService;
 import com.zywl.app.defaultx.util.SpringUtil;
+import com.zywl.app.manager.service.AdminMailService;
+import com.zywl.app.manager.service.PlayGameService;
 import com.zywl.app.manager.service.manager.*;
 import com.zywl.app.manager.socket.ManagerSocketServer;
 import org.springframework.beans.factory.NoSuchBeanDefinitionException;
@@ -1316,6 +1318,274 @@ public class SpringInDebug {
         System.out.println("=【" + module + "-" + funcName + "-测试-结束】=用时：" + (System.currentTimeMillis() - start) + "ms=====>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>=============");
     }
 
+    // =================================================================================================================
+    //                                         8. VIP模块 (VIP V1.0)
+    // =================================================================================================================
+
+    /**
+     * 900801 VIP面板信息
+     */
+    public static void vip001_getVipPanelInfoTest() {
+        String module = "VIP模块";
+        String funcName = "VIP面板信息";
+        System.out.println("=[" + module + "]-" + funcName + "-测试-开始=========>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>==========");
+        long start = System.currentTimeMillis();
+        try {
+            ManagerUserVipService svc = ctx.getBean(ManagerUserVipService.class);
+            JSONObject params = new JSONObject();
+            params.put("userId", MY_USER_ID);
+            JSONObject resp = svc.getVipPanelInfo(fakeSocket, params);
+            printResult(resp);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        System.out.println("=【" + module + "-" + funcName + "-测试-结束】=用时：" + (System.currentTimeMillis() - start) + "ms=====>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>=============");
+    }
+
+    /**
+     * 900802 自购开通/续期VIP1
+     */
+    public static void vip002_buyOrRenewVip1Test() {
+        String module = "VIP模块";
+        String funcName = "自购开通/续期VIP1";
+        System.out.println("=[" + module + "]-" + funcName + "-测试-开始=========>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>==========");
+        long start = System.currentTimeMillis();
+        try {
+            ManagerUserVipService svc = ctx.getBean(ManagerUserVipService.class);
+            JSONObject params = new JSONObject();
+            params.put("userId", MY_USER_ID);
+            params.put("vipType", 1);
+            JSONObject resp = svc.buyOrRenewVip(fakeSocket, params);
+            printResult(resp);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        System.out.println("=【" + module + "-" + funcName + "-测试-结束】=用时：" + (System.currentTimeMillis() - start) + "ms=====>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>=============");
+    }
+
+    /**
+     * 900802 自购开通/续期VIP2
+     */
+    public static void vip002_buyOrRenewVip2Test() {
+        String module = "VIP模块";
+        String funcName = "自购开通/续期VIP2";
+        System.out.println("=[" + module + "]-" + funcName + "-测试-开始=========>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>==========");
+        long start = System.currentTimeMillis();
+        try {
+            ManagerUserVipService svc = ctx.getBean(ManagerUserVipService.class);
+            JSONObject params = new JSONObject();
+            params.put("userId", MY_USER_ID);
+            params.put("vipType", 2);
+            JSONObject resp = svc.buyOrRenewVip(fakeSocket, params);
+            printResult(resp);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        System.out.println("=【" + module + "-" + funcName + "-测试-结束】=用时：" + (System.currentTimeMillis() - start) + "ms=====>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>=============");
+    }
+
+    /**
+     * 900803 VIP1每日领取
+     */
+    public static void vip003_receiveVip1DailyTest() {
+        String module = "VIP模块";
+        String funcName = "VIP1每日领取";
+        System.out.println("=[" + module + "]-" + funcName + "-测试-开始=========>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>==========");
+        long start = System.currentTimeMillis();
+        try {
+            ManagerUserVipService svc = ctx.getBean(ManagerUserVipService.class);
+            JSONObject params = new JSONObject();
+            params.put("userId", MY_USER_ID);
+            JSONObject resp = svc.receiveVip1Daily(fakeSocket, params);
+            printResult(resp);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        System.out.println("=【" + module + "-" + funcName + "-测试-结束】=用时：" + (System.currentTimeMillis() - start) + "ms=====>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>=============");
+    }
+
+    /**
+     * 900804 VIP卡转赠（VIP1）
+     * 说明：
+     * 1) 该接口会校验发起方 t_user.vip_transfer_enable==1
+     * 2) 该接口会校验背包VIP卡数量>=1
+     */
+    public static void vip004_giftVip1CardTest() {
+        String module = "VIP模块";
+        String funcName = "VIP1卡转赠";
+        System.out.println("=[" + module + "]-" + funcName + "-测试-开始=========>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>==========");
+        long start = System.currentTimeMillis();
+        try {
+            // 先确保发起方存在1张VIP1卡（可注释）
+            try {
+                PlayGameService gameService = ctx.getBean(PlayGameService.class);
+                Integer vip1CardItemId = PlayGameService.DIC_VIP_MAP.get("1").getCardItemId();
+                gameService.updateUserBackpack(MY_USER_ID, String.valueOf(vip1CardItemId), 1, com.zywl.app.defaultx.enmus.LogUserBackpackTypeEnum.events);
+            } catch (Exception ignore) {
+            }
+
+            ManagerUserVipService svc = ctx.getBean(ManagerUserVipService.class);
+            JSONObject params = new JSONObject();
+            params.put("userId", 937233L);
+            params.put("vipType", 1);
+            params.put("toUserId", FRIEND_USER_ID);
+            JSONObject resp = svc.giftVipCard(fakeSocket, params);
+            printResult(resp);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        System.out.println("=【" + module + "-" + funcName + "-测试-结束】=用时：" + (System.currentTimeMillis() - start) + "ms=====>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>=============");
+    }
+
+
+    /**
+     * 900805 VIP卡确认激活（VIP1）
+     * 说明：消耗1张VIP1卡，并按续期规则顺延到期时间
+     */
+    public static void vip005_activateVip1CardTest() {
+        String module = "VIP模块";
+        String funcName = "VIP1卡确认激活";
+        System.out.println("=[" + module + "]-" + funcName + "-测试-开始=========>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>==========");
+        long start = System.currentTimeMillis();
+        try {
+            // 先确保用户存在1张VIP1卡（可注释）
+            try {
+                PlayGameService gameService = ctx.getBean(PlayGameService.class);
+                Integer vip1CardItemId = PlayGameService.DIC_VIP_MAP.get("1").getCardItemId();
+                gameService.updateUserBackpack(MY_USER_ID, String.valueOf(vip1CardItemId), 1, com.zywl.app.defaultx.enmus.LogUserBackpackTypeEnum.events);
+            } catch (Exception ignore) {
+            }
+
+            ManagerUserVipService svc = ctx.getBean(ManagerUserVipService.class);
+            JSONObject params = new JSONObject();
+            params.put("userId", MY_USER_ID);
+            params.put("vipType", 1);
+            JSONObject resp = svc.activateVipCard(fakeSocket, params);
+            printResult(resp);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        System.out.println("=【" + module + "-" + funcName + "-测试-结束】=用时：" + (System.currentTimeMillis() - start) + "ms=====>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>=============");
+    }
+
+
+    /**
+     * 900806 VIP1每日领取记录
+     */
+    public static void vip006_listVip1ReceiveRecordsTest() {
+        String module = "VIP模块";
+        String funcName = "VIP1领取记录";
+        System.out.println("=[" + module + "]-" + funcName + "-测试-开始=========>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>==========");
+        long start = System.currentTimeMillis();
+        try {
+            ManagerUserVipService svc = ctx.getBean(ManagerUserVipService.class);
+            JSONObject params = new JSONObject();
+            params.put("userId", MY_USER_ID);
+            params.put("pageNo", 1);
+            params.put("pageSize", 10);
+            JSONObject resp = svc.listVip1ReceiveRecords(fakeSocket, params);
+            printResult(resp);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        System.out.println("=【" + module + "-" + funcName + "-测试-结束】=用时：" + (System.currentTimeMillis() - start) + "ms=====>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>=============");
+    }
+
+
+    /**
+     * 900807 VIP卡转赠记录（VIP1 - 我送出的）
+     * direction: 1 我送出的；2 我收到的
+     */
+    public static void vip007_listVipGiftRecordsVip1SentTest() {
+        String module = "VIP模块";
+        String funcName = "VIP1转赠记录-送出";
+        System.out.println("=[" + module + "]-" + funcName + "-测试-开始=========>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>==========");
+        long start = System.currentTimeMillis();
+        try {
+            ManagerUserVipService svc = ctx.getBean(ManagerUserVipService.class);
+            JSONObject params = new JSONObject();
+            params.put("userId", MY_USER_ID);
+            params.put("vipType", 1);
+            params.put("direction", 1);
+            params.put("pageNo", 1);
+            params.put("pageSize", 10);
+            JSONObject resp = svc.listVipGiftRecords(fakeSocket, params);
+            printResult(resp);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        System.out.println("=【" + module + "-" + funcName + "-测试-结束】=用时：" + (System.currentTimeMillis() - start) + "ms=====>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>=============");
+    }
+
+
+    // =================================================================================================================
+    //                                         9. 后台模块 - VIP卡转赠权限（AdminMailService）
+    // =================================================================================================================
+
+    /**
+     * 后台查询：VIP卡转赠权限
+     */
+    public static void adminVip170_getVipTransferEnableTest() {
+        String module = "后台模块";
+        String funcName = "VIP卡转赠权限-查询";
+        System.out.println("=[" + module + "]-" + funcName + "-测试-开始=========>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>==========");
+        long start = System.currentTimeMillis();
+        try {
+            AdminMailService svc = ctx.getBean(AdminMailService.class);
+            JSONObject params = new JSONObject();
+            params.put("userId", MY_USER_ID);
+            Object resp = svc.getVipTransferEnable(null, params, null);
+            printResult(resp);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        System.out.println("=【" + module + "-" + funcName + "-测试-结束】=用时：" + (System.currentTimeMillis() - start) + "ms=====>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>=============");
+    }
+
+
+    /**
+     * 后台设置：VIP卡转赠权限 = 允许
+     */
+    public static void adminVip171_setVipTransferEnableOnTest() {
+        String module = "后台模块";
+        String funcName = "VIP卡转赠权限-设置(允许)";
+        System.out.println("=[" + module + "]-" + funcName + "-测试-开始=========>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>==========");
+        long start = System.currentTimeMillis();
+        try {
+            AdminMailService svc = ctx.getBean(AdminMailService.class);
+            JSONObject params = new JSONObject();
+            params.put("userId", MY_USER_ID);
+            params.put("vipTransferEnable", 1);
+            Object resp = svc.setVipTransferEnable(null, params, null);
+            printResult(resp);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        System.out.println("=【" + module + "-" + funcName + "-测试-结束】=用时：" + (System.currentTimeMillis() - start) + "ms=====>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>=============");
+    }
+
+
+    /**
+     * 后台设置：VIP卡转赠权限 = 禁止
+     */
+    public static void adminVip171_setVipTransferEnableOffTest() {
+        String module = "后台模块";
+        String funcName = "VIP卡转赠权限-设置(禁止)";
+        System.out.println("=[" + module + "]-" + funcName + "-测试-开始=========>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>==========");
+        long start = System.currentTimeMillis();
+        try {
+            AdminMailService svc = ctx.getBean(AdminMailService.class);
+            JSONObject params = new JSONObject();
+            params.put("userId", MY_USER_ID);
+            params.put("vipTransferEnable", 0);
+            Object resp = svc.setVipTransferEnable(null, params, null);
+            printResult(resp);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        System.out.println("=【" + module + "-" + funcName + "-测试-结束】=用时：" + (System.currentTimeMillis() - start) + "ms=====>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>=============");
+    }
+
 
     // =================================================================================================================
     //                                         Main
@@ -1409,10 +1679,25 @@ public class SpringInDebug {
         //getTradingInfoTest();
         //getTradingListingTest();
 
+        // --- 8. VIP模块 ---
+        vip001_getVipPanelInfoTest();
+        //vip002_buyOrRenewVip1Test();
+        // vip002_buyOrRenewVip2Test();
+        // vip003_receiveVip1DailyTest();
+        // vip004_giftVip1CardTest();
+        // vip005_activateVip1CardTest();
+        // vip006_listVip1ReceiveRecordsTest();
+        // vip007_listVipGiftRecordsVip1SentTest();
+
+        // --- 8.1 后台模块-VIP转赠权限 ---
+        // adminVip170_getVipTransferEnableTest();
+         //adminVip171_setVipTransferEnableOnTest();
+        // adminVip171_setVipTransferEnableOffTest();
+
         // --- 9. OSS基础能力 ---
         //ossGetDirectUploadPolicyTest();
-        ossCanonicalizeUrlTest();
-        System.out.println(">>>>>>>>>> Debug测试结束 <<<<<<<<<<");
-        System.exit(0);
+//        ossCanonicalizeUrlTest();
+//        System.out.println(">>>>>>>>>> Debug测试结束 <<<<<<<<<<");
+//        System.exit(0);
     }
 }
