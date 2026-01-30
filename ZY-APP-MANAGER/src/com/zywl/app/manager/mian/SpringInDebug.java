@@ -963,13 +963,15 @@ public class SpringInDebug {
             pub.put("taskTitle", "Debug标题测试");
             pub.put("taskDesc", "描述");
             pub.put("taskSteps", "1.步骤一");
-            pub.put("videoUrl", "http://test.video/1.mp4");
+            //pub.put("videoUrl", "http://test.video/1.mp4");
             pub.put("idTip", "请提交ID");
             pub.put("unitPrice", new BigDecimal("1.50"));
             pub.put("quotaTotal", 5);
             pub.put("takeLimitHours", 2);
-            pub.put("downloadImgs", "[\"https://img.test/guide.png\"]");
-            JSONObject res = svc.publishTask(null, pub);
+            String realImgUrl = "https://yssy-user.oss-cn-beijing.aliyuncs.com/yssy/bounty/20260127/937223/e757426dddf34ed496e40fc272ed8eae.jpg";
+            pub.put("downloadImgs", "[\"" + realImgUrl + "\"]");
+            System.out.println("发布任务参数：" + pub);
+            JSONObject res = null;
             printResult(res);
         } catch (Exception e) {
             e.printStackTrace();
@@ -1275,7 +1277,7 @@ public class SpringInDebug {
 
             // 可选：前端期望 maxSize/expireSeconds（服务端会按配置裁剪）
             params.put("maxSize", 5 * 1024 * 1024L);   // 5MB
-            params.put("expireSeconds", 120L);         // 120s
+            params.put("expireSeconds", 600L);         // 120s
 
             JSONObject resp = svc.getOssDirectUploadPolicy(fakeSocket, params);
             printResult(resp);
@@ -1660,9 +1662,9 @@ public class SpringInDebug {
         //petTribeHomeInfoTest();
 
         // --- 7. 悬赏任务 ---
-        // getTaskListTest();
+       // getTaskListTest();
         // getTaskDetailTest();
-        // getPublishTaskTest();
+       //  getPublishTaskTest();
         // getCancelTaskTest();
         // getTakeTaskTest();
         // getCancelOrderTest();
@@ -1680,7 +1682,7 @@ public class SpringInDebug {
         //getTradingListingTest();
 
         // --- 8. VIP模块 ---
-        vip001_getVipPanelInfoTest();
+        //vip001_getVipPanelInfoTest();
         //vip002_buyOrRenewVip1Test();
         // vip002_buyOrRenewVip2Test();
         // vip003_receiveVip1DailyTest();
