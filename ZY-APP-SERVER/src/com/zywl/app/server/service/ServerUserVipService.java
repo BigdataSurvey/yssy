@@ -1,163 +1,160 @@
 package com.zywl.app.server.service;
 
-import cn.hutool.core.lang.hash.Hash;
-import com.alibaba.fastjson2.JSONArray;
 import com.alibaba.fastjson2.JSONObject;
 import com.live.app.ws.bean.Command;
-import com.live.app.ws.enums.PushCode;
 import com.live.app.ws.enums.TargetSocketType;
 import com.live.app.ws.util.CommandBuilder;
 import com.live.app.ws.util.Executer;
-import com.live.app.ws.util.Push;
-import com.zywl.app.base.bean.*;
-import com.zywl.app.base.bean.vo.UserDailyTaskVo;
-import com.zywl.app.base.constant.KafkaEventContext;
-import com.zywl.app.base.constant.KafkaTopicContext;
 import com.zywl.app.base.service.BaseService;
-import com.zywl.app.base.util.Async;
-import com.zywl.app.base.util.LockUtil;
-import com.zywl.app.base.util.OrderUtil;
-import com.zywl.app.defaultx.annotation.KafkaProducer;
 import com.zywl.app.defaultx.annotation.ServiceClass;
 import com.zywl.app.defaultx.annotation.ServiceMethod;
-import com.zywl.app.defaultx.cache.UserCapitalCacheService;
-import com.zywl.app.defaultx.enmus.LogCapitalTypeEnum;
-import com.zywl.app.defaultx.enmus.UserCapitalTypeEnum;
-import com.zywl.app.defaultx.enmus.VipLevelTypeEnum;
-import com.zywl.app.defaultx.service.DicVipService;
-import com.zywl.app.defaultx.service.UserCapitalService;
-import com.zywl.app.defaultx.service.UserVipService;
-import com.zywl.app.defaultx.service.VipReceiveRecordService;
 import com.zywl.app.server.context.MessageCodeContext;
 import com.zywl.app.server.socket.AppSocket;
 import com.zywl.app.server.util.RequestManagerListener;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
-import javax.annotation.PostConstruct;
-import java.math.BigDecimal;
-import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
-
+/**
+ * @Author: lzx
+ * @Create: 2026-01-19
+ * @Version: V1.0
+ * @Description: VIP Service（
+ * @Task: 078 (MessageCodeContext.USER_VIP)
+ */
 @Service
 @ServiceClass(code = MessageCodeContext.USER_VIP)
 public class ServerUserVipService extends BaseService {
 
-    @Autowired
-    private ServerConfigService serverConfigService;
-    @Autowired
-    private UserVipService userVipService;
-
-    @Autowired
-    private DicVipService dicVipService;
-
-    @Autowired
-    private VipReceiveRecordService vipReceiveRecordService;
-    @Autowired
-    private UserCapitalService userCapitalService;
-    @Autowired
-    private UserCapitalCacheService userCapitalCacheService;
-
-
-    private final static Map<String, DicVip> DIC_VIP_MAP = new ConcurrentHashMap<>();
-    private final static String RECEIVED  = "1";
-    private final static String UNRECEIVE = "0";
-
-    @PostConstruct
-    public void _ServerUserVipService() {
-        initDicVip();
-    }
-
-    public void initDicVip(){
-        List<DicVip> allVip = dicVipService.findAllVip();
-        allVip.forEach(e->DIC_VIP_MAP.put(String.valueOf(e.getLv()),e));
-    }
-
-    @ServiceMethod(code = "001", description = "获取vip信息")
-    public Object getVipInfo(final AppSocket appSocket, Command appCommand, JSONObject params) {
-        //获取当前等级
+    /**
+     * 078001
+     * VIP面板信息
+     */
+    @ServiceMethod(code = "001", description = "VIP面板信息")
+    public Object getVipPanelInfo(final AppSocket appSocket, Command appCommand, JSONObject params) {
         checkNull(params);
-        String receiveState = "";
-        Long userId = appSocket.getWsidBean().getUserId();
-        JSONObject result = new JSONObject();
-        UserVip userVip = userVipService.findRechargeAmountByUserId(userId);
-        //判断领取状态
-        List<VipReceiveRecord> vipReceiveRecord = vipReceiveRecordService.findVipReceiveRecordByLevel(userId,userVip.getVipLevel());
-        if(vipReceiveRecord.size()>0){
-            //说明该用户已领取过该等级奖励
-            receiveState = RECEIVED;
-        }else {
-            receiveState = UNRECEIVE;
-        }
-        // 当前经验 升到下一级需要多少经验
-        //BigDecimal differ = comparToRechargeAmount(rechargeAmountByUserId.getRechargeAmount());
-        int endExp = DIC_VIP_MAP.get(String.valueOf(userVip.getVipLevel())).getEndExp();
-        JSONArray reward = DIC_VIP_MAP.get(String.valueOf(userVip.getVipLevel())).getReward();
-        result.put("endExp", endExp);
-        result.put("receiveState", receiveState);
-        result.put("reward", reward);
-        result.put("vipInfo", userVip);
-        result.put("rank",userVip.getRank());
-        return result;
+        long userId = appSocket.getWsidBean().getUserId();
+        params.put("userId", userId);
+
+        Executer.request(
+                TargetSocketType.manager,
+                CommandBuilder.builder().request("9008001", params).build(),
+                new RequestManagerListener(appCommand)
+        );
+        return async();
     }
 
 
-    @Transactional
-    @ServiceMethod(code = "002", description = "领取vip特权礼包")
-    @KafkaProducer(topic = KafkaTopicContext.RED_POINT, event = KafkaEventContext.DO_DAILY_TASK, sendParams = true)
-    public Async receiveUserVipGift(final AppSocket appSocket, Command appCommand, JSONObject params) {
-            checkNull(params);
-            params.put("userId", appSocket.getWsidBean().getUserId());
-            Executer.request(TargetSocketType.manager, CommandBuilder.builder().request("9008011", params).build(),
-                    new RequestManagerListener(appCommand));
-            return async();
-        }
+    /**
+     * 078002
+     * 自购开通/续期VIP（VIP1/VIP2）
+     */
+    @ServiceMethod(code = "002", description = "自购开通/续期VIP")
+    public Object buyOrRenewVip(final AppSocket appSocket, Command appCommand, JSONObject params) {
+        checkNull(params);
+        long userId = appSocket.getWsidBean().getUserId();
+        params.put("userId", userId);
+
+        Executer.request(
+                TargetSocketType.manager,
+                CommandBuilder.builder().request("9008002", params).build(),
+                new RequestManagerListener(appCommand)
+        );
+        return async();
+    }
 
 
+    /**
+     * 078003
+     * VIP1每日领取
+     */
+    @ServiceMethod(code = "003", description = "VIP1每日领取")
+    public Object receiveVip1DailyReward(final AppSocket appSocket, Command appCommand, JSONObject params) {
+        checkNull(params);
+        long userId = appSocket.getWsidBean().getUserId();
+        params.put("userId", userId);
 
-    private BigDecimal comparToRechargeAmount(BigDecimal rechargeAmount) {
-        BigDecimal differ = BigDecimal.ZERO;
-        if (rechargeAmount.compareTo(VipLevelTypeEnum.VIP1.getValue()) < 0) {
-            differ = VipLevelTypeEnum.VIP1.getValue().subtract(rechargeAmount);
-        }
-        if (rechargeAmount.compareTo(VipLevelTypeEnum.VIP2.getValue()) < 0 && rechargeAmount.compareTo(VipLevelTypeEnum.VIP1.getValue()) > 0) {
-            differ = VipLevelTypeEnum.VIP2.getValue().subtract(rechargeAmount);
-        }
-        if (rechargeAmount.compareTo(VipLevelTypeEnum.VIP3.getValue()) < 0 && rechargeAmount.compareTo(VipLevelTypeEnum.VIP2.getValue()) > 0) {
-            differ = VipLevelTypeEnum.VIP3.getValue().subtract(rechargeAmount);
-
-        }
-        if (rechargeAmount.compareTo(VipLevelTypeEnum.VIP4.getValue()) < 0 && rechargeAmount.compareTo(VipLevelTypeEnum.VIP3.getValue()) > 0) {
-            differ = VipLevelTypeEnum.VIP4.getValue().subtract(rechargeAmount);
-
-        }
-        if (rechargeAmount.compareTo(VipLevelTypeEnum.VIP5.getValue()) < 0 && rechargeAmount.compareTo(VipLevelTypeEnum.VIP4.getValue()) > 0) {
-            differ = VipLevelTypeEnum.VIP5.getValue().subtract(rechargeAmount);
-
-        }
-        if (rechargeAmount.compareTo(VipLevelTypeEnum.VIP6.getValue()) < 0 && rechargeAmount.compareTo(VipLevelTypeEnum.VIP5.getValue()) > 0) {
-            differ = VipLevelTypeEnum.VIP6.getValue().subtract(rechargeAmount);
-
-        }
-        if (rechargeAmount.compareTo(VipLevelTypeEnum.VIP7.getValue()) < 0 && rechargeAmount.compareTo(VipLevelTypeEnum.VIP6.getValue()) > 0) {
-            differ = VipLevelTypeEnum.VIP7.getValue().subtract(rechargeAmount);
-
-        }
-        if (rechargeAmount.compareTo(VipLevelTypeEnum.VIP8.getValue()) < 0 && rechargeAmount.compareTo(VipLevelTypeEnum.VIP7.getValue()) > 0) {
-            differ = VipLevelTypeEnum.VIP8.getValue().subtract(rechargeAmount);
-
-        }
-        if (rechargeAmount.compareTo(VipLevelTypeEnum.VIP9.getValue()) < 0 && rechargeAmount.compareTo(VipLevelTypeEnum.VIP8.getValue()) > 0) {
-            differ = VipLevelTypeEnum.VIP9.getValue().subtract(rechargeAmount);
-
-        }
-        if (rechargeAmount.compareTo(VipLevelTypeEnum.VIP10.getValue()) < 0 && rechargeAmount.compareTo(VipLevelTypeEnum.VIP9.getValue()) > 0) {
-            differ = VipLevelTypeEnum.VIP10.getValue().subtract(rechargeAmount);
+        Executer.request(
+                TargetSocketType.manager,
+                CommandBuilder.builder().request("9008003", params).build(),
+                new RequestManagerListener(appCommand)
+        );
+        return async();
+    }
 
 
-        }
-        return differ;
+    /**
+     * 078004
+     * VIP卡转赠
+     */
+    @ServiceMethod(code = "004", description = "VIP卡转赠")
+    public Object giftVipCard(final AppSocket appSocket, Command appCommand, JSONObject params) {
+        checkNull(params);
+        long userId = appSocket.getWsidBean().getUserId();
+        params.put("userId", userId);
+
+        Executer.request(
+                TargetSocketType.manager,
+                CommandBuilder.builder().request("9008004", params).build(),
+                new RequestManagerListener(appCommand)
+        );
+        return async();
+    }
+
+
+    /**
+     * 078005
+     * VIP卡确认激活
+     */
+    @ServiceMethod(code = "005", description = "VIP卡确认激活")
+    public Object activateVipCard(final AppSocket appSocket, Command appCommand, JSONObject params) {
+        checkNull(params);
+        long userId = appSocket.getWsidBean().getUserId();
+        params.put("userId", userId);
+
+        Executer.request(
+                TargetSocketType.manager,
+                CommandBuilder.builder().request("9008005", params).build(),
+                new RequestManagerListener(appCommand)
+        );
+        return async();
+    }
+
+
+    /**
+     * 078006
+     * VIP1每日领取记录列表
+     */
+    @ServiceMethod(code = "006", description = "VIP1每日领取记录")
+    public Object getVip1ReceiveRecordList(final AppSocket appSocket, Command appCommand, JSONObject params) {
+        checkNull(params);
+        long userId = appSocket.getWsidBean().getUserId();
+        params.put("userId", userId);
+
+        Executer.request(
+                TargetSocketType.manager,
+                CommandBuilder.builder().request("9008006", params).build(),
+                new RequestManagerListener(appCommand)
+        );
+        return async();
+    }
+
+
+    /**
+     * 078007
+     * VIP卡转赠记录列表
+     * direction: 0 全部；1 我送出的；2 我收到的
+     */
+    @ServiceMethod(code = "007", description = "VIP卡转赠记录")
+    public Object getVipGiftRecordList(final AppSocket appSocket, Command appCommand, JSONObject params) {
+        checkNull(params);
+        long userId = appSocket.getWsidBean().getUserId();
+        params.put("userId", userId);
+
+        Executer.request(
+                TargetSocketType.manager,
+                CommandBuilder.builder().request("9008007", params).build(),
+                new RequestManagerListener(appCommand)
+        );
+        return async();
     }
 
 }

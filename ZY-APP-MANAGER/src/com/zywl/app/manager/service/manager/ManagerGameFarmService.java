@@ -733,7 +733,7 @@ public class ManagerGameFarmService extends BaseService {
         // 资产检查：先查用户当前资产
         UserCapital userCapital = userCapitalService.findUserCapitalByUserIdAndCapitalType(userId, capitalTypeId);
         if (userCapital == null || userCapital.getBalance() == null) {
-            throwExp("资产不足，无法解锁土地");
+            throwExp("资产不存在，无法解锁土地");
         }
 
         BigDecimal balanceBefore = userCapital.getBalance();

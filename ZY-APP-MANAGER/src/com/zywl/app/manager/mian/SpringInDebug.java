@@ -1662,9 +1662,9 @@ public class SpringInDebug {
         //petTribeHomeInfoTest();
 
         // --- 7. 悬赏任务 ---
-       // getTaskListTest();
+        // getTaskListTest();
         // getTaskDetailTest();
-       //  getPublishTaskTest();
+        //  getPublishTaskTest();
         // getCancelTaskTest();
         // getTakeTaskTest();
         // getCancelOrderTest();
@@ -1693,12 +1693,12 @@ public class SpringInDebug {
 
         // --- 8.1 后台模块-VIP转赠权限 ---
         // adminVip170_getVipTransferEnableTest();
-         //adminVip171_setVipTransferEnableOnTest();
+        //adminVip171_setVipTransferEnableOnTest();
         // adminVip171_setVipTransferEnableOffTest();
 
         // --- 9. OSS基础能力 ---
         //ossGetDirectUploadPolicyTest();
-//        ossCanonicalizeUrlTest();
+       ossCanonicalizeUrlTest();
 //        System.out.println(">>>>>>>>>> Debug测试结束 <<<<<<<<<<");
 //        System.exit(0);
     }

@@ -73,7 +73,7 @@ public class BattleRoyale3Socket extends BaseClientSocket {
 
             @Override
             public void onReceive(BaseSocket baseSocket, Object data) {
-                logger.info("收到大逃杀3房间信息变更" + data);
+               // logger.info("收到大逃杀3房间信息变更" + data);
                 if (data == null) {
                     return;
                 }
@@ -104,7 +104,7 @@ public class BattleRoyale3Socket extends BaseClientSocket {
                     if ("1".equals(gameId)) {
                         Push.push(PushCode.updateRoomDate, gameId, obj);
                     }
-                    logger.info("DTS3 updateDts3Info receive gameId=" + gameId + ", payload=" + obj);
+                    // logger.info("DTS3 updateDts3Info receive gameId=" + gameId + ", payload=" + obj);
                 }
             }
         }, this);
@@ -119,10 +119,10 @@ public class BattleRoyale3Socket extends BaseClientSocket {
             @Override
             @SuppressWarnings("unchecked")
             public void onReceive(BaseSocket baseSocket, Object data) {
-                logger.info("大逃杀3游戏状态变更" + data);
+               // logger.info("大逃杀3游戏状态变更" + data);
                 JSONObject obj = JSONObject.from(data);
                 String gameId = obj.getString("gameId");
-                logger.info("DTS3 updateDts3Status receive gameId=" + gameId + ", status=" + obj.get("status"));
+               // logger.info("DTS3 updateDts3Status receive gameId=" + gameId + ", status=" + obj.get("status"));
                 JSONArray ids = obj.getJSONArray("userIds");
                 if ("1".equals(gameId) && ids != null) {
                     for (Object id : ids) {

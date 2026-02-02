@@ -312,34 +312,149 @@ public class BattleRoyaleRoom extends BaseBean{
 		JSONObject result = new JSONObject();
 		result.put("status", String.valueOf(status));
 		result.put("beginTime", beginTime);
-		result.put("endTime",  endTime);
-		result.put("roomList", roomList);
-		result.put("lookList", new ConcurrentHashMap<String, Map<String,Object>>());
-		result.put("lastResult",lastResult);
-		result.put("periodsNum",getPeridosNum());
-		result.put("lastWeekTopThree",lastWeekTopThree);
-		result.put("gameUserNumber",userBetInfo.size());
-		result.put("roomInfo",betOptionsInfo);
+		result.put("endTime", endTime);
+
+		// roomList 补齐每个玩家对象的 roomId / userId
+		JSONObject roomListResp = new JSONObject();
+		try {
+			if (roomList != null) {
+				for (String rid : roomList.keySet()) {
+					Map<String, JSONObject> users = roomList.get(rid);
+
+					JSONObject usersObj = new JSONObject();
+					if (users != null) {
+						for (Map.Entry<String, JSONObject> e : users.entrySet()) {
+							String uid = e.getKey();
+							JSONObject info = e.getValue();
+							if (info == null) {
+								info = new JSONObject();
+							}
+
+							if (!info.containsKey("userId")) {
+								info.put("userId", uid);
+							}
+							if (!info.containsKey("roomId")) {
+								info.put("roomId", rid);
+							}
+
+							usersObj.put(uid, info);
+						}
+					}
+					roomListResp.put(rid, usersObj);
+				}
+			}
+		} catch (Exception ignore) {
+			roomListResp = JSONObject.from(roomList);
+		}
+
+		result.put("roomList", roomListResp);
+
+		result.put("lookList", new ConcurrentHashMap<String, Map<String, Object>>());
+		result.put("lastResult", lastResult);
+		result.put("periodsNum", getPeridosNum());
+		result.put("lastWeekTopThree", lastWeekTopThree);
+		result.put("gameUserNumber", userBetInfo.size());
+		result.put("roomInfo", betOptionsInfo);
 		return result;
 	}
-	
-	public JSONObject pushResult(int type,String userId,String bet,BigDecimal amount) {
+
+
+	public JSONObject pushResult(int type, String userId, String bet, BigDecimal amount) {
 		JSONObject pushResult = new JSONObject();
 		pushResult.put("type", type);
 		pushResult.put("userId", userId);
 		pushResult.put("gameId", GameTypeEnum.battleRoyale.getValue());
-		if (type==1) {
-			//下注 更换房间
-			pushResult.put("roomId", bet);
-			pushResult.put("name", players.containsKey(userId)? players.get(userId).get("userName"):"");
-			pushResult.put("betAmount", amount);
-		}else if(type==2 || type==3) {
-			// 离开房间 或者 加入房间
-			pushResult.put("name",players.containsKey(userId)? players.get(userId).get("userName"):"");
+
+		String roomId = "";
+		if (bet != null) {
+			roomId = String.valueOf(bet);
+			if ("null".equalsIgnoreCase(roomId)) {
+				roomId = "";
+			}
 		}
-		pushResult.put("roomInfo",betOptionsInfo);
+
+		// type=2/3 时，如果 roomId 为空，反查用户所在房间（避免空 roomId）
+		if ((type == 2 || type == 3) && (roomId == null || roomId.length() == 0)) {
+			try {
+				if (roomList != null) {
+					for (String rid : roomList.keySet()) {
+						Map<String, JSONObject> m = roomList.get(rid);
+						if (m != null && m.containsKey(userId)) {
+							roomId = String.valueOf(rid);
+							break;
+						}
+					}
+				}
+			} catch (Exception ignore) {
+			}
+		}
+		pushResult.put("roomId", roomId);
+
+		String name = "";
+		try {
+			if (players != null && players.containsKey(userId)) {
+				Map<String, String> p = players.get(userId);
+				if (p != null && p.get("userName") != null) {
+					name = p.get("userName");
+				}
+			}
+		} catch (Exception ignore) {
+		}
+
+		if (name == null || name.length() == 0) {
+			try {
+				// 先查当前 roomId
+				if (roomList != null && roomId != null && roomId.length() > 0) {
+					Map<String, JSONObject> m = roomList.get(roomId);
+					if (m != null) {
+						JSONObject info = m.get(userId);
+						if (info != null) {
+							name = info.getString("userName");
+							if (name == null || name.length() == 0) {
+								name = info.getString("name");
+							}
+						}
+					}
+				}
+				// 再全房间扫描兜底
+				if (name == null || name.length() == 0) {
+					if (roomList != null) {
+						for (String rid : roomList.keySet()) {
+							Map<String, JSONObject> m = roomList.get(rid);
+							if (m != null && m.containsKey(userId)) {
+								JSONObject info = m.get(userId);
+								if (info != null) {
+									name = info.getString("userName");
+									if (name == null || name.length() == 0) {
+										name = info.getString("name");
+									}
+								}
+								break;
+							}
+						}
+					}
+				}
+			} catch (Exception ignore) {
+			}
+		}
+
+		if (name == null) {
+			name = "";
+		}
+
+		if (type == 1) {
+			// 下注 / 更换房间
+			pushResult.put("name", name);
+			pushResult.put("betAmount", amount);
+		} else if (type == 2 || type == 3) {
+			// 离开房间 / 加入房间
+			pushResult.put("name", name);
+		}
+
+		pushResult.put("roomInfo", betOptionsInfo);
 		return pushResult;
 	}
+
 
 
 

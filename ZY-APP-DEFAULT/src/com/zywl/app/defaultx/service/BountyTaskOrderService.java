@@ -49,7 +49,6 @@ public class BountyTaskOrderService extends DaoService {
     @SuppressWarnings("unchecked")
     public List<BountyTaskOrder> findListByConditions(Map<String, Object> params) {
         return findList("findListByConditions", params);
-
     }
 
     public int countByConditions(Map<String, Object> params) {

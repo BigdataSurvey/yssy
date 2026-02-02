@@ -29,17 +29,28 @@ public class KafkaProducerUtil {
         logger.info("================Kafka生产者初始化配置1================");
         producer = new KafkaProducer<>(props);
         logger.info("================Kafka生产者初始化配置2================");
-        kafkaThreadPool = new ThreadPoolExecutor(25, 75, 60L, TimeUnit.SECONDS,
-                new LinkedBlockingQueue<>(100), new ThreadFactory() {
-            private final AtomicInteger threadNumber = new AtomicInteger(1);
-
-            @Override
-            public Thread newThread(Runnable r) {
-                return new Thread(r, "KafkaSenderThread-" + threadNumber.getAndIncrement());
-            }
-        },
-                new ThreadPoolExecutor.CallerRunsPolicy() // 拒绝策略
+        kafkaThreadPool = new ThreadPoolExecutor(
+                25, 75, 60L, TimeUnit.SECONDS,
+                new LinkedBlockingQueue<>(5000),
+                new ThreadFactory() {
+                    private final AtomicInteger threadNumber = new AtomicInteger(1);
+                    @Override
+                    public Thread newThread(Runnable r) {
+                        return new Thread(r, "KafkaSenderThread-" + threadNumber.getAndIncrement());
+                    }
+                },
+                (r, executor) -> {
+                    // 不允许 CallerRuns：绝不能让业务线程发 Kafka
+                    if (!executor.isShutdown()) {
+                        executor.getQueue().poll(); // 丢弃最旧
+                        boolean ok = executor.getQueue().offer(r);
+                        if (!ok) {
+                            logger.warn("Kafka send task dropped: queue is full");
+                        }
+                    }
+                }
         );
+
         logger.info("================Kafka生产者配置完成================");
     }
 

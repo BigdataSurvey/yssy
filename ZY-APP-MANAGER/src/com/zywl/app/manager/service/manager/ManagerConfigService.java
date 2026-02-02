@@ -4,10 +4,7 @@ import com.live.app.ws.bean.Command;
 import com.live.app.ws.enums.PushCode;
 import com.live.app.ws.util.DefaultPushHandler;
 import com.live.app.ws.util.Push;
-import com.zywl.app.base.bean.Config;
-import com.zywl.app.base.bean.DicPet;
-import com.zywl.app.base.bean.DicRole;
-import com.zywl.app.base.bean.Item;
+import com.zywl.app.base.bean.*;
 import com.zywl.app.base.bean.card.*;
 import com.zywl.app.base.bean.vo.ItemVo;
 import com.zywl.app.base.constant.RedisKeyConstant;
@@ -313,7 +310,18 @@ public class ManagerConfigService extends BaseService {
 			tableInfo.put("petTable", obj);
 			//推送给在线客户端
 			Push.push(PushCode.updateTableVersion, null, tableInfo);
-		} else if (key.equals(Config.ROLE_VERSION)) {
+		} else if (key.equals(Config.VIP_TABLE_VERSION)) {
+			//重置VIP配置表后重新推送给在线客户端
+			gameService.initDicVip();
+			List<DicVip> vips = new ArrayList<>(PlayGameService.DIC_VIP_MAP.values());
+			JSONObject obj = new JSONObject();
+			obj.put("version", value);
+			obj.put("data", vips);
+			JSONObject tableInfo = new JSONObject();
+			tableInfo.put("vipTable", obj);
+			//推送给在线客户端
+			Push.push(PushCode.updateTableVersion, null, tableInfo);
+		}else if (key.equals(Config.ROLE_VERSION)) {
 			//重新玩家角色表后推送给在线客户端
 			gameService.initRole();
 			List<DicRole> roles = new ArrayList<>(PlayGameService.DIC_ROLE.values());

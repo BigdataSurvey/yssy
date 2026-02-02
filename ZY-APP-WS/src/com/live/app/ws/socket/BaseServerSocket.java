@@ -1,5 +1,4 @@
 package com.live.app.ws.socket;
-import com.zywl.app.base.util.UID;
 
 import com.alibaba.fastjson2.JSON;
 import com.alibaba.fastjson2.JSONObject;
@@ -16,7 +15,6 @@ import com.live.app.ws.util.KeyUtil;
 import com.live.app.ws.util.Push;
 import com.zywl.app.base.exp.AppException;
 import com.zywl.app.base.util.DesUtil;
-
 import javax.servlet.http.HttpSession;
 import java.io.IOException;
 import java.net.URLDecoder;
@@ -51,9 +49,8 @@ public abstract class BaseServerSocket extends BaseSocket {
             privateKey = getPrivateKey(pk);
         }
         if (privateKey == null || "".equals(privateKey)) {
-            throwExp("未获取到私钥");
+            sendCommand(CommandBuilder.builder().request(CommandConstants.CMD_CONNECT_FAILS, "未获取到私钥").build());
         }
-
         try {
             shakeHandsStr = URLDecoder.decode(shakeHandsStr, "UTF-8");
             if (shakeHandsStr.contains("%")) {
@@ -120,19 +117,22 @@ public abstract class BaseServerSocket extends BaseSocket {
             throwExp("不能解密的消息");
         }
         Command command = JSON.parseObject(message, Command.class);
-        if (getSocketType().equals(TargetSocketType.app)) {
-            boolean hasIdKey = message.contains("\"id\"");
-            String id = command.getId();
-            boolean blankId = (id == null || id.trim().isEmpty() || "null".equalsIgnoreCase(id.trim()));
-            if (!hasIdKey || blankId) {
-                command.setId("NOID_" + UID.create());
-            }
+        // ===== 解析后的Command=====
+       /* logger().error("[RECV_PARSED] socketType=" + getSocketType()
+                + " sessionId=" + getSessionId()
+                + " code=" + command.getCode()
+                + " id=" + command.getId()
+                + " push=" + command.isPush());*/
+
+        // 请求如果没有id，生成一个，避免前端按id回调时没反应
+        if (command.getId() == null || command.getId().trim().isEmpty()) {
+            command.setId("SID_" + System.currentTimeMillis() + "_" + (int)(Math.random() * 1000000));
         }
 
         if (command.getCode().equals("syncTaskNum") || command.getCode().equals("700200") || command.getCode().equals("007002") || command.getCode().equals("999999")) {
 
         } else {
-            logger().info("收到客户端指令：" + message);
+            // logger().info("收到客户端指令：" + message);
         }
         if (eq(CommandConstants.PING_PONG, command.getCode())) {
             sendCommand(CommandBuilder.builder().request(CommandConstants.PING_PONG, null).build());
@@ -193,41 +193,35 @@ public abstract class BaseServerSocket extends BaseSocket {
 
     public void sendCommand(Command command) {
         filterCommand(command);
-
-        String originalId = command.getId();
-
-        boolean noIdResponse = getSocketType().equals(TargetSocketType.app)
-                && originalId != null
-                && originalId.startsWith("NOID_");
-
-        String data;
-        if (noIdResponse) {
-            JSONObject obj = JSON.parseObject(JSON.toJSONString(command));
-            //删掉id
-            obj.remove("id");
-            data = obj.toJSONString();
-        } else {
-            data = JSON.toJSONString(command);
+        // 响应如果没有id，补一个
+        if (!command.isPush() && (command.getId() == null || command.getId().trim().isEmpty())) {
+            command.setId("SID_" + System.currentTimeMillis() + "_" + (int)(Math.random() * 1000000));
         }
+        // 只要是发往APP的下行包，强制打印
+/*        if (getSocketType().equals(TargetSocketType.app)) {
+            logger().error("[TO_APP_SEND] sessionId=" + getSessionId()
+                    + " connId=" + getId()
+                    + " code=" + command.getCode()
+                    + " id=" + command.getId()
+                    + " push=" + command.isPush()
+                    + " success=" + command.isSuccess());
+        }*/
 
+        String data = JSON.toJSONString(command);
         try {
             if (!command.isPush()) {
                 if (!command.getCode().equals("700200") && !command.getCode().equals("007002") && !command.getCode().equals("999999")) {
                     logger().debug("发送到" + getSocketType() + "：" + data);
                 }
             }
-            if (isEncrypt(command) && privateKey != null && !"".equals(privateKey)) {
+            if (isEncrypt(command)) {
                 data = DesUtil.encrypt(data, privateKey);
             }
-
-            command.setId(originalId);
             send(data);
         } catch (Exception e) {
             logger().error("发送失败: " + JSON.toJSONString(command) + " | " + e, e);
         }
     }
-
-
 
     public String getIp() {
         return ip;

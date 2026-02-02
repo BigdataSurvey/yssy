@@ -48,6 +48,8 @@ public class MessageCodeContext {
 	public final static String USER_PET = "038";
 	//悬赏任务
 	public final  static String BOUNTY_TASK="039";
+	// OSS 直传/资源服务
+	public final  static String OSS="040";
 
 	public final static String KP_PLAYER_CARD= "1001";
 

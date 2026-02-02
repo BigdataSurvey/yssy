@@ -1,85 +1,63 @@
 package com.zywl.app.base.bean;
-
 import com.zywl.app.base.BaseBean;
-
 import java.util.Date;
 
+/**
+ * @Author: lzx
+ * @Create: 2026-01-19
+ * @Version: V1.0
+ * @Description: VIP每日领取记录Bean (对应表: r_vip_receive_record)
+ * @Task:
+ */
 public class VipReceiveRecord extends BaseBean {
 
-    private long id;
-    private long userId;
-    private String  orderNo;
-    private long vipLevel;
+    /** 主键ID */
+    private Long id;
+
+    /** 用户ID */
+    private Long userId;
+
+    /** VIP类型 1=VIP1*/
+    private Integer vipType;
+
+    /** 领取日期 */
+    private Date claimDate;
+
+    /** 奖励快照JSON */
     private String reward;
+
+    /** 订单号*/
+    private String orderNo;
+
+    /** 创建时间 */
     private Date createTime;
+
+    /** 更新时间 */
     private Date updateTime;
 
-    public long getId() {
-        return id;
-    }
 
-    public void setId(long id) {
-        this.id = id;
-    }
+    public Long getId() { return id; }
+    public void setId(Long id) { this.id = id; }
 
-    public long getUserId() {
-        return userId;
-    }
+    public Long getUserId() { return userId; }
+    public void setUserId(Long userId) { this.userId = userId; }
 
-    public void setUserId(long userId) {
-        this.userId = userId;
-    }
+    public Integer getVipType() { return vipType; }
+    public void setVipType(Integer vipType) { this.vipType = vipType; }
 
-    public String getOrderNo() {
-        return orderNo;
-    }
+    public Date getClaimDate() { return claimDate; }
+    public void setClaimDate(Date claimDate) { this.claimDate = claimDate; }
 
-    public void setOrderNo(String orderNo) {
-        this.orderNo = orderNo;
-    }
+    public String getReward() { return reward; }
+    public void setReward(String reward) { this.reward = reward; }
 
-    public long getVipLevel() {
-        return vipLevel;
-    }
+    public String getOrderNo() { return orderNo; }
+    public void setOrderNo(String orderNo) { this.orderNo = orderNo; }
 
-    public void setVipLevel(long vipLevel) {
-        this.vipLevel = vipLevel;
-    }
+    public Date getCreateTime() { return createTime; }
+    public void setCreateTime(Date createTime) { this.createTime = createTime; }
 
-    public String getReward() {
-        return reward;
-    }
+    public Date getUpdateTime() { return updateTime; }
+    public void setUpdateTime(Date updateTime) { this.updateTime = updateTime; }
 
-    public void setReward(String reward) {
-        this.reward = reward;
-    }
-
-    public Date getCreateTime() {
-        return createTime;
-    }
-
-    public void setCreateTime(Date createTime) {
-        this.createTime = createTime;
-    }
-
-    public Date getUpdateTime() {
-        return updateTime;
-    }
-
-    public void setUpdateTime(Date updateTime) {
-        this.updateTime = updateTime;
-    }
-
-    public VipReceiveRecord(long id, long userId, String orderNo, long vipLevel, String reward, Date createTime, Date updateTime) {
-        this.id = id;
-        this.userId = userId;
-        this.orderNo = orderNo;
-        this.vipLevel = vipLevel;
-        this.reward = reward;
-        this.createTime = createTime;
-        this.updateTime = updateTime;
-    }
-
-    public VipReceiveRecord() {
-    }
 }

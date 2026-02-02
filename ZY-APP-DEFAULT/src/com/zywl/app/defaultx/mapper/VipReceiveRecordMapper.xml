@@ -1,20 +1,54 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.zywl.app.defaultx.mapper.VipReceiveRecordMapper">
 
-    <insert id="insert" parameterType="VipReceiveRecord" useGeneratedKeys="true" keyProperty="id" keyColumn="id">
+    <resultMap id="BaseResultMap" type="com.zywl.app.base.bean.VipReceiveRecord">
+        <id     column="id"          property="id"/>
+        <result column="user_id"     property="userId"/>
+        <result column="vip_type"    property="vipType"/>
+        <result column="claim_date"  property="claimDate"/>
+        <result column="reward"      property="reward"/>
+        <result column="order_no"    property="orderNo"/>
+        <result column="create_time" property="createTime"/>
+        <result column="update_time" property="updateTime"/>
+    </resultMap>
+
+    <sql id="Base_Column_List">
+        id,
+        user_id,
+        vip_type,
+        claim_date,
+        reward,
+        order_no,
+        create_time,
+        update_time
+    </sql>
+
+    <select id="selectByPrimaryKey" parameterType="long" resultMap="BaseResultMap">
+        select
+        <include refid="Base_Column_List"/>
+        from r_vip_receive_record
+        where id = #{id}
+    </select>
+
+    <insert id="insert" parameterType="com.zywl.app.base.bean.VipReceiveRecord" useGeneratedKeys="true" keyProperty="id" keyColumn="id">
         insert into r_vip_receive_record
-        (    `user_id`,
-             `vip_level`,
-             `reward`,
-             `order_no`,
-             `create_time`,
-             `update_time`
+        (
+            user_id,
+            vip_type,
+            claim_date,
+            reward,
+            order_no,
+            create_time,
+            update_time
         )
         values
             (
                 #{userId},
-                #{vipLevel},
+                #{vipType},
+                #{claimDate},
                 #{reward},
                 #{orderNo},
                 #{createTime},
@@ -22,18 +56,82 @@
             )
     </insert>
 
+    <update id="update" parameterType="com.zywl.app.base.bean.VipReceiveRecord">
+        update r_vip_receive_record
+        <set>
+            <if test="userId != null">user_id = #{userId},</if>
+            <if test="vipType != null">vip_type = #{vipType},</if>
+            <if test="claimDate != null">claim_date = #{claimDate},</if>
+            <if test="reward != null">reward = #{reward},</if>
+            <if test="orderNo != null">order_no = #{orderNo},</if>
+            <if test="updateTime != null">update_time = #{updateTime},</if>
+        </set>
+        where id = #{id}
+    </update>
 
-    <delete id="delete">
-        delete from r_vip_receive_record where id= #{id}
-    </delete>
+    <select id="findListByConditions" parameterType="map" resultMap="BaseResultMap">
+        select
+        <include refid="Base_Column_List"/>
+        from r_vip_receive_record
+        <where>
+            <if test="id != null">
+                and id = #{id}
+            </if>
+            <if test="userId != null">
+                and user_id = #{userId}
+            </if>
+            <if test="vipType != null">
+                and vip_type = #{vipType}
+            </if>
+            <if test="claimDate != null">
+                and claim_date = #{claimDate}
+            </if>
+            <if test="beginDate != null">
+                and claim_date &gt;= #{beginDate}
+            </if>
+            <if test="endDate != null">
+                and claim_date &lt;= #{endDate}
+            </if>
+            <if test="orderNo != null and orderNo != ''">
+                and order_no = #{orderNo}
+            </if>
+        </where>
+        order by create_time desc
 
-    <select id="findByConditions" resultType="VipReceiveRecord">
-        select * from r_vip_receive_record where user_id = #{userId} and vip_level = #{vipLevel}
+        <if test="offset != null and limit != null">
+            limit #{offset}, #{limit}
+        </if>
+        <if test="offset == null and limit != null">
+            limit #{limit}
+        </if>
     </select>
 
-    <select id="findAll" resultType="VipReceiveRecord">
-        select * from r_vip_receive_record
+    <select id="countByConditions" parameterType="map" resultType="int">
+        select count(1)
+        from r_vip_receive_record
+        <where>
+            <if test="id != null">
+                and id = #{id}
+            </if>
+            <if test="userId != null">
+                and user_id = #{userId}
+            </if>
+            <if test="vipType != null">
+                and vip_type = #{vipType}
+            </if>
+            <if test="claimDate != null">
+                and claim_date = #{claimDate}
+            </if>
+            <if test="beginDate != null">
+                and claim_date &gt;= #{beginDate}
+            </if>
+            <if test="endDate != null">
+                and claim_date &lt;= #{endDate}
+            </if>
+            <if test="orderNo != null and orderNo != ''">
+                and order_no = #{orderNo}
+            </if>
+        </where>
     </select>
-
 
 </mapper>

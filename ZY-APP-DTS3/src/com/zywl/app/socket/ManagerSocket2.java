@@ -38,10 +38,7 @@ public class ManagerSocket2 extends BaseClientSocket {
 	
 	private IncomeRecordService incomeRecordService;
 	
-	
-	
-	
-	
+
 	public ManagerSocket2(TargetSocketType socketType, int reconnect, String server, JSONObject shakeHandsDatas) {
 		super(socketType, false, reconnect, server, shakeHandsDatas);
 		versionService = SpringUtil.getService(VersionService.class);
@@ -78,11 +75,13 @@ public class ManagerSocket2 extends BaseClientSocket {
 				logger.info("收到系统参数修改推送：" + data);
 				JSONObject object = (JSONObject) data;
 				Config config = object.toJavaObject(Config.class);
-				if (config.getKey().equals(Config.DTS2_STATUS)){
+				if (config.getKey().equals(Config.DTS2_STATUS)) {
 					int status = Integer.parseInt(config.getValue());
-					BattleRoyaleService2.STATUS=status;
-					gameService.updateGameStatus(GameTypeEnum.battleRoyale.getValue(),status);
+					BattleRoyaleService2.STATUS = status;
+					// DTS3 实际 gameId=1（GameTypeEnum.dts2）
+					gameService.updateGameStatus(GameTypeEnum.dts2.getValue(), status);
 				}
+
 				if (config.getKey().equals(Config.DAILY_STOLEN_COUNT)){
 					BigDecimal status = new BigDecimal(config.getValue());
 					logger.info("调整飞仙手续费："+status);

@@ -35,6 +35,9 @@ public enum ItemIdEnum {
     BALLOON("气球", "2105"),
     VOUCHER_GAME_COIN("游戏货币兑换券", "3001"),
     GIFT_CONTRIBUTION("贡献奖励礼包", "3002"),
+
+    VIP1_CARD("VIP1会员卡", "4001"),
+    VIP2_CARD("VIP2会员卡", "4002"),
     ;
 
     private ItemIdEnum(String name, String value) {
@@ -54,3 +57,4 @@ public enum ItemIdEnum {
         this.value = value;
     }
 }
+

@@ -1765,4 +1765,76 @@ public class AdminMailService extends BaseService {
         return resp;
     }
 
+    /**
+     * VIP卡转赠权限名单管理（V1.0）
+     * vipTransferEnable: 0无权限 1允许
+     */
+    @ServiceMethod(code = "170", description = "VIP卡转赠权限-查询")
+    public Object getVipTransferEnable(AdminSocketServer adminSocketServer, JSONObject params, Command webCommand) {
+        checkNull(params);
+        if (adminSocketServer != null) checkAuth(adminSocketServer);
+        long userId = params.getLongValue("userId", 0);
+        String userNo = params.getString("userNo");
+
+        User user = findUser(userId, userNo, null);
+        if (user == null) {
+            throwExp("用户不存在");
+        }
+
+        JSONObject result = new JSONObject();
+        result.put("userId", user.getId());
+        result.put("userNo", user.getUserNo());
+        result.put("userName", user.getName());
+        result.put("vipTransferEnable", user.getVipTransferEnable() == null ? 0 : user.getVipTransferEnable());
+        return result;
+    }
+
+
+    /**
+     * VIP卡转赠权限名单管理（V1.0）
+     * vipTransferEnable: 0无权限 1允许
+     */
+    @ServiceMethod(code = "171", description = "VIP卡转赠权限-设置")
+    public Object setVipTransferEnable(AdminSocketServer adminSocketServer, JSONObject params, Command webCommand) {
+        checkNull(params);
+        if (adminSocketServer != null) checkAuth(adminSocketServer);
+
+        long userId = params.getLongValue("userId", 0);
+        String userNo = params.getString("userNo");
+        Integer enable = params.getInteger("vipTransferEnable");
+
+        if (enable == null || (enable != 0 && enable != 1)) {
+            throwExp("vipTransferEnable 参数错误，仅支持 0/1");
+        }
+
+        User user = findUser(userId, userNo, null);
+        if (user == null) {
+            throwExp("用户不存在");
+        }
+
+        int n = userService.updateUserVipTransfer(user.getId(),enable);
+        if (n < 1) {
+            throwExp("设置失败，请稍后重试");
+        }
+
+        // 清理用户缓存
+        userCacheService.removeUserInfoCache(user.getId());
+
+        // 管理员操作日志
+        JSONObject content = new JSONObject();
+        content.put("userId", user.getId());
+        content.put("userNo", user.getUserNo());
+        content.put("vipTransferEnable", enable);
+        if (adminSocketServer != null) {
+            adminLogService.addAdminLog(adminSocketServer.getAdmin(), "setVipTransferEnable", content);
+        }
+
+        JSONObject result = new JSONObject();
+        result.put("userId", user.getId());
+        result.put("userNo", user.getUserNo());
+        result.put("vipTransferEnable", enable);
+        return result;
+    }
+
+
 }

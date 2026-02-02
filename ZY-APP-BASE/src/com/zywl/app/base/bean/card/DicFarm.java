@@ -30,7 +30,6 @@ public class DicFarm extends BaseBean {
 
     private Date updateTime;
 
-    // ========== getter / setter ==========
 
     public Long getId() {
         return id;

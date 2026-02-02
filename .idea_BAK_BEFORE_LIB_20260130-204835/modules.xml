@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="ProjectModuleManager">
+    <modules>
+      <module fileurl="file://$PROJECT_DIR$/ZY-APP-BASE/ZY-APP-BASE.iml" filepath="$PROJECT_DIR$/ZY-APP-BASE/ZY-APP-BASE.iml" />
+      <module fileurl="file://$PROJECT_DIR$/ZY-APP-DEFAULT/ZY-APP-DEFAULT.iml" filepath="$PROJECT_DIR$/ZY-APP-DEFAULT/ZY-APP-DEFAULT.iml" />
+      <module fileurl="file://$PROJECT_DIR$/ZY-APP-DGS/ZY-APP-DGS.iml" filepath="$PROJECT_DIR$/ZY-APP-DGS/ZY-APP-DGS.iml" />
+      <module fileurl="file://$PROJECT_DIR$/ZY-APP-DTS/ZY-APP-DTS.iml" filepath="$PROJECT_DIR$/ZY-APP-DTS/ZY-APP-DTS.iml" />
+      <module fileurl="file://$PROJECT_DIR$/ZY-APP-DTS2/ZY-APP-DTS2.iml" filepath="$PROJECT_DIR$/ZY-APP-DTS2/ZY-APP-DTS2.iml" />
+      <module fileurl="file://$PROJECT_DIR$/ZY-APP-DTS3/ZY-APP-DTS3.iml" filepath="$PROJECT_DIR$/ZY-APP-DTS3/ZY-APP-DTS3.iml" />
+      <module fileurl="file://$PROJECT_DIR$/ZY-APP-FOOD/ZY-APP-FOOD.iml" filepath="$PROJECT_DIR$/ZY-APP-FOOD/ZY-APP-FOOD.iml" />
+      <module fileurl="file://$PROJECT_DIR$/ZY-APP-LHD/ZY-APP-LHD.iml" filepath="$PROJECT_DIR$/ZY-APP-LHD/ZY-APP-LHD.iml" />
+      <module fileurl="file://$PROJECT_DIR$/ZY-APP-LOG/ZY-APP-LOG.iml" filepath="$PROJECT_DIR$/ZY-APP-LOG/ZY-APP-LOG.iml" />
+      <module fileurl="file://$PROJECT_DIR$/ZY-APP-MANAGER/ZY-APP-MANAGER.iml" filepath="$PROJECT_DIR$/ZY-APP-MANAGER/ZY-APP-MANAGER.iml" />
+      <module fileurl="file://$PROJECT_DIR$/ZY-APP-NS/ZY-APP-NS.iml" filepath="$PROJECT_DIR$/ZY-APP-NS/ZY-APP-NS.iml" />
+      <module fileurl="file://$PROJECT_DIR$/ZY-APP-PBX/ZY-APP-PBX.iml" filepath="$PROJECT_DIR$/ZY-APP-PBX/ZY-APP-PBX.iml" />
+      <module fileurl="file://$PROJECT_DIR$/ZY-APP-SERVER/ZY-APP-SERVER.iml" filepath="$PROJECT_DIR$/ZY-APP-SERVER/ZY-APP-SERVER.iml" />
+      <module fileurl="file://$PROJECT_DIR$/ZY-APP-WS/ZY-APP-WS.iml" filepath="$PROJECT_DIR$/ZY-APP-WS/ZY-APP-WS.iml" />
+      <module fileurl="file://$PROJECT_DIR$/ZY-GAME-BT/ZY-GAME-BT.iml" filepath="$PROJECT_DIR$/ZY-GAME-BT/ZY-GAME-BT.iml" />
+      <module fileurl="file://$PROJECT_DIR$/ZY-GAME-SG/ZY-GAME-SG.iml" filepath="$PROJECT_DIR$/ZY-GAME-SG/ZY-GAME-SG.iml" />
+      <module fileurl="file://$PROJECT_DIR$/ZY-KEYFACTORY/ZY-KEYFACTORY.iml" filepath="$PROJECT_DIR$/ZY-KEYFACTORY/ZY-KEYFACTORY.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/yssy.iml" filepath="$PROJECT_DIR$/.idea/yssy.iml" />
+    </modules>
+  </component>
+</project>
