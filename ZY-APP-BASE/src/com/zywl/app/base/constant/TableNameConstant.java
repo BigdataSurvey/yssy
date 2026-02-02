@@ -106,6 +106,10 @@ public class TableNameConstant {
 
 	public final static String R_BUY_VIP_RECORD = "r_buy_vip_record";
 
+	public final static String T_USER = "t_user";
+
+
+
 	public final static String GAME_ESCORT = "r_game_escort_record";
 
 	public final static String GAME_CARDS = "t_game_cards";
@@ -115,5 +119,6 @@ public class TableNameConstant {
 	public final static String BOUNTY_TASK = "t_bounty_task";
 	//悬赏任务：接单订单表
 	public final static String BOUNTY_TASK_ORDER = "t_bounty_task_order";
+
 
 }

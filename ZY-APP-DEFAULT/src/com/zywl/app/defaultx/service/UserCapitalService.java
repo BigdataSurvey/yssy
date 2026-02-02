@@ -707,17 +707,17 @@ public class UserCapitalService extends DaoService {
     }
     @Transactional
     public int addUserBalanceByDtsRank(Long userId, BigDecimal amount) {
-        int a = addUserBalance2(amount, userId, UserCapitalTypeEnum.yyb.getValue());
+        int a = addUserBalance2(amount, userId, UserCapitalTypeEnum.hxjf.getValue());
         return a;
     }
 
 
     @Transactional
     public int subUserOccupyBalanceByDtsBet(Long userId, BigDecimal amount) {
-        int a = subUserBalance2(amount, userId, UserCapitalTypeEnum.yyb.getValue());
+        int a = subUserBalance2(amount, userId, UserCapitalTypeEnum.hxjf.getValue());
         // 清理缓存
         if (a < 1) {
-            throwExp(UserCapitalTypeEnum.yyb.getName()+"不足");
+            throwExp(UserCapitalTypeEnum.hxjf.getName()+"不足");
         }
         return a;
     }
@@ -1094,6 +1094,80 @@ public class UserCapitalService extends DaoService {
             }
         }
     }
+    /**
+     * VIP V1.0：自购开通/续期扣费（独立扣费方法）
+     */
+    @Transactional
+    public void subUserBalanceByOpenVip(Long userId,
+                                        BigDecimal amount,
+                                        Integer capitalType,
+                                        String orderNo,
+                                        Long sourceDataId,
+                                        LogCapitalTypeEnum logType) {
+
+        if (userId == null || userId <= 0) {
+            throwExp("userId不能为空");
+        }
+        if (amount == null || amount.compareTo(BigDecimal.ZERO) <= 0) {
+            throwExp("amount参数错误");
+        }
+        if (orderNo == null || orderNo.trim().isEmpty()) {
+            throwExp("orderNo不能为空");
+        }
+
+        // 资产类型校验
+        if (capitalType == null) {
+            capitalType = UserCapitalTypeEnum.hxjf.getValue();
+        }
+
+        // 默认日志类型 buy_vip
+        if (logType == null) {
+            logType = LogCapitalTypeEnum.buy_vip;
+        }
+
+        // 从缓存获取用户资产
+        UserCapital userCapital = userCapitalCacheService.getUserCapitalCacheByType(userId, capitalType);
+        if (userCapital == null) {
+            throwExp("资产不存在");
+        }
+
+        int a = subUserBalance(
+                amount,
+                userId,
+                capitalType,
+                userCapital.getBalance(),
+                userCapital.getOccupyBalance(),
+                orderNo,
+                sourceDataId,
+                logType,
+                TableNameConstant.T_USER
+        );
+        if (a < 1) {
+            // 清理缓存后重试一次
+            userCapitalCacheService.deltedUserCapitalCache(userId, capitalType);
+            userCapital = userCapitalCacheService.getUserCapitalCacheByType(userId, capitalType);
+            if (userCapital == null) {
+                throwExp("资产不存在");
+            }
+
+            int b = subUserBalance(
+                    amount,
+                    userId,
+                    capitalType,
+                    userCapital.getBalance(),
+                    userCapital.getOccupyBalance(),
+                    orderNo,
+                    sourceDataId,
+                    logType,
+                    TableNameConstant.T_USER
+            );
+
+            if (b < 1) {
+                throwExp("扣除资产失败，请稍后重试");
+            }
+        }
+    }
+
     @Transactional
     public void subUserBalanceBySweep(Long userId, BigDecimal amount, Long dataId) {
         int capitalType = UserCapitalTypeEnum.currency_2.getValue();

@@ -1,0 +1,140 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.zywl.app.defaultx.mapper.TVipGiftRecordMapper">
+
+    <resultMap id="BaseResultMap" type="com.zywl.app.base.bean.TVipGiftRecord">
+        <id     column="id"             property="id"/>
+        <result column="gift_no"        property="giftNo"/>
+        <result column="from_user_id"   property="fromUserId"/>
+        <result column="to_user_id"     property="toUserId"/>
+        <result column="vip_type"       property="vipType"/>
+        <result column="card_item_id"   property="cardItemId"/>
+        <result column="card_number"    property="cardNumber"/>
+        <result column="remark"         property="remark"/>
+        <result column="create_time"    property="createTime"/>
+        <result column="update_time"    property="updateTime"/>
+    </resultMap>
+
+    <sql id="Base_Column_List">
+        id,
+        gift_no,
+        from_user_id,
+        to_user_id,
+        vip_type,
+        card_item_id,
+        card_number,
+        remark,
+        create_time,
+        update_time
+    </sql>
+
+    <select id="selectByPrimaryKey" parameterType="long" resultMap="BaseResultMap">
+        select
+        <include refid="Base_Column_List"/>
+        from t_vip_gift_record
+        where id = #{id}
+    </select>
+
+    <select id="findByGiftNo" parameterType="string" resultMap="BaseResultMap">
+        select
+        <include refid="Base_Column_List"/>
+        from t_vip_gift_record
+        where gift_no = #{giftNo}
+        limit 1
+    </select>
+
+    <insert id="insert" parameterType="com.zywl.app.base.bean.TVipGiftRecord" useGeneratedKeys="true" keyProperty="id" keyColumn="id">
+        insert into t_vip_gift_record
+        (
+            gift_no,
+            from_user_id,
+            to_user_id,
+            vip_type,
+            card_item_id,
+            card_number,
+            remark,
+            create_time,
+            update_time
+        )
+        values
+            (
+                #{giftNo},
+                #{fromUserId},
+                #{toUserId},
+                #{vipType},
+                #{cardItemId},
+                #{cardNumber},
+                #{remark},
+                #{createTime},
+                #{updateTime}
+            )
+    </insert>
+
+    <select id="findListByConditions" parameterType="map" resultMap="BaseResultMap">
+        select
+        <include refid="Base_Column_List"/>
+        from t_vip_gift_record
+        <where>
+            <if test="id != null">
+                and id = #{id}
+            </if>
+            <if test="fromUserId != null">
+                and from_user_id = #{fromUserId}
+            </if>
+            <if test="toUserId != null">
+                and to_user_id = #{toUserId}
+            </if>
+            <if test="vipType != null">
+                and vip_type = #{vipType}
+            </if>
+            <if test="giftNo != null and giftNo != ''">
+                and gift_no = #{giftNo}
+            </if>
+            <if test="startTime != null">
+                and create_time &gt;= #{startTime}
+            </if>
+            <if test="endTime != null">
+                and create_time &lt;= #{endTime}
+            </if>
+        </where>
+        order by create_time desc
+
+        <if test="offset != null and limit != null">
+            limit #{offset}, #{limit}
+        </if>
+        <if test="offset == null and limit != null">
+            limit #{limit}
+        </if>
+    </select>
+
+    <select id="countByConditions" parameterType="map" resultType="int">
+        select count(1)
+        from t_vip_gift_record
+        <where>
+            <if test="id != null">
+                and id = #{id}
+            </if>
+            <if test="fromUserId != null">
+                and from_user_id = #{fromUserId}
+            </if>
+            <if test="toUserId != null">
+                and to_user_id = #{toUserId}
+            </if>
+            <if test="vipType != null">
+                and vip_type = #{vipType}
+            </if>
+            <if test="giftNo != null and giftNo != ''">
+                and gift_no = #{giftNo}
+            </if>
+            <if test="startTime != null">
+                and create_time &gt;= #{startTime}
+            </if>
+            <if test="endTime != null">
+                and create_time &lt;= #{endTime}
+            </if>
+        </where>
+    </select>
+
+</mapper>

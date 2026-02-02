@@ -56,8 +56,8 @@
 			`points`,
 			`parent_tree`,
 			`login_times`,
-			`cno`
-
+			`cno`,
+			`vip_transfer_enable`
 		)
 		values
 			(
@@ -112,7 +112,9 @@
 				#{points},
 				#{parentTree},
 				#{loginTimes},
-				#{cno}
+				#{cno},
+				#{vipTransferEnable},
+
 			)
 	</insert>
 
@@ -185,8 +187,9 @@
 			<if test="alipayId!= null">
 				alipay_id=#{alipayId},
 			</if>
-
-
+			<if test="vipTransferEnable != null">
+				vip_transfer_enable=#{vipTransferEnable},
+			</if>
 		</set>
 		where  id= #{id}       and status=1
 	</update>
@@ -784,6 +787,9 @@
 	</update>
 	<update id="updateUserVip1" parameterType="User">
 		update t_user set vip1 =  #{lv}  where id=#{userId}
+	</update>
+	<update id="updateUserVipTransfer" parameterType="User">
+		update t_user set vip_transfer_enable =  #{vipTransferEnable}  where id=#{userId}
 	</update>
 
 	<update id="openWeek" parameterType="User">

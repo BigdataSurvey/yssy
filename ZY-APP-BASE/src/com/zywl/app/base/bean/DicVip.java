@@ -1,47 +1,127 @@
 package com.zywl.app.base.bean;
 
-import com.alibaba.fastjson2.JSONArray;
+import java.util.Date;
 import com.zywl.app.base.BaseBean;
+import java.math.BigDecimal;
 
+/**
+ * @Author: lzx
+ * @Create: 2026-01-19
+ * @Version: V1.0
+ * @Description: VIP配置Bean (对应表 dic_vip)
+ * @Task:
+ */
 public class DicVip extends BaseBean {
 
-    private int lv;
+    /** VIP类型 1=VIP1 2=VIP2*/
+    private Integer vipType;
 
-    private int beginExp;
+    /** VIP名称 */
+    private String name;
 
-    private int endExp;
+    /** 开通/续期时长(天) */
+    private Integer durationDays;
 
-    private JSONArray reward;
+    /** 购买价格 (对应 decimal) */
+    private BigDecimal price;
 
-    public int getLv() {
-        return lv;
+    /** 扣费资产类型ID (UserCapitalTypeEnum.value) */
+    private Integer capitalTypeId;
+
+    /** 权益文案(前端展示) */
+    private String benefitText;
+
+    /** 每日领取奖励JSON addReward */
+    private String dailyReward;
+
+    /** VIP卡道具ItemId (dic_item.id) */
+    private Integer cardItemId;
+
+    /** 状态 0禁用 1启用 */
+    private Integer status;
+
+    /** 创建时间 */
+    private Date createTime;
+
+    /** 更新时间 */
+    private Date updateTime;
+
+    public Integer getVipType() {
+        return vipType;
     }
 
-    public void setLv(int lv) {
-        this.lv = lv;
+    public void setVipType(Integer vipType) {
+        this.vipType = vipType;
     }
 
-    public int getBeginExp() {
-        return beginExp;
+    public String getName() {
+        return name;
     }
 
-    public void setBeginExp(int beginExp) {
-        this.beginExp = beginExp;
+    public void setName(String name) {
+        this.name = name;
     }
 
-    public int getEndExp() {
-        return endExp;
+    public Integer getDurationDays() {
+        return durationDays;
     }
 
-    public void setEndExp(int endExp) {
-        this.endExp = endExp;
+    public void setDurationDays(Integer durationDays) {
+        this.durationDays = durationDays;
     }
 
-    public JSONArray getReward() {
-        return reward;
+    public BigDecimal getPrice() {
+        return price;
     }
 
-    public void setReward(JSONArray reward) {
-        this.reward = reward;
+    public void setPrice(BigDecimal price) {
+        this.price = price;
     }
+
+    public Integer getCapitalTypeId() {
+        return capitalTypeId;
+    }
+
+    public void setCapitalTypeId(Integer capitalTypeId) {
+        this.capitalTypeId = capitalTypeId;
+    }
+
+    public String getBenefitText() {
+        return benefitText;
+    }
+
+    public void setBenefitText(String benefitText) {
+        this.benefitText = benefitText;
+    }
+
+    public String getDailyReward() {
+        return dailyReward;
+    }
+
+    public void setDailyReward(String dailyReward) {
+        this.dailyReward = dailyReward;
+    }
+
+    public Integer getCardItemId() {
+        return cardItemId;
+    }
+
+    public void setCardItemId(Integer cardItemId) {
+        this.cardItemId = cardItemId;
+    }
+
+    public Integer getStatus() {
+        return status;
+    }
+
+    public void setStatus(Integer status) {
+        this.status = status;
+    }
+    public Date getCreateTime() { return createTime; }
+    public void setCreateTime(Date createTime) { this.createTime = createTime; }
+
+    public Date getUpdateTime() { return updateTime; }
+    public void setUpdateTime(Date updateTime) { this.updateTime = updateTime; }
+
+
 }

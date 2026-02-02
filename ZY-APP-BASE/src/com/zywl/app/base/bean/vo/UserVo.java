@@ -48,6 +48,11 @@ public class UserVo extends BaseBean{
 
 	private String gameToken;
 
+	/**
+	 * VIP卡转赠权限 0无权限 1允许
+	 */
+	private Integer vipTransferEnable;
+
 	public String getCourierName() {
 		return courierName;
 	}
@@ -231,5 +236,13 @@ public class UserVo extends BaseBean{
 
 	public void setParentId(Long parentId) {
 		this.parentId = parentId;
+	}
+
+	public Integer getVipTransferEnable() {
+		return vipTransferEnable;
+	}
+
+	public void setVipTransferEnable(Integer vipTransferEnable) {
+		this.vipTransferEnable = vipTransferEnable;
 	}
 }

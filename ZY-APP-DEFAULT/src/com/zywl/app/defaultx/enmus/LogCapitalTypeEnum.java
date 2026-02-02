@@ -134,12 +134,10 @@ public enum LogCapitalTypeEnum {
     pet_buy("战马商城购买",1018),
     receive_anima("领取友情值", 1019),
     game_bet_cards("参与虚妄迷局",1020),
-
     game_cards_win("虚妄迷局获得",1021),
-
     bug_role_gift("购买角色",1022),
     donate_item("捐赠道具",1023),
-    VIP_RECEIVE("vip领取",1024),
+    VIP_RECEIVE("VIP每日领取",1024),
     SHOPPING_GET("商城获得",1025),
     yyb_winning("打怪中奖",1026),
     dgs_join("参与打怪",1027),
@@ -167,7 +165,6 @@ public enum LogCapitalTypeEnum {
     bounty_publish_pay("悬赏任务-发布任务预付扣费", 1101),
     bounty_cancel_refund("悬赏任务-取消任务托管退款", 1102),
     bounty_order_reward("悬赏任务-订单完成发放奖励", 1103),
-
     ;
 
     private String name;

@@ -48,6 +48,7 @@ public class UserService extends DaoService {
         newPlayer.setUnionId(wxInfo.getString("unionid"));
         newPlayer.setHeadImageUrl(wxInfo.getString("headimgurl") == null ? "" : wxInfo.getString("headimgurl"));
         newPlayer.setStatus(1);
+        newPlayer.setVipTransferEnable(0);
         newPlayer.setAuthentication(0);
         save(newPlayer);
         return newPlayer;
@@ -73,6 +74,7 @@ public class UserService extends DaoService {
         newPlayer.setHeadImageUrl(wxInfo.getString("headimgurl") == null ? "" : wxInfo.getString("headimgurl"));
         newPlayer.setStatus(1);
         newPlayer.setAuthentication(0);
+        newPlayer.setVipTransferEnable(0);
         save(newPlayer);
         return newPlayer;
     }
@@ -113,6 +115,7 @@ public class UserService extends DaoService {
         newPlayer.setRisk(0);
         newPlayer.setIsUpdateIdCard(0);
         newPlayer.setCno(cno);
+        newPlayer.setVipTransferEnable(0);
         return newPlayer;
     }
 
@@ -134,6 +137,7 @@ public class UserService extends DaoService {
         newPlayer.setVip2ExpireTime(new Date());
         newPlayer.setVip1(0);
         newPlayer.setVip2(0);
+        newPlayer.setVipTransferEnable(0);
         save(newPlayer);
         return newPlayer;
     }
@@ -153,6 +157,7 @@ public class UserService extends DaoService {
         newPlayer.setHeadImageUrl(userHead == null ? "" : userHead);
         newPlayer.setStatus(1);
         newPlayer.setAuthentication(0);
+        newPlayer.setVipTransferEnable(0);
         save(newPlayer);
         return newPlayer;
     }
@@ -200,6 +205,7 @@ public class UserService extends DaoService {
         newPlayer.setRoleId(1);
         newPlayer.setUnionId("");
         newPlayer.setStatus(1);
+        newPlayer.setVipTransferEnable(0);
         save(newPlayer);
         return newPlayer;
     }
@@ -605,6 +611,9 @@ public class UserService extends DaoService {
         return findByConditions(params);
     }
 
+    /**
+     * 更新 VIP1后 清理缓存
+     * **/
     @Transactional
     public void openWeek(Long userId, Date expireTime) {
         Map<String, Object> params = new HashMap<>();
@@ -612,9 +621,11 @@ public class UserService extends DaoService {
         params.put("expireTime", expireTime);
         execute("openWeek", params);
         userCacheService.removeUserInfoCache(userId);
-
     }
 
+    /**
+     * 更新 VIP2后 清理缓存
+     * **/
     @Transactional
     public void openMonth(Long userId, Date expireTime) {
         Map<String, Object> params = new HashMap<>();
@@ -696,6 +707,16 @@ public class UserService extends DaoService {
         params.put("userId", userId);
         params.put("lv", lv);
         int a = execute("updateUserVip1", params);
+        userCacheService.removeUserInfoCache(userId);
+        return a;
+    }
+
+    @Transactional
+    public int updateUserVipTransfer(Long userId,int vb) {
+        Map<String, Object> params = new HashMap<>();
+        params.put("userId", userId);
+        params.put("vipTransferEnable", vb);
+        int a = execute("updateUserVipTransfer", params);
         userCacheService.removeUserInfoCache(userId);
         return a;
     }

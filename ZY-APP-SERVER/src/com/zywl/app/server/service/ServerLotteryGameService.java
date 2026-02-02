@@ -94,8 +94,8 @@ public class ServerLotteryGameService extends BaseService {
         Push.addPushSuport(PushCode.updateDgsStatus, new DefaultPushHandler());
 
         // PBX
-        //Push.addPushSuport(PushCode.updatePbxInfo, new DefaultPushHandler());
-        //Push.addPushSuport(PushCode.updatePbxStatus, new DefaultPushHandler());
+        Push.addPushSuport(PushCode.updatePbxInfo, new DefaultPushHandler());
+        Push.addPushSuport(PushCode.updatePbxStatus, new DefaultPushHandler());
     }
 
     public void registPush(AppSocket appSocket, String userId, String gameId) {
@@ -117,8 +117,8 @@ public class ServerLotteryGameService extends BaseService {
             Push.doAddPush(appSocket, new PushBean(PushCode.updateDgsInfo, gameId));
             Push.doAddPush(appSocket, new PushBean(PushCode.updateDgsStatus, userId));
         } else if (gameId.equals("12")) {
-            Push.doAddPush(appSocket, new PushBean(PushCode.updateDts2Info, gameId));
-            Push.doAddPush(appSocket, new PushBean(PushCode.updateDts2Status, userId));
+            Push.doAddPush(appSocket, new PushBean(PushCode.updatePbxInfo, gameId));
+            Push.doAddPush(appSocket, new PushBean(PushCode.updatePbxStatus, userId));
         }
     }
 
@@ -141,8 +141,8 @@ public class ServerLotteryGameService extends BaseService {
             Push.doRemovePush(appSocket, new PushBean(PushCode.updateDgsInfo, gameId));
             Push.doRemovePush(appSocket, new PushBean(PushCode.updateDgsStatus, userId));
         } else if (gameId.equals("12")) {
-            Push.doRemovePush(appSocket, new PushBean(PushCode.updateDts2Info, gameId));
-            Push.doRemovePush(appSocket, new PushBean(PushCode.updateDts2Status, userId));
+            Push.doRemovePush(appSocket, new PushBean(PushCode.updatePbxInfo, gameId));
+            Push.doRemovePush(appSocket, new PushBean(PushCode.updatePbxStatus, userId));
         }
     }
 
@@ -325,16 +325,108 @@ public class ServerLotteryGameService extends BaseService {
     }
 
     @ServiceMethod(code = "015", description = "记录")
-    public Async recordSg(final AppSocket appSocket, Command appCommand, JSONObject params) {
+    public Object recordSg(final AppSocket appSocket, Command appCommand, JSONObject params) {
         checkNull(params);
         checkNull(params.get("gameId"));
+
         long userId = appSocket.getWsidBean().getUserId();
         params.put("userId", userId);
+
         User user = userCacheService.getUserInfoById(userId);
         if (user == null) {
             throwExp("用户信息异常");
         }
 
+        // 假数据
+        boolean mock = params.containsKey("mock") && params.getIntValue("mock") == 1;
+        if (mock) {
+            int gameId = params.getIntValue("gameId");
+
+            // 元素名（DTS2 gameId=12 用）
+            String[] dts2Names = new String[]{"小丑", "帽子", "喇叭", "大象", "狮子", "兔子"};
+
+            // 不同玩法的 mock 规则
+            int optionNum;
+            int resultsPerPeriod;
+
+            if (gameId == 1) {
+                optionNum = 9;
+                resultsPerPeriod = 2;
+            } else if (gameId == 7) {
+                optionNum = 3;
+                resultsPerPeriod = 1;
+            } else if (gameId == 12) {
+                optionNum = 6;
+                resultsPerPeriod = 3;
+            } else {
+                optionNum = 3;
+                resultsPerPeriod = 1;
+            }
+
+            JSONObject res = new JSONObject();
+
+            // 近100期统计
+            List<JSONObject> recent100Periods = new ArrayList<>();
+            for (int i = 0; i < optionNum; i++) {
+                JSONObject item = new JSONObject();
+                item.put("roomId", String.valueOf(i));
+
+                if (gameId == 12 && i < dts2Names.length) {
+                    item.put("roomName", dts2Names[i]);
+                } else {
+                    item.put("roomName", "房间" + i);
+                }
+
+                // mock
+                item.put("count", 15 + (i % 2) * 5);
+                recent100Periods.add(item);
+            }
+
+            // 近16期结果
+            List<JSONObject> recent16Summary = new ArrayList<>();
+            for (int p = 0; p < 16; p++) {
+                JSONObject period = new JSONObject();
+                period.put("periodsNum", String.valueOf(10000 + p));
+
+                List<JSONObject> rooms = new ArrayList<>();
+                for (int k = 0; k < resultsPerPeriod; k++) {
+                    int rid = (p + k) % optionNum;
+
+                    JSONObject r = new JSONObject();
+                    r.put("roomId", String.valueOf(rid));
+                    if (gameId == 12 && rid < dts2Names.length) {
+                        r.put("roomName", dts2Names[rid]);
+                    } else {
+                        r.put("roomName", "房间" + rid);
+                    }
+
+                    rooms.add(r);
+                }
+
+                period.put("rooms", rooms);
+                recent16Summary.add(period);
+            }
+
+            res.put("gameId", gameId);
+            res.put("userId", String.valueOf(userId));
+            res.put("serverTime", System.currentTimeMillis());
+
+            // 100=统计，16=结果
+            res.put("recent100Periods", recent100Periods);
+            res.put("recent16Summary", recent16Summary);
+
+            // 金额 mock
+            res.put("totalInvest", new BigDecimal("0.00"));
+            res.put("totalGain", new BigDecimal("0.00"));
+
+            res.put("mock", 1);
+            res.put("mockDesc", "004015 假数据，仅用于前端联调测试（gameId=12 按 DTS2 元素语义返回）");
+
+            return res;
+        }
+
+
+        // 走原逻辑
         String reqCode = "101004";
         if (params.getIntValue("gameId") == 12) {
             reqCode = "102108";
@@ -356,7 +448,9 @@ public class ServerLotteryGameService extends BaseService {
         checkNull(params.get("gameId"));
 
         int gameId = params.getIntValue("gameId");
-        if (gameId != GameTypeEnum.battleRoyale.getValue() && gameId != GameTypeEnum.dts2.getValue() && gameId != GameTypeEnum.txz.getValue()) {
+        if (gameId != GameTypeEnum.battleRoyale.getValue()
+                && gameId != GameTypeEnum.dts2.getValue()
+                && gameId != GameTypeEnum.txz.getValue()) {
             throwExp("gameId错误");
         }
 
@@ -370,11 +464,17 @@ public class ServerLotteryGameService extends BaseService {
         JSONObject result = new JSONObject();
         int type = params.getInteger("type");
 
+        //  mock=1 返回假数据给前端测试
+        boolean mock = params.containsKey("mock") && params.getIntValue("mock") == 1;
+
         // PBX(推箱子)排行榜走 Manager 200722
         if (gameId == GameTypeEnum.txz.getValue()) {
-            return pbxRankListFromManager(userId, type);
+            JSONObject pbx = pbxRankListFromManager(userId, type);
+            if (mock) {
+                pbx.put("mock", 1);
+            }
+            return pbx;
         }
-
 
         if (type == 2) {
             result.put("rankList", gameCacheService.getLastWeekRankList(gameId));
@@ -389,10 +489,48 @@ public class ServerLotteryGameService extends BaseService {
             result.put("myScore", userRankScore == null ? 0.0 : userRankScore);
             Long thisWeekUserRank = gameCacheService.getThisWeekUserRankByGame(gameId, String.valueOf(userId));
             result.put("myRank", thisWeekUserRank == null ? -1 : thisWeekUserRank + 1);
+        } else {
+            throwExp("type错误");
         }
 
+        //  mock=1 时：覆盖 rankList / myScore / myRank
+        if (mock) {
+            List<JSONObject> mockList = new ArrayList<>();
+
+            JSONObject u1 = new JSONObject();
+            u1.put("userHeadImg", "http://mock.img/a.png");
+            u1.put("userId", "10001");
+            u1.put("userName", "测试玩家A");
+            u1.put("userNo", "U10001");
+            u1.put("score", 1888.88);
+            mockList.add(u1);
+
+            JSONObject u2 = new JSONObject();
+            u2.put("userHeadImg", "http://mock.img/b.png");
+            u2.put("userId", "10002");
+            u2.put("userName", "测试玩家B");
+            u2.put("userNo", "U10002");
+            u2.put("score", 666.66);
+            mockList.add(u2);
+
+            JSONObject me = new JSONObject();
+            me.put("userHeadImg", user.getHeadImageUrl());
+            me.put("userId", String.valueOf(userId));
+            me.put("userName", user.getName());
+            me.put("userNo", user.getUserNo());
+            me.put("score", 520.52);
+            mockList.add(me);
+
+            result.put("rankList", mockList);
+            result.put("myScore", 520.52);
+            result.put("myRank", 3);
+
+            result.put("mock", 1);
+            result.put("mockDesc", "rankList为假数据，仅用于前端测试");
+        }
         return result;
     }
+
 
     @ServiceMethod(code = "016", description = "游园宝箱")
     public JSONObject yybx(final AppSocket appSocket, Command appCommand, JSONObject params) {
@@ -529,6 +667,9 @@ public class ServerLotteryGameService extends BaseService {
         Push.doRemovePush(appSocket, new PushBean(PushCode.updateRoomDate, gameId));
         Push.doRemovePush(appSocket, new PushBean(PushCode.updateGameStatus, userId));
         Push.doRemovePush(appSocket, new PushBean(PushCode.updateGameDiyData, gameId));
+        if ("1".equals(gameId)) {
+            Push.doRemovePush(appSocket, new PushBean(PushCode.updateDts3UserLeave, gameId));
+        }
     }
 
 

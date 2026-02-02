@@ -117,7 +117,7 @@ public class BattleRoyaleRecord3Service extends DaoService {
 	}
 
 	/**
-	 * 结算推送阶段可传入本期实际获得（包含本金），用于弥补 profit 尚未落库的时间差；可为 null。
+	 * 结算推送阶段可传入本期实际获得弥补 profit 未落库的时间差
 	 */
 	@SuppressWarnings("unchecked")
 	public JSONObject buildUnifiedSummary(Long userId, boolean zeroBasedRoomId, BigDecimal extraGain) {
@@ -140,16 +140,17 @@ public class BattleRoyaleRecord3Service extends DaoService {
 			records = Collections.emptyList();
 		}
 
+		// 近100期统计（房间次数统计） -> recent100Periods
 		Map<Integer, Integer> cnt = new HashMap<>();
-		int take = Math.min(16, records.size());
-		for (int i = 0; i < take; i++) {
+		int take100 = Math.min(100, records.size());
+		for (int i = 0; i < take100; i++) {
 			BattleRoyale2Record r = records.get(i);
 			for (Integer rid : parseRoomIds(r.getBetInfo(), zeroBasedRoomId)) {
 				cnt.put(rid, cnt.getOrDefault(rid, 0) + 1);
 			}
 		}
 
-		JSONArray recent16Summary = new JSONArray();
+		JSONArray recent100Periods = new JSONArray();
 		List<Integer> rooms = new ArrayList<>(cnt.keySet());
 		Collections.sort(rooms);
 		for (Integer rid : rooms) {
@@ -157,11 +158,15 @@ public class BattleRoyaleRecord3Service extends DaoService {
 			item.put("roomId", String.valueOf(rid));
 			item.put("roomName", "房间" + rid);
 			item.put("count", cnt.get(rid));
-			recent16Summary.add(item);
+			recent100Periods.add(item);
 		}
 
-		JSONArray recent100Periods = new JSONArray();
-		for (BattleRoyale2Record r : records) {
+		// 近16期结果（每期 rooms） -> recent16Summary
+		JSONArray recent16Summary = new JSONArray();
+		int take16 = Math.min(16, records.size());
+		for (int i = 0; i < take16; i++) {
+			BattleRoyale2Record r = records.get(i);
+
 			JSONObject item = new JSONObject();
 			item.put("periodsNum", r.getPeriodsNum());
 
@@ -174,7 +179,7 @@ public class BattleRoyaleRecord3Service extends DaoService {
 				rs.add(rr);
 			}
 			item.put("rooms", rs);
-			recent100Periods.add(item);
+			recent16Summary.add(item);
 		}
 
 		Map<String, Object> tp = new HashMap<>();
@@ -186,13 +191,14 @@ public class BattleRoyaleRecord3Service extends DaoService {
 			totalGain = totalGain.add(extraGain);
 		}
 
-		res.put("recent16Summary", recent16Summary);
-		res.put("recent100Periods", recent100Periods);
+		res.put("recent100Periods", recent100Periods); // 近100期统计
+		res.put("recent16Summary", recent16Summary);   // 近16期结果
 		res.put("totalInvest", totalInvest.setScale(2, RoundingMode.HALF_UP));
 		res.put("totalGain", totalGain.setScale(2, RoundingMode.HALF_UP));
 		res.put("serverTime", System.currentTimeMillis());
 		return res;
 	}
+
 
 	private BigDecimal safeBigDecimal(Object v) {
 		if (v == null) {

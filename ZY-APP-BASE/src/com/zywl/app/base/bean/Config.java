@@ -170,6 +170,9 @@ public class Config extends BaseBean {
 
 	public static final String PLAYTEST_TO_PARENT_RATE= "PLAYTEST_TO_PARENT_RATE";
 
+	public static final String ADD_MP_TYPE = "ADD_MP_TYPE";
+	public static final String DNS_STATUS="DNS_STATUS";
+	public static final String FOOD_STATUS="FOOD_STATUS";
 
 	public static final String BAI_IP= "BAI_IP";
 
@@ -266,6 +269,8 @@ public class Config extends BaseBean {
 	// 阿里云 OSS 直传配置
 	public static final String ALIYUN_OSS_CONFIG = "ALIYUN_OSS_CONFIG";
 
+	// VIP配置表版本
+	public static final String VIP_TABLE_VERSION = "VERSION_VIP";
 
 	private String key;
 

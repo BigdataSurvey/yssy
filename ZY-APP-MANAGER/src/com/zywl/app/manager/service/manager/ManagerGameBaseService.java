@@ -97,18 +97,14 @@ public class ManagerGameBaseService extends BaseService {
     @Autowired
     private PlayGameService gameService;
 
-
     @Autowired
     private CardGameCacheService cardGameCacheService;
-
 
     @Autowired
     private ManagerSocketService managerSocketService;
 
-
     @Autowired
     private SellSysRecordService sellSysRecordService;
-
 
     @Autowired
     private UserService userService;
@@ -116,10 +112,8 @@ public class ManagerGameBaseService extends BaseService {
     @Autowired
     private UserYyScoreService userYyScoreService;
 
-
     @Autowired
     private ManagerUserService managerUserService;
-
 
     @Autowired
     private UserDailyTaskService userDailyTaskService;
@@ -142,6 +136,9 @@ public class ManagerGameBaseService extends BaseService {
 
     @Autowired
     private GuildMemberService guildMemberService;
+
+    @Autowired
+    private ManagerUserVipService managerUserVipService;
 
     public static final LinkedList<JSONObject> CHAT_LIST = new LinkedList<>();
 
@@ -238,6 +235,7 @@ public class ManagerGameBaseService extends BaseService {
         String mineV = managerConfigService.getString(Config.MINE_VERSION);
         String roleV = managerConfigService.getString(Config.ROLE_VERSION);
         String petV = managerConfigService.getString(Config.PET_TABLE_VERSION);
+        String vipV = managerConfigService.getString(Config.VIP_TABLE_VERSION);
 
         // 客户端传上来的 tableInfo
         JSONObject tableInfo = params.getJSONObject("tableInfo");
@@ -296,6 +294,15 @@ public class ManagerGameBaseService extends BaseService {
             tableInfos.put("petTable", obj);
         }
 
+        // VIP 信息配置表
+        if (tableInfo != null && (!tableInfo.containsKey("vipTable") || !vipV.equals(tableInfo.getString("vipTable")))) {
+            List<DicVip> dicVips = new ArrayList<>(PlayGameService.DIC_VIP_MAP.values());
+            JSONObject obj = new JSONObject();
+            obj.put("version", vipV);
+            obj.put("data", dicVips);
+            tableInfos.put("vipTable", obj);
+        }
+
         return tableInfos;
     }
 
@@ -308,52 +315,63 @@ public class ManagerGameBaseService extends BaseService {
         checkNull(params.get("userId"));
         Long userId = params.getLong("userId");
         synchronized (LockUtil.getlock(userId)) {
+            long now = System.currentTimeMillis();
+
             JSONObject result = new JSONObject();
-            //用户基础信息
+            // 用户基础信息
             User user = userCacheService.getUserInfoById(userId);
             UserVo vo = new UserVo();
             BeanUtils.copy(user, vo);
             result.put("userInfo", vo);
 
-            //货币资产
+            // 货币资产
             List<UserCapitalVo> userCapitals = userCapitalCacheService.getAllUserCapitalCache(userId);
             if (managerConfigService.getInteger(Config.IP_LOGIN_RISK) == 1) {
-                //如果开启了IP风控就对当前登录IP做一次风控校验，然后把IP和用户记录下来
+                // 如果开启了IP风控就对当前登录IP做一次风控校验，然后把IP和用户记录下来
                 String lastLoginIp = user.getLastLoginIp();
                 userCacheService.canLogin(lastLoginIp, userId);
                 userCacheService.addIpUser(lastLoginIp, userId);
             }
             result.put("userCapitals", userCapitals);
+            //VIP 信息
+            JSONObject vipInfo = managerUserVipService.buildVipInfoForLogin(userId);
+            result.put("vipInfo", vipInfo);
+            // 成就信息
+            result.put("achievement", gameService.getUserAchievement(String.valueOf(userId)));
 
-            //用户VIP信息,如果用户没有VIP就默认创建一条；
-            UserVip userVipByUserId = userVipService.findUserVipByUserId(userId);
-            result.put("vipLv", userVipByUserId == null ? 0 : userVipByUserId.getVipLevel());
-            //成就信息
-            result.put("achievement",gameService.getUserAchievement(String.valueOf(userId)));
-            //用户上级
+            // 用户上级
             result.put("parentId", user.getParentId() == null ? "" : user.getParentId());
-            //用户绑定信息
+
+            // 用户绑定信息
             result.put("alipayAuth", user.getAlipayId() == null ? 0 : 1);
-            //公告
+
+            // 公告
             result.put("notice", managerConfigService.getString(Config.HOME_POPUP));
-            //交易限制 下浮比例 上浮比例
+
+            // 交易限制 下浮比例 上浮比例
             result.put("exLim", managerConfigService.getDouble(Config.TRAD_MIN));
             result.put("exMax", managerConfigService.getDouble(Config.TRAD_MAX));
-            //排行榜 活动展示
+
+            // 排行榜 活动展示
             result.put("isShowTopList", managerConfigService.getInteger(Config.SHOW_TOP_LIST));
             result.put("isShowActive1", managerConfigService.getInteger(Config.ACTIVE1));
             result.put("isShowActive2", managerConfigService.getInteger(Config.ACTIVE2));
             result.put("isShowActive3", managerConfigService.getInteger(Config.ACTIVE3));
-            //玩法
+
+            // 玩法
             result.put("sy1", managerConfigService.getInteger(Config.PLAYGAME_1_STATUS));
             result.put("sy2", managerConfigService.getInteger(Config.PLAYGAME_2_STATUS));
-            //服务器时间
-            result.put("serverTime", System.currentTimeMillis());
-            //配置表版本与静态表同步
+
+            // 服务器时间
+            result.put("serverTime", now);
+
+            // 配置表版本与静态表同步
             result.put("tableInfo", syncTableInfo(params));
-            //版本号
+
+            // 版本号
             result.put("version", authService.getVersion().getVersionName());
-            //背包信息
+
+            // 背包信息
             result.put("backpackInfo", gameService.getReturnPack(userId));
 
             // 农场信息
@@ -362,11 +380,11 @@ public class ManagerGameBaseService extends BaseService {
             JSONObject farmInfo = managerGameFarmService.getMyFarmInfo(managerSocketServer, farmParams);
             result.put("farmInfo", farmInfo);
 
-            //聊天信息
+            // 聊天信息
             result.put("chatInfo", getRecent(10));
             result.put("serverChat", SERVER_CHAT);
 
-            //工会信息
+            // 工会信息
             GuildMember guildMember = guildMemberService.findByUserId(userId);
             result.put("guildId", guildMember == null ? -1L : guildMember.getGuildId());
 

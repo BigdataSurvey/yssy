@@ -1,16 +1,20 @@
 package com.zywl.app.defaultx.service;
 
-import com.zywl.app.base.bean.UserDonateItemRecord;
 import com.zywl.app.base.bean.VipReceiveRecord;
 import com.zywl.app.defaultx.dbutil.DaoService;
-import org.apache.commons.collections4.map.HashedMap;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
-import java.math.BigDecimal;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
+
+/**
+ * @Author: lzx
+ * @Create: 2026-01-19
+ * @Version: V1.0
+ * @Description: VIP每日领取记录Server (对应表: r_vip_receive_record)
+ * @Task:
+ */
 @Service
 public class VipReceiveRecordService extends DaoService {
 
@@ -18,25 +22,42 @@ public class VipReceiveRecordService extends DaoService {
         super("VipReceiveRecordMapper");
     }
 
-
-    public List<VipReceiveRecord> findVipReceiveRecordByLevel(Long userId, long vipLevel) {
-        Map<String,Object> params = new HashedMap<>();
-        params.put("userId", userId);
-        params.put("vipLevel", vipLevel);
-        return findByConditions(params);
+    /**
+     * 新增领取记录
+     */
+    @Transactional(rollbackFor = Exception.class)
+    public void addVipReceiveRecord(VipReceiveRecord vb) {
+        save(vb);
     }
 
+    /**
+     * 更新领取记录
+     */
+    public int updateOrder(VipReceiveRecord vb) {
+        vb.setUpdateTime(new Date());
+        return update(vb);
+    }
 
-    @Transactional
-    public long addVipReceiveRecord(Long userId, String orderNo, Long vipLevel, String reward, Date crteTime, Date upteTime) {
-        VipReceiveRecord vipReceiveRecord = new VipReceiveRecord();
-        vipReceiveRecord.setUserId(userId);
-        vipReceiveRecord.setOrderNo(orderNo);
-        vipReceiveRecord.setReward(reward);
-        vipReceiveRecord.setVipLevel(vipLevel);
-        vipReceiveRecord.setCreateTime(crteTime);
-        vipReceiveRecord.setCreateTime(crteTime);
-        save(vipReceiveRecord);
-        return vipReceiveRecord.getId();
+    /**
+     * 根据ID查询
+     * **/
+    public VipReceiveRecord findById(Long id) {
+        return (VipReceiveRecord) findOne("selectByPrimaryKey", id);
+    }
+
+    /**
+     * 列表查询
+     * **/
+    @SuppressWarnings("unchecked")
+    public List<VipReceiveRecord> findListByConditions(Map<String, Object> params) {
+        return findList("findListByConditions", params);
+    }
+
+    /**
+     * 统计
+     * **/
+    public int countByConditions(Map<String, Object> params) {
+        Integer c = (Integer) findOne("countByConditions", params);
+        return c == null ? 0 : c;
     }
 }

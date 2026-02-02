@@ -4,6 +4,7 @@ import com.alibaba.fastjson2.JSON;
 import com.alibaba.fastjson2.JSONArray;
 import com.alibaba.fastjson2.JSONObject;
 import com.zywl.app.base.bean.BattleRoyaleRecord;
+import com.zywl.app.base.bean.vo.BattleRoyale2Record;
 import com.zywl.app.base.util.DateUtil;
 import com.zywl.app.defaultx.dbutil.DaoService;
 import org.apache.commons.collections4.map.HashedMap;
@@ -125,9 +126,11 @@ public class BattleRoyaleRecordService extends DaoService {
 	public JSONObject buildUnifiedSummary(Long userId, boolean zeroBasedRoomId) {
 		return buildUnifiedSummary(userId, zeroBasedRoomId, null);
 	}
+
 	/**
-	 * 结算推送阶段可传入本期实际获得（包含本金），用于弥补 profit 尚未落库的时间差；可为 null。
+	 * 结算推送阶段可传入本期实际获得弥补 profit 未落库的时间差
 	 */
+	@SuppressWarnings("unchecked")
 	public JSONObject buildUnifiedSummary(Long userId, boolean zeroBasedRoomId, BigDecimal extraGain) {
 		JSONObject res = new JSONObject();
 		if (userId == null) {
@@ -143,21 +146,22 @@ public class BattleRoyaleRecordService extends DaoService {
 		p.put("userId", userId);
 		p.put("start", 0);
 		p.put("limit", 100);
-		List<BattleRoyaleRecord> records = findList("findByUserId", p);
+		List<BattleRoyale2Record> records = findList("findByUserId", p);
 		if (records == null) {
 			records = Collections.emptyList();
 		}
 
+		// 近100期统计（房间次数统计） -> recent100Periods
 		Map<Integer, Integer> cnt = new HashMap<>();
-		int take = Math.min(16, records.size());
-		for (int i = 0; i < take; i++) {
-			BattleRoyaleRecord r = records.get(i);
+		int take100 = Math.min(100, records.size());
+		for (int i = 0; i < take100; i++) {
+			BattleRoyale2Record r = records.get(i);
 			for (Integer rid : parseRoomIds(r.getBetInfo(), zeroBasedRoomId)) {
 				cnt.put(rid, cnt.getOrDefault(rid, 0) + 1);
 			}
 		}
 
-		JSONArray recent16Summary = new JSONArray();
+		JSONArray recent100Periods = new JSONArray();
 		List<Integer> rooms = new ArrayList<>(cnt.keySet());
 		Collections.sort(rooms);
 		for (Integer rid : rooms) {
@@ -165,11 +169,15 @@ public class BattleRoyaleRecordService extends DaoService {
 			item.put("roomId", String.valueOf(rid));
 			item.put("roomName", "房间" + rid);
 			item.put("count", cnt.get(rid));
-			recent16Summary.add(item);
+			recent100Periods.add(item);
 		}
 
-		JSONArray recent100Periods = new JSONArray();
-		for (BattleRoyaleRecord r : records) {
+		// 近16期结果-> recent16Summary
+		JSONArray recent16Summary = new JSONArray();
+		int take16 = Math.min(16, records.size());
+		for (int i = 0; i < take16; i++) {
+			BattleRoyale2Record r = records.get(i);
+
 			JSONObject item = new JSONObject();
 			item.put("periodsNum", r.getPeriodsNum());
 
@@ -182,7 +190,7 @@ public class BattleRoyaleRecordService extends DaoService {
 				rs.add(rr);
 			}
 			item.put("rooms", rs);
-			recent100Periods.add(item);
+			recent16Summary.add(item);
 		}
 
 		Map<String, Object> tp = new HashMap<>();
@@ -194,8 +202,8 @@ public class BattleRoyaleRecordService extends DaoService {
 			totalGain = totalGain.add(extraGain);
 		}
 
-		res.put("recent16Summary", recent16Summary);
-		res.put("recent100Periods", recent100Periods);
+		res.put("recent100Periods", recent100Periods); // 近100期统计
+		res.put("recent16Summary", recent16Summary);   // 近16期结果
 		res.put("totalInvest", totalInvest.setScale(2, RoundingMode.HALF_UP));
 		res.put("totalGain", totalGain.setScale(2, RoundingMode.HALF_UP));
 		res.put("serverTime", System.currentTimeMillis());

@@ -118,6 +118,11 @@ public class User extends BaseBean{
 
 	private Integer isBot;
 
+	/**
+	 * VIP卡转赠权限 0无权限 1允许
+	 */
+	private Integer vipTransferEnable;
+
 	public Integer getIsBot() {
 		return isBot;
 	}
@@ -575,5 +580,13 @@ public class User extends BaseBean{
 
 	public void setOldInviteCode(String oldInviteCode) {
 		this.oldInviteCode = oldInviteCode;
+	}
+
+	public Integer getVipTransferEnable() {
+		return vipTransferEnable;
+	}
+
+	public void setVipTransferEnable(Integer vipTransferEnable) {
+		this.vipTransferEnable = vipTransferEnable;
 	}
 }

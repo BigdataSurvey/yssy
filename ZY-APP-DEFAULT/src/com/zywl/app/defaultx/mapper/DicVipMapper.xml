@@ -1,11 +1,63 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<!DOCTYPE mapper
+		PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+		"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.zywl.app.defaultx.mapper.DicVipMapper">
 
+	<resultMap id="BaseResultMap" type="com.zywl.app.base.bean.DicVip">
+		<id     column="vip_type"        property="vipType"/>
+		<result column="name"            property="name"/>
+		<result column="duration_days"   property="durationDays"/>
+		<result column="price"           property="price"/>
+		<result column="capital_type_id" property="capitalTypeId"/>
+		<result column="benefit_text"    property="benefitText"/>
+		<result column="daily_reward"    property="dailyReward" jdbcType="VARCHAR"/>
+		<result column="card_item_id"    property="cardItemId"/>
+		<result column="status"          property="status"/>
+		<result column="create_time"     property="createTime"/>
+		<result column="update_time"     property="updateTime"/>
+	</resultMap>
 
-	<select id="findAll" resultType="DicVip">
-	    select * from dic_vip
+	<sql id="Base_Column_List">
+		vip_type,
+        name,
+        duration_days,
+        price,
+        capital_type_id,
+        benefit_text,
+        daily_reward,
+        card_item_id,
+        status,
+        create_time,
+        update_time
+	</sql>
+
+	<select id="findAll" resultMap="BaseResultMap">
+		select
+		<include refid="Base_Column_List"/>
+		from dic_vip
+		where status = 1
+		order by vip_type asc
 	</select>
-	
+
+	<select id="selectByPrimaryKey" parameterType="long" resultMap="BaseResultMap">
+		select
+		<include refid="Base_Column_List"/>
+		from dic_vip
+		where vip_type = #{id}
+	</select>
+
+	<select id="countByConditions" parameterType="map" resultType="int">
+		select count(1)
+		from dic_vip
+		<where>
+			<if test="vipType != null">
+				and vip_type = #{vipType}
+			</if>
+			<if test="status != null">
+				and status = #{status}
+			</if>
+		</where>
+	</select>
 
 </mapper>

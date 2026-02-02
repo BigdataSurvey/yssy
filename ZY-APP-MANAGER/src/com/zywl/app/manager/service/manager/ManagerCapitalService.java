@@ -2,6 +2,9 @@ package com.zywl.app.manager.service.manager;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.stream.Collectors;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import com.alibaba.fastjson2.JSON;
 import com.alibaba.fastjson2.JSONArray;
@@ -82,6 +85,19 @@ public class ManagerCapitalService extends BaseService {
      * 玩家周榜分红金额
      */
     private static final Map<String, Map<Long, Long>> PBX_WEEK_USER_AWARD_CENTS = new ConcurrentHashMap<>();
+
+    // ===== DTS 下注流水：异步入队处理，避免 WS 线程超时 =====
+    private static final int DTS_BET_QUEUE_CAPACITY = 50000;
+    private static final BlockingQueue<JSONObject> DTS_BET_QUEUE = new LinkedBlockingQueue<>(DTS_BET_QUEUE_CAPACITY);
+    private static final AtomicInteger DTS_BET_DROPPED = new AtomicInteger(0);
+
+    // ===== DTS 排名返利：异步入队处理 =====
+    private static final int DTS_RANK_REBATE_QUEUE_CAPACITY = 20000;
+    private static final BlockingQueue<JSONObject> DTS_RANK_REBATE_QUEUE = new LinkedBlockingQueue<>(DTS_RANK_REBATE_QUEUE_CAPACITY);
+    private static final AtomicInteger DTS_RANK_DROPPED = new AtomicInteger(0);
+
+    private static volatile boolean DTS_WORKER_STARTED = false;
+
 
 
     private transient Timer pbxWeekSettleTimer;
@@ -175,6 +191,9 @@ public class ManagerCapitalService extends BaseService {
                 }
             }
         }, 60 * 1000, 10 * 60 * 1000); // 延迟1分钟启动，每10分钟执行一次
+
+        startDtsAsyncWorkersIfNeeded();
+
     }
 
     /**
@@ -465,7 +484,7 @@ public class ManagerCapitalService extends BaseService {
             orderNo = OrderUtil.getOrder5Number();
         }
 
-        // 【修复点 1：幂等性检查】防止重复扣款
+        // 防止重复扣款
         String orderKey = "game:pbx:order:" + orderNo;
         String exist = gameCacheService.get(orderKey);
         if (StringUtils.isNotBlank(exist)) {
@@ -504,7 +523,7 @@ public class ManagerCapitalService extends BaseService {
             // 执行扣款
             userCapitalService.betUpdateBalance2(betObj, capitalType);
 
-            // 【修复点 1 补充】：标记订单已处理 (24小时)
+            // 标记订单已处理 (24小时)
             gameCacheService.set(orderKey, "1", 24 * 3600);
 
             // 推送资产变更
@@ -517,7 +536,6 @@ public class ManagerCapitalService extends BaseService {
 
             // 手续费入奖池
             String weekKey = DateUtil.getFirstDayOfWeek(new Date());
-            // 【修复点 3：Key 一致性】使用带 gameId 的格式
             String poolKey = RedisKeyConstant.PRIZE_POOL + "pbx:" + gameId + ":" + weekKey;
 
             long betCents = betAmount.multiply(new BigDecimal("100"))
@@ -561,11 +579,11 @@ public class ManagerCapitalService extends BaseService {
         checkNull(data);
         checkNull(data.get("gameId"), data.get("periodNo"));
 
-        // 1. 参数解析
+        // 参数解析
         String gameId = data.getString("gameId");
         String periodNo = data.getString("periodNo");
 
-        // 【修复点 2：幂等性检查】防止重复派奖
+        //  防止重复派奖
         String settleKey = "game:pbx:period:" + periodNo + ":settled";
         String settled = gameCacheService.get(settleKey);
         if (StringUtils.isNotBlank(settled)) {
@@ -600,7 +618,7 @@ public class ManagerCapitalService extends BaseService {
             }
         }
 
-        // 【修复点 3：Key 一致性】使用带 gameId 的格式
+        // 使用带 gameId 的格式
         String poolKey = RedisKeyConstant.PRIZE_POOL + "pbx:" + gameId + ":" + week;
 
         // 计算总额
@@ -685,11 +703,11 @@ public class ManagerCapitalService extends BaseService {
                 return fail;
             }
 
-            // 1) 扣奖池
+            // 扣奖池
             gameCacheService.decr(poolKey, totalNetCents);
             gameCacheService.expire(poolKey, 86400 * 14);
 
-            // 2) 批量入账
+            // 批量入账
             JSONObject batch = new JSONObject();
             for (JSONObject n : normalized) {
                 JSONObject one = new JSONObject();
@@ -701,10 +719,10 @@ public class ManagerCapitalService extends BaseService {
             }
             userCapitalService.betUpdateBalance2(batch, capitalType);
 
-            // 【修复点 2 补充】：标记已结算
+            // 标记已结算
             gameCacheService.set(settleKey, "1", 86400 * 2);
 
-            // 3) 推送与回包
+            // 推送与回包
             JSONArray userResult = new JSONArray();
             for (JSONObject n : normalized) {
                 Long uid = n.getLong("userId");
@@ -716,7 +734,7 @@ public class ManagerCapitalService extends BaseService {
                 pushData.put("balance", userCapital.getBalance());
                 Push.push(PushCode.updateUserCapital, managerSocketService.getServerIdByUserId(uid), pushData);
 
-                // 【新增】计入用户历史总返还 & 总净利 (Redis 永久保存)
+                // 计入用户历史总返还 & 总净利
                 long returnCents = n.getBigDecimal("returnAmount").multiply(new BigDecimal("100")).longValue();
                 long netCents = n.getBigDecimal("net").multiply(new BigDecimal("100")).longValue();
                 gameCacheService.incr(pbxUserTotalReturnKey(uid), returnCents);
@@ -731,7 +749,7 @@ public class ManagerCapitalService extends BaseService {
                 userResult.add(ur);
             }
 
-            // 4) 统计到周榜 (Redis incr)
+            // 统计到周榜
             BigDecimal totalReturnAmount = totalReturn.setScale(2, java.math.RoundingMode.HALF_UP);
             BigDecimal totalNetReturnAmount = totalNet.setScale(2, java.math.RoundingMode.HALF_UP);
 
@@ -743,7 +761,7 @@ public class ManagerCapitalService extends BaseService {
                     bdToCents(totalFee)
             );
 
-            // 5) 返回最新奖池
+            // 返回最新奖池
             String newPoolCentsStr = gameCacheService.get(poolKey);
             BigDecimal poolBalance = BigDecimal.ZERO;
             if (newPoolCentsStr != null) {
@@ -781,18 +799,17 @@ public class ManagerCapitalService extends BaseService {
 
         long nowTimeMs = System.currentTimeMillis();
 
-        // 1) 基础字段：服务器时间
         result.put("success", true);
         result.put("serverTime", nowTimeMs());
         result.put("serverTimeMs", nowTimeMs);
 
-        // 2) 周维度 key（周一作为 key）
+        // 周维度 key
         String weekKey = DateUtil.getFirstDayOfWeek(new Date(nowTimeMs));
         String lastWeekKey = DateUtil.getFirstDayOfWeek(new Date(nowTimeMs - 7L * 24 * 60 * 60 * 1000));
         result.put("weekKey", weekKey);
         result.put("lastWeekKey", lastWeekKey);
 
-        // 3) 本周奖池余额（按 pbxBet/pbxSettle 使用的 Redis key 读取；单位分）
+        // 本周奖池余额
         long poolCents = 0L;
         String poolKey = RedisKeyConstant.PRIZE_POOL + "pbx:" + gameId + ":" + weekKey;
         String poolStr = gameCacheService.get(poolKey);
@@ -815,7 +832,6 @@ public class ManagerCapitalService extends BaseService {
         result.put("weekSettled", weekSettled);
         result.put("lastWeekSettled", lastWeekSettled);
 
-        // 3) 读取游戏配置：榜单利润入池比例（默认 0.5）
         JSONObject gameSetting = pbxLoadGameSettingByGameId(gameId);
         BigDecimal rankProfitPercent = null;
         if (gameSetting != null) {
@@ -825,16 +841,10 @@ public class ManagerCapitalService extends BaseService {
             rankProfitPercent = new BigDecimal("0.5");
         }
 
-        // 4) 周汇总（本周/上周）
-        // =========================================================================
-        // 【核心修复点】全部改为从 Redis 读取 (使用 getLongFromCache + 对应的 Key 方法)
-        // 解决了“数据写入 Redis 但读取仍在读空 Map”导致周榜显示为 0 的问题
-        // =========================================================================
-
-        // --- 4.1 本周数据 ---
+        // 本周数据
         long weekTotalBetCents       = getLongFromCache(pbxWeekTotalBetCentsKey(gameId, weekKey));
-        long weekTotalNetReturnCents = getLongFromCache(pbxWeekTotalNetCentsKey(gameId, weekKey)); // ✅ 修正：读 Redis
-        long weekTotalFeeCents       = getLongFromCache(pbxWeekTotalFeeCentsKey(gameId, weekKey)); // ✅ 修正：读 Redis
+        long weekTotalNetReturnCents = getLongFromCache(pbxWeekTotalNetCentsKey(gameId, weekKey));
+        long weekTotalFeeCents       = getLongFromCache(pbxWeekTotalFeeCentsKey(gameId, weekKey));
 
         long weekProfitCents = weekTotalBetCents - weekTotalNetReturnCents;
         if (weekProfitCents < 0) {
@@ -856,10 +866,10 @@ public class ManagerCapitalService extends BaseService {
         result.put("weekProfit", centsToBd(weekProfitCents));
         result.put("weekDividendPool", centsToBd(weekRankPoolCents));
 
-        // --- 4.2 上周数据 ---
-        long lastWeekTotalBetCents       = getLongFromCache(pbxWeekTotalBetCentsKey(gameId, lastWeekKey)); // ✅ 修正：读 Redis
-        long lastWeekTotalNetReturnCents = getLongFromCache(pbxWeekTotalNetCentsKey(gameId, lastWeekKey)); // ✅ 修正：读 Redis
-        long lastWeekTotalFeeCents       = getLongFromCache(pbxWeekTotalFeeCentsKey(gameId, lastWeekKey)); // ✅ 修正：读 Redis
+        // 上周数据
+        long lastWeekTotalBetCents       = getLongFromCache(pbxWeekTotalBetCentsKey(gameId, lastWeekKey));
+        long lastWeekTotalNetReturnCents = getLongFromCache(pbxWeekTotalNetCentsKey(gameId, lastWeekKey));
+        long lastWeekTotalFeeCents       = getLongFromCache(pbxWeekTotalFeeCentsKey(gameId, lastWeekKey));
 
         long lastWeekProfitCents = lastWeekTotalBetCents - lastWeekTotalNetReturnCents;
         if (lastWeekProfitCents < 0) {
@@ -875,7 +885,7 @@ public class ManagerCapitalService extends BaseService {
         result.put("lastWeekProfit", centsToBd(lastWeekProfitCents));
         result.put("lastWeekDividendPool", centsToBd(lastWeekRankPoolCents));
 
-        // 5) Top10 榜单（本周实时快照 / 已结算周：优先读 DB 快照，避免重启丢失）
+        // Top10 榜单
         JSONArray weekRankTop10;
         if (weekSettled) {
             weekRankTop10 = buildWeekRankTop10FromSummary(thisSummary);
@@ -914,25 +924,20 @@ public class ManagerCapitalService extends BaseService {
         }
         result.put("lastWeekRankTop10", lastWeekRankTop10);
 
-        // 6) 个人周榜信息（rank/本周投入/上周投入/奖励）
+        //个人周榜信息
         if (userId != null) {
-            // ==========================================
-            // 1. 本周数据 (读取 Redis ZSet)
-            // ==========================================
             String currentZsetKey = pbxWeekUserRankZsetKey(gameId, weekKey);
 
-            // 本周投入 (zscore)
+            // 本周投入
             Double currentScore = gameCacheService.zscore(currentZsetKey, String.valueOf(userId));
             long myWeekBet = (currentScore == null) ? 0L : currentScore.longValue();
             result.put("myWeekConsume", centsToBd(myWeekBet));
 
-            // 本周排名 (zrevrank, 0-based, so +1)
+            // 本周排名
             Long currentRankObj = gameCacheService.zrevrank(currentZsetKey, String.valueOf(userId));
             result.put("myWeekRank", (currentRankObj == null) ? 0 : (currentRankObj.intValue() + 1));
 
-            // ==========================================
-            // 2. 上周数据 (读取 Redis ZSet)
-            // ==========================================
+            // 上周数据
             String lastZsetKey = pbxWeekUserRankZsetKey(gameId, lastWeekKey);
 
             // 上周投入
@@ -944,14 +949,10 @@ public class ManagerCapitalService extends BaseService {
             Long lastRankObj = gameCacheService.zrevrank(lastZsetKey, String.valueOf(userId));
             result.put("myLastWeekRank", (lastRankObj == null) ? 0 : (lastRankObj.intValue() + 1));
 
-            // ==========================================
-            // 3. 奖励数据 (目前仍读内存 Map)
-            // ==========================================
-            // 注意：PBX_WEEK_USER_AWARD_CENTS 是在 pbxWeekSettleInternal 时放入内存的。
-            // 如果你只做了 Bet 的 Redis 持久化，Award 这里暂时维持读 Map 即可。
+            // 奖励数据
             Map<Long, Long> weekAwardMap = PBX_WEEK_USER_AWARD_CENTS.getOrDefault(weekKey, new ConcurrentHashMap<>());
             Map<Long, Long> lastWeekAwardMap = PBX_WEEK_USER_AWARD_CENTS.getOrDefault(lastWeekKey, new ConcurrentHashMap<>());
-            // 【新增】查询用户历史总数据 (从 Redis 读取)
+            // 查询用户历史总数据
             long totalBet = getLongFromCache(pbxUserTotalBetKey(userId));
             long totalReturn = getLongFromCache(pbxUserTotalReturnKey(userId));
             long totalNet = getLongFromCache(pbxUserTotalNetKey(userId));
@@ -985,8 +986,6 @@ public class ManagerCapitalService extends BaseService {
     }
 
 
-// ===================== PBX 周榜/上周榜：接口 + helper（阶段2：Redis + DB 版）=====================
-
     private JSONArray buildWeekRankTop10FromRedis(int gameId, String weekKey) {
         Set<ZSetOperations.TypedTuple<String>> tuples = gameCacheService.getZset(pbxWeekUserRankZsetKey(gameId, weekKey), 10);
         if (tuples == null || tuples.isEmpty()) {
@@ -1010,8 +1009,7 @@ public class ManagerCapitalService extends BaseService {
     }
 
     /**
-     * 已结算周榜 Top10：直接读取 DB 快照（summary.user_list_json）
-     * 注意：快照字段内 bet/award 等已是“元”单位（BigDecimal），无需再做分->元转换。
+     * 已结算周榜 Top10
      */
     private JSONArray buildWeekRankTop10FromSummary(PbxWeekSummary summary) {
         if (summary == null) {
@@ -1030,8 +1028,7 @@ public class ManagerCapitalService extends BaseService {
     }
 
     /**
-     * 已结算周榜：从 DB 快照中找到个人 award（元）。
-     * 未上榜用户返回 null（调用方可回落到 Redis 快照/0）。
+     * 已结算周榜
      */
     private BigDecimal findUserAwardFromSummary(PbxWeekSummary summary, Long userId) {
         if (summary == null || userId == null) {
@@ -1118,7 +1115,6 @@ public class ManagerCapitalService extends BaseService {
             top10Rates = setting.getJSONArray("top10Rates");
         }
 
-        // 兜底：如果没有配置，就按 50% 与等分 10 份
         if (rankProfitPercent == null) {
             rankProfitPercent = new BigDecimal("0.50");
         }
@@ -1140,7 +1136,7 @@ public class ManagerCapitalService extends BaseService {
         result.put("gameId", gameId);
         result.put("weekKey", weekKey);
 
-        // 1) DB 幂等：锁定周汇总行（不存在则创建）
+        // 锁定周汇总行
         PbxWeekSummary summary = pbxWeekSummaryService.findByGameWeekForUpdate(gameId, weekKey);
         if (summary == null) {
             PbxWeekSummary init = new PbxWeekSummary();
@@ -1176,8 +1172,6 @@ public class ManagerCapitalService extends BaseService {
                 }
             }
 
-            // 修复历史快照：若结算事件已成功，但 summary.user_list_json 里 status 仍为 0（常见于首次结算时先落快照后更新事件状态）
-            // 这里以 DB 事件表为准回填，并顺带自愈 summary.user_list_json，保证幂等查询口径一致。
             try {
                 if (userList != null && !userList.isEmpty()) {
                     List<PbxWeekSettleEvent> events = pbxWeekSettleEventService.findByGameWeek(gameId, weekKey);
@@ -1230,7 +1224,7 @@ public class ManagerCapitalService extends BaseService {
             throw new AppException("周榜汇总数据异常：无法锁定 weekSummary 行");
         }
 
-        // 2) 本周（weekKey）统计数据：当前版本仍从运行期内存统计获取，结算结果写入 DB 做幂等与快照
+        // 本周统计数据
         long totalBetCents = getLongFromCache(pbxWeekTotalBetCentsKey(gameId, weekKey));
         long totalReturnCents = getLongFromCache(pbxWeekTotalReturnCentsKey(gameId, weekKey));
         long totalNetCents    = getLongFromCache(pbxWeekTotalNetCentsKey(gameId, weekKey));
@@ -1244,7 +1238,7 @@ public class ManagerCapitalService extends BaseService {
         BigDecimal percent = rankProfitPercent == null ? BigDecimal.ZERO : rankProfitPercent;
         long poolAddCents = bdToCents(centsToBd(profitCents).multiply(percent).setScale(2, RoundingMode.HALF_UP));
 
-        // 本周周榜奖池：按 Top10 分润比例分配（默认分完，剩余留作 poolBalance）
+        // 本周周榜奖池
         long poolLeftCents = poolAddCents;
 
         // Top10：按周投注额排序
@@ -1287,7 +1281,6 @@ public class ManagerCapitalService extends BaseService {
             }
             poolLeftCents -= awardCents;
 
-            // 3) DB 幂等：按 (gameId, weekKey, userId) 幂等写入结算事件
             PbxWeekSettleEvent event = pbxWeekSettleEventService.findByGameWeekUser(gameId, weekKey, uid);
             if (event == null) {
                 event = new PbxWeekSettleEvent();
@@ -1357,7 +1350,7 @@ public class ManagerCapitalService extends BaseService {
             PBX_WEEK_USER_AWARD_CENTS.computeIfAbsent(weekKey, k -> new ConcurrentHashMap<>()).put(uid, awardCents);
         }
 
-        // 4) 发奖：与事件状态更新放在同一事务内，避免发奖成功但事件未落库导致重复发奖
+        // 发奖
         if (!payBatch.isEmpty()) {
             userCapitalService.betUpdateBalance2(payBatch, 1002);
             for (String uidStr : payBatch.keySet()) {
@@ -1370,7 +1363,6 @@ public class ManagerCapitalService extends BaseService {
                     pbxWeekSettleEventService.update(event);
                 }
 
-                // 同步修正返回/快照里的 status，避免“DB 已成功但 userList.status 仍是 0”
                 JSONObject one = jsonByUser.get(uid);
                 if (one != null) {
                     one.put("status", 1);
@@ -1378,7 +1370,7 @@ public class ManagerCapitalService extends BaseService {
             }
         }
 
-        // 5) 补全余额快照（用于 summary.user_list_json）
+        // 补全余额快照
         for (int i = 0; i < userList.size(); i++) {
             JSONObject one = userList.getJSONObject(i);
             long uid = Long.parseLong(one.getString("userId"));
@@ -1386,7 +1378,7 @@ public class ManagerCapitalService extends BaseService {
             one.put("balance", uc == null ? "0" : uc.getBalance());
         }
 
-        // 6) 写入周汇总快照并置 settled=1
+        // 写入周汇总快照并置
         summary.setTotalBetCents(totalBetCents);
         summary.setTotalReturnCents(totalReturnCents);
         summary.setTotalNetCents(totalNetCents);
@@ -1402,7 +1394,7 @@ public class ManagerCapitalService extends BaseService {
         summary.setUpdateTime(now);
         pbxWeekSummaryService.update(summary);
 
-        // 7) 运行期缓存（非幂等关键路径）
+        // 运行期缓存
         PBX_WEEK_SETTLED.put(weekKey, true);
         PBX_WEEK_RANK_POOL_CENTS.put(weekKey, poolLeftCents);
         PBX_WEEK_SETTLED_TOP10_CACHE.put(weekKey, userList);
@@ -1426,28 +1418,26 @@ public class ManagerCapitalService extends BaseService {
             weekKey = DateUtil.getFirstDayOfWeek(new Date());
         }
 
-        // 1. 个人周榜积分 (ZSet): 累加分数
+        // 个人周榜积分
         String zsetKey = pbxWeekUserRankZsetKey(gameId, weekKey);
         gameCacheService.zincrby(zsetKey, String.valueOf(userId), (double) betCents);
         gameCacheService.expire(zsetKey, 86400 * 14); // 保留2周
 
-        // 2. 周总投入 (String): 累加数值
+        // 周总投入
         String totalBetKey = pbxWeekTotalBetCentsKey(gameId, weekKey);
         gameCacheService.incr(totalBetKey, betCents);
         gameCacheService.expire(totalBetKey, 86400 * 14);
     }
 
-    /** 结算时累计周榜返还/实返/手续费（在 pbxSettle(200721) 完成派奖后调用） */
+    /** 结算时累计周榜返还/实返/手续费完成派奖后调用） */
     private void pbxWeekOnSettle(int gameId, String weekKey, long totalReturnCents, long totalNetCents, long totalFeeCents) {
         if (StringUtils.isBlank(weekKey)) {
             weekKey = DateUtil.getFirstDayOfWeek(new Date());
         }
-        // 改为 Redis incr 累加
         gameCacheService.incr(pbxWeekTotalReturnCentsKey(gameId, weekKey), totalReturnCents);
         gameCacheService.incr(pbxWeekTotalNetCentsKey(gameId, weekKey), totalNetCents);
         gameCacheService.incr(pbxWeekTotalFeeCentsKey(gameId, weekKey), totalFeeCents);
 
-        // 设置过期时间
         gameCacheService.expire(pbxWeekTotalReturnCentsKey(gameId, weekKey), 86400 * 14);
         gameCacheService.expire(pbxWeekTotalNetCentsKey(gameId, weekKey), 86400 * 14);
         gameCacheService.expire(pbxWeekTotalFeeCentsKey(gameId, weekKey), 86400 * 14);
@@ -1484,16 +1474,95 @@ public class ManagerCapitalService extends BaseService {
                 .divide(new BigDecimal("100"), 2, RoundingMode.HALF_UP);
     }
 
-    @Transactional
-    @ServiceMethod(code = "801", description = "大逃杀下注修改内存")
-    public JSONObject updateCacheByDts(ManagerDTS2SocketServer adminSocketServer, JSONObject data) throws InterruptedException {
+    @ServiceMethod(code = "801", description = "大逃杀投入修改内存")
+    public JSONObject updateCacheByDts(ManagerDTSSocketServer adminSocketServer, JSONObject data) throws InterruptedException {
         checkNull(data);
         checkNull(data.get("betArray"));
+
+        startDtsAsyncWorkersIfNeeded();
+
         JSONArray betArray = data.getJSONArray("betArray");
         for (Object o : betArray) {
             try {
-                JSONObject orderInfo = (JSONObject) o;
-                gameService.updateDtsData(null,orderInfo);
+                JSONObject orderInfo = (o instanceof JSONObject) ? (JSONObject) o : JSONObject.from(o);
+                boolean ok = DTS_BET_QUEUE.offer(orderInfo);
+                if (!ok) {
+                    int dropped = DTS_BET_DROPPED.incrementAndGet();
+                    if (dropped % 1000 == 1) {
+                        logger.warn("[DTS] bet queue full, dropped=" + dropped + ", queueSize=" + DTS_BET_QUEUE.size());
+                    }
+                }
+            } catch (Exception e) {
+                logger.error(e);
+            }
+        }
+        return new JSONObject();
+    }
+
+
+
+    /**
+     * DTS3 新协议兼容（200821 -> 200801 逻辑一致）
+     */
+    @ServiceMethod(code = "821", description = "[DTS3] 下注修改内存（兼容旧版 200801）")
+    public JSONObject updateCacheByDts3(ManagerDTSSocketServer serverSocket, JSONObject data) throws InterruptedException {
+        return updateCacheByDts(serverSocket, data);
+    }
+
+    /**
+     * 大逃杀（DTS2/DTS3）排名返还（200822）
+     */
+    @ServiceMethod(code = "822", description = "大逃杀排名返还修改内存")
+    public JSONObject updateCacheByDtsRankRefund(ManagerDTSSocketServer serverSocket, JSONObject data) {
+        return updateCacheByDtsRankRebate(serverSocket, data);
+    }
+
+    /**
+     * DTS 排名返还（200823）
+     */
+    @ServiceMethod(code = "823", description = "[DTS] 排名返还修改内存")
+    public JSONObject updateCacheByDtsRank(ManagerDTSSocketServer serverSocket, JSONObject data) {
+        return updateCacheByDtsRankRebate(serverSocket, data);
+    }
+
+    private JSONObject updateCacheByDtsRankRebate(ManagerDTSSocketServer serverSocket, JSONObject data) {
+        checkNull(data);
+        JSONArray betArray = data.getJSONArray("betArray");
+        if (betArray == null || betArray.isEmpty()) {
+            return new JSONObject();
+        }
+
+        for (Object o : betArray) {
+            try {
+                JSONObject orderInfo;
+                if (o instanceof JSONObject) {
+                    orderInfo = (JSONObject) o;
+                } else {
+                    orderInfo = JSONObject.from(o);
+                }
+
+                String userId = orderInfo.getString("userId");
+                String orderNo = orderInfo.getString("orderNo");
+                BigDecimal amount = orderInfo.getBigDecimal("betAmount");
+                if (userId == null || amount == null || amount.compareTo(BigDecimal.ZERO) <= 0) {
+                    continue;
+                }
+
+                Long uid = Long.parseLong(userId);
+
+                int capitalType = orderInfo.getIntValue("capitalType");
+                if (capitalType <= 0) {
+                    capitalType = UserCapitalTypeEnum.hxjf.getValue();
+                }
+                UserCapital before = userCapitalCacheService.getUserCapitalCacheByType(uid, capitalType);
+                BigDecimal balanceBefore = before.getBalance();
+                BigDecimal occupyBefore = before.getOccupyBalance();
+
+                userCapitalCacheService.add(uid, capitalType, amount, BigDecimal.ZERO);
+
+                userCapitalService.pushLog(1, uid, capitalType, balanceBefore, occupyBefore, amount,
+                        LogCapitalTypeEnum.dts_rank_rebate, orderNo, null, null);
+                managerGameBaseService.pushCapitalUpdate(uid, capitalType);
             } catch (Exception e) {
                 logger.error(e);
                 e.printStackTrace();
@@ -1501,15 +1570,96 @@ public class ManagerCapitalService extends BaseService {
         }
         return new JSONObject();
     }
-    @Transactional
+
+
+    private void startDtsAsyncWorkersIfNeeded() {
+        if (DTS_WORKER_STARTED) {
+            return;
+        }
+        synchronized (ManagerCapitalService.class) {
+            if (DTS_WORKER_STARTED) {
+                return;
+            }
+            DTS_WORKER_STARTED = true;
+        }
+
+        int betWorkers = 4;
+        for (int i = 0; i < betWorkers; i++) {
+            Thread t = new Thread(() -> {
+                while (true) {
+                    try {
+                        JSONObject orderInfo = DTS_BET_QUEUE.take();
+                        gameService.updateDtsData(null, orderInfo);
+                    } catch (InterruptedException ie) {
+                        Thread.currentThread().interrupt();
+                        return;
+                    } catch (Exception e) {
+                        logger.error("[DTS] async bet worker error", e);
+                    }
+                }
+            }, "dts-bet-worker-" + i);
+            t.setDaemon(true);
+            t.start();
+        }
+
+        // 排名返利 worker
+        Thread rankT = new Thread(() -> {
+            while (true) {
+                try {
+                    JSONObject orderInfo = DTS_RANK_REBATE_QUEUE.take();
+                    processDtsRankRebate(orderInfo);
+                } catch (InterruptedException ie) {
+                    Thread.currentThread().interrupt();
+                    return;
+                } catch (Exception e) {
+                    logger.error("[DTS] async rank rebate worker error", e);
+                }
+            }
+        }, "dts-rank-rebate-worker");
+        rankT.setDaemon(true);
+        rankT.start();
+
+        logger.info("[DTS] async workers started. betQueueCap=" + DTS_BET_QUEUE_CAPACITY + ", rankQueueCap=" + DTS_RANK_REBATE_QUEUE_CAPACITY);
+    }
+
+    private void processDtsRankRebate(JSONObject orderInfo) {
+        String userId = orderInfo.getString("userId");
+        BigDecimal amount = orderInfo.getBigDecimal("betAmount");
+        String orderNo = orderInfo.getString("orderNo");
+        if (userId == null || amount == null || orderNo == null) {
+            return;
+        }
+
+        Long uid = Long.parseLong(userId);
+
+        int capitalType = orderInfo.getIntValue("capitalType");
+        if (capitalType <= 0) {
+            capitalType = UserCapitalTypeEnum.hxjf.getValue();
+        }
+
+        UserCapital before = userCapitalCacheService.getUserCapitalCacheByType(uid, capitalType);
+        BigDecimal balanceBefore = before.getBalance();
+        BigDecimal occupyBefore = before.getOccupyBalance();
+
+        userCapitalCacheService.add(uid, capitalType, amount, BigDecimal.ZERO);
+
+        userCapitalService.pushLog(
+                1, uid, capitalType,
+                balanceBefore, occupyBefore, amount,
+                LogCapitalTypeEnum.dts_rank_rebate,
+                orderNo, null, null
+        );
+        managerGameBaseService.pushCapitalUpdate(uid, capitalType);
+    }
+
     @ServiceMethod(code = "901", description = "聂小倩修改内存")
-    public JSONObject updateCacheByNxq(ManagerDTS2SocketServer adminSocketServer, JSONObject data) throws InterruptedException {
+    public JSONObject updateCacheByNxq(ManagerSocketServer adminSocketServer, JSONObject data) throws InterruptedException {
         checkNull(data);
         checkNull(data.get("betArray"));
         JSONArray betArray = data.getJSONArray("betArray");
         for (Object o : betArray) {
             try {
-                JSONObject orderInfo = (JSONObject) o;
+                JSONObject orderInfo = (o instanceof JSONObject) ? (JSONObject) o : JSONObject.from(o);
                 gameService.updateNxqData(null,orderInfo);
             } catch (Exception e) {
                 logger.error(e);
@@ -1518,7 +1668,6 @@ public class ManagerCapitalService extends BaseService {
         }
         return new JSONObject();
     }
-    @Transactional
     @ServiceMethod(code = "808", description = "打怪兽修改内存")
     public JSONObject updateCacheByDgs( JSONObject data) throws InterruptedException {
         checkNull(data);
@@ -1526,7 +1675,7 @@ public class ManagerCapitalService extends BaseService {
         JSONArray betArray = data.getJSONArray("betArray");
         for (Object o : betArray) {
             try {
-                JSONObject orderInfo = (JSONObject) o;
+                JSONObject orderInfo = (o instanceof JSONObject) ? (JSONObject) o : JSONObject.from(o);
                 gameService.updateDgsData(null,orderInfo);
             } catch (Exception e) {
                 logger.error(e);
@@ -1538,7 +1687,6 @@ public class ManagerCapitalService extends BaseService {
 
 
 
-    @Transactional
     @ServiceMethod(code = "811", description = "2选1投入修改内存")
     public JSONObject updateCacheByDts(ManagerLhdSocketServer lhdSocketServer, JSONObject data) throws InterruptedException {
         checkNull(data);
@@ -1546,7 +1694,7 @@ public class ManagerCapitalService extends BaseService {
         JSONArray betArray = data.getJSONArray("betArray");
         for (Object o : betArray) {
             try {
-                JSONObject orderInfo = (JSONObject) o;
+                JSONObject orderInfo = (o instanceof JSONObject) ? (JSONObject) o : JSONObject.from(o);
                 gameService.updateLhdData(null,orderInfo);
             } catch (Exception e) {
                 logger.error(e);
@@ -1556,7 +1704,6 @@ public class ManagerCapitalService extends BaseService {
         return new JSONObject();
     }
 
-    @Transactional
     @ServiceMethod(code = "911", description = "2选1投入修改内存")
     public JSONObject updateCacheByNxq(JSONObject data) throws InterruptedException {
         checkNull(data);
@@ -1564,7 +1711,7 @@ public class ManagerCapitalService extends BaseService {
         JSONArray betArray = data.getJSONArray("betArray");
         for (Object o : betArray) {
             try {
-                JSONObject orderInfo = (JSONObject) o;
+                JSONObject orderInfo = (o instanceof JSONObject) ? (JSONObject) o : JSONObject.from(o);
                 gameService.updateNXQData(null,orderInfo);
             } catch (Exception e) {
                 logger.error(e);
@@ -1615,7 +1762,7 @@ public class ManagerCapitalService extends BaseService {
         JSONArray betArray = data.getJSONArray("betArray");
         for (Object o : betArray) {
             try {
-                JSONObject orderInfo = (JSONObject) o;
+                JSONObject orderInfo = (o instanceof JSONObject) ? (JSONObject) o : JSONObject.from(o);
                 gameService.updateSg(null,orderInfo);
             } catch (Exception e) {
                 logger.error(e);
@@ -1625,35 +1772,6 @@ public class ManagerCapitalService extends BaseService {
         return new JSONObject();
     }
 
-    @Transactional
-    @ServiceMethod(code = "822", description = "大逃杀免伤修改内存")
-    public JSONObject updateCacheByDtsRank(ManagerDTS2SocketServer adminSocketServer, JSONObject data) throws InterruptedException {
-        checkNull(data);
-        checkNull(data.get("betArray"));
-        JSONArray betArray = data.getJSONArray("betArray");
-        for (Object o : betArray) {
-            try {
-                JSONObject orderInfo = (JSONObject) o;
-                String id = orderInfo.getString("userId");
-                String orderNo = orderInfo.getString("orderNo");
-                BigDecimal amount = orderInfo.getBigDecimal("betAmount");
-                UserCapital userCapital = userCapitalCacheService.getUserCapitalCacheByType(Long.parseLong(id), UserCapitalTypeEnum.yyb.getValue());
-                BigDecimal beforeAmount = userCapital.getBalance();
-                userCapitalCacheService.add(Long.parseLong(id), UserCapitalTypeEnum.yyb.getValue(), amount, BigDecimal.ZERO);
-                userCapital = userCapitalCacheService.getUserCapitalCacheByType(Long.parseLong(id), UserCapitalTypeEnum.yyb.getValue());
-                userCapitalService.pushLog(1, Long.parseLong(id), UserCapitalTypeEnum.yyb.getValue(), userCapital.getBalance(), userCapital.getOccupyBalance(), amount, LogCapitalTypeEnum.dts_rank_rebate, orderNo, null, null);
-                JSONObject pushData = new JSONObject();
-                pushData.put("userId", id);
-                pushData.put("capitalType", UserCapitalTypeEnum.yyb.getValue());
-                pushData.put("balance", userCapital.getBalance());
-                Push.push(PushCode.updateUserCapital, managerSocketService.getServerIdByUserId(id), pushData);
-            } catch (Exception e) {
-                logger.error(e);
-                e.printStackTrace();
-            }
-        }
-        return new JSONObject();
-    }
     @Transactional
     @ServiceMethod(code = "710", description = "倩女幽魂结算")
     public JSONObject dtsSettle(ManagerDTS2SocketServer adminSocketServer, JSONObject data) {

@@ -289,6 +289,7 @@ public class PlayGameService extends BaseService {
         initShop();
         initRole();
         initPrizeDraw();
+        //VIP配置
         initDicVip();
         initDicHandBook();
         initDicHandBookReward();
@@ -340,8 +341,11 @@ public class PlayGameService extends BaseService {
      * 初始化VIP配置
      * **/
     public void initDicVip() {
+        DIC_VIP_MAP.clear();
+        logger.info("初始化VIP相关信息");
         List<DicVip> allVip = dicVipService.findAllVip();
-        allVip.forEach(e -> DIC_VIP_MAP.put(String.valueOf(e.getLv()), e));
+        allVip.forEach(e -> DIC_VIP_MAP.put(String.valueOf(e.getVipType()), e));
+        logger.info("初始化VIP信息完成,加载数据数量：" + DIC_VIP_MAP.size());
     }
 
     /**
@@ -608,14 +612,16 @@ public class PlayGameService extends BaseService {
         return 0;
     }
 
-    public void updateUserBackpack(Long userId, String itemId, double number, LogUserBackpackTypeEnum em) {
-        updateUserBackpack(userId.toString(), itemId, number, em);
-    }
-
+    /**
+     * 更新背包
+     * **/
     public void updateUserBackpack(Long userId, String itemId, double number, LogUserBackpackTypeEnum em, String otherUserId) {
         updateUserBackpack(userId.toString(), itemId, number, em, otherUserId);
     }
 
+    public void updateUserBackpack(Long userId, String itemId, double number, LogUserBackpackTypeEnum em) {
+        updateUserBackpack(userId.toString(), itemId, number, em);
+    }
 
     public void updateUserBackpackCache(Long userId, String itemId, int number) {
         synchronized (LockUtil.getlock(userId)) {
@@ -955,24 +961,29 @@ public class PlayGameService extends BaseService {
     }
 
 
-
     public void addRankCache(String id, int number, int gameType) {
         gameCacheService.addGameRankCache(gameType, id, number);
     }
 
     //TODO 参与五次倩女幽魂
-    @KafkaProducer(topic = KafkaTopicContext.RED_POINT, event = KafkaEventContext.DTS, sendParams = true)
+    //@KafkaProducer(topic = KafkaTopicContext.RED_POINT, event = KafkaEventContext.DTS, sendParams = true)
     public void updateDtsData(String a, JSONObject orderInfo) {
         String id = orderInfo.getString("userId");
         String orderNo = orderInfo.getString("orderNo");
         Long dataId = orderInfo.getLong("dataId");
         BigDecimal amount = orderInfo.getBigDecimal("betAmount");
-        UserCapital userCapital = userCapitalCacheService.getUserCapitalCacheByType(Long.parseLong(id), UserCapitalTypeEnum.currency_2.getValue());
+        int capitalType = orderInfo.getIntValue("capitalType");
+        if (capitalType <= 0) {
+            capitalType = UserCapitalTypeEnum.hxjf.getValue();
+        }
+
         userCacheService.addTodayUserPlayCount(Long.valueOf(id));
-        userCapitalCacheService.sub(Long.parseLong(id), UserCapitalTypeEnum.yyb.getValue(), amount, BigDecimal.ZERO);
-        userCapital = userCapitalCacheService.getUserCapitalCacheByType(Long.parseLong(id), UserCapitalTypeEnum.yyb.getValue());
-        userCapitalService.pushLog(1, Long.parseLong(id), UserCapitalTypeEnum.yyb.getValue(), userCapital.getBalance(), userCapital.getOccupyBalance(), amount.negate(), LogCapitalTypeEnum.game_bet_dts2, orderNo, dataId, null);
-        managerGameBaseService.pushCapitalUpdate(Long.valueOf(id), UserCapitalTypeEnum.yyb.getValue());
+        userCapitalCacheService.sub(Long.parseLong(id), capitalType, amount, BigDecimal.ZERO);
+        UserCapital userCapital = userCapitalCacheService.getUserCapitalCacheByType(Long.parseLong(id), capitalType);
+        userCapitalService.pushLog(1, Long.parseLong(id), capitalType,
+                userCapital.getBalance(), userCapital.getOccupyBalance(), amount.negate(),
+                LogCapitalTypeEnum.game_bet_dts2, orderNo, dataId, null);
+        managerGameBaseService.pushCapitalUpdate(Long.valueOf(id), capitalType);
         addRankCache(id, Integer.parseInt(amount.setScale(0).toString()), GameTypeEnum.battleRoyale.getValue());
     }
 
@@ -989,12 +1000,15 @@ public class PlayGameService extends BaseService {
         String orderNo = orderInfo.getString("orderNo");
         Long dataId = orderInfo.getLong("dataId");
         BigDecimal amount = orderInfo.getBigDecimal("betAmount");
-        UserCapital userCapital = userCapitalCacheService.getUserCapitalCacheByType(Long.parseLong(id), UserCapitalTypeEnum.currency_2.getValue());
+        int capitalType = orderInfo.getIntValue("capitalType");
+        if (capitalType <= 0) {
+            capitalType = UserCapitalTypeEnum.hxjf.getValue();
+        }
         userCacheService.addTodayUserPlayCount(Long.valueOf(id));
-        userCapitalCacheService.sub(Long.parseLong(id), UserCapitalTypeEnum.yyb.getValue(), amount, BigDecimal.ZERO);
-        userCapital = userCapitalCacheService.getUserCapitalCacheByType(Long.parseLong(id), UserCapitalTypeEnum.yyb.getValue());
-        userCapitalService.pushLog(1, Long.parseLong(id), UserCapitalTypeEnum.yyb.getValue(), userCapital.getBalance(), userCapital.getOccupyBalance(), amount.negate(), LogCapitalTypeEnum.dgs_join, orderNo, dataId, null);
-        managerGameBaseService.pushCapitalUpdate(Long.valueOf(id), UserCapitalTypeEnum.yyb.getValue());
+        userCapitalCacheService.sub(Long.parseLong(id), capitalType, amount, BigDecimal.ZERO);
+        UserCapital userCapital = userCapitalCacheService.getUserCapitalCacheByType(Long.parseLong(id), capitalType);
+        userCapitalService.pushLog(1, Long.parseLong(id), capitalType, userCapital.getBalance(), userCapital.getOccupyBalance(), amount.negate(), LogCapitalTypeEnum.dgs_join, orderNo, dataId, null);
+        managerGameBaseService.pushCapitalUpdate(Long.valueOf(id), capitalType);
         addRankCache(id, Integer.parseInt(amount.setScale(0).toString()), GameTypeEnum.battleRoyale.getValue());
     }
 
@@ -1005,12 +1019,15 @@ public class PlayGameService extends BaseService {
         String orderNo = orderInfo.getString("orderNo");
         Long dataId = orderInfo.getLong("dataId");
         BigDecimal amount = orderInfo.getBigDecimal("betAmount");
-        UserCapital userCapital = userCapitalCacheService.getUserCapitalCacheByType(Long.parseLong(id), UserCapitalTypeEnum.currency_2.getValue());
+        int capitalType = orderInfo.getIntValue("capitalType");
+        if (capitalType <= 0) {
+            capitalType = UserCapitalTypeEnum.hxjf.getValue();
+        }
         userCacheService.addNxqUserPlayCount(Long.valueOf(id));
-        userCapitalCacheService.sub(Long.parseLong(id), UserCapitalTypeEnum.yyb.getValue(), amount, BigDecimal.ZERO);
-        userCapital = userCapitalCacheService.getUserCapitalCacheByType(Long.parseLong(id), UserCapitalTypeEnum.yyb.getValue());
-        userCapitalService.pushLog(1, Long.parseLong(id), UserCapitalTypeEnum.yyb.getValue(), userCapital.getBalance(), userCapital.getOccupyBalance(), amount.negate(), LogCapitalTypeEnum.game_bet_nh, orderNo, dataId, null);
-        managerGameBaseService.pushCapitalUpdate(Long.valueOf(id), UserCapitalTypeEnum.yyb.getValue());
+        userCapitalCacheService.sub(Long.parseLong(id), capitalType, amount, BigDecimal.ZERO);
+        UserCapital userCapital = userCapitalCacheService.getUserCapitalCacheByType(Long.parseLong(id), capitalType);
+        userCapitalService.pushLog(1, Long.parseLong(id), capitalType, userCapital.getBalance(), userCapital.getOccupyBalance(), amount.negate(), LogCapitalTypeEnum.game_bet_nh, orderNo, dataId, null);
+        managerGameBaseService.pushCapitalUpdate(Long.valueOf(id), capitalType);
         addRankCache(id, Integer.parseInt(amount.setScale(0).toString()), GameTypeEnum.nxq.getValue());
     }
 
@@ -1021,10 +1038,14 @@ public class PlayGameService extends BaseService {
         Long dataId = orderInfo.getLong("dataId");
         BigDecimal amount = orderInfo.getBigDecimal("betAmount");
         userCacheService.addTodayUserPlayCount(Long.valueOf(id));
-        userCapitalCacheService.sub(Long.parseLong(id), UserCapitalTypeEnum.yyb.getValue(), amount, BigDecimal.ZERO);
-        UserCapital userCapital = userCapitalCacheService.getUserCapitalCacheByType(Long.parseLong(id), UserCapitalTypeEnum.yyb.getValue());
-        userCapitalService.pushLog(1, Long.parseLong(id), UserCapitalTypeEnum.yyb.getValue(), userCapital.getBalance(), userCapital.getOccupyBalance(), amount.negate(), LogCapitalTypeEnum.game_bet_sg, orderNo, dataId, null);
-        managerGameBaseService.pushCapitalUpdate(Long.parseLong(id), UserCapitalTypeEnum.yyb.getValue());
+        int capitalType = orderInfo.getIntValue("capitalType");
+        if (capitalType <= 0) {
+            capitalType = UserCapitalTypeEnum.hxjf.getValue();
+        }
+        userCapitalCacheService.sub(Long.parseLong(id), capitalType, amount, BigDecimal.ZERO);
+        UserCapital userCapital = userCapitalCacheService.getUserCapitalCacheByType(Long.parseLong(id), capitalType);
+        userCapitalService.pushLog(1, Long.parseLong(id), capitalType, userCapital.getBalance(), userCapital.getOccupyBalance(), amount.negate(), LogCapitalTypeEnum.game_bet_sg, orderNo, dataId, null);
+        managerGameBaseService.pushCapitalUpdate(Long.parseLong(id), capitalType);
     }
 
     @KafkaProducer(topic = KafkaTopicContext.RED_POINT, event = KafkaEventContext.LHD, sendParams = true)
@@ -1033,12 +1054,15 @@ public class PlayGameService extends BaseService {
         String orderNo = orderInfo.getString("orderNo");
         Long dataId = orderInfo.getLong("dataId");
         BigDecimal amount = orderInfo.getBigDecimal("betAmount");
-        UserCapital userCapital = userCapitalCacheService.getUserCapitalCacheByType(Long.parseLong(id), UserCapitalTypeEnum.currency_2.getValue());
+        int capitalType = orderInfo.getIntValue("capitalType");
+        if (capitalType <= 0) {
+            capitalType = UserCapitalTypeEnum.hxjf.getValue();
+        }
         userCacheService.addTodayUserPlayCount(Long.valueOf(id));
-        userCapitalCacheService.sub(Long.parseLong(id), UserCapitalTypeEnum.yyb.getValue(), amount, BigDecimal.ZERO);
-        userCapital = userCapitalCacheService.getUserCapitalCacheByType(Long.parseLong(id), UserCapitalTypeEnum.yyb.getValue());
-        userCapitalService.pushLog(1, Long.parseLong(id), UserCapitalTypeEnum.yyb.getValue(), userCapital.getBalance(), userCapital.getOccupyBalance(), amount.negate(), LogCapitalTypeEnum.game_bet_nh, orderNo, dataId, null);
-        managerGameBaseService.pushCapitalUpdate(Long.valueOf(id), UserCapitalTypeEnum.yyb.getValue());
+        userCapitalCacheService.sub(Long.parseLong(id), capitalType, amount, BigDecimal.ZERO);
+        UserCapital userCapital = userCapitalCacheService.getUserCapitalCacheByType(Long.parseLong(id), capitalType);
+        userCapitalService.pushLog(1, Long.parseLong(id), capitalType, userCapital.getBalance(), userCapital.getOccupyBalance(), amount.negate(), LogCapitalTypeEnum.game_bet_nh, orderNo, dataId, null);
+        managerGameBaseService.pushCapitalUpdate(Long.valueOf(id), capitalType);
         addRankCache(id, Integer.parseInt(amount.setScale(0).toString()), GameTypeEnum.nh.getValue());
     }
 
@@ -1050,12 +1074,15 @@ public class PlayGameService extends BaseService {
         String orderNo = orderInfo.getString("orderNo");
         Long dataId = orderInfo.getLong("dataId");
         BigDecimal amount = orderInfo.getBigDecimal("betAmount");
-        UserCapital userCapital = userCapitalCacheService.getUserCapitalCacheByType(Long.parseLong(id), UserCapitalTypeEnum.currency_2.getValue());
+        int capitalType = orderInfo.getIntValue("capitalType");
+        if (capitalType <= 0) {
+            capitalType = UserCapitalTypeEnum.hxjf.getValue();
+        }
         userCacheService.addTodayUserPlayCount(Long.valueOf(id));
-        userCapitalCacheService.sub(Long.parseLong(id), UserCapitalTypeEnum.yyb.getValue(), amount, BigDecimal.ZERO);
-        userCapital = userCapitalCacheService.getUserCapitalCacheByType(Long.parseLong(id), UserCapitalTypeEnum.yyb.getValue());
-        userCapitalService.pushLog(1, Long.parseLong(id), UserCapitalTypeEnum.yyb.getValue(), userCapital.getBalance(), userCapital.getOccupyBalance(), amount.negate(), LogCapitalTypeEnum.dgs_join, orderNo, dataId, null);
-        managerGameBaseService.pushCapitalUpdate(Long.valueOf(id), UserCapitalTypeEnum.yyb.getValue());
+        userCapitalCacheService.sub(Long.parseLong(id), capitalType, amount, BigDecimal.ZERO);
+        UserCapital userCapital = userCapitalCacheService.getUserCapitalCacheByType(Long.parseLong(id), capitalType);
+        userCapitalService.pushLog(1, Long.parseLong(id), capitalType, userCapital.getBalance(), userCapital.getOccupyBalance(), amount.negate(), LogCapitalTypeEnum.dgs_join, orderNo, dataId, null);
+        managerGameBaseService.pushCapitalUpdate(Long.valueOf(id), capitalType);
         addRankCache(id, Integer.parseInt(amount.setScale(0).toString()), GameTypeEnum.dgs.getValue());
     }
 

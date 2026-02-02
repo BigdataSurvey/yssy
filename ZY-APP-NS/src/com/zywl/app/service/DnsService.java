@@ -61,8 +61,8 @@ public class DnsService extends BaseService {
     @Autowired
     private NsSettleService nsSettleService;
 
-    @Autowired
-    private KillNsRecordService killNsRecordService;
+    //@Autowired
+    //private KillNsRecordService killNsRecordService;
 
     public static int STATUS = 0;
 

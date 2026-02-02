@@ -138,28 +138,35 @@ public class BattleRoyaleRecord2Service extends DaoService {
 			records = Collections.emptyList();
 		}
 
+		// recent100Periods 近100期统计
 		Map<Integer, Integer> cnt = new HashMap<>();
-		int take = Math.min(16, records.size());
-		for (int i = 0; i < take; i++) {
+		int take100 = Math.min(100, records.size());
+		for (int i = 0; i < take100; i++) {
 			BattleRoyale2Record r = records.get(i);
 			for (Integer rid : parseRoomIds(r.getBetInfo(), zeroBasedRoomId)) {
 				cnt.put(rid, cnt.getOrDefault(rid, 0) + 1);
 			}
 		}
 
-		JSONArray recent16Summary = new JSONArray();
-		List<Integer> rooms = new ArrayList<>(cnt.keySet());
-		Collections.sort(rooms);
-		for (Integer rid : rooms) {
+
+		// DTS2 固定 6 个元素：0~5
+		String[] dts2Names = new String[]{"小丑", "帽子", "喇叭", "大象", "狮子", "兔子"};
+		JSONArray recent100Periods = new JSONArray();
+		for (int rid = 0; rid < 6; rid++) {
 			JSONObject item = new JSONObject();
 			item.put("roomId", String.valueOf(rid));
-			item.put("roomName", "房间" + rid);
-			item.put("count", cnt.get(rid));
-			recent16Summary.add(item);
+			item.put("roomName", dts2Names[rid]);
+			item.put("count", cnt.getOrDefault(rid, 0));
+			recent100Periods.add(item);
 		}
 
-		JSONArray recent100Periods = new JSONArray();
-		for (BattleRoyale2Record r : records) {
+
+		// recent16Summary 近16期明细
+		JSONArray recent16Summary = new JSONArray();
+		int take16 = Math.min(16, records.size());
+		for (int i = 0; i < take16; i++) {
+			BattleRoyale2Record r = records.get(i);
+
 			JSONObject item = new JSONObject();
 			item.put("periodsNum", r.getPeriodsNum());
 
@@ -172,7 +179,7 @@ public class BattleRoyaleRecord2Service extends DaoService {
 				rs.add(rr);
 			}
 			item.put("rooms", rs);
-			recent100Periods.add(item);
+			recent16Summary.add(item);
 		}
 
 		Map<String, Object> tp = new HashMap<>();
@@ -184,13 +191,14 @@ public class BattleRoyaleRecord2Service extends DaoService {
 			totalGain = totalGain.add(extraGain);
 		}
 
-		res.put("recent16Summary", recent16Summary);
-		res.put("recent100Periods", recent100Periods);
+		res.put("recent100Periods", recent100Periods); // 近100期统计
+		res.put("recent16Summary", recent16Summary);   // 近16期明细
 		res.put("totalInvest", totalInvest.setScale(2, RoundingMode.HALF_UP));
 		res.put("totalGain", totalGain.setScale(2, RoundingMode.HALF_UP));
 		res.put("serverTime", System.currentTimeMillis());
 		return res;
 	}
+
 
 	private BigDecimal safeBigDecimal(Object v) {
 		if (v == null) {

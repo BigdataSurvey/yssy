@@ -51,5 +51,6 @@ public class MessageCodeContext {
 	public final  static String USER_PET="087";
 	//悬赏任务 核心业务服务
 	public final  static String BOUNTY_TASK="088";
-
+	// OSS 直传/资源服务
+	public final  static String OSS_SERVER="089";
 }

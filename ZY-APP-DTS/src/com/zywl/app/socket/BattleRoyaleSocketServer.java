@@ -1,13 +1,13 @@
 package com.zywl.app.socket;
 import com.alibaba.fastjson2.JSONArray;
 import com.alibaba.fastjson2.JSONObject;
-import com.alibaba.fastjson2.JSONObject;
 import com.live.app.ws.bean.Command;
 import com.live.app.ws.bean.ConnectedData;
 import com.live.app.ws.bean.PushBean;
 import com.live.app.ws.config.HttpSessionConfigurator;
 import com.live.app.ws.constant.SocketConstants;
 import com.live.app.ws.enums.PushCode;
+
 import com.live.app.ws.enums.TargetSocketType;
 import com.live.app.ws.interfacex.PushListener;
 import com.live.app.ws.socket.BaseServerSocket;
@@ -132,18 +132,56 @@ public class BattleRoyaleSocketServer extends BaseServerSocket {
 			}
 		}, this);
 
-		// 加入房间推送
+		// 房间变更推送 收到后必须继续转推给 SERVER
 		Push.registPush(new PushBean(PushCode.updateRoomDate), new PushListener() {
+			@Override
 			public void onRegist(BaseSocket baseSocket, Object data) {
 			}
 
+			@Override
 			public void onReceive(BaseSocket baseSocket, Object data) {
-				if (data != null) {
-					BattleRoyaleSocketServer managerSocketServer = ((BattleRoyaleSocketServer) baseSocket);
-					JSONObject pushData = (JSONObject) data;
-					String userNo = pushData.getString("userNo");
-					logger.debug("用户[" + userNo + "]加入" + managerSocketServer.getName() + "房间" + pushData.toJSONString());
+				if (data == null) {
+					return;
 				}
+
+				// 只处理本服
+				try {
+					if (data instanceof JSONObject) {
+						int gameId = ((JSONObject) data).getIntValue("gameId");
+						if (gameId != 0 && gameId != 7) {
+							return;
+						}
+					} else if (data instanceof JSONArray) {
+						boolean match = false;
+						for (Object o : (JSONArray) data) {
+							if (o instanceof JSONObject) {
+								int gameId = ((JSONObject) o).getIntValue("gameId");
+								if (gameId == 7) {
+									match = true;
+									break;
+								}
+							}
+						}
+						if (!match) {
+							return;
+						}
+					}
+				} catch (Exception e) {
+					logger.error("updateRoomDate 解析异常 data=" + data, e);
+				}
+
+				// 打日志
+				try {
+					if (data instanceof JSONObject) {
+						BattleRoyaleSocketServer s = (BattleRoyaleSocketServer) baseSocket;
+						JSONObject pushData = (JSONObject) data;
+						String userNo = pushData.getString("userNo");
+						logger.debug("用户[" + userNo + "]加入" + s.getName() + "房间 " + pushData.toJSONString());
+					}
+				} catch (Exception ignore) {}
+
+				// condition 为空，否则 SERVER 侧 Push 条件匹配不上
+				Push.push(PushCode.updateRoomDate, null, data);
 			}
 		}, this);
 

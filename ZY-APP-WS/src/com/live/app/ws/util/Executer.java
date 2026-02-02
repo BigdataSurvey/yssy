@@ -226,7 +226,6 @@ public class Executer {
         });
     }
 
-
     public static void executeService(Runnable runnable) {
         serviceExecutor.execute(runnable);
     }

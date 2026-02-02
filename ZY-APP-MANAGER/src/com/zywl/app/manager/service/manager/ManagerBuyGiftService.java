@@ -63,7 +63,6 @@ public class ManagerBuyGiftService extends BaseService {
 
 
 
-
     @Transactional
     @ServiceMethod(code = "011", description = "购买礼包")
     public JSONObject buy(JSONObject data) throws Exception {
@@ -83,7 +82,7 @@ public class ManagerBuyGiftService extends BaseService {
             Long recordId = userGiftRecordService.addGiftRecord(userId, orderNo, UserCapitalTypeEnum.currency_2.getValue(), 1, price);
             //2.扣钱
             userCapitalService.subBalanceByGift(price, userId, orderNo, recordId);
-            managerUserVipService.addExper(userId, price);
+            //managerUserVipService.addExper(userId, price);
             //3.礼包数+1
             userGiftService.addUserGiftNumber(userId, giftType,1);
             //推送用户余额变化
@@ -98,7 +97,7 @@ public class ManagerBuyGiftService extends BaseService {
             throwExp("用户不存在");
         }
         userGiftService.addUserGiftNumber(user.getId(), 2,number);
-        managerUserVipService.addExper(user.getId(), BigDecimal.valueOf(number* 499L));
+        //managerUserVipService.addExper(user.getId(), BigDecimal.valueOf(number* 499L));
     }
 
 
