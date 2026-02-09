@@ -24,9 +24,11 @@ import com.zywl.app.server.util.RequestManagerListener;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import java.math.BigDecimal;
 import java.util.List;
-
+/**
+ * 工会
+ * GUILD_SERVER= 018
+ * **/
 @Service
 @ServiceClass(code = MessageCodeContext.GUILD_SERVER)
 public class ServerGuildService extends BaseService {

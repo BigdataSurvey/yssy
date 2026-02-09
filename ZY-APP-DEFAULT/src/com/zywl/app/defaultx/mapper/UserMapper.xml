@@ -113,8 +113,7 @@
 				#{parentTree},
 				#{loginTimes},
 				#{cno},
-				#{vipTransferEnable},
-
+				#{vipTransferEnable}
 			)
 	</insert>
 

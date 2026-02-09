@@ -709,7 +709,7 @@ public class BattleRoyaleService2 extends BaseService {
             return myOrder;
         }
 
-        userCapitalService.subUserOccupyBalanceByDtsBet(Long.parseLong(userId), amount);
+        userCapitalService.subUserOccupyBalanceByDtsBet(Long.parseLong(userId), amount,CAPITAL_TYPE);
         USER_CAPITAL_QUEUE.offer(myOrder);
         return myOrder;
     }
@@ -717,7 +717,7 @@ public class BattleRoyaleService2 extends BaseService {
 
 
     public void rankRebate(String userId, BigDecimal amount, String orderNo) {
-        userCapitalService.addUserBalanceByDtsRank(Long.parseLong(userId), amount);
+        userCapitalService.addUserBalanceByDtsRank(Long.parseLong(userId), amount,CAPITAL_TYPE);
         Map<String, String> myOrder = new HashMap<>();
         myOrder.put("orderNo", orderNo);
         myOrder.put("betAmount", amount.toString());
@@ -785,6 +785,7 @@ public class BattleRoyaleService2 extends BaseService {
         String userId = params.getString("userId");
         String userBet = params.getString("bet");
         BigDecimal amount = params.getBigDecimal("betAmount");
+        params.put("capitalType", CAPITAL_TYPE);
         return userBetBet(userId, userBet, amount, lotteryCommand, params);
     }
 

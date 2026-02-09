@@ -10,8 +10,8 @@ public enum UserCapitalTypeEnum {
 	yyb("游园券",3),
 	rmb("游园币", 4),
 	score("积分",5),
-	hxjf("核心积分",1001),
-	xxxhhb("游戏消耗货币",1002),
+	hxjf("核心积分(小丑币)",1001),
+	xxxhhb("游戏消耗货币(弹珠)",1002),
 	ejjf("二级积分",1003),
 	;
 	

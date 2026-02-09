@@ -15,6 +15,7 @@ import com.zywl.app.base.service.BaseService;
 import com.zywl.app.base.util.StringUtils;
 import com.zywl.app.defaultx.annotation.ServiceClass;
 import com.zywl.app.defaultx.annotation.ServiceMethod;
+import com.zywl.app.defaultx.enmus.UserCapitalTypeEnum;
 import com.zywl.app.defaultx.service.BattleRoyaleRecord2Service;
 import com.zywl.app.defaultx.service.ConfigService;
 import com.zywl.app.defaultx.service.GameService;
@@ -67,7 +68,7 @@ public class PbxService extends BaseService {
     private volatile int ELEMENT_COUNT = 6;
 
     /** 下注扣款的资产类型 ID (1002: 游戏消耗货币) */
-    private volatile int CAPITAL_TYPE = 1002;
+    private volatile int CAPITAL_TYPE = UserCapitalTypeEnum.xxxhhb.getValue();
 
     /** 平台手续费率 (例如 0.05 代表 5%) */
     private volatile BigDecimal FEE_RATE = new BigDecimal("0.05");
@@ -1617,7 +1618,7 @@ public class PbxService extends BaseService {
         }
 
         TIME_SEC = parseInt(PBX_GAME_SETTING.getString("time"), 20);
-        CAPITAL_TYPE = parseInt(PBX_GAME_SETTING.getString("capitalType"), 1002);
+        CAPITAL_TYPE = parseInt(PBX_GAME_SETTING.getString("capitalType"), UserCapitalTypeEnum.xxxhhb.getValue());
         CHIPS = PBX_GAME_SETTING.getJSONArray("chips");
         if (CHIPS == null) {
             CHIPS = new JSONArray();
@@ -1647,7 +1648,7 @@ public class PbxService extends BaseService {
     private JSONObject defaultGameSetting() {
         JSONObject setting = new JSONObject();
         setting.put("time", "20");
-        setting.put("capitalType", "1002");
+        setting.put("capitalType", UserCapitalTypeEnum.xxxhhb.getValue());
         JSONArray chips = new JSONArray();
         chips.add("1");
         chips.add("10");

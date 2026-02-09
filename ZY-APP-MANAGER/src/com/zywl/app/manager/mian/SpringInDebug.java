@@ -583,8 +583,8 @@ public class SpringInDebug {
             ManagerGuildService svc = ctx.getBean(ManagerGuildService.class);
             if (TEST_GUILD_ID == null) TEST_GUILD_ID = queryLatestGuildId(MY_USER_ID, null);
             JSONObject p = new JSONObject();
-            p.put("userId", MY_USER_ID);
-            p.put("guildId", TEST_GUILD_ID);
+            p.put("userId", 937228);
+            p.put("guildId", 61);
             Object r = svc.getGuildInfo(fakeSocket, p);
             printResult(r);
         } catch (Exception e) {
@@ -1640,7 +1640,7 @@ public class SpringInDebug {
         //guildCreateTest();
         //guildApproveTest();
         // guildRefuseTest();
-        // guildInfoTest();
+         guildInfoTest();
         // guildAddMemberTest();
         // guildMemberListTest();
         // guildAddProfitBalanceForTest();
@@ -1698,7 +1698,7 @@ public class SpringInDebug {
 
         // --- 9. OSS基础能力 ---
         //ossGetDirectUploadPolicyTest();
-       ossCanonicalizeUrlTest();
+     //  ossCanonicalizeUrlTest();
 //        System.out.println(">>>>>>>>>> Debug测试结束 <<<<<<<<<<");
 //        System.exit(0);
     }

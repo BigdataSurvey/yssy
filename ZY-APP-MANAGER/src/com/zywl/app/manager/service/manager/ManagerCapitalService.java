@@ -200,31 +200,24 @@ public class ManagerCapitalService extends BaseService {
      * 定时任务逻辑：检查上周是否已结算，未结算则执行
      */
     private void checkAndSettlePbxLastWeek() {
-        // 1. 计算上周的 Key
         // 逻辑：当前时间 - 7天，取那天的周一
         Date lastWeekDate = new Date(System.currentTimeMillis() - 7L * 24 * 3600 * 1000);
         String lastWeekKey = DateUtil.getFirstDayOfWeek(lastWeekDate);
 
-        // 2. 检查 DB 是否已结算 (幂等检查)
-        // 注意：这里 gameId 固定 12
         PbxWeekSummary summary = pbxWeekSummaryService.findByGameWeek(12, lastWeekKey);
         if (summary != null && summary.getSettled() == 1) {
             // 已结算，跳过
             return;
         }
-
-        // 3. 执行结算 (复用已有的 pbxWeekSettleInternal)
-        logger.info("[PBX] Auto triggering last week settle: " + lastWeekKey);
-
         // 构造默认参数
         JSONObject gameSetting = pbxLoadGameSettingByGameId(12);
         BigDecimal rankProfitPercent = (gameSetting != null) ? gameSetting.getBigDecimal("rankProfitPercent") : new BigDecimal("0.5");
         JSONArray top10Rates = (gameSetting != null) ? gameSetting.getJSONArray("top10Rates") : new JSONArray();
+        int capitalType = gameSetting.getIntValue("capitalType");
 
         // 调用结算
-        // 注意：这里需要 try-catch 避免影响定时器
         try {
-            pbxWeekSettleInternal(12, lastWeekKey, rankProfitPercent, top10Rates);
+            pbxWeekSettleInternal(12, lastWeekKey, rankProfitPercent, top10Rates,capitalType);
             logger.info("[PBX] Auto settle success: " + lastWeekKey);
         } catch (Exception e) {
             logger.error("[PBX] Auto settle failed: " + lastWeekKey, e);
@@ -405,11 +398,12 @@ public class ManagerCapitalService extends BaseService {
         checkNull(data.get("userId"), data.get("betAmount"));
         BigDecimal betAmount = data.getBigDecimal("betAmount");
         Long userId = data.getLong("userId");
-        userCapitalService.addUserBalanceByCancelBet(betAmount, userId, UserCapitalTypeEnum.yyb.getValue(), null, null);
-        UserCapital userCapital = userCapitalCacheService.getUserCapitalCacheByType(userId, UserCapitalTypeEnum.yyb.getValue());
+        int capitalType = data.getIntValue("capitalType");
+        userCapitalService.addUserBalanceByCancelBet(betAmount, userId, capitalType, null, null);
+        UserCapital userCapital = userCapitalCacheService.getUserCapitalCacheByType(userId, capitalType);
         JSONObject pushData = new JSONObject();
         pushData.put("userId", userId);
-        pushData.put("capitalType", UserCapitalTypeEnum.yyb.getValue());
+        pushData.put("capitalType", capitalType);
         pushData.put("balance", userCapital.getBalance());
         Push.push(PushCode.updateUserCapital, managerSocketService.getServerIdByUserId(userId), pushData);
     }
@@ -432,38 +426,55 @@ public class ManagerCapitalService extends BaseService {
     public JSONObject dtsSettle(ManagerDTSSocketServer adminSocketServer, JSONObject data) {
         checkNull(data);
         Set<String> set = data.keySet();
-        LogCapitalTypeEnum em = null;
-        Long userId = null;
+
+        Integer capitalType = null;
+
         for (String key : set) {
-            JSONObject o = JSONObject.parse(data.getString(key));
-            em = LogCapitalTypeEnum.getEm(o.getIntValue("em"));
-            userId = Long.parseLong(key);
-        /*if (em.getValue() == LogCapitalTypeEnum.game_bet_food.getValue() || em.getValue() == LogCapitalTypeEnum.game_bet_win.getValue()) {
-            userCacheService.addTodayUserPlayCount(userId);
-            checkAchievementService.checkDailyTaskPlayerArea(userId);
-        }*/
+            Object raw = data.get(key);
+            JSONObject o = (raw instanceof JSONObject)
+                    ? (JSONObject) raw
+                    : JSONObject.parseObject(String.valueOf(raw));
+            Integer ct = o.getInteger("capitalType");
+            if (ct != null && ct > 0) {
+                capitalType = ct;
+                break;
+            }
         }
+        if (capitalType == null || capitalType <= 0) {
+            capitalType=UserCapitalTypeEnum.xxxhhb.getValue();
+        }
+
+        // 批量更新资产
         if (!data.isEmpty()) {
-            userCapitalService.betUpdateBalance2(data,0);
+            userCapitalService.betUpdateBalance2(data, capitalType);
         }
+
+        // 推送更新
         for (String key : set) {
-            JSONObject o = JSONObject.parse(data.getString(key));
-            em = LogCapitalTypeEnum.getEm(o.getIntValue("em"));
-            userId = Long.parseLong(key);
-            UserCapital userCapital = userCapitalCacheService.getUserCapitalCacheByType(userId, UserCapitalTypeEnum.currency_2.getValue());
+            Object raw = data.get(key);
+            JSONObject o = (raw instanceof JSONObject)
+                    ? (JSONObject) raw
+                    : JSONObject.parseObject(String.valueOf(raw));
+
+            LogCapitalTypeEnum em = LogCapitalTypeEnum.getEm(o.getIntValue("em"));
+            Long userId = Long.parseLong(key);
+
+            UserCapital userCapital = userCapitalCacheService.getUserCapitalCacheByType(userId, capitalType);
+
             JSONObject pushData = new JSONObject();
             pushData.put("userId", userId);
             if (em.getValue() == LogCapitalTypeEnum.game_bet_win.getValue()) {
                 pushData.put("isDts", 1);
             }
-            pushData.put("capitalType", UserCapitalTypeEnum.currency_2.getValue());
-            pushData.put("balance", userCapital.getBalance());
+            pushData.put("capitalType", capitalType);
+            pushData.put("balance", userCapital == null ? 0 : userCapital.getBalance());
+
             Push.push(PushCode.updateUserCapital, managerSocketService.getServerIdByUserId(userId), pushData);
         }
 
-
         return new JSONObject();
     }
+
 
     @Transactional
     @ServiceMethod(code = "720", description = "推箱子(PBX)下注扣款")
@@ -471,10 +482,11 @@ public class ManagerCapitalService extends BaseService {
         checkNull(data);
         checkNull(data.get("userId"), data.get("betAmount"));
 
-        // 1. 参数解析
         int gameId = data.containsKey("gameId") ? data.getIntValue("gameId") : 12;
         Long userId = data.getLong("userId");
         BigDecimal betAmount = data.getBigDecimal("betAmount");
+        Integer capitalType = data.getInteger("capitalType");
+        if (capitalType == null || capitalType == 0) capitalType = UserCapitalTypeEnum.xxxhhb.getValue();
         if (betAmount == null || betAmount.compareTo(BigDecimal.ZERO) <= 0) {
             throwExp("betAmount 非法");
         }
@@ -492,7 +504,7 @@ public class ManagerCapitalService extends BaseService {
             resp.put("success", true);
             resp.put("message", "order processed");
             resp.put("orderNo", orderNo);
-            UserCapital uc = userCapitalCacheService.getUserCapitalCacheByType(userId, 1002);
+            UserCapital uc = userCapitalCacheService.getUserCapitalCacheByType(userId, capitalType);
             resp.put("balance", uc != null ? uc.getBalance() : BigDecimal.ZERO);
             return resp;
         }
@@ -503,9 +515,6 @@ public class ManagerCapitalService extends BaseService {
             if (StringUtils.isNotBlank(gameCacheService.get(orderKey))) {
                 return new JSONObject().fluentPut("success", true);
             }
-
-            Integer capitalType = data.getInteger("capitalType");
-            if (capitalType == null || capitalType == 0) capitalType = 1002;
 
             BigDecimal feeRate = data.getBigDecimal("feeRate");
             if (feeRate == null) feeRate = new BigDecimal("0.05");
@@ -523,7 +532,7 @@ public class ManagerCapitalService extends BaseService {
             // 执行扣款
             userCapitalService.betUpdateBalance2(betObj, capitalType);
 
-            // 标记订单已处理 (24小时)
+            // 标记订单已处理
             gameCacheService.set(orderKey, "1", 24 * 3600);
 
             // 推送资产变更
@@ -596,7 +605,6 @@ public class ManagerCapitalService extends BaseService {
         String week = DateUtil.getFirstDayOfWeek(new Date());
 
         Integer capitalType = data.getInteger("capitalType");
-        if (capitalType == null || capitalType == 0) capitalType = 1002;
 
         BigDecimal feeRate = data.getBigDecimal("feeRate");
         if (feeRate == null) feeRate = new BigDecimal("0.05");
@@ -958,8 +966,8 @@ public class ManagerCapitalService extends BaseService {
             long totalNet = getLongFromCache(pbxUserTotalNetKey(userId));
 
             result.put("myTotalConsume", centsToBd(totalBet)); // 历史总投入
-            result.put("myTotalReturn", centsToBd(totalReturn)); // 历史总返还(Gross)
-            result.put("myTotalNet", centsToBd(totalNet)); // 历史总净利(Net)
+            result.put("myTotalReturn", centsToBd(totalReturn)); // 历史总返还
+            result.put("myTotalNet", centsToBd(totalNet)); // 历史总净利
             BigDecimal myWeekAwardBd = weekSettled ? findUserAwardFromSummary(thisSummary, userId) : null;
             if (myWeekAwardBd == null) {
                 myWeekAwardBd = centsToBd(weekAwardMap.getOrDefault(userId, 0L));
@@ -1108,6 +1116,8 @@ public class ManagerCapitalService extends BaseService {
 
         // 读取 l_game.game_setting
         JSONObject setting = pbxLoadGameSettingByGameId(gameId);
+        int capitalType = setting.getIntValue("capitalType");
+
         BigDecimal rankProfitPercent = null;
         JSONArray top10Rates = null;
         if (setting != null) {
@@ -1125,11 +1135,11 @@ public class ManagerCapitalService extends BaseService {
             }
         }
 
-        return pbxWeekSettleInternal(gameId, weekKey, rankProfitPercent, top10Rates);
+        return pbxWeekSettleInternal(gameId, weekKey, rankProfitPercent, top10Rates,capitalType);
     }
 
 
-    private JSONObject pbxWeekSettleInternal(int gameId, String weekKey, BigDecimal rankProfitPercent, JSONArray top10Rates) {
+    private JSONObject pbxWeekSettleInternal(int gameId, String weekKey, BigDecimal rankProfitPercent, JSONArray top10Rates,int capitalType) {
         Date now = new Date();
 
         JSONObject result = new JSONObject();
@@ -1291,7 +1301,7 @@ public class ManagerCapitalService extends BaseService {
                 event.setBetCents(betCents);
                 event.setRate(rate);
                 event.setAwardCents(awardCents);
-                event.setCapitalType(1002);
+                event.setCapitalType(capitalType);
                 event.setOrderNo("PBX_WEEK_RANK_" + weekKey + "_" + uid);
                 event.setEm(LogCapitalTypeEnum.game_bet_win_pbx.getValue());
                 event.setTableName("pbx_week_rank");
@@ -1314,7 +1324,7 @@ public class ManagerCapitalService extends BaseService {
                     event.setTableName("pbx_week_rank");
                 }
                 if (event.getCapitalType() == null) {
-                    event.setCapitalType(1002);
+                    event.setCapitalType(capitalType);
                 }
                 event.setEm(LogCapitalTypeEnum.game_bet_win_pbx.getValue());
                 event.setUpdateTime(now);
@@ -1352,7 +1362,7 @@ public class ManagerCapitalService extends BaseService {
 
         // 发奖
         if (!payBatch.isEmpty()) {
-            userCapitalService.betUpdateBalance2(payBatch, 1002);
+            userCapitalService.betUpdateBalance2(payBatch, capitalType);
             for (String uidStr : payBatch.keySet()) {
                 long uid = Long.parseLong(uidStr);
                 PbxWeekSettleEvent event = eventByUser.get(uid);
@@ -1374,7 +1384,7 @@ public class ManagerCapitalService extends BaseService {
         for (int i = 0; i < userList.size(); i++) {
             JSONObject one = userList.getJSONObject(i);
             long uid = Long.parseLong(one.getString("userId"));
-            UserCapital uc = userCapitalService.findUserCapitalByUserIdAndCapitalType(uid, 1002);
+            UserCapital uc = userCapitalService.findUserCapitalByUserIdAndCapitalType(uid, capitalType);
             one.put("balance", uc == null ? "0" : uc.getBalance());
         }
 
@@ -1634,7 +1644,7 @@ public class ManagerCapitalService extends BaseService {
 
         int capitalType = orderInfo.getIntValue("capitalType");
         if (capitalType <= 0) {
-            capitalType = UserCapitalTypeEnum.hxjf.getValue();
+            capitalType = UserCapitalTypeEnum.xxxhhb.getValue();
         }
 
         UserCapital before = userCapitalCacheService.getUserCapitalCacheByType(uid, capitalType);
@@ -1787,18 +1797,18 @@ public class ManagerCapitalService extends BaseService {
             em = LogCapitalTypeEnum.getEm(o.getIntValue("em"));
             userId = Long.parseLong(key);
         }
-        userCapitalService.betUpdateBalance2(data,UserCapitalTypeEnum.yyb.getValue());
+        userCapitalService.betUpdateBalance2(data,UserCapitalTypeEnum.hxjf.getValue());
         for (String key : set) {
             JSONObject o = JSONObject.parse(data.getString(key));
             em = LogCapitalTypeEnum.getEm(o.getIntValue("em"));
             userId = Long.parseLong(key);
-            UserCapital userCapital = userCapitalCacheService.getUserCapitalCacheByType(userId, UserCapitalTypeEnum.yyb.getValue());
+            UserCapital userCapital = userCapitalCacheService.getUserCapitalCacheByType(userId, UserCapitalTypeEnum.hxjf.getValue());
             JSONObject pushData = new JSONObject();
             pushData.put("userId", userId);
             if (em.getValue() == LogCapitalTypeEnum.game_bet_win_dts2.getValue()) {
                 pushData.put("isDts", 1);
             }
-            pushData.put("capitalType", UserCapitalTypeEnum.yyb.getValue());
+            pushData.put("capitalType", UserCapitalTypeEnum.hxjf.getValue());
             pushData.put("balance", userCapital.getBalance());
             Push.push(PushCode.updateUserCapital, managerSocketService.getServerIdByUserId(userId), pushData);
         }
@@ -1817,19 +1827,19 @@ public class ManagerCapitalService extends BaseService {
         if (data.size()==0){
             return new JSONObject();
         }
-        userCapitalService.betUpdateBalance2(data,UserCapitalTypeEnum.yyb.getValue());
+        userCapitalService.betUpdateBalance2(data,UserCapitalTypeEnum.hxjf.getValue());
         addItem(data);
         for (String key : set) {
             JSONObject o = JSONObject.parse(data.getString(key));
             em = LogCapitalTypeEnum.getEm(o.getIntValue("em"));
             userId = Long.parseLong(key);
-            UserCapital userCapital = userCapitalCacheService.getUserCapitalCacheByType(userId, UserCapitalTypeEnum.yyb.getValue());
+            UserCapital userCapital = userCapitalCacheService.getUserCapitalCacheByType(userId, UserCapitalTypeEnum.hxjf.getValue());
             JSONObject pushData = new JSONObject();
             if (em.getValue() == LogCapitalTypeEnum.game_bet_win_nh.getValue()) {
                 pushData.put("isDts", 1);
             }
             pushData.put("userId", userId);
-            pushData.put("capitalType", UserCapitalTypeEnum.yyb.getValue());
+            pushData.put("capitalType", UserCapitalTypeEnum.hxjf.getValue());
             pushData.put("balance", userCapital.getBalance());
             Push.push(PushCode.updateUserCapital, managerSocketService.getServerIdByUserId(userId), pushData);
         }
@@ -1883,7 +1893,7 @@ public class ManagerCapitalService extends BaseService {
 
     @Transactional
     public void betUpdateBalanceOrItem(JSONObject obj) {
-        int capitalType = UserCapitalTypeEnum.yyb.getValue();
+        int capitalType = UserCapitalTypeEnum.hxjf.getValue();
         List<Map<String, Object>> list = new ArrayList<>();
         Set<String> set = obj.keySet();
         LogCapitalTypeEnum em = LogCapitalTypeEnum.dgs_bet;
@@ -1891,7 +1901,7 @@ public class ManagerCapitalService extends BaseService {
         for (String key : set) {
             Map<String, Object> map = new HashedMap<>();
             map.put("userId", key);
-            UserCapital userCapital = userCapitalCacheService.getUserCapitalCacheByType(Long.parseLong(key), UserCapitalTypeEnum.yyb.getValue());
+            UserCapital userCapital = userCapitalCacheService.getUserCapitalCacheByType(Long.parseLong(key), UserCapitalTypeEnum.hxjf.getValue());
             beforeMoney.put(key, userCapital.getBalance());
             JSONObject o = JSONObject.parse(obj.getString(key));
             if(1==o.getIntValue("type")){
@@ -1961,10 +1971,6 @@ public class ManagerCapitalService extends BaseService {
     private String nowTimeMs() {
         return new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS").format(new Date());
     }
-// -------------------------------------------------------------------------
-    //  Redis Key 规范化管理 (使用冒号 : 分隔，便于工具折叠查看)
-    //  结构：game:pbx:{gameId}:{weekKey}:{type}
-    // -------------------------------------------------------------------------
 
     /** 周榜 ZSet: game:pbx:12:2025-12-29:rank */
     private String pbxWeekUserRankZsetKey(int gameId, String weekKey) {

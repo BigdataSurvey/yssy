@@ -146,18 +146,18 @@ public class Executer {
                     long time = System.currentTimeMillis() - task.getCreateTime();
                     if (time > 2000) {
                         if (!task.getCode().equals("700200") && !task.getCode().equals("007002") && !task.getCode().equals("999999")) {
-                            logger.info("[" + task.getCode() + "]任务执行结束，总耗时：" + (time) + " ms：" + JSON.toJSONString(command));
+                            //logger.info("[" + task.getCode() + "]任务执行结束，总耗时：" + (time) + " ms：" + JSON.toJSONString(command));
                         }
 
                     } else {
                         if (!task.getCode().equals("700200") && !task.getCode().equals("007002") && !task.getCode().equals("999999")) {
-                            logger.info("[" + task.getCode() + "]任务执行结束，总耗时：" + (time) + " ms");
+                            //logger.info("[" + task.getCode() + "]任务执行结束，总耗时：" + (time) + " ms");
                         }
 
                     }
                     task.getBaseServerSocket().sendCommand(command);
                 } else {
-                    logger.info("任务已超时，停止响应客户端：" + JSON.toJSONString(command));
+                    logger.warn("任务已超时，停止响应客户端：" + JSON.toJSONString(command));
                 }
             }
         });

@@ -351,6 +351,7 @@ public class BattleRoyaleService extends BaseService {
         String userId = params.getString("userId");
         String userBet = params.getString("bet");
         BigDecimal amount = params.getBigDecimal("betAmount");
+        params.put("capitalType", CAPITAL_TYPE);
         if (amount == null) {
             throwExp("下注金额错误");
         }
@@ -493,10 +494,8 @@ public class BattleRoyaleService extends BaseService {
     }
 
 
-
-
     public Map<String, String> updateCapital(String userId, BigDecimal amount, String orderNo, Long dataId) {
-        userCapitalService.subUserOccupyBalanceByDtsBet(Long.parseLong(userId), amount);
+        userCapitalService.subUserOccupyBalanceByDtsBet(Long.parseLong(userId), amount,CAPITAL_TYPE);
         Map<String, String> myOrder = new HashMap<>();
         myOrder.put("orderNo", orderNo);
         myOrder.put("dataId", String.valueOf(dataId));
@@ -1038,7 +1037,7 @@ public class BattleRoyaleService extends BaseService {
         }
     }
     public void rankRebate(String userId, BigDecimal amount, String orderNo) {
-        userCapitalService.addUserBalanceByDtsRank(Long.parseLong(userId), amount);
+        userCapitalService.addUserBalanceByDtsRank(Long.parseLong(userId), amount,CAPITAL_TYPE);
         Map<String, String> myOrder = new HashMap<>();
         myOrder.put("orderNo", orderNo);
         myOrder.put("betAmount", amount.toString());
