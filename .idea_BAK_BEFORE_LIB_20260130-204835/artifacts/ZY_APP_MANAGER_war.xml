@@ -1,8 +1,0 @@
-<component name="ArtifactManager">
-  <artifact type="war" name="ZY-APP-MANAGER:war">
-    <output-path>$PROJECT_DIR$/out/artifacts/ZY_APP_MANAGER_war</output-path>
-    <root id="archive" name="ZY-APP-MANAGER_war.war">
-      <element id="artifact" artifact-name="ZY-APP-MANAGER:war exploded" />
-    </root>
-  </artifact>
-</component>

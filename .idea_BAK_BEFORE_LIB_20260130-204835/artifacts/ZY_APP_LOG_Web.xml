@@ -1,8 +1,0 @@
-<component name="ArtifactManager">
-  <artifact type="war" name="ZY-APP-LOG:Web">
-    <output-path>$PROJECT_DIR$/out/artifacts/ZY_APP_LOG_Web</output-path>
-    <root id="archive" name="ZY-APP-LOG_Web.war">
-      <element id="artifact" artifact-name="ZY-APP-LOG:Web exploded" />
-    </root>
-  </artifact>
-</component>
