@@ -42,19 +42,31 @@ public class TradingRecordService extends DaoService{
 		save(tradingRecord);
 		return tradingRecord.getId();
 	}
-	
-	public List<TradingRecordVo>  getMyRecord(Long userId,int start,int limit,int type){
+
+	public List<TradingRecordVo> getMyRecord(Long userId,int start,int limit,int type){
 		Map<String, Object> params = new HashedMap<String, Object>();
-		params.put("start", start*limit);
+		int page = start;
+		if (page < 1) {
+			page = 1;
+		}
+		params.put("start", (page - 1) * limit);
 		params.put("limit", limit);
 		params.put("userId", userId);
 		params.put("type",type);
 		List<TradingRecord> list = findByConditions(params);
 		List<TradingRecordVo> result = new ArrayList<TradingRecordVo>();
 		for (TradingRecord tradingRecord : list) {
-			TradingRecordVo vo = new TradingRecordVo(tradingRecord.getItemId(), tradingRecord.getItemNumber(), tradingRecord.getAmount(), tradingRecord.getFee(), tradingRecord.getType(), tradingRecord.getCreateTime());
+			TradingRecordVo vo = new TradingRecordVo(
+					tradingRecord.getItemId(),
+					tradingRecord.getItemNumber(),
+					tradingRecord.getAmount(),
+					tradingRecord.getFee(),
+					tradingRecord.getType(),
+					tradingRecord.getCreateTime()
+			);
 			result.add(vo);
 		}
 		return result;
 	}
+
 }

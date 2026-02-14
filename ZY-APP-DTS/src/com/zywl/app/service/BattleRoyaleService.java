@@ -351,6 +351,7 @@ public class BattleRoyaleService extends BaseService {
         String userId = params.getString("userId");
         String userBet = params.getString("bet");
         BigDecimal amount = params.getBigDecimal("betAmount");
+        params.put("capitalType", CAPITAL_TYPE);
         if (amount == null) {
             throwExp("下注金额错误");
         }
@@ -493,10 +494,8 @@ public class BattleRoyaleService extends BaseService {
     }
 
 
-
-
     public Map<String, String> updateCapital(String userId, BigDecimal amount, String orderNo, Long dataId) {
-        userCapitalService.subUserOccupyBalanceByDtsBet(Long.parseLong(userId), amount);
+        userCapitalService.subUserOccupyBalanceByDtsBet(Long.parseLong(userId), amount,CAPITAL_TYPE);
         Map<String, String> myOrder = new HashMap<>();
         myOrder.put("orderNo", orderNo);
         myOrder.put("dataId", String.valueOf(dataId));
@@ -508,20 +507,57 @@ public class BattleRoyaleService extends BaseService {
         return myOrder;
     }
 
-    public BigDecimal addBet(String userId, String userBet, BigDecimal amount) {
-        BigDecimal allAmount = amount;
-        // 追加投资
+    BigDecimal addBet(String userId, String userBet, BigDecimal amount) {
+
         Map<String, BigDecimal> userBets = ROOM.getUserBetInfo().get(userId);
-        if (!userBets.containsKey(userBet)){
-            throwExp("非法请求");
+        if (userBets == null) {
+            userBets = new HashMap<>();
+            ROOM.getUserBetInfo().put(userId, userBets);
         }
-        userBets.put(userBet, userBets.get(userBet).add(amount));
-        ROOM.getUserBetInfo().put(userId, userBets);
-        allAmount = allAmount.add(ROOM.getRoomList().get(userBet).get(userId).getBigDecimal("betAmount"));
-        ROOM.getRoomList().get(userBet).get(userId).put("betAmount",
-                ROOM.getRoomList().get(userBet).get(userId).getBigDecimal("betAmount").add(amount));
+
+        BigDecimal old = userBets.get(userBet);
+        if (old == null) {
+            old = BigDecimal.ZERO;
+        }
+
+        BigDecimal allAmount = old.add(amount);
+        userBets.put(userBet, allAmount);
+
+        Map<String, JSONObject> roomUsers = ROOM.getRoomList().get(userBet);
+        if (roomUsers == null) {
+            throwExp("房间不存在:" + userBet);
+        }
+
+        JSONObject betInfo = roomUsers.get(userId);
+
+        if (betInfo == null) {
+            betInfo = new JSONObject();
+            betInfo.put("userId", userId);
+            betInfo.put("roomId", userBet);
+
+            if (BOT_USER.containsKey(userId)) {
+                User bot = BOT_USER.get(userId);
+                betInfo.put("userNo", bot.getUserNo());
+                betInfo.put("name", bot.getName());
+                betInfo.put("userName", bot.getName());
+                betInfo.put("headImgUrl", bot.getHeadImageUrl());
+            } else {
+                Map<String, String> p = ROOM.getPlayers().get(userId);
+                betInfo.put("userNo", p == null ? "" : p.get("userNo"));
+                betInfo.put("name", p == null ? "" : p.get("userName"));
+                betInfo.put("userName", p == null ? "" : p.get("userName"));
+                betInfo.put("headImgUrl", p == null ? "" : p.get("headImgUrl"));
+            }
+        }
+
+        betInfo.put("betAmount", allAmount);
+
+        roomUsers.put(userId, betInfo);
+
         return allAmount;
     }
+
+
 
     public void bet(Map<String, String> myOrder, String userId, String userBet, BigDecimal amount) {
         // 添加订单信息
@@ -615,6 +651,11 @@ public class BattleRoyaleService extends BaseService {
             try {
                 // 下注记录
                 String orderNo = OrderUtil.getOrder5Number();
+                boolean firstBetThisRoom = true;
+                Map<String, BigDecimal> userBets = ROOM.getUserBetInfo().get(userId);
+                if (userBets != null && userBets.containsKey(userBet)) {
+                    firstBetThisRoom = false;
+                }
 
                 // 扣除资产 + 下注记录
                 Map<String, String> myOrder = new HashMap<>();
@@ -646,8 +687,11 @@ public class BattleRoyaleService extends BaseService {
                 }
 
                 // 房间下注信息增加
-                ROOM.getBetOptionsInfo().get(userBet).put("betNumber",
-                        String.valueOf((Integer.parseInt(ROOM.getBetOptionsInfo().get(userBet).get("betNumber")) + 1)));
+                if (firstBetThisRoom) {
+                    ROOM.getBetOptionsInfo().get(userBet).put("betNumber",
+                            String.valueOf((Integer.parseInt(ROOM.getBetOptionsInfo().get(userBet).get("betNumber")) + 1)));
+                }
+
                 ROOM.getBetOptionsInfo().get(userBet).put("betAmount",
                         (new BigDecimal(ROOM.getBetOptionsInfo().get(userBet).get("betAmount")).add(amount)).toString());
 
@@ -967,42 +1011,76 @@ public class BattleRoyaleService extends BaseService {
 
     public void changeRoomStatus(int roomStatus, Command lotteryCommand) {
         ROOM.setStatus(roomStatus);
-        JSONObject data = new JSONObject();
+
+        com.alibaba.fastjson.JSONObject data = new com.alibaba.fastjson.JSONObject();
         data.put("userIds", ROOM.getPlayers().keySet());
         data.put("gameId", GameTypeEnum.battleRoyale.getValue());
+
         if (ROOM.getStatus() == LotteryGameStatusEnum.ready.getValue()) {
-            // 初始化房间信息 更新历史开奖结果
+
             ROOM.initRoomInfo();
             initHistoryResult();
+
             data.put("lookList", new ConcurrentHashMap<String, Map<String, Object>>());
             data.put("roomList", ROOM.getRoomList());
             data.put("status", ROOM.getStatus());
             data.put("periodsNum", ROOM.getPeridosNum());
             data.put("lastResult", ROOM.getLastResult());
+
             Push.push(PushCode.updateGameStatus, null, data);
+
         } else if (ROOM.getStatus() == LotteryGameStatusEnum.gaming.getValue()) {
+
             data.put("status", ROOM.getStatus());
             data.put("endTime", ROOM.getEndTime());
             data.put("gameId", GameTypeEnum.battleRoyale.getValue());
+
             Executer.executeService(new ServiceRunable(logger) {
                 public void service() {
                     startGame(lotteryCommand);
                 }
             });
+
             Push.push(PushCode.updateGameStatus, null, data);
+
         } else if (ROOM.getStatus() == LotteryGameStatusEnum.settle.getValue()) {
+
             String result = battleRoyaleService.draw();
             ROOM.setResult(result);
             ROOM.setLastResult(result);
+
+            // 结算（这里会把 ROOM.getUserBetOrderInfo() 填好 winAmount/betAmount/isWin 等）
             battleRoyaleService.settle(String.valueOf(result), lotteryCommand);
+
             ROOM.setReadyTime(System.currentTimeMillis());
+
             int status = ROOM.getStatus();
             ConcurrentHashMap<String, Map<String, String>> userBetOrderInfo = ROOM.getUserBetOrderInfo();
-            data.put("roomId", result);
-            data.put("status", status);
-            data.putAll(ROOM.getSettleDate());
-            data.put("userSettleInfo", userBetOrderInfo);
-            JSONObject userRecordSummaryMap = new JSONObject();
+
+            // ===== 构建“公共部分” =====
+            com.alibaba.fastjson.JSONObject base = new com.alibaba.fastjson.JSONObject();
+            base.put("roomId", result);
+            base.put("status", status);
+            base.put("gameId", GameTypeEnum.battleRoyale.getValue());
+            base.putAll(ROOM.getSettleDate()); // 你原来的：winNumber/loseNumber/allLoseAmount/roomIds 等
+
+            base.put("userSettleInfo", userBetOrderInfo);
+
+            // userSettleList（你原来的列表结构，保留）
+            com.alibaba.fastjson.JSONArray userSettleList = new com.alibaba.fastjson.JSONArray();
+            if (userBetOrderInfo != null) {
+                for (String uid : userBetOrderInfo.keySet()) {
+                    com.alibaba.fastjson.JSONObject one = new com.alibaba.fastjson.JSONObject();
+                    one.put("userId", uid);
+                    Map<String, String> si = userBetOrderInfo.get(uid);
+                    if (si != null) one.putAll(si);
+                    userSettleList.add(one);
+                }
+            }
+            base.put("userSettleList", userSettleList);
+
+            // userRecordSummaryMap（你原来的：包含 totalInvest/totalGain 历史汇总，保留）
+            com.alibaba.fastjson.JSONObject userRecordSummaryMap = new com.alibaba.fastjson.JSONObject();
             try {
                 if (userBetOrderInfo != null) {
                     for (String uid : userBetOrderInfo.keySet()) {
@@ -1012,18 +1090,37 @@ public class BattleRoyaleService extends BaseService {
                             if (si != null && si.get("winAmount") != null) {
                                 extraGain = new BigDecimal(si.get("winAmount"));
                             }
-                        } catch (Exception ignore) {
-                        }
+                        } catch (Exception ignore) { }
                         try {
-                            userRecordSummaryMap.put(uid, battleRoyaleRecordService.buildUnifiedSummary(Long.valueOf(uid), true, extraGain));
-                        } catch (Exception ignore) {
-                        }
+                            userRecordSummaryMap.put(uid,
+                                    battleRoyaleRecordService.buildUnifiedSummary(Long.valueOf(uid), true, extraGain));
+                        } catch (Exception ignore) { }
                     }
                 }
-            } catch (Exception ignore) {
+            } catch (Exception ignore) { }
+            base.put("userRecordSummaryMap", userRecordSummaryMap);
+
+            // ===== ✅关键改动：按 userId 拆包单播，顶层补齐 totalGain =====
+            if (ROOM.getPlayers() != null && ROOM.getPlayers().keySet() != null) {
+                for (String uid : ROOM.getPlayers().keySet()) {
+
+                    com.alibaba.fastjson.JSONObject onePayload = new com.alibaba.fastjson.JSONObject();
+                    onePayload.putAll(base);
+
+                    // 单人结算字段：顶层 totalGain/totalInvest + 兼容字段
+                    onePayload.putAll(buildUserSettlePayload(uid, GameTypeEnum.battleRoyale.getValue()));
+
+                    // ✅让 Push 层明确只推给这个人
+                    onePayload.put("userIds", java.util.Collections.singleton(uid));
+
+                    Push.push(PushCode.updateGameStatus, null, onePayload);
+                }
+            } else {
+                // 兜底：如果 players 异常，仍然广播一次（避免直接没推送）
+                Push.push(PushCode.updateGameStatus, null, base);
             }
-            data.put("userRecordSummaryMap", userRecordSummaryMap);
-            Push.push(PushCode.updateGameStatus, null, data);
+
+            // 回到 ready
             Executer.executeService(new Runnable() {
                 @Override
                 public void run() {
@@ -1037,8 +1134,9 @@ public class BattleRoyaleService extends BaseService {
             });
         }
     }
+
     public void rankRebate(String userId, BigDecimal amount, String orderNo) {
-        userCapitalService.addUserBalanceByDtsRank(Long.parseLong(userId), amount);
+        userCapitalService.addUserBalanceByDtsRank(Long.parseLong(userId), amount,CAPITAL_TYPE);
         Map<String, String> myOrder = new HashMap<>();
         myOrder.put("orderNo", orderNo);
         myOrder.put("betAmount", amount.toString());
@@ -1047,13 +1145,14 @@ public class BattleRoyaleService extends BaseService {
         List<Map<String, String>> maps = userRankCapitals.get(key3);
         maps.add(myOrder);
     }
+
     @Transactional
     public void settle(String result, Command lotteryCommand) {
         List<String> lastWeekTopIds = GameCacheService.getLastWeekTopUserIds(GameTypeEnum.battleRoyale.getValue());
-
         System.out.println("开奖结果：" + result);
         int winNumber = 0;
         int loseNumber = 0;
+
         // 结算 获取每个人下注 和 总分红扣掉5%的比例 每个人的比例
         Set<String> bets = ROOM.getBetOptionsInfo().keySet();
         BigDecimal allLoseAmount = BigDecimal.ZERO;
@@ -1067,26 +1166,27 @@ public class BattleRoyaleService extends BaseService {
                 allLoseAmount = allLoseAmount.add(new BigDecimal(optionBetAmount));
             }
         }
+
         Map<String, BigDecimal> map = new HashMap<>();
         System.out.println("赢家" + allWinAmount);
         System.out.println("输家" + allLoseAmount);
+
         JSONObject data = new JSONObject();
-        //免伤金额
-        BigDecimal subAmount = BigDecimal.ZERO; // 获胜玩家总投注
+
+        // 免伤金额
+        BigDecimal subAmount = BigDecimal.ZERO;
         for (String userId : ROOM.getUserBetInfo().keySet()) {
             Map<String, BigDecimal> oneUserbetInfo = ROOM.getUserBetInfo().get(userId);
-
             for (String s : oneUserbetInfo.keySet()) {
                 if (result.equals(s) && lastWeekTopIds.contains(userId)) {
-                    // 玩家下的注是输的房间 判断是否是免伤玩家  是的话增加免伤金额
                     BigDecimal loseAmount = oneUserbetInfo.get(s);
                     int index = lastWeekTopIds.indexOf(userId);
                     BigDecimal rate = BigDecimal.ZERO;
-                    if (index==0){
+                    if (index == 0) {
                         rate = new BigDecimal("0.15");
-                    } else if (index>=1 && index<=5) {
+                    } else if (index >= 1 && index <= 5) {
                         rate = new BigDecimal("0.1");
-                    } else  {
+                    } else {
                         rate = new BigDecimal("0.05");
                     }
                     BigDecimal rebate = loseAmount.multiply(rate);
@@ -1094,19 +1194,23 @@ public class BattleRoyaleService extends BaseService {
                 }
             }
         }
-        //总输家的金额需要扣除掉免伤的金额
+
+        // 总输家的金额需要扣除掉免伤的金额
         allLoseAmount = allLoseAmount.subtract(subAmount);
+
         // 赢的房间 开始计算玩家下注所占比例
         for (String userId : ROOM.getUserBetInfo().keySet()) {
-            // 获胜玩家
+
             Map<String, BigDecimal> oneUserbetInfo = ROOM.getUserBetInfo().get(userId);
-            BigDecimal userAllAmount = BigDecimal.ZERO; // 获胜玩家总投注
+
+            BigDecimal userAllAmount = BigDecimal.ZERO; // 获胜玩家总投注（下注在非result房间）
             for (String s : oneUserbetInfo.keySet()) {
                 if (!s.equals(result)) {
-                    // 玩家下的注是赢的房间 统计下注金额
                     userAllAmount = userAllAmount.add(oneUserbetInfo.get(s));
                 }
             }
+
+            // 找到玩家所在房间（ROOM.roomList: roomId -> (userId -> betInfo)）
             String myBetRoomId = null;
             for (String room : ROOM.getRoomList().keySet()) {
                 if (ROOM.getRoomList().get(room).containsKey(userId)) {
@@ -1114,11 +1218,22 @@ public class BattleRoyaleService extends BaseService {
                     break;
                 }
             }
-            if (myBetRoomId == null) continue;
+            if (myBetRoomId == null) {
+                continue;
+            }
+
+            // 统一拿本房间该用户下注金额（用于记录/展示）
+            BigDecimal betAmountInRoom = ROOM.getRoomList().get(myBetRoomId).get(userId).getBigDecimal("betAmount");
+            if (betAmountInRoom == null) betAmountInRoom = BigDecimal.ZERO;
+            String betAmountStr = betAmountInRoom.stripTrailingZeros().toPlainString();
+
+            // 先把 betAmount 写入 userBetOrderInfo，保证结算页/记录页都有
+            ROOM.getUserBetOrderInfo().get(userId).put("betAmount", betAmountStr);
+            map.put(userId, betAmountInRoom);
+
             if (userAllAmount.compareTo(BigDecimal.ZERO) == 1) {
-                // 大于0 则为获胜
-                BigDecimal winAmount = null;
-                // 全部输家金额为0 则没有人输 金额就为自己下注金额
+                // 大于0 则为获胜（下注在非result房间）
+                BigDecimal winAmount;
                 if (allLoseAmount.compareTo(BigDecimal.ZERO) == 0) {
                     winAmount = BigDecimal.ZERO;
                 } else {
@@ -1127,73 +1242,126 @@ public class BattleRoyaleService extends BaseService {
                             .multiply(allLoseAmount.multiply(rate))
                             .setScale(2, BigDecimal.ROUND_DOWN);
                 }
-                JSONObject o = new JSONObject();
+
+                // 最终可获得 = 自己获胜房间下注总额 + 分红
                 BigDecimal add = winAmount.add(new BigDecimal(userAllAmount.toString()));
-                o.put("amount", add);
+                String addStr = add.stripTrailingZeros().toPlainString();
+
+                // 给 manager 记账/加钱
+                JSONObject o = new JSONObject();
+                o.put("amount", add); // 注意：这里仍然给 BigDecimal，给 manager 处理
                 o.put("capitalType", CAPITAL_TYPE);
                 o.put("orderNo", ROOM.getUserBetOrderInfo().get(userId).get("orderNo"));
                 o.put("em", LogCapitalTypeEnum.game_bet_win.getValue());
                 data.put(userId, o);
-                ROOM.getUserBetOrderInfo().get(userId).put("winAmount",
-                        add.toString());
 
-                ROOM.getUserBetOrderInfo().get(userId).put("betAmount", ROOM.getRoomList().get(myBetRoomId).get(userId).getBigDecimal("betAmount").toString());
-                map.put(userId, ROOM.getRoomList().get(myBetRoomId).get(userId).getBigDecimal("betAmount"));
-                ROOM.getUserBetOrderInfo().get(userId).put("isWin", "1");
+                // ✅【关键】结算展示字段：不管前端取哪个都不会 undefined
+                Map<String, String> settleMap = ROOM.getUserBetOrderInfo().get(userId);
+                settleMap.put("winAmount", addStr);   // 推荐字段
+                // ✅ 统一字段：前端结算页用 totalGain/totalInvest（截图中“获得”取 totalGain）
+                settleMap.put("totalGain", addStr);
+                settleMap.put("totalInvest", betAmountStr);
+                settleMap.put("amount", addStr);      // 兼容：很多前端直接取 amount
+                settleMap.put("award", addStr);       // 兼容
+                settleMap.put("gain", addStr);        // 兼容
+                settleMap.put("getAmount", addStr);   // 兼容
+                settleMap.put("isWin", "1");
+
                 winNumber++;
+
             } else {
-                ROOM.getUserBetOrderInfo().get(userId).put("betAmount", ROOM.getRoomList().get(myBetRoomId).get(userId).getBigDecimal("betAmount").toString());
-                map.put(userId, ROOM.getRoomList().get(myBetRoomId).get(userId).getBigDecimal("betAmount"));
-                ROOM.getUserBetOrderInfo().get(userId).put("winAmount", BigDecimal.ZERO.toString());
-                ROOM.getUserBetOrderInfo().get(userId).put("isWin", "0");
+                // 输家：获得为 0，同样补齐字段避免 undefined
+                Map<String, String> settleMap = ROOM.getUserBetOrderInfo().get(userId);
+
+                String zero = "0";
+                settleMap.put("winAmount", zero);
+                settleMap.put("totalGain", zero);
+                settleMap.put("totalInvest", betAmountStr);
+                settleMap.put("amount", zero);
+                settleMap.put("award", zero);
+                settleMap.put("gain", zero);
+                settleMap.put("getAmount", zero);
+                settleMap.put("isWin", "0");
+
                 loseNumber++;
             }
-
         }
+
         List<String> array = new ArrayList<>();
         array.add(result);
+
         ROOM.getSettleDate().put("winNumber", winNumber);
         ROOM.getSettleDate().put("loseNumber", loseNumber);
         ROOM.getSettleDate().put("allLoseAmount", allLoseAmount);
         ROOM.getSettleDate().put("roomIds", array);
+
+        // ✅ 可选：顺便补齐全局字段（如果前端结算页用 totalGain/totalInvest）
+        // 不影响现有逻辑，只是让字段更完整
+        try {
+            ROOM.getSettleDate().put("totalInvest", ROOM.getAllBetAmount() == null ? "0"
+                    : ROOM.getAllBetAmount().stripTrailingZeros().toPlainString());
+        } catch (Exception ignore) {}
+        try {
+            ROOM.getSettleDate().put("totalGain", allWinAmount == null ? "0"
+                    : allWinAmount.stripTrailingZeros().toPlainString());
+        } catch (Exception ignore) {}
+
         JSONObject updateRecord = new JSONObject();
         for (String uid : ROOM.getUserBetInfo().keySet()) {
+
             JSONObject record = new JSONObject();
-            record.put("winAmount", ROOM.getUserBetOrderInfo().get(uid).get("winAmount"));
+
+            // ✅ record 里同样补齐：避免前端从记录结构取“获得”也 undefined
+            String winStr = ROOM.getUserBetOrderInfo().get(uid).get("winAmount");
+            if (winStr == null) winStr = "0";
+
+            record.put("winAmount", winStr);
+            // ✅ 统一字段：记录页/结算页前端如果取 totalGain/totalInvest，也不会 undefined
+            record.put("totalGain", winStr);
+            record.put("amount", winStr);
+            record.put("award", winStr);
+            record.put("gain", winStr);
+            record.put("getAmount", winStr);
+
             record.put("lotteryResult", result);
+
             BigDecimal betAmount = map.get(uid);
             record.put("betAmount", betAmount);
+            record.put("totalInvest", betAmount);
+
             record.put("betInfo", ROOM.getUserCheckNum().get(uid));
             record.put("isWin", ROOM.getUserBetOrderInfo().get(uid).get("isWin"));
+
             updateRecord.put(ROOM.getUserBetOrderInfo().get(uid).get("orderNo"), record);
-            if (Integer.parseInt(ROOM.getUserBetOrderInfo().get(uid).get("isWin"))==0 && lastWeekTopIds.contains(uid)){
+
+            // 免伤返利（你原逻辑保留）
+            if (Integer.parseInt(ROOM.getUserBetOrderInfo().get(uid).get("isWin")) == 0 && lastWeekTopIds.contains(uid)) {
                 int index = lastWeekTopIds.indexOf(uid);
                 BigDecimal rate = BigDecimal.ZERO;
-                if (index==0){
+                if (index == 0) {
                     rate = new BigDecimal("0.15");
-                } else if (index>=1 && index<=5) {
+                } else if (index >= 1 && index <= 5) {
                     rate = new BigDecimal("0.1");
-                } else  {
+                } else {
                     rate = new BigDecimal("0.05");
                 }
                 BigDecimal rebate = betAmount.multiply(rate);
-                rankRebate(uid,rebate,ROOM.getUserBetOrderInfo().get(uid).get("orderNo"));
+                rankRebate(uid, rebate, ROOM.getUserBetOrderInfo().get(uid).get("orderNo"));
             }
         }
+
         requsetMangerService.requestManagerBet(data, new Listener() {
             public void handle(BaseClientSocket clientSocket, Command command) {
                 if (command.isSuccess()) {
                     battleRoyaleRecordService.batchUpdateRecord(updateRecord);
                     Executer.response(CommandBuilder.builder(lotteryCommand).success(result).build());
                 } else {
-                    Executer.response(
-                            CommandBuilder.builder(lotteryCommand).error(command.getMessage(), command.getData()).build());
+                    Executer.response(CommandBuilder.builder(lotteryCommand).error(command.getMessage(), command.getData()).build());
                 }
             }
         });
-
-
     }
+
 
 
     @Transactional
@@ -1241,5 +1409,50 @@ public class BattleRoyaleService extends BaseService {
         }
         logger.info("初始化大逃杀游戏配置完成");
     }
+
+    /**
+     * 给“某一个用户”构建结算页 payload（用于 updateGameStatus 单播）
+     * 重点：顶层补齐 totalGain / totalInvest，前端直接取 totalGain 不会再 undefined
+     */
+    private com.alibaba.fastjson.JSONObject buildUserSettlePayload(String userId, int gameId) {
+
+        com.alibaba.fastjson.JSONObject payload = new com.alibaba.fastjson.JSONObject();
+
+        payload.put("userId", userId);
+        payload.put("gameId", gameId);
+
+        // userSettleInfo 里你本来就有 betAmount / winAmount / isWin / orderNo 等信息
+        Map<String, String> one = ROOM.getUserBetOrderInfo() == null ? null : ROOM.getUserBetOrderInfo().get(userId);
+
+        String betAmountStr = "0";
+        String winAmountStr = "0";
+        String isWinStr = "0";
+        String orderNo = null;
+
+        if (one != null) {
+            if (one.get("betAmount") != null) betAmountStr = one.get("betAmount");
+            if (one.get("winAmount") != null) winAmountStr = one.get("winAmount");
+            if (one.get("isWin") != null) isWinStr = one.get("isWin");
+            if (one.get("orderNo") != null) orderNo = one.get("orderNo");
+        }
+
+        payload.put("betAmount", betAmountStr);      // 本局投入（单人）
+        payload.put("totalInvest", betAmountStr);    // ✅ 顶层：前端要投入也能直接取
+        payload.put("winAmount", winAmountStr);      // 本局获得（单人）
+        payload.put("totalGain", winAmountStr);      // ✅ 顶层：前端说取 totalGain，就给它
+
+        payload.put("isWin", isWinStr);
+        if (orderNo != null) payload.put("orderNo", orderNo);
+
+        // 兼容字段（如果前端有人写死 award/gain/amount/getAmount 也不会 undefined）
+        payload.put("award", winAmountStr);
+        payload.put("gain", winAmountStr);
+        payload.put("amount", winAmountStr);
+        payload.put("getAmount", winAmountStr);
+
+        return payload;
+    }
+
+
 
 }

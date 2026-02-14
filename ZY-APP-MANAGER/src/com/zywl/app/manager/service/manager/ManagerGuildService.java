@@ -375,56 +375,64 @@ public class ManagerGuildService extends BaseService {
 
 
 
-    @Transactional
+    @Transactional(readOnly = true)
     @ServiceMethod(code = "003", description = "查询公会详情")
     public Object getGuildInfo(ManagerSocketServer adminSocketServer, JSONObject data) {
         checkNull(data);
         checkNull(data.get("guildId"), data.get("userId"));
+
         Long userId = data.getLong("userId");
         loadAndCheckUser(userId);
-
         Long guildId = data.getLong("guildId");
+
+        // 公会信息
+        Guild guild = guildService.findById(guildId);
+        if (guild == null) {
+            throwExp("公会不存在");
+        }
+
         // 查询公会成员列表
         List<GuildMember> guildMembers = guildMemberService.findByGuildId(guildId);
-        if (guildMembers == null || guildMembers.isEmpty()) {
-            logger.error("暂无工会");
-            return new ArrayList<>();
-        }
+        List<UserVo> userVoList = new ArrayList<>();
 
-        List<UserVo> list = new ArrayList<>();
-        for (GuildMember guildMember : guildMembers) {
-            User user = userCacheService.getUserInfoById(guildMember.getUserId());
-            if (user == null) {
-                logger.error("工会用户不存在");
-                continue;
-            }
-            UserVo vo = new UserVo();
-            try {
-                BeanUtils.copy(user, vo);
-            }catch (Exception e){
-                vo.setHeadImageUrl(user.getHeadImageUrl());
+        if (guildMembers != null && !guildMembers.isEmpty()) {
+            for (GuildMember guildMember : guildMembers) {
+                User user = userCacheService.getUserInfoById(guildMember.getUserId());
+                if (user == null) {
+                    throwExp("工会用户不存在");
+                    continue;
+                }
+                UserVo vo = new UserVo();
+                vo.setId(user.getId());
                 vo.setName(user.getName());
                 vo.setUserNo(user.getUserNo());
-                vo.setId(user.getId());
-                vo.setAuthentication(user.getAuthentication());
-                vo.setIdCard(user.getIdCard());
-                vo.setIsCash(user.getIsCash());
+                vo.setHeadImageUrl(user.getHeadImageUrl());
                 vo.setPhone(user.getPhone());
-                vo.setQq(user.getQq());
                 vo.setRealName(user.getRealName());
-                vo.setRisk(user.getRisk());
-                vo.setVipExpireTime(user.getVipExpireTime());
+                vo.setIdCard(user.getIdCard());
+                vo.setQq(user.getQq());
+                vo.setWechatId(user.getWechatId());
                 vo.setVip1(user.getVip1());
                 vo.setVip2(user.getVip2());
+                vo.setVipExpireTime(user.getVipExpireTime());
                 vo.setVip2ExpireTime(user.getVip2ExpireTime());
+                vo.setAuthentication(user.getAuthentication());
+                vo.setIsCash(user.getIsCash());
+                vo.setRisk(user.getRisk());
                 vo.setRoleId(user.getRoleId());
-                vo.setWechatId(user.getWechatId());
                 vo.setGameToken(null);
-            }
 
-            list.add(vo);
+                userVoList.add(vo);
+            }
         }
-        return list;
+        Map<String, Object> result = new HashMap<>();
+        result.put("guildName", guild.getGuildName());
+        result.put("memberNumber", userVoList.size());
+        result.put("remark", guild.getRemark());
+        result.put("type", guild.getType());
+        result.put("userList", userVoList);
+
+        return result;
     }
 
 

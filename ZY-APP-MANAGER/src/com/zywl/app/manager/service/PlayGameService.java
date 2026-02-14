@@ -974,7 +974,7 @@ public class PlayGameService extends BaseService {
         BigDecimal amount = orderInfo.getBigDecimal("betAmount");
         int capitalType = orderInfo.getIntValue("capitalType");
         if (capitalType <= 0) {
-            capitalType = UserCapitalTypeEnum.hxjf.getValue();
+            capitalType = UserCapitalTypeEnum.xxxhhb.getValue();
         }
 
         userCacheService.addTodayUserPlayCount(Long.valueOf(id));

@@ -27,7 +27,9 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.*;
-
+/**
+ *  用户资产服务
+ */
 @Service
 public class UserCapitalService extends DaoService {
 
@@ -176,12 +178,8 @@ public class UserCapitalService extends DaoService {
         }
     }
 
-    //
-
     /**
-     * 批量更新用户资产余额（仅仅用来解决大逃杀死锁问题）
-     *  通过一次批量 SQL 完成余额变更,减少数据库锁竞争;
-     *  在内存缓存与日志系统中同步变更
+     * 批量更新用户资产余额
      * **/
     @Transactional
     public void betUpdateBalance2(JSONObject obj, int capitalType) {
@@ -189,78 +187,55 @@ public class UserCapitalService extends DaoService {
             return;
         }
 
-        // 组装批量更新参数,保证一个用户一条update
-        List<Map<String, Object>> list = new ArrayList<>();
         Set<String> set = obj.keySet();
-        LogCapitalTypeEnum em = null;
+        List<Map<String, Object>> list = new ArrayList<>();
+        Map<Long, BigDecimal> consumeMap = new HashMap<>();
+
 
         // 记录变更前余额
         Map<String, BigDecimal> beforeMoney = new HashMap<>();
-
         for (String userIdStr : set) {
-            // 取本用户的变更对象
-            JSONObject o;
             Object raw = obj.get(userIdStr);
-
-            if (raw instanceof JSONObject) {
-                o = (JSONObject) raw;
-            } else {
-                o = JSONObject.parseObject(obj.getString(userIdStr));
-            }
-
-            if (o == null) { continue; }
+            JSONObject o = (raw instanceof JSONObject)
+                    ? (JSONObject) raw
+                    : JSONObject.parseObject(String.valueOf(raw));
 
             BigDecimal amount = o.getBigDecimal("amount");
-            if (amount == null || amount.compareTo(BigDecimal.ZERO) == 0) {
+            if (amount == null) {
                 continue;
             }
 
-            // 如果 payload 里带 capitalType，必须与入参一致，避免扣错币种
-            Integer ctInObj = o.getInteger("capitalType");
-            if (ctInObj != null && ctInObj != 0 && ctInObj.intValue() != capitalType) {
-                throwExp("capitalType mismatch: param=" + capitalType + ", obj=" + ctInObj);
-            }
-
-            // 查询目标资本记录
-            UserCapital userCapital = userCapitalCacheService.getUserCapitalCacheByType(Long.parseLong(userIdStr), capitalType);
-            beforeMoney.put(userIdStr, userCapital.getBalance());
-
-            //资产校验
             if (amount.compareTo(BigDecimal.ZERO) < 0) {
-                if (userCapital.getBalance().add(amount).compareTo(BigDecimal.ZERO) < 0) {
-                    throwExp("用户[" + userIdStr + "]余额不足，无法扣费！当前余额:" + userCapital.getBalance());
-                }
+                consumeMap.merge(Long.parseLong(userIdStr), amount.abs(), BigDecimal::add);
             }
 
-            // 批量更新
-            Map<String, Object> map = new HashedMap<>();
-            map.put("userId", userIdStr);
-            map.put("amount", amount);
-            map.put("id", userCapital.getId());
-            map.put("capitalType", capitalType);
-            em = LogCapitalTypeEnum.getEm(o.getIntValue("em"));
-            list.add(map);
+            Integer ct = o.getInteger("capitalType");
+            if (ct != null && ct > 0 && ct != capitalType) {
+                throwExp("betUpdateBalance2 capitalType mismatch, param=" + capitalType + ", data=" + ct);
+            }
+            Map<String, Object> params = new HashedMap<>();
+            params.put("userId", Long.parseLong(userIdStr));
+            params.put("capitalType", capitalType);
+            params.put("amount", amount);
+            params.put("orderNo", o.getOrDefault("orderNo", null));
+            params.put("sourceDataId", o.getOrDefault("sourceDataId", null));
+            params.put("tableName", o.getOrDefault("tableName", null));
+            list.add(params);
         }
-
         if (list.isEmpty()) {
             return;
         }
-
-        // 执行批量更新
         int a = execute("betUpdateBalance2", list);
-
-        // 更新失败 清理缓存并抛错
         if (a < 1) {
             for (String userIdStr : set) {
-                userCapitalCacheService.deltedUserCapitalCache(Long.parseLong(userIdStr), capitalType);
+                userCapitalCacheService.deltedUserCapitalCache(Long.parseLong(userIdStr),capitalType);
             }
-            if (em != null && em.getValue() == LogCapitalTypeEnum.game_bet.getValue()) {
-                throwExp("失败！");
-            } else {
-                throwExp("结算失败！");
-            }
+            throwExp("更新资产失败");
         }
-
+        // 资产更新成功后，再写入消耗榜
+        for (Map.Entry<Long, BigDecimal> e : consumeMap.entrySet()) {
+            recordConsumeTop(e.getKey(), capitalType, e.getValue());
+        }
         // 更新成功 更新缓存 + 写流水日志
         for (String userIdStr : set) {
             JSONObject o;
@@ -293,17 +268,13 @@ public class UserCapitalService extends DaoService {
                     before,
                     occupyBefore,
                     amount,
-                    em,
+                    LogCapitalTypeEnum.game_bet,
                     (String) o.getOrDefault("orderNo", null),
                     null,
                     (String) o.getOrDefault("tableName", null)
             );
         }
     }
-
-
-
-
 
     @Transactional
     public void subUserBalanceByAskBuy(Long userId, Long itemId, BigDecimal amount, BigDecimal balance, BigDecimal occupyBalance) {
@@ -316,7 +287,6 @@ public class UserCapitalService extends DaoService {
             if (b < 1) {
                 throwExp("添加求购失败，请重试");
             }
-
         }
         // 清理缓存
     }
@@ -706,18 +676,18 @@ public class UserCapitalService extends DaoService {
         }
     }
     @Transactional
-    public int addUserBalanceByDtsRank(Long userId, BigDecimal amount) {
-        int a = addUserBalance2(amount, userId, UserCapitalTypeEnum.hxjf.getValue());
+    public int addUserBalanceByDtsRank(Long userId, BigDecimal amount,int capitalType) {
+        int a = addUserBalance2(amount, userId, capitalType);
         return a;
     }
 
 
     @Transactional
-    public int subUserOccupyBalanceByDtsBet(Long userId, BigDecimal amount) {
-        int a = subUserBalance2(amount, userId, UserCapitalTypeEnum.hxjf.getValue());
+    public int subUserOccupyBalanceByDtsBet(Long userId, BigDecimal amount,int capitalType) {
+        int a = subUserBalance2(amount, userId, capitalType);
         // 清理缓存
         if (a < 1) {
-            throwExp(UserCapitalTypeEnum.hxjf.getName()+"不足");
+            throwExp("资产不足,剩余："+a);
         }
         return a;
     }
@@ -1732,7 +1702,7 @@ public class UserCapitalService extends DaoService {
         params.put("userId", userId);
         params.put("capitalType", capitalType);
         params.put("amount", amount);
-        //原来的代码没有这个，不确定缺不缺 先写上；
+        //消耗榜单;
         recordConsumeTop(userId, capitalType, amount);
         return execute("subUserBalance2", params);
     }
@@ -1948,23 +1918,35 @@ public class UserCapitalService extends DaoService {
 
     }
     @Transactional
-    public void assetConversion(int sourceType, int targetType, BigDecimal amount, Long userId, String orderNo, Long dataId, BigDecimal targetAddBalance, LogCapitalTypeEnum em) {
+    public void assetConversion(int sourceType, int targetType,
+                                BigDecimal amount, Long userId,
+                                String orderNo, Long dataId,
+                                BigDecimal targetAddBalance, LogCapitalTypeEnum em) {
+
         UserCapital sourceUserCapital = userCapitalCacheService.getUserCapitalCacheByType(userId, sourceType);
         UserCapital targetUserCapital = userCapitalCacheService.getUserCapitalCacheByType(userId, targetType);
-        int a = subUserBalance(amount, userId, sourceType, sourceUserCapital.getBalance(), sourceUserCapital.getOccupyBalance(), orderNo, dataId, em, TableNameConstant.BALANCE_CONVERT_RECORD);
+
+        int a = subUserBalance(amount, userId, sourceType,
+                sourceUserCapital.getBalance(), sourceUserCapital.getOccupyBalance(),
+                orderNo, dataId, em, TableNameConstant.BALANCE_CONVERT_RECORD);
+
         if (a < 1) {
-            userCapitalCacheService.deltedUserCapitalCache(userId, UserCapitalTypeEnum.currency_2.getValue());
-            userCapitalCacheService.deltedUserCapitalCache(userId, UserCapitalTypeEnum.rmb.getValue());
+            userCapitalCacheService.deltedUserCapitalCache(userId, sourceType);
+            userCapitalCacheService.deltedUserCapitalCache(userId, targetType);
             throwExp("兑换失败，请稍后重试");
         }
-        int b = addUserBalance(targetAddBalance, userId, targetType, targetUserCapital.getBalance(), targetUserCapital.getOccupyBalance(), orderNo, dataId, em, TableNameConstant.BALANCE_CONVERT_RECORD);
-        if (a < 1 || b < 1) {
-            userCapitalCacheService.deltedUserCapitalCache(userId, UserCapitalTypeEnum.currency_2.getValue());
-            userCapitalCacheService.deltedUserCapitalCache(userId, UserCapitalTypeEnum.rmb.getValue());
+
+        int b = addUserBalance(targetAddBalance, userId, targetType,
+                targetUserCapital.getBalance(), targetUserCapital.getOccupyBalance(),
+                orderNo, dataId, em, TableNameConstant.BALANCE_CONVERT_RECORD);
+
+        if (b < 1) {
+            userCapitalCacheService.deltedUserCapitalCache(userId, sourceType);
+            userCapitalCacheService.deltedUserCapitalCache(userId, targetType);
             throwExp("兑换失败，请稍后重试");
         }
-        // 清理缓存
     }
+
 
 
 

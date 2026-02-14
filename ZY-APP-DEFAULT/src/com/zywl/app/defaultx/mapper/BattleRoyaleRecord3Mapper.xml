@@ -68,7 +68,7 @@
 		<foreach collection="list" item="item" index="index" open="" close="" separator=";">
 			update r_battle_royale3_record
 			<set>
-				profit=#{item.winAmount},
+				profit=#{item.profit},
 				lottery_result=#{item.lotteryResult},
 				win_or_lose=#{item.isWin},
 				status=1,
@@ -78,6 +78,7 @@
 			where order_no = #{item.orderNo}
 		</foreach>
 	</update>
+
 
 	<update id="addBetAmount" parameterType="BattleRoyale2Record">
 		update r_battle_royale3_record set bet_amount = bet_amount+#{betAmount} where order_no = #{orderNo}

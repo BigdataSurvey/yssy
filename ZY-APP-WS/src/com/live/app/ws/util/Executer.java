@@ -146,18 +146,18 @@ public class Executer {
                     long time = System.currentTimeMillis() - task.getCreateTime();
                     if (time > 2000) {
                         if (!task.getCode().equals("700200") && !task.getCode().equals("007002") && !task.getCode().equals("999999")) {
-                            logger.info("[" + task.getCode() + "]任务执行结束，总耗时：" + (time) + " ms：" + JSON.toJSONString(command));
+                            //logger.info("[" + task.getCode() + "]任务执行结束，总耗时：" + (time) + " ms：" + JSON.toJSONString(command));
                         }
 
                     } else {
                         if (!task.getCode().equals("700200") && !task.getCode().equals("007002") && !task.getCode().equals("999999")) {
-                            logger.info("[" + task.getCode() + "]任务执行结束，总耗时：" + (time) + " ms");
+                            //logger.info("[" + task.getCode() + "]任务执行结束，总耗时：" + (time) + " ms");
                         }
 
                     }
                     task.getBaseServerSocket().sendCommand(command);
                 } else {
-                    logger.info("任务已超时，停止响应客户端：" + JSON.toJSONString(command));
+                    logger.warn("任务已超时，停止响应客户端：" + JSON.toJSONString(command));
                 }
             }
         });
@@ -171,30 +171,57 @@ public class Executer {
      * @author DOE
      */
     public static void disposeRequest(final BaseServerSocket baseServerSocket, final Command command) {
-        disposeRequestExecutor.execute(new Thread() {
+        disposeRequestExecutor.execute(new Runnable() {
+            @Override
             public void run() {
                 try {
                     QPS.addAndGet(1);
-                    Task task = addTask(command.getId(), command.getCode(), command.getRequestTime(), this, baseServerSocket, command);
+                    Task task = addTask(
+                            command.getId(),
+                            command.getCode(),
+                            command.getRequestTime(),
+                            Thread.currentThread(),
+                            baseServerSocket,
+                            command
+                    );
                     if (controller == null) {
                         throw new AppException("控制器未初始化");
                     }
+
                     Object result = controller.exec(baseServerSocket, command);
                     if (result instanceof Async) {
                         task.setTimeout(((Async) result).getTimeout());
                     } else {
                         response(CommandBuilder.builder(command).success(result).build());
                     }
+
                 } catch (AppException e) {
-                    logger.warn("执行异常[" + command.getCode() + "]：" + e);
+                    logger.warn("执行异常[" + (command == null ? "null" : command.getCode()) + "]：" + e);
                     response(CommandBuilder.builder(command).error(e.getMessage()).build());
+
                 } catch (Exception e) {
-                    logger.error("未知执行异常：" + e, e);
+                    // 哪个请求(code/id) + socketType + body
+                    String socketType = "unknown";
+                    try {
+                        socketType = baseServerSocket == null ? "null" : String.valueOf(baseServerSocket.getSocketType());
+                    } catch (Exception ignore) {}
+
+                    String body = "";
+                    try {
+                        body = command == null ? "null" : JSON.toJSONString(command);
+                    } catch (Exception ignore) {}
+
+                    logger.error("未知执行异常：socketType=" + socketType
+                            + " id=" + (command == null ? "null" : command.getId())
+                            + " code=" + (command == null ? "null" : command.getCode())
+                            + " body=" + body, e);
+
                     response(CommandBuilder.builder(command).error("未知错误").build());
                 }
             }
         });
     }
+
 
     /**
      * 客户端收到响应后处理

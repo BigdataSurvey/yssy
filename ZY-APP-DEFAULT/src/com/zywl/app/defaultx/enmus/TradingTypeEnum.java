@@ -2,9 +2,6 @@ package com.zywl.app.defaultx.enmus;
 
 /**
  *   交易行类型
- * 
- * @author DOE
- *
  */
 public enum TradingTypeEnum {
 
@@ -24,17 +21,12 @@ public enum TradingTypeEnum {
 		return name;
 	}
 
-	public void setName(String name) {
-		this.name = name;
-	}
 
 	public int getValue() {
 		return value;
 	}
 
-	public void setValie(int value) {
-		this.value = value;
-	}
-	
-	
+
+
+
 }
