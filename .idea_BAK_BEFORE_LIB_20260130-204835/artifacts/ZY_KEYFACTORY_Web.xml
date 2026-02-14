@@ -1,8 +1,0 @@
-<component name="ArtifactManager">
-  <artifact type="war" name="ZY-KEYFACTORY:Web">
-    <output-path>$PROJECT_DIR$/out/artifacts/ZY_KEYFACTORY_Web</output-path>
-    <root id="archive" name="ZY-KEYFACTORY_Web.war">
-      <element id="artifact" artifact-name="ZY-KEYFACTORY:Web exploded" />
-    </root>
-  </artifact>
-</component>

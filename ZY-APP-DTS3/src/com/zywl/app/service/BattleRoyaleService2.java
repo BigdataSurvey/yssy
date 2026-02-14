@@ -943,16 +943,54 @@ public class BattleRoyaleService2 extends BaseService {
     }
 
     public void periodsNum() {
-        logger.info("初始化大逃杀期数信息");
-        BattleRoyale2Record battleRoyaleRecord = battleRoyaleRecordService.findPeriodsNum();
-        if (battleRoyaleRecord == null) {
-            ROOM.setPeridosNum("1");
-        } else {
-            ROOM.setPeridosNum(String.valueOf((Long.parseLong(battleRoyaleRecord.getPeriodsNum()) + 1)));
-            ROOM.setLastResult(String.valueOf(battleRoyaleRecord.getLotteryResult()));
+        logger.info("初始化大逃杀期数信息 - 开始");
+
+        // 1. 先定义一个默认的期号，万一数据库读不到或读错了，就用这个兜底
+        long nextPeriodNum = 1L;
+
+        try {
+            // 从数据库查询最近一期记录
+            BattleRoyale2Record battleRoyaleRecord = battleRoyaleRecordService.findPeriodsNum();
+
+            if (battleRoyaleRecord != null) {
+                String dbPeriodStr = battleRoyaleRecord.getPeriodsNum();
+
+                // 设置上一期开奖结果（如果有的话）
+                if (battleRoyaleRecord.getLotteryResult() != null) {
+                    ROOM.setLastResult(String.valueOf(battleRoyaleRecord.getLotteryResult()));
+                }
+
+                // 【核心逻辑修正】：确保是数值加减，绝对避免字符串拼接
+                try {
+                    // 尝试解析数据库里的字符串
+                    long lastPeriodNum = Long.parseLong(dbPeriodStr);
+
+                    // 数值 + 1
+                    nextPeriodNum = lastPeriodNum + 1;
+
+                    // 双重保险：如果算出来是负数（虽然几率很小），强制重置
+                    if (nextPeriodNum <= 0) {
+                        logger.warn("计算出的期号为非正数[" + nextPeriodNum + "]，已强制重置为1");
+                        nextPeriodNum = 1L;
+                    }
+
+                } catch (NumberFormatException e) {
+                    logger.error("【数据修正】发现异常期号数据: [" + dbPeriodStr + "]，无法转换为数字。已自动重置新期号为 1。");
+                    nextPeriodNum = 1L; // 遇到坏数据，强制重置，保证服务器不挂
+                }
+            } else {
+                logger.info("数据库无历史期号记录，系统将从第 1 期开始");
+            }
+
+        } catch (Exception e) {
+            logger.error("初始化期号时发生未知错误，已兜底处理", e);
+            nextPeriodNum = 1L;
         }
 
-        logger.info("初始化大逃杀期数信息完成");
+        // 最后统一设置：将计算好的长整型转为字符串
+        ROOM.setPeridosNum(String.valueOf(nextPeriodNum));
+
+        logger.info("初始化大逃杀期数信息完成，当前生效期号: " + nextPeriodNum);
     }
 
 
