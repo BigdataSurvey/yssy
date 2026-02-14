@@ -4,13 +4,12 @@ import com.alibaba.fastjson2.JSON;
 import com.alibaba.fastjson2.JSONArray;
 import com.alibaba.fastjson2.JSONObject;
 import com.zywl.app.base.bean.BattleRoyaleRecord;
-import com.zywl.app.base.bean.vo.BattleRoyale2Record;
 import com.zywl.app.base.util.DateUtil;
 import com.zywl.app.defaultx.dbutil.DaoService;
 import org.apache.commons.collections4.map.HashedMap;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.springframework.stereotype.Service;
+import org.springframework.stereotype.Service ;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
@@ -146,7 +145,9 @@ public class BattleRoyaleRecordService extends DaoService {
 		p.put("userId", userId);
 		p.put("start", 0);
 		p.put("limit", 100);
-		List<BattleRoyale2Record> records = findList("findByUserId", p);
+		// ✅ DTS(单杀) 的 Mapper(BattleRoyaleRecordMapper.findByUserId) resultType = BattleRoyaleRecord
+		// 之前这里误写成 BattleRoyale2Record，导致记录页 ClassCastException -> 前端“未知异常”
+		List<BattleRoyaleRecord> records = findList("findByUserId", p);
 		if (records == null) {
 			records = Collections.emptyList();
 		}
@@ -155,7 +156,7 @@ public class BattleRoyaleRecordService extends DaoService {
 		Map<Integer, Integer> cnt = new HashMap<>();
 		int take100 = Math.min(100, records.size());
 		for (int i = 0; i < take100; i++) {
-			BattleRoyale2Record r = records.get(i);
+			BattleRoyaleRecord r = records.get(i);
 			for (Integer rid : parseRoomIds(r.getBetInfo(), zeroBasedRoomId)) {
 				cnt.put(rid, cnt.getOrDefault(rid, 0) + 1);
 			}
@@ -176,7 +177,7 @@ public class BattleRoyaleRecordService extends DaoService {
 		JSONArray recent16Summary = new JSONArray();
 		int take16 = Math.min(16, records.size());
 		for (int i = 0; i < take16; i++) {
-			BattleRoyale2Record r = records.get(i);
+			BattleRoyaleRecord r = records.get(i);
 
 			JSONObject item = new JSONObject();
 			item.put("periodsNum", r.getPeriodsNum());
@@ -209,6 +210,7 @@ public class BattleRoyaleRecordService extends DaoService {
 		res.put("serverTime", System.currentTimeMillis());
 		return res;
 	}
+
 
 	private BigDecimal safeBigDecimal(Object v) {
 		if (v == null) return BigDecimal.ZERO;

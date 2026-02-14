@@ -248,7 +248,7 @@ public class PbxService extends BaseService {
                 } catch (Throwable t) {
                     log.error("[PBX] tickBot error", t);
                 }
-            }, 300, 100, TimeUnit.MILLISECONDS);
+            }, 0, 100, TimeUnit.MILLISECONDS);
         }
     }
 
@@ -392,33 +392,44 @@ public class PbxService extends BaseService {
         requsetMangerService2.requestPbxBet(betReq, new Listener() {
             @Override
             public void handle(BaseClientSocket socket, Command command) {
-                JSONObject resp = null;
                 try {
-                    // 异常检查
+                    // command 为空
                     if (command == null) {
                         handleBetError("pbxBet command is null");
                         return;
                     }
+
+                    // command 执行失败
                     if (!command.isSuccess()) {
                         String msg = command.getMessage();
                         handleBetError(isBlank(msg) ? "pbxBet failed (manager error)" : msg);
                         return;
                     }
-                    resp = (JSONObject) command.getData();
+
+                    // data 为空
+                    JSONObject resp = (JSONObject) command.getData();
                     if (resp == null) {
                         handleBetError("pbxBet response data is null");
                         return;
                     }
+
+                    // manager 返回业务失败
                     if (!resp.getBooleanValue("success")) {
                         String msg = resp.getString("message");
                         String retOrderNo = resp.getString("orderNo");
                         if (isBlank(retOrderNo)) retOrderNo = orderNoForAck;
                         resp.put("orderNo", retOrderNo);
-                        pushBetFailed(userId, retOrderNo, periodNo, finalElementId, chip, isBlank(msg) ? "pbxBet failed" : msg);
+
+                        // 下注失败推送
+                        pushBetFailed(userId, retOrderNo, periodNo, finalElementId, chip,
+                                isBlank(msg) ? "pbxBet failed" : msg);
+
+                        // 把失败结果写入引用
+                        betRespRef.set(resp);
                         return;
                     }
 
-                    // 下注成功处理
+                    // 同步本地内存
                     String managerOrderNo = resp.getString("orderNo");
                     if (isBlank(managerOrderNo)) managerOrderNo = orderNoForAck;
 
@@ -439,6 +450,7 @@ public class PbxService extends BaseService {
                             userId, 2, true, managerOrderNo, periodNo, finalElementId, chip,
                             balance, poolBalance, fee, feeRate
                     );
+
                     try {
                         JSONObject sum = battleRoyaleRecord2Service.buildUnifiedSummary(Long.valueOf(userId), false);
                         if (sum != null) {
@@ -449,14 +461,18 @@ public class PbxService extends BaseService {
                         }
                     } catch (Exception ignore) {
                     }
+
                     Push.push(PushCode.updatePbxStatus, null, pushStatus);
                     pushPbxInfo(lastPoolBalance);
+
+                    // 成功结果写入引用
+                    betRespRef.set(resp);
 
                 } catch (Exception e) {
                     log.error("[PBX] pbxBet callback exception", e);
                     handleBetError("pbxBet callback exception");
                 } finally {
-                    betRespRef.set(resp);
+                    // 只负责唤醒等待线程
                     betLatch.countDown();
                 }
             }
@@ -467,7 +483,10 @@ public class PbxService extends BaseService {
                 r.put("success", false);
                 r.put("orderNo", orderNoForAck);
                 r.put("message", msg);
+
                 pushBetFailed(userId, orderNoForAck, periodNo, finalElementId, chip, msg);
+
+                // ★关键：写入引用，让主线程拿得到失败原因
                 betRespRef.set(r);
             }
         });
@@ -1265,25 +1284,66 @@ public class PbxService extends BaseService {
     /**
      * 机器人 Tick 逻辑：随机下注
      */
-    private void tickBot() {
-        if (NEED_BOT <= 0) return;
-        if (onlineUserState.isEmpty()) return;
-        if (BOT_USER.isEmpty()) return;
+        private void tickBot() {
+            log.error("[PBX][BOT] precheck NEED_BOT=" + NEED_BOT
+                    + ", online=" + onlineUserState.size()
+                    + ", bot=" + BOT_USER.size());
 
-        long nowMs = System.currentTimeMillis();
-        ensureCurrentPeriod(nowMs);
-        if (nowMs >= currentPeriodEndMs) return;
+            if (NEED_BOT <= 0) return;
+            // 没真人在线不刷
+            if (onlineUserState.isEmpty()) return;
+            if (BOT_USER.isEmpty()) return;
 
-        int rate = ThreadLocalRandom.current().nextInt(100);
-        if (rate >= NEED_BOT) return;
+            long nowMs = System.currentTimeMillis();
+            String periodNo = ensureCurrentPeriod(nowMs);
+            if (nowMs >= currentPeriodEndMs) return;
 
-        String botUserId = getRandomBotUserId();
-        if (botUserId == null) return;
-        int elementId = ThreadLocalRandom.current().nextInt(1, ELEMENT_COUNT + 1);
-        BigDecimal chip = getRandomBotChip();
+            int rate = ThreadLocalRandom.current().nextInt(100);
+            if (rate >= NEED_BOT) return;
 
-        periodBotElementTotalBet.merge(elementId, chip, BigDecimal::add);
-    }
+            String botUserId = getRandomBotUserId();
+            if (botUserId == null) return;
+
+            int elementId = ThreadLocalRandom.current().nextInt(1, ELEMENT_COUNT + 1);
+            BigDecimal chip = getRandomBotChip();
+
+            // 机器人下注走同一条 pbxBet 扣款链路（异步不阻塞 tick）
+            try {
+                String orderNoForAck = newOrderNo();
+
+                JSONObject betReq = new JSONObject();
+                betReq.put("gameId", String.valueOf(PBX_GAME_ID));
+                betReq.put("userId", botUserId);
+                betReq.put("betAmount", chip.stripTrailingZeros().toPlainString());
+                betReq.put("capitalType", CAPITAL_TYPE);
+                betReq.put("feeRate", FEE_RATE);
+                betReq.put("periodNo", periodNo);
+                betReq.put("elementId", elementId);
+                betReq.put("chip", chip.stripTrailingZeros().toPlainString());
+                betReq.put("orderNo", orderNoForAck);
+
+                requsetMangerService2.requestPbxBet(betReq, new Listener() {
+                    @Override
+                    public void handle(BaseClientSocket socket, Command command) {
+                        try {
+                            if (command == null || !command.isSuccess()) return;
+                            JSONObject resp = (JSONObject) command.getData();
+                            if (resp == null || !resp.getBooleanValue("success")) return;
+
+                            // 把机器人下注记入 periodUserTotalBet/periodElementTotalBet 等核心结构
+                            recordBet(periodNo, botUserId, elementId, chip);
+
+                            // 同步一下奖池缓存
+                            BigDecimal pool = resp.getBigDecimal("poolBalance");
+                            if (pool != null) lastPoolBalance = pool;
+                        } catch (Exception ignore) {
+                        }
+                    }
+                });
+            } catch (Exception e) {
+                log.error("[PBX] bot bet error", e);
+            }
+        }
 
     /**
      * 随机获取一个机器人 ID

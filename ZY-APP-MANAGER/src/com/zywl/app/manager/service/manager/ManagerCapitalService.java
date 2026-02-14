@@ -56,6 +56,7 @@ import java.math.RoundingMode;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import com.live.app.ws.socket.BaseServerSocket;
 
 @Service
 @ServiceClass(code = MessageCodeContext.CAPITAL_SERVER)
@@ -283,50 +284,84 @@ public class ManagerCapitalService extends BaseService {
     }
 
     @Transactional
-    @ServiceMethod(code = "200", description = "余额转换")
+    @ServiceMethod(code = "200", description = "资产兑换(1001<->1002)")
     public JSONObject assetConversion(ManagerSocketServer adminSocketServer, JSONObject data) {
         checkNull(data);
         checkNull(data.get("userId"), data.get("amount"), data.get("type"));
+
         long userId = data.getLongValue("userId");
         synchronized (String.valueOf(userId)) {
+
             BigDecimal amount = data.getBigDecimal("amount");
-            if (amount.compareTo(BigDecimal.ZERO) == 0) {
+            if (amount == null || amount.compareTo(BigDecimal.ZERO) <= 0) {
                 throwExp("请输入大于0的数值");
             }
+
             int type = data.getIntValue("type");
+            if (type != 1 && type != 2) {
+                throwExp("非法请求");
+            }
+
+            BigDecimal rate = managerConfigService.getBigDecimal(Config.CONVERT_RATE);
+            if (rate == null || rate.compareTo(BigDecimal.ZERO) <= 0) {
+                throwExp("兑换比例配置异常");
+            }
+
             int sourceType;
             int targetType;
-            BigDecimal sourceAmount;
+            BigDecimal sourceAmount;      // 要扣的 source 资产数量
+            BigDecimal targetAddAmount;   // 要加的 target 资产数量
+
             if (type == 1) {
-                sourceType = UserCapitalTypeEnum.currency_1.getValue();
-                targetType = UserCapitalTypeEnum.currency_2.getValue();
-                sourceAmount = managerConfigService.getBigDecimal(Config.CONVERT_RATE).multiply(amount);
+                sourceType = UserCapitalTypeEnum.hxjf.getValue();
+                targetType = UserCapitalTypeEnum.xxxhhb.getValue();
+                targetAddAmount = amount;
+                sourceAmount = rate.multiply(amount);
             } else {
-                sourceType = UserCapitalTypeEnum.currency_2.getValue();
-                targetType = UserCapitalTypeEnum.currency_1.getValue();
-                sourceAmount = amount.divide(managerConfigService.getBigDecimal(Config.CONVERT_RATE));
+                sourceType = UserCapitalTypeEnum.xxxhhb.getValue();
+                targetType = UserCapitalTypeEnum.hxjf.getValue();
+                targetAddAmount = amount;
+
+                // 必须整除
+                BigDecimal[] dr = amount.divideAndRemainder(rate);
+                if (dr[1].compareTo(BigDecimal.ZERO) != 0) {
+                    throwExp("兑换数量必须为兑换比例的整数倍");
+                }
+                sourceAmount = dr[0];
+                if (sourceAmount.compareTo(BigDecimal.ZERO) <= 0) {
+                    throwExp("非法请求");
+                }
             }
-            // 减少sourceType余额 增加targetType余额
+
             String orderNo = OrderUtil.getOrder5Number();
             User user = userCacheService.getUserInfoById(userId);
             LogCapitalTypeEnum em = LogCapitalTypeEnum.balance_convert;
-            UserCapital userCapital = userCapitalCacheService.getUserCapitalCacheByType(userId, sourceType);
-            if (userCapital.getBalance().compareTo(sourceAmount) < 0) {
+
+            UserCapital sourceCapital = userCapitalCacheService.getUserCapitalCacheByType(userId, sourceType);
+            if (sourceCapital == null || sourceCapital.getBalance().compareTo(sourceAmount) < 0) {
                 throwExp(UserCapitalTypeEnum.getName(sourceType) + "不足！");
             }
-            String remark = user.getUserNo() + "兑换【" + sourceAmount + "】" + UserCapitalTypeEnum.getName(sourceType) + ",获得【" + amount + "】"
-                    + UserCapitalTypeEnum.getName(targetType);
-            // 添加记录 修改资产
-            Long recordId = balanceConvertRecordService.addBalanceConvertOrder(userId, orderNo, sourceAmount, amount,
-                    remark);
-            userCapitalService.assetConversion(sourceType, targetType, sourceAmount, userId, orderNo, recordId,
-                    amount, em);
+
+            String remark = user.getUserNo() + "兑换【" + sourceAmount + "】" + UserCapitalTypeEnum.getName(sourceType)
+                    + ",获得【" + targetAddAmount + "】" + UserCapitalTypeEnum.getName(targetType);
+
+            Long recordId = balanceConvertRecordService.addBalanceConvertOrder(
+                    userId, orderNo, sourceAmount, targetAddAmount, remark
+            );
+
+            // 扣sourceType，加targetType
+            userCapitalService.assetConversion(
+                    sourceType, targetType, sourceAmount, userId, orderNo, recordId,
+                    targetAddAmount, em
+            );
+
             managerGameBaseService.pushCapitalUpdate(userId, sourceType);
             managerGameBaseService.pushCapitalUpdate(userId, targetType);
-            JSONObject result = new JSONObject();
-            return result;
+
+            return new JSONObject();
         }
     }
+
 
     @Transactional
     @ServiceMethod(code = "101", description = "后台操作提现订单")
@@ -475,8 +510,6 @@ public class ManagerCapitalService extends BaseService {
         return new JSONObject();
     }
 
-
-    @Transactional
     @ServiceMethod(code = "720", description = "推箱子(PBX)下注扣款")
     public JSONObject pbxBet(ManagerDTS2SocketServer adminSocketServer, JSONObject data) {
         checkNull(data);
@@ -487,6 +520,7 @@ public class ManagerCapitalService extends BaseService {
         BigDecimal betAmount = data.getBigDecimal("betAmount");
         Integer capitalType = data.getInteger("capitalType");
         if (capitalType == null || capitalType == 0) capitalType = UserCapitalTypeEnum.xxxhhb.getValue();
+
         if (betAmount == null || betAmount.compareTo(BigDecimal.ZERO) <= 0) {
             throwExp("betAmount 非法");
         }
@@ -496,28 +530,39 @@ public class ManagerCapitalService extends BaseService {
             orderNo = OrderUtil.getOrder5Number();
         }
 
+        // 手续费比例
+        BigDecimal feeRate = data.getBigDecimal("feeRate");
+        if (feeRate == null) feeRate = new BigDecimal("0.05");
+
+        // fee = betAmount * feeRate
+        BigDecimal fee = betAmount.multiply(feeRate).setScale(2, java.math.RoundingMode.HALF_UP);
+        if (fee.compareTo(BigDecimal.ZERO) < 0) fee = BigDecimal.ZERO;
+
+        // 奖池入账金额
+        BigDecimal poolInAmount = fee;
+
         // 防止重复扣款
         String orderKey = "game:pbx:order:" + orderNo;
         String exist = gameCacheService.get(orderKey);
         if (StringUtils.isNotBlank(exist)) {
+            // 这里也不要直接读缓存余额，强制用 DB 强一致
+            UserCapital dbUc = userCapitalService.findUserCapitalByUserIdAndCapitalType(userId, capitalType);
             JSONObject resp = new JSONObject();
             resp.put("success", true);
             resp.put("message", "order processed");
             resp.put("orderNo", orderNo);
-            UserCapital uc = userCapitalCacheService.getUserCapitalCacheByType(userId, capitalType);
-            resp.put("balance", uc != null ? uc.getBalance() : BigDecimal.ZERO);
+            resp.put("balance", dbUc != null ? dbUc.getBalance() : BigDecimal.ZERO);
+            resp.put("feeRate", feeRate);
+            resp.put("fee", fee);
+            resp.put("betAmount", betAmount);
+            resp.put("poolBalance", BigDecimal.ZERO);
             return resp;
         }
 
-        // 加锁处理
         synchronized (LockUtil.getlock(String.valueOf(userId))) {
-            // 二次检查
             if (StringUtils.isNotBlank(gameCacheService.get(orderKey))) {
                 return new JSONObject().fluentPut("success", true);
             }
-
-            BigDecimal feeRate = data.getBigDecimal("feeRate");
-            if (feeRate == null) feeRate = new BigDecimal("0.05");
 
             // 构造扣款对象
             JSONObject one = new JSONObject();
@@ -532,31 +577,42 @@ public class ManagerCapitalService extends BaseService {
             // 执行扣款
             userCapitalService.betUpdateBalance2(betObj, capitalType);
 
+            // 强制清理缓存
+            userCapitalCacheService.deltedUserCapitalCache(userId, capitalType);
+
             // 标记订单已处理
             gameCacheService.set(orderKey, "1", 24 * 3600);
 
+            // DB强一致查询最新余额
+            UserCapital dbUc = userCapitalService.findUserCapitalByUserIdAndCapitalType(userId, capitalType);
+            BigDecimal newBalance = (dbUc != null && dbUc.getBalance() != null) ? dbUc.getBalance() : BigDecimal.ZERO;
+
             // 推送资产变更
-            UserCapital userCapital = userCapitalCacheService.getUserCapitalCacheByType(userId, capitalType);
             JSONObject pushData = new JSONObject();
             pushData.put("userId", userId);
             pushData.put("capitalType", capitalType);
-            pushData.put("balance", userCapital.getBalance());
+            pushData.put("balance", newBalance);
             Push.push(PushCode.updateUserCapital, managerSocketService.getServerIdByUserId(userId), pushData);
 
             // 手续费入奖池
             String weekKey = DateUtil.getFirstDayOfWeek(new Date());
             String poolKey = RedisKeyConstant.PRIZE_POOL + "pbx:" + gameId + ":" + weekKey;
 
-            long betCents = betAmount.multiply(new BigDecimal("100"))
+            long poolInCents = poolInAmount.multiply(new BigDecimal("100"))
                     .setScale(0, java.math.RoundingMode.HALF_UP)
                     .longValue();
+            if (poolInCents < 0) poolInCents = 0;
 
-            gameCacheService.incr(poolKey, betCents);
+            gameCacheService.incr(poolKey, poolInCents);
             gameCacheService.expire(poolKey, 86400 * 14);
 
             // 计入周榜
+            long betCents = betAmount.multiply(new BigDecimal("100"))
+                    .setScale(0, java.math.RoundingMode.HALF_UP)
+                    .longValue();
             pbxWeekOnBet(gameId, userId, betCents, weekKey);
-            // 计入用户历史总投入 (永久累计)
+
+            // 计入用户历史总投入
             gameCacheService.incr(pbxUserTotalBetKey(userId), betCents);
 
             // 返回最新奖池
@@ -566,8 +622,6 @@ public class ManagerCapitalService extends BaseService {
                 poolBalance = new BigDecimal(poolCentsStr).divide(new BigDecimal("100"), 2, java.math.RoundingMode.HALF_UP);
             }
 
-            BigDecimal fee = BigDecimal.ZERO.setScale(2, java.math.RoundingMode.HALF_UP);
-
             JSONObject result = new JSONObject();
             result.put("success", true);
             result.put("gameId", String.valueOf(gameId));
@@ -576,11 +630,12 @@ public class ManagerCapitalService extends BaseService {
             result.put("betAmount", betAmount);
             result.put("feeRate", feeRate);
             result.put("fee", fee);
-            result.put("balance", userCapital.getBalance());
+            result.put("balance", newBalance);
             result.put("poolBalance", poolBalance);
             return result;
         }
     }
+
 
     @Transactional
     @ServiceMethod(code = "721", description = "推箱子(PBX)派奖/结算（奖池扣净额net，手续费fee为系统收益）")
@@ -1485,7 +1540,7 @@ public class ManagerCapitalService extends BaseService {
     }
 
     @ServiceMethod(code = "801", description = "大逃杀投入修改内存")
-    public JSONObject updateCacheByDts(ManagerDTSSocketServer adminSocketServer, JSONObject data) throws InterruptedException {
+    public JSONObject updateCacheByDts(BaseServerSocket adminSocketServer, JSONObject data) throws InterruptedException {
         checkNull(data);
         checkNull(data.get("betArray"));
 
@@ -1509,31 +1564,31 @@ public class ManagerCapitalService extends BaseService {
         return new JSONObject();
     }
 
-
-
     /**
      * DTS3 新协议兼容（200821 -> 200801 逻辑一致）
      */
     @ServiceMethod(code = "821", description = "[DTS3] 下注修改内存（兼容旧版 200801）")
-    public JSONObject updateCacheByDts3(ManagerDTSSocketServer serverSocket, JSONObject data) throws InterruptedException {
+    public JSONObject updateCacheByDts3(BaseServerSocket serverSocket, JSONObject data) throws InterruptedException {
         return updateCacheByDts(serverSocket, data);
     }
+
 
     /**
      * 大逃杀（DTS2/DTS3）排名返还（200822）
      */
     @ServiceMethod(code = "822", description = "大逃杀排名返还修改内存")
-    public JSONObject updateCacheByDtsRankRefund(ManagerDTSSocketServer serverSocket, JSONObject data) {
-        return updateCacheByDtsRankRebate(serverSocket, data);
+    public JSONObject updateCacheByDtsRankRefund(BaseServerSocket serverSocket, JSONObject data) {
+        return updateCacheByDtsRankRebate(null, data);
     }
 
     /**
      * DTS 排名返还（200823）
      */
     @ServiceMethod(code = "823", description = "[DTS] 排名返还修改内存")
-    public JSONObject updateCacheByDtsRank(ManagerDTSSocketServer serverSocket, JSONObject data) {
-        return updateCacheByDtsRankRebate(serverSocket, data);
+    public JSONObject updateCacheByDtsRank(BaseServerSocket serverSocket, JSONObject data) {
+        return updateCacheByDtsRankRebate(null, data);
     }
+
 
     private JSONObject updateCacheByDtsRankRebate(ManagerDTSSocketServer serverSocket, JSONObject data) {
         checkNull(data);
@@ -1784,38 +1839,71 @@ public class ManagerCapitalService extends BaseService {
 
     @Transactional
     @ServiceMethod(code = "710", description = "倩女幽魂结算")
-    public JSONObject dtsSettle(ManagerDTS2SocketServer adminSocketServer, JSONObject data) {
+    public JSONObject dtsSettle710(com.live.app.ws.socket.BaseServerSocket adminSocketServer, JSONObject data) {
         checkNull(data);
-        Set<String> set = data.keySet();
-        if (set.size() == 0) {
+        if (data.isEmpty()) {
             return new JSONObject();
         }
-        LogCapitalTypeEnum em = null;
-        Long userId = null;
-        for (String key : set) {
-            JSONObject o = JSONObject.parse(data.getString(key));
-            em = LogCapitalTypeEnum.getEm(o.getIntValue("em"));
-            userId = Long.parseLong(key);
+
+        // 按 capitalType 分组（解决 param=1001 / data=1002 这种混合导致的 mismatch）
+        Map<Integer, JSONObject> group = new HashMap<>();
+        for (String userIdStr : data.keySet()) {
+            Object raw = data.get(userIdStr);
+            JSONObject o = (raw instanceof JSONObject)
+                    ? (JSONObject) raw
+                    : JSONObject.parseObject(String.valueOf(raw));
+
+            Integer ct = o.getInteger("capitalType");
+            if (ct == null || ct <= 0) {
+                ct = UserCapitalTypeEnum.xxxhhb.getValue(); // 兜底
+                o.put("capitalType", ct);
+            }
+
+            JSONObject g = group.computeIfAbsent(ct, k -> new JSONObject());
+            g.put(userIdStr, o);
         }
-        userCapitalService.betUpdateBalance2(data,UserCapitalTypeEnum.hxjf.getValue());
-        for (String key : set) {
-            JSONObject o = JSONObject.parse(data.getString(key));
-            em = LogCapitalTypeEnum.getEm(o.getIntValue("em"));
-            userId = Long.parseLong(key);
-            UserCapital userCapital = userCapitalCacheService.getUserCapitalCacheByType(userId, UserCapitalTypeEnum.hxjf.getValue());
+
+        // 分组批量更新资产
+        for (Map.Entry<Integer, JSONObject> e : group.entrySet()) {
+            Integer capitalType = e.getKey();
+            JSONObject payload = e.getValue();
+            if (!payload.isEmpty()) {
+                userCapitalService.betUpdateBalance2(payload, capitalType);
+            }
+        }
+
+        // 推送更新（按每个 user 自己的 capitalType 推）
+        for (String key : data.keySet()) {
+            Object raw = data.get(key);
+            JSONObject o = (raw instanceof JSONObject)
+                    ? (JSONObject) raw
+                    : JSONObject.parseObject(String.valueOf(raw));
+
+            Integer capitalType = o.getInteger("capitalType");
+            if (capitalType == null || capitalType <= 0) {
+                capitalType = UserCapitalTypeEnum.xxxhhb.getValue();
+            }
+
+            LogCapitalTypeEnum em = LogCapitalTypeEnum.getEm(o.getIntValue("em"));
+            Long userId = Long.parseLong(key);
+
+            UserCapital userCapital = userCapitalCacheService.getUserCapitalCacheByType(userId, capitalType);
+
             JSONObject pushData = new JSONObject();
             pushData.put("userId", userId);
-            if (em.getValue() == LogCapitalTypeEnum.game_bet_win_dts2.getValue()) {
+            if (em != null && em.getValue() == LogCapitalTypeEnum.game_bet_win.getValue()) {
                 pushData.put("isDts", 1);
             }
-            pushData.put("capitalType", UserCapitalTypeEnum.hxjf.getValue());
-            pushData.put("balance", userCapital.getBalance());
+            pushData.put("capitalType", capitalType);
+            pushData.put("balance", userCapital == null ? 0 : userCapital.getBalance());
+
             Push.push(PushCode.updateUserCapital, managerSocketService.getServerIdByUserId(userId), pushData);
         }
 
-
         return new JSONObject();
     }
+
+
 
     @Transactional
     @ServiceMethod(code = "711", description = "2选1结算")

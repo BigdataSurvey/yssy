@@ -131,23 +131,29 @@ public class ServerCapitalService extends BaseService {
         }
     }*/
 
-   /* @ServiceMethod(code = "002", description = "余额兑换金币")
+    @ServiceMethod(code = "002", description = "资产兑换(1001<->1002)")
     public Async assetConversion(final AppSocket appSocket, Command appCommand, JSONObject params) {
         checkNull(params);
-        checkNull(params.get("amount"),params.get("type"));
+        checkNull(params.get("amount"), params.get("type"));
+
         BigDecimal amount = params.getBigDecimal("amount");
         Long userId = appSocket.getWsidBean().getUserId();
-        params.put("userId",userId);
-        if (amount.toString().contains(".") || amount.toString().length()>9){
+        params.put("userId", userId);
+
+        // 防止小数/超长
+        if (amount == null || amount.toString().contains(".") || amount.toString().length() > 9) {
             throwExp("非法请求");
         }
+
         int type = params.getIntValue("type");
-        if (type!=1 && type!=2){
+        if (type != 1 && type != 2) {
             throwExp("非法请求");
         }
-        if (amount.compareTo(BigDecimal.ZERO) < 0) {
+
+        if (amount.compareTo(BigDecimal.ZERO) <= 0) {
             throwExp("非法请求");
         }
+
         synchronized (object) {
             User user = userCacheService.getUserInfoById(userId);
             if (user == null) {
@@ -159,9 +165,10 @@ public class ServerCapitalService extends BaseService {
             if (user.getGroup() != UserGroupEnum.NORMAL_USER.getValue()) {
                 throwExp("禁止兑换");
             }
-            if (user.getRiskPlus()!=null && user.getRiskPlus() == 1) {
+            if (user.getRiskPlus() != null && user.getRiskPlus() == 1) {
                 throwExp("未知错误");
             }
+
             requestManagerService.requestManagerAssetConversion(params, new Listener() {
                 public void handle(BaseClientSocket clientSocket, Command command) {
                     if (command.isSuccess()) {
@@ -177,6 +184,7 @@ public class ServerCapitalService extends BaseService {
         }
     }
 
+
     @ServiceMethod(code = "003", description = "获取个人资产信息")
     public Object getIncomeInfo(final AppSocket appSocket, Command appCommand, JSONObject params) {
         checkNull(params);
@@ -185,7 +193,6 @@ public class ServerCapitalService extends BaseService {
         Executer.request(TargetSocketType.manager, CommandBuilder.builder().request("200500", params).build(), new RequestManagerListener(appCommand));
         return async();
     }
-*/
 
 
     @ServiceMethod(code = "007", description = "查询道具日志")

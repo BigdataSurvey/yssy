@@ -174,7 +174,7 @@ public class ServerTradingService extends BaseService {
     public Async userAddTradingBuy(final AppSocket appSocket, Command appCommand, JSONObject params) {
         Long time = System.currentTimeMillis();
         checkNull(params);
-        checkNull(params.get("price"), params.get("itemId"), params.get("num"));
+        checkNull(params.get("price"), params.get("itemId"), params.get("number"));
         BigDecimal price = null;
         long userId = appSocket.getWsidBean().getUserId();
         User user = userCacheService.getUserInfoById(userId);
@@ -185,7 +185,7 @@ public class ServerTradingService extends BaseService {
         if (!GameBaseService.itemMap.containsKey(itemId.toString())){
             throwExp("非法请求");
         }
-        int number = params.getIntValue("num");
+        int number = params.getIntValue("number");
         try {
             price = params.getBigDecimal("price");
         } catch (Exception e) {
@@ -278,13 +278,13 @@ public class ServerTradingService extends BaseService {
     public Async tradingUserBuyItem(final AppSocket appSocket, Command appCommand, JSONObject params) {
         checkNull(params);
         Long time = System.currentTimeMillis();
-        checkNull(params.get("tradingId"), params.get("num"));
+        checkNull(params.get("tradingId"), params.get("number"));
         long userId = appSocket.getWsidBean().getUserId();
         User user = userCacheService.getUserInfoById(userId);
         if (user.getRiskPlus() != null && user.getRiskPlus() == 1) {
             throwExp("请求超时，请更换网络环境再试");
         }
-        int number = params.getIntValue("num");
+        int number = params.getIntValue("number");
         if (number < 1 || number > 99999) {
             throwExp("请输入合理的道具数量");
         }
@@ -315,13 +315,13 @@ public class ServerTradingService extends BaseService {
     public Async userGiveItemToBuy(final AppSocket appSocket, Command appCommand, JSONObject params) {
         Long time = System.currentTimeMillis();
         checkNull(params);
-        checkNull(params.get("tradingId"), params.get("num"));
+        checkNull(params.get("tradingId"), params.get("number"));
         long userId = appSocket.getWsidBean().getUserId();
         User user = userCacheService.getUserInfoById(userId);
         if (user.getRiskPlus() != null && user.getRiskPlus() == 1) {
             throwExp("请求超时，请更换网络环境再试");
         }
-        int number = params.getIntValue("num");
+        int number = params.getIntValue("number");
         if (number < 1 || number > 99999) {
             throwExp("请输入合理的道具数量");
         }
@@ -369,7 +369,7 @@ public class ServerTradingService extends BaseService {
     @ServiceMethod(code = "007", description = "交易行-获取交易行物品数据")
     public Object getTradingInfo(final AppSocket appSocket, Command appCommand, JSONObject params) {
         checkNull(params);
-        checkNull(params.get("type"), params.get("page"), params.get("num"));
+        checkNull(params.get("type"), params.get("page"), params.get("number"));
 
         params.put("userId", appSocket.getWsidBean().getUserId());
         Command managerCmd = CommandBuilder.builder()
@@ -382,7 +382,7 @@ public class ServerTradingService extends BaseService {
     @ServiceMethod(code = "009", description = "交易行-获取我的交易行物品数据")
     public Object getMyTradingInfo(final AppSocket appSocket, Command appCommand, JSONObject params) {
         checkNull(params);
-        checkNull(params.get("type"), params.get("page"), params.get("num"));
+        checkNull(params.get("type"), params.get("page"), params.get("number"));
 
         params.put("userId", appSocket.getWsidBean().getUserId());
         Command managerCmd = CommandBuilder.builder()
@@ -395,7 +395,7 @@ public class ServerTradingService extends BaseService {
     @ServiceMethod(code = "008", description = "获取交易行记录")
     public Object getTradingRecord(final AppSocket appSocket, Command appCommand, JSONObject params) {
         checkNull(params);
-        checkNull(params.get("page"), params.get("num"), params.get("type"));
+        checkNull(params.get("page"), params.get("number"), params.get("type"));
 
         params.put("userId", appSocket.getWsidBean().getUserId());
         Command managerCmd = CommandBuilder.builder()
@@ -418,13 +418,23 @@ public class ServerTradingService extends BaseService {
         return async();
     }
 
-    public static void main(String[] args) {
+    /**
+     * 交易行四Tab列表
+     * tab: 0=售卖商城 1=求购商城 2=我的售卖 3=我的求购
+     */
+    @ServiceMethod(code = "011", description = "交易行-四Tab列表V2")
+    public Object getTradingListV2(final AppSocket appSocket, Command appCommand, JSONObject params) {
+        checkNull(params);
+        checkNull(params.get("tab"), params.get("page"), params.get("number"));
 
-        Text t = new Text();
-        List<Text> list = new ArrayList<Text>();
-        list.add(t);
-        JSONObject obj = new JSONObject();
-        obj.put("list", list);
-        System.out.println(obj);
+        params.put("userId", appSocket.getWsidBean().getUserId());
+        Command managerCmd = CommandBuilder.builder()
+                .request("300011", params)
+                .build();
+        Executer.request(TargetSocketType.manager, managerCmd, new RequestManagerListener(appCommand));
+        return async();
     }
+
+
+
 }

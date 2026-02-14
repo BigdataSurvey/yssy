@@ -75,23 +75,46 @@ public class BattleRoyaleRecord3Service extends DaoService {
 		return (BattleRoyale2Record) findOne("findByOrderNo", params);
 	}
 
-	@Transactional
 	public void batchUpdateRecord(JSONObject obj) {
 		List<Map<String, Object>> list = new ArrayList<Map<String, Object>>();
 		Set<String> set = obj.keySet();
 		for (String key : set) {
 			Map<String, Object> map = new HashedMap<String, Object>();
 			map.put("orderNo", key);
+
 			JSONObject o = (JSONObject) obj.get(key);
-			map.put("winAmount", o.get("winAmount"));
+
+			// 下注、本期返还 winAmount 字段在业务里表示“返还总额”
+			BigDecimal betAmount = BigDecimal.ZERO;
+			BigDecimal winAmount = BigDecimal.ZERO;
+			try { betAmount = new BigDecimal(String.valueOf(o.get("betAmount"))); } catch (Exception ignore) {}
+			try { winAmount = new BigDecimal(String.valueOf(o.get("winAmount"))); } catch (Exception ignore) {}
+
+			Integer isWin = 0;
+			try { isWin = Integer.parseInt(String.valueOf(o.get("isWin"))); } catch (Exception ignore) {}
+
+			//  profit 必须是“净收益”
+			// 赢：profit = 返还总额 - 本金
+			// 输：profit = -本金
+			BigDecimal profit;
+			if (isWin != null && isWin == 1) {
+				profit = winAmount.subtract(betAmount);
+			} else {
+				profit = betAmount.negate();
+			}
+
+			map.put("profit", profit); //  写净收益
+			map.put("winAmount", winAmount);
 			map.put("lotteryResult", o.getString("lotteryResult"));
 			map.put("isWin", o.get("isWin"));
 			map.put("betAmount", o.get("betAmount"));
 			map.put("betInfo", o.get("betInfo"));
+
 			list.add(map);
 		}
 		execute("batchUpdateRecord", list);
 	}
+
 
 	@Transactional
 	public void addBetAmount(BigDecimal betAmount, String orderNo) {

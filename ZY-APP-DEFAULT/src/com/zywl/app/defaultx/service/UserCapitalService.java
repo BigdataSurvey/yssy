@@ -1918,23 +1918,35 @@ public class UserCapitalService extends DaoService {
 
     }
     @Transactional
-    public void assetConversion(int sourceType, int targetType, BigDecimal amount, Long userId, String orderNo, Long dataId, BigDecimal targetAddBalance, LogCapitalTypeEnum em) {
+    public void assetConversion(int sourceType, int targetType,
+                                BigDecimal amount, Long userId,
+                                String orderNo, Long dataId,
+                                BigDecimal targetAddBalance, LogCapitalTypeEnum em) {
+
         UserCapital sourceUserCapital = userCapitalCacheService.getUserCapitalCacheByType(userId, sourceType);
         UserCapital targetUserCapital = userCapitalCacheService.getUserCapitalCacheByType(userId, targetType);
-        int a = subUserBalance(amount, userId, sourceType, sourceUserCapital.getBalance(), sourceUserCapital.getOccupyBalance(), orderNo, dataId, em, TableNameConstant.BALANCE_CONVERT_RECORD);
+
+        int a = subUserBalance(amount, userId, sourceType,
+                sourceUserCapital.getBalance(), sourceUserCapital.getOccupyBalance(),
+                orderNo, dataId, em, TableNameConstant.BALANCE_CONVERT_RECORD);
+
         if (a < 1) {
-            userCapitalCacheService.deltedUserCapitalCache(userId, UserCapitalTypeEnum.currency_2.getValue());
-            userCapitalCacheService.deltedUserCapitalCache(userId, UserCapitalTypeEnum.rmb.getValue());
+            userCapitalCacheService.deltedUserCapitalCache(userId, sourceType);
+            userCapitalCacheService.deltedUserCapitalCache(userId, targetType);
             throwExp("兑换失败，请稍后重试");
         }
-        int b = addUserBalance(targetAddBalance, userId, targetType, targetUserCapital.getBalance(), targetUserCapital.getOccupyBalance(), orderNo, dataId, em, TableNameConstant.BALANCE_CONVERT_RECORD);
-        if (a < 1 || b < 1) {
-            userCapitalCacheService.deltedUserCapitalCache(userId, UserCapitalTypeEnum.currency_2.getValue());
-            userCapitalCacheService.deltedUserCapitalCache(userId, UserCapitalTypeEnum.rmb.getValue());
+
+        int b = addUserBalance(targetAddBalance, userId, targetType,
+                targetUserCapital.getBalance(), targetUserCapital.getOccupyBalance(),
+                orderNo, dataId, em, TableNameConstant.BALANCE_CONVERT_RECORD);
+
+        if (b < 1) {
+            userCapitalCacheService.deltedUserCapitalCache(userId, sourceType);
+            userCapitalCacheService.deltedUserCapitalCache(userId, targetType);
             throwExp("兑换失败，请稍后重试");
         }
-        // 清理缓存
     }
+
 
 
 

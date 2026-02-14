@@ -12,13 +12,13 @@ import com.zywl.app.manager.service.manager.*;
 import com.zywl.app.manager.socket.ManagerSocketServer;
 import org.springframework.beans.factory.NoSuchBeanDefinitionException;
 import org.springframework.context.support.ClassPathXmlApplicationContext;
+import com.zywl.app.base.bean.Trading;
+import com.zywl.app.defaultx.service.TradingService;
+import com.zywl.app.defaultx.enmus.TradingTypeEnum;
 
 import java.lang.reflect.Field;
 import java.math.BigDecimal;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
 
 /**
  * @author lzx
@@ -1230,7 +1230,204 @@ public class SpringInDebug {
         }
         System.out.println("=【" + module + "-" + funcName + "-测试-结束】=用时：" + (System.currentTimeMillis() - start) + "ms=====>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>=============");
     }
+    /**
+     * 300010 可交易道具列表（上架/发布求购可选）
+     */
+    private static void trading010_getTradableItemsTest() {
+        String module = "交易行";
+        String funcName = "010-可交易道具列表";
+        System.out.println("=[" + module + "]-" + funcName + "-测试-开始=========>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>==========");
+        long start = System.currentTimeMillis();
+        try {
+            ManagerTradingService svc = ctx.getBean(ManagerTradingService.class);
+            JSONObject params = new JSONObject();
+            params.put("userId", MY_USER_ID); // 当前实现不依赖 userId，但保持统一格式
+            JSONObject res = svc.getTradableItems(fakeSocket, params);
+            printResult(res);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        System.out.println("=【" + module + "-" + funcName + "-测试-结束】=用时：" + (System.currentTimeMillis() - start) + "ms=====>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>=============");
+    }
 
+    /**
+     * 300011 四Tab统一列表（tab=0售卖 1求购 2我的售卖 3我的求购）
+     */
+    private static void trading011_getTradingListV2Test(int tab, String itemName, String sortField, String sortOrder) {
+        String module = "交易行";
+        String funcName = "011-四Tab列表(tab=" + tab + ")";
+        System.out.println("=[" + module + "]-" + funcName + "-测试-开始=========>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>==========");
+        long start = System.currentTimeMillis();
+        try {
+            ManagerTradingService svc = ctx.getBean(ManagerTradingService.class);
+            JSONObject params = new JSONObject();
+            params.put("userId", MY_USER_ID);
+            params.put("tab", tab);
+            params.put("page", 1);
+            params.put("number", 20);
+
+            if (itemName != null) params.put("itemName", itemName);     // 模糊搜索：服务端会转 itemIds IN
+            if (sortField != null) params.put("sortField", sortField);  // time|price
+            if (sortOrder != null) params.put("sortOrder", sortOrder);  // asc|desc
+
+            JSONObject res = svc.getTradingListV2(fakeSocket, params);
+            printResult(res);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        System.out.println("=【" + module + "-" + funcName + "-测试-结束】=用时：" + (System.currentTimeMillis() - start) + "ms=====>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>=============");
+    }
+
+    /**
+     * 300100 上架卖单（售卖商城上架入口）
+     */
+    private static void trading100_userListingItemTest(Long userId, long itemId, int number, String price) {
+        String module = "交易行";
+        String funcName = "100-上架卖单";
+        System.out.println("=[" + module + "]-" + funcName + "-测试-开始=========>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>==========");
+        long start = System.currentTimeMillis();
+        try {
+            ManagerTradingService svc = ctx.getBean(ManagerTradingService.class);
+            JSONObject params = new JSONObject();
+            params.put("userId", userId);
+            params.put("itemId", itemId);
+            params.put("number", number);
+            params.put("price", price);
+            JSONObject res = svc.userListingItem(fakeSocket, params);
+            printResult(res);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        System.out.println("=【" + module + "-" + funcName + "-测试-结束】=用时：" + (System.currentTimeMillis() - start) + "ms=====>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>=============");
+    }
+
+    /**
+     * 300300 发布求购（求购商城发布入口）
+     */
+    private static void trading300_userAddTradingBuyTest(Long userId, long itemId, int number, String price) {
+        String module = "交易行";
+        String funcName = "300-发布求购";
+        System.out.println("=[" + module + "]-" + funcName + "-测试-开始=========>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>==========");
+        long start = System.currentTimeMillis();
+        try {
+            ManagerTradingService svc = ctx.getBean(ManagerTradingService.class);
+            JSONObject params = new JSONObject();
+            params.put("userId", userId);
+            params.put("itemId", itemId);
+            params.put("number", number);
+            params.put("price", price);
+            JSONObject res = svc.userAddTradingBuy(fakeSocket, params);
+            printResult(res);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        System.out.println("=【" + module + "-" + funcName + "-测试-结束】=用时：" + (System.currentTimeMillis() - start) + "ms=====>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>=============");
+    }
+
+    /**
+     * 300500 购买卖单（售卖商城购买入口）
+     */
+    private static void trading500_userBuyTradingTest(Long buyerUserId, long tradingId, int number) {
+        String module = "交易行";
+        String funcName = "500-购买卖单";
+        System.out.println("=[" + module + "]-" + funcName + "-测试-开始=========>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>==========");
+        long start = System.currentTimeMillis();
+        try {
+            ManagerTradingService svc = ctx.getBean(ManagerTradingService.class);
+            JSONObject params = new JSONObject();
+            params.put("userId", buyerUserId);
+            params.put("tradingId", tradingId);
+            params.put("number", number);
+            JSONObject res = svc.tradingUserBuyItem(fakeSocket, params);
+            printResult(res);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        System.out.println("=【" + module + "-" + funcName + "-测试-结束】=用时：" + (System.currentTimeMillis() - start) + "ms=====>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>=============");
+    }
+
+    /**
+     * 300600 卖给求购（求购商城出售入口）
+     */
+    private static void trading600_userGiveItemToBuyTest(Long sellerUserId, long tradingId, int num) {
+        String module = "交易行";
+        String funcName = "600-卖给求购";
+        System.out.println("=[" + module + "]-" + funcName + "-测试-开始=========>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>==========");
+        long start = System.currentTimeMillis();
+        try {
+            ManagerTradingService svc = ctx.getBean(ManagerTradingService.class);
+            JSONObject params = new JSONObject();
+            params.put("userId", sellerUserId);
+            params.put("tradingId", tradingId);
+            params.put("number", num);
+            JSONObject res = svc.userGiveItemToBuy(fakeSocket, params);
+            printResult(res);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        System.out.println("=【" + module + "-" + funcName + "-测试-结束】=用时：" + (System.currentTimeMillis() - start) + "ms=====>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>=============");
+    }
+
+    /**
+     * 300200 下架卖单 / 撤销求购（统一入口）
+     * 说明：Manager 的 200 方法强制要求携带 type/itemId/number/price，这里从 DB 真实订单读取填入，避免手填错。
+     */
+    private static void trading200_cancelByTradingIdTest(Long userId, long tradingId) {
+        String module = "交易行";
+        String funcName = "200-下架/撤销(tradingId=" + tradingId + ")";
+        System.out.println("=[" + module + "]-" + funcName + "-测试-开始=========>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>==========");
+        long start = System.currentTimeMillis();
+        try {
+            ManagerTradingService svc = ctx.getBean(ManagerTradingService.class);
+            TradingService tradingService = ctx.getBean(TradingService.class);
+
+            Trading t = tradingService.findById(tradingId);
+            if (t == null) {
+                throw new RuntimeException("订单不存在 tradingId=" + tradingId);
+            }
+            if (!Objects.equals(t.getUserId(), userId)) {
+                throw new RuntimeException("该订单不属于当前用户：orderUserId=" + t.getUserId() + ", userId=" + userId);
+            }
+
+            JSONObject params = new JSONObject();
+            params.put("userId", userId);
+            params.put("tradingId", tradingId);
+            params.put("type", t.getType());                 // 0卖单 / 1求购
+            params.put("itemId", t.getItemId());
+            params.put("number", t.getItemNumber());         // 取消时按剩余数量处理
+            params.put("price", t.getItemPrice());
+
+            JSONObject res = svc.userCancelListingOrAskBuy(fakeSocket, params);
+            printResult(res);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        System.out.println("=【" + module + "-" + funcName + "-测试-结束】=用时：" + (System.currentTimeMillis() - start) + "ms=====>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>=============");
+    }
+
+    /**
+     * 300008 交易记录
+     */
+    private static void trading008_recordTest(Long userId, Integer type, Integer page, Integer num) {
+        String module = "交易行";
+        String funcName = "008-交易记录";
+        System.out.println("=[" + module + "]-" + funcName + "-测试-开始=========>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>==========");
+        long start = System.currentTimeMillis();
+        try {
+            ManagerTradingService svc = ctx.getBean(ManagerTradingService.class);
+            JSONObject params = new JSONObject();
+            params.put("userId", userId);
+            params.put("type", type == null ? 0 : type);
+            params.put("page", page == null ? 1 : page);
+            params.put("num", num == null ? 20 : num);
+
+            JSONObject res = svc.getTradingRecord(fakeSocket, params);
+            printResult(res);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        System.out.println("=【" + module + "-" + funcName + "-测试-结束】=用时：" + (System.currentTimeMillis() - start) + "ms=====>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>=============");
+    }
 
     // =================================================================================================================
     //                                         9.OSS
@@ -1640,7 +1837,7 @@ public class SpringInDebug {
         //guildCreateTest();
         //guildApproveTest();
         // guildRefuseTest();
-         guildInfoTest();
+        // guildInfoTest();
         // guildAddMemberTest();
         // guildMemberListTest();
         // guildAddProfitBalanceForTest();
@@ -1677,9 +1874,31 @@ public class SpringInDebug {
         // getAuditApproveTest();
         //getAuditRejectTest();
 
-        //交易行
-        //getTradingInfoTest();
-        //getTradingListingTest();
+        // --- 8. 交易行模块(Trading V3) ---
+        //trading010_getTradableItemsTest();
+
+        // 四Tab列表：0售卖 1求购 2我的售卖 3我的求购
+        //trading011_getTradingListV2Test(0, null, "time", "desc");
+        // trading011_getTradingListV2Test(1, null, "price", "asc");
+        // trading011_getTradingListV2Test(2, null, "time", "desc");
+        // trading011_getTradingListV2Test(3, null, "time", "desc");
+
+        // 售卖：上架 -> 列表 -> 购买
+       // trading100_userListingItemTest(MY_USER_ID, 1201L, 1, "1");
+       // trading011_getTradingListV2Test(0, null, "time", "desc");
+       //trading500_userBuyTradingTest(MY_USER_ID, /*tradingId*/ 42, 1);
+
+        // 求购：发布 -> 列表 -> 卖给求购
+       // trading300_userAddTradingBuyTest(MY_USER_ID, 1305L, 2, "1");
+       // trading011_getTradingListV2Test(1, null, "time", "desc");
+        // trading600_userGiveItemToBuyTest(FRIEND_USER_ID, /*tradingId*/ 20001L, 1);
+
+        // 我的售卖/我的求购：取消（下架/撤销）
+        // trading200_cancelByTradingIdTest(MY_USER_ID, /*tradingId*/ 10001L);
+
+        // 交易记录
+        // trading008_recordTest(MY_USER_ID, 0, 1, 20);
+
 
         // --- 8. VIP模块 ---
         //vip001_getVipPanelInfoTest();

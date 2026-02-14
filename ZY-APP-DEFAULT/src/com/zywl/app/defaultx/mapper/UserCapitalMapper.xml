@@ -223,15 +223,17 @@
 	</update>
 
 	<update id="betUpdateBalance2" parameterType="java.util.List">
-		<foreach collection="list" item="item" index="index" open=""
-				 close="" separator=";">
+		<foreach collection="list" item="item" index="index" open="" close="" separator=";">
 			update t_user_capital
 			<set>
-				balance=balance+${item.amount}
+				balance = balance + ${item.amount}
 			</set>
-			where id=#{item.id}
+			where user_id = ${item.userId}
+			and capital_type = #{item.capitalType}
+			and balance + ${item.amount} >= 0
 		</foreach>
 	</update>
+
 
 <update id="tranfertLotteryIn" parameterType="UserCapital">
 			update t_user_capital set balance=0 where user_id = ${userId} and capital_type = #{capitalType}

@@ -30,26 +30,25 @@ public class TradingCacheService extends RedisService {
 	 * 通过type和itemId获取该物品在交易行数据
 	 * **/
 	public List<TradingVo> getTradingCache(int start, int limit, Long itemId, Integer itemType, Long userId, Integer type) {
-		// todo lzx:统一使用常量前缀
-		String keyPrefix = RedisKeyConstant.APP_TRADING_SELL;
-		if (type != null && type == TradingTypeEnum.askbuy.getValue()) {
-			keyPrefix = RedisKeyConstant.APP_TRADING_ASK_BUY;
+		Integer normalizedType = type;
+		if (normalizedType != null && normalizedType > 1) {
+			normalizedType = normalizedType - 2;
 		}
 
-		// todo lzx:如果 itemId 为空给一个默认标识防止key出现双横杠等不规范情况
+		String keyPrefix = RedisKeyConstant.APP_TRADING_SELL;
+		if (normalizedType != null && normalizedType == TradingTypeEnum.askbuy.getValue()) {
+			keyPrefix = RedisKeyConstant.APP_TRADING_ASK_BUY;
+		}
 		String itemIdStr = (itemId == null) ? "all" : itemId.toString();
-
-		// key是前缀+itemId+‘-’+分页和筛选参数
 		String key = keyPrefix + itemIdStr + "-" + start + limit + itemType + userId + type;
-
 		List<TradingVo> list = getList(key, TradingVo.class);
 		if (list == null) {
 			list = tradingService.findTradingsByConditon(start, limit, itemId, itemType, userId, type);
-			// 缓存5秒，防止击穿
 			set(key, list, 5);
 		}
 		return list;
 	}
+
 
 	// 通过type和itemId删除该物品在交易行数据
 	public void removerTradingByIdAndType(int type, Long itemId) {

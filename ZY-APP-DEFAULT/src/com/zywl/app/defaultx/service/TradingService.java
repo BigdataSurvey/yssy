@@ -6,6 +6,7 @@ import java.util.Date;
 import java.util.List;
 import java.util.Map;
 
+import com.zywl.app.defaultx.enmus.TradingTabEnum;
 import org.apache.commons.collections4.map.HashedMap;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -157,4 +158,115 @@ public class TradingService extends DaoService {
     public void deletedNumberZero() {
         execute("deleteNumberZero", null);
     }
+
+    /**
+     * 交易行列表 （四个Tab 支持关键字搜索 + 支持按时间/价格排序）
+     * @param tabEnum 0=售卖商城(sell mall) 1=求购商城(askbuy mall) 2=我的售卖(my sell) 3=我的求购(my askbuy)
+     */
+    public List<TradingVo> findTradingsByConditionV2(int page, int limit,
+                                                     List<Long> itemIds,
+                                                     Long itemId,
+                                                     Integer itemType,
+                                                     Long userId,
+                                                     TradingTabEnum tabEnum,
+                                                     String sortField,
+                                                     String sortOrder) {
+        if (tabEnum == null) {
+            throwExp("tab error");
+        }
+
+        Map<String, Object> params = new HashedMap<>();
+        int start = (page - 1) * limit;
+        params.put("start", start);
+        params.put("limit", limit);
+
+        if (itemId != null) {
+            params.put("itemId", itemId);
+        } else if (itemIds != null && !itemIds.isEmpty()) {
+            params.put("itemIds", itemIds);
+        }
+
+        // itemType 分组映射（保持你原逻辑）
+        if (itemType != null) {
+            int itemType1 = 0, itemType2 = 0;
+            if (itemType == 0) { itemType1 = 1; itemType2 = 2; }
+            else if (itemType == 1) { itemType1 = 3; itemType2 = 4; }
+            else if (itemType == 2) { itemType1 = 5; itemType2 = 6; }
+            else if (itemType == 3) { itemType1 = 7; itemType2 = 8; }
+
+            List<Integer> list = new ArrayList<>();
+            list.add(itemType1);
+            list.add(itemType2);
+            params.put("itemTypes", list);
+        }
+
+        if (tabEnum.isMine()) {
+            if (userId == null || userId < 1) throwExp("userId error");
+            params.put("userId", userId);
+        }
+
+        // DB type 永远只允许 0/1
+        params.put("type", tabEnum.toDbType());
+        params.put("status", TradingStatusEnum.listing.getValue());
+
+        // 排序强校验（Mapper 用 ${}）
+        String sf = (sortField == null || sortField.trim().isEmpty()) ? "time" : sortField.trim();
+        if (!"time".equals(sf) && !"price".equals(sf)) throwExp("sortField error");
+
+        String so = (sortOrder == null || sortOrder.trim().isEmpty()) ? "desc" : sortOrder.trim().toLowerCase();
+        if (!"asc".equals(so) && !"desc".equals(so)) throwExp("sortOrder error");
+
+        params.put("sortField", sf);
+        params.put("sortOrderSql", so);
+
+        List<Trading> tradings = findByConditions(params);
+        List<TradingVo> vos = new ArrayList<>();
+        for (Trading trading : tradings) {
+            TradingVo vo = new TradingVo();
+            BeanUtils.copy(trading, vo);
+            vos.add(vo);
+        }
+        return vos;
+    }
+
+    public Long countTradingsByConditionV2(List<Long> itemIds,
+                                           Long itemId,
+                                           Integer itemType,
+                                           Long userId,
+                                           TradingTabEnum tabEnum) {
+        if (tabEnum == null) throwExp("tab error");
+
+        Map<String, Object> params = new HashedMap<>();
+
+        if (itemId != null) {
+            params.put("itemId", itemId);
+        } else if (itemIds != null && !itemIds.isEmpty()) {
+            params.put("itemIds", itemIds);
+        }
+
+        if (itemType != null) {
+            int itemType1 = 0, itemType2 = 0;
+            if (itemType == 0) { itemType1 = 1; itemType2 = 2; }
+            else if (itemType == 1) { itemType1 = 3; itemType2 = 4; }
+            else if (itemType == 2) { itemType1 = 5; itemType2 = 6; }
+            else if (itemType == 3) { itemType1 = 7; itemType2 = 8; }
+
+            List<Integer> list = new ArrayList<>();
+            list.add(itemType1);
+            list.add(itemType2);
+            params.put("itemTypes", list);
+        }
+
+        if (tabEnum.isMine()) {
+            if (userId == null || userId < 1) throwExp("userId error");
+            params.put("userId", userId);
+        }
+
+        params.put("type", tabEnum.toDbType());
+        params.put("status", TradingStatusEnum.listing.getValue());
+
+        return count("countByConditions", params);
+    }
+
+
 }

@@ -591,6 +591,9 @@ public class GameBaseService extends BaseService {
         return async();
     }
 
+    /**
+     * 出售给系统（系统回收）
+     * **/
     @ServiceMethod(code = "020", description = "背包物品出售")
     public Object sellItemToSystem(AppSocket appSocket, Command command, JSONObject data) {
         checkNull(data);

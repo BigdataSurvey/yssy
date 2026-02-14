@@ -12,10 +12,7 @@ import com.zywl.app.base.util.OrderUtil;
 import com.zywl.app.defaultx.annotation.ServiceClass;
 import com.zywl.app.defaultx.annotation.ServiceMethod;
 import com.zywl.app.defaultx.cache.*;
-import com.zywl.app.defaultx.enmus.LogUserBackpackTypeEnum;
-import com.zywl.app.defaultx.enmus.TradingStatusEnum;
-import com.zywl.app.defaultx.enmus.TradingTypeEnum;
-import com.zywl.app.defaultx.enmus.UserCapitalTypeEnum;
+import com.zywl.app.defaultx.enmus.*;
 import com.zywl.app.defaultx.service.BackpackService;
 import com.zywl.app.defaultx.service.ConfigService;
 import com.zywl.app.defaultx.service.TradingRecordService;
@@ -297,7 +294,8 @@ public class ManagerTradingService extends BaseService {
             gameBaseService.pushCapitalUpdate(userId,UserCapitalTypeEnum.hxjf.getValue());
             tradingService.addTrading(userId, itemId, number, price, TradingTypeEnum.askbuy.getValue(), item.getType());
             JSONObject result = new JSONObject();
-            // TODO 返回数据未定义
+            result.put("itemId", itemId);
+            result.put("number", number);
             return result;
         }
     }
@@ -425,12 +423,12 @@ public class ManagerTradingService extends BaseService {
         }
 
         Integer page = params.getInteger("page");
-        Integer num = params.getInteger("num");
+        Integer number = params.getInteger("number");
         if (page == null || page < 1) {
             page = 1;
         }
-        if (num == null || num < 1 || num > 50) {
-            num = 20;
+        if (number == null || number < 1 || number > 50) {
+            number = 20;
         }
 
         Long userId = params.getLong("userId");
@@ -465,7 +463,7 @@ public class ManagerTradingService extends BaseService {
             }
         }
         List<TradingVo> list = tradingCacheService.getTradingCache(
-                page, num,
+                page, number,
                 itemId, itemType,
                 userId,
                 TradingTypeEnum.sell.getValue()
@@ -490,16 +488,16 @@ public class ManagerTradingService extends BaseService {
             throwExp("type error");
         }
         Integer page = params.getInteger("page");
-        Integer num = params.getInteger("num");
+        Integer number = params.getInteger("number");
         if (page == null || page < 1) {
             page = 1;
         }
-        if (num == null || num < 1 || num > 50) {
-            num = 20;
+        if (number == null || number < 1 || number > 50) {
+            number = 20;
         }
         Long itemId = params.getLong("itemId");
         Integer itemType = params.getInteger("itemType");
-        List<TradingVo> list = tradingCacheService.getTradingCache(page, num, itemId, itemType, userId, type);
+        List<TradingVo> list = tradingCacheService.getTradingCache(page, number, itemId, itemType, userId, type);
         JSONObject result = new JSONObject();
         result.put("list", list);
         return result;
@@ -517,14 +515,14 @@ public class ManagerTradingService extends BaseService {
             throwExp("type error");
         }
         Integer page = params.getInteger("page");
-        Integer num = params.getInteger("num");
+        Integer number = params.getInteger("number");
         if (page == null || page < 1) {
             page = 1;
         }
-        if (num == null || num < 1 || num > 50) {
-            num = 20;
+        if (number == null || number < 1 || number > 50) {
+            number = 20;
         }
-        List<TradingRecordVo> list = tradingRecordService.getMyRecord(userId, page, num, type);
+        List<TradingRecordVo> list = tradingRecordService.getMyRecord(userId, page, number, type);
         JSONObject result = new JSONObject();
         result.put("list", list);
         return result;
@@ -562,5 +560,67 @@ public class ManagerTradingService extends BaseService {
         return result;
     }
 
+
+    @ServiceMethod(code = "011", description = "交易行四Tab列表V2")
+    public JSONObject getTradingListV2(ManagerSocketServer socketServer, JSONObject params) {
+        checkNull(params);
+
+        Integer tabVal = params.getInteger("tab");
+        TradingTabEnum tabEnum = TradingTabEnum.of(tabVal);
+        if (tabEnum == null) {
+            throwExp("tab error");
+        }
+
+        Integer page = params.getInteger("page");
+        Integer number = params.getInteger("number");
+        if (page == null || page < 1) page = 1;
+        if (number == null || number < 1 || number > 50) number = 20;
+
+        Long userId = params.getLong("userId");
+        if (tabEnum.isMine() && (userId == null || userId < 1)) {
+            throwExp("userId error");
+        }
+
+        Long itemId = params.getLong("itemId");
+        Integer itemType = params.getInteger("itemType");
+        String keyword = params.getString("itemName");
+        String sortField = params.getString("sortField"); // time|price
+        String sortOrder = params.getString("sortOrder"); // asc|desc
+
+        // keyword -> itemIds（从 PlayGameService.itemMap 过滤）
+        List<Long> itemIds = null;
+        if (itemId == null && keyword != null && !keyword.trim().isEmpty()) {
+            String kw = keyword.trim();
+            itemIds = new java.util.ArrayList<>();
+            for (Item item : PlayGameService.itemMap.values()) {
+                if (item != null && item.getName() != null && item.getName().contains(kw)) {
+                    itemIds.add(item.getId());
+                }
+            }
+            if (itemIds.isEmpty()) {
+                JSONObject result = new JSONObject();
+                result.put("count", 0);
+                result.put("list", java.util.Collections.emptyList());
+                return result;
+            }
+        }
+
+        List<TradingVo> list = tradingService.findTradingsByConditionV2(
+                page, number,
+                itemIds,
+                itemId,
+                itemType,
+                userId,
+                tabEnum,
+                sortField,
+                sortOrder
+        );
+        Long count = tradingService.countTradingsByConditionV2(itemIds, itemId, itemType, userId, tabEnum);
+
+        JSONObject result = new JSONObject();
+        result.put("count", count);
+        result.put("list", list);
+        return result;
+    }
 
 }

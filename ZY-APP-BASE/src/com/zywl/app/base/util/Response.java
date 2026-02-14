@@ -13,26 +13,35 @@ import java.io.Writer;
 
 public class Response {
 	private static final Log logger = LogFactory.getLog(Response.class);
-	
+
 	public static void doResponse(AsyncContext asyncContext, String message){
 		PrintWriter writer = null;
 		try {
+			if (asyncContext == null) {
+				return;
+			}
 			ServletResponse response = asyncContext.getResponse();
 			response.setContentType("text/plain;charset=UTF-8");
 			response.setCharacterEncoding("UTF-8");
 			writer = response.getWriter();
-            writer.write(message);
-            writer.flush();
-        } catch (IOException e) {
-            logger.error(e, e);
-        }finally{
-			if(writer != null){
-				writer.close();
+			writer.write(message == null ? "" : message);
+			writer.flush();
+		} catch (IllegalStateException ise) {
+			logger.warn("AsyncContext already completed, skip response. msg=" + message);
+		} catch (IOException e) {
+			logger.error(e, e);
+		} finally {
+			if (writer != null) {
+				try { writer.close(); } catch (Exception ignore) {}
 			}
-			asyncContext.complete();
+			try {
+				asyncContext.complete();
+			} catch (IllegalStateException ignore) {
+			}
 		}
 	}
-	
+
+
 	public static void doResponse(HttpServletRequest request, HttpServletResponse response,String message){
 		Writer writer = null;
 		try{
