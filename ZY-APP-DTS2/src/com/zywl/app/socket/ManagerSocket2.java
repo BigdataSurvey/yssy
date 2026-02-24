@@ -1,5 +1,5 @@
 package com.zywl.app.socket;
-
+import com.zywl.app.service.PbxService;
 import com.alibaba.fastjson2.JSONObject;
 import com.live.app.ws.bean.Command;
 import com.live.app.ws.bean.PushBean;
@@ -33,7 +33,6 @@ public class ManagerSocket2 extends BaseClientSocket {
 	//private BattleRoyaleService2 battleRoyaleService2;
 	private GameService gameService;
 	private IncomeRecordService incomeRecordService;
-
 
 	public ManagerSocket2(TargetSocketType socketType, int reconnect, String server, JSONObject shakeHandsDatas) {
 		super(socketType, false, reconnect, server, shakeHandsDatas);
@@ -129,5 +128,31 @@ public class ManagerSocket2 extends BaseClientSocket {
 	@Override
 	protected Log logger() {
 		return logger;
+	}
+
+	@Override
+	protected boolean shouldLogSend(Command command, String jsonText) {
+		try {
+			// 只针对 PBX 下注扣款（ManagerCapitalService 720，对应客户端发 200720）
+			if (!"200720".equals(command.getCode())) {
+				return true;
+			}
+
+			Object raw = command.getData();
+			JSONObject data = (raw instanceof JSONObject)
+					? (JSONObject) raw
+					: JSONObject.parseObject(String.valueOf(raw));
+
+			String uid = data.getString("userId");
+			if (uid == null || uid.trim().isEmpty()) {
+				return true;
+			}
+
+			// ✅机器人下注不打印“发送到服务端”
+			return !PbxService.isBotUser(uid);
+		} catch (Exception ignore) {
+			// 出异常时宁可打印，避免误伤排障
+			return true;
+		}
 	}
 }

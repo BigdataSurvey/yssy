@@ -76,10 +76,37 @@ public class BattleRoyale2Socket extends BaseClientSocket {
             public void onReceive(BaseSocket baseSocket, Object data) {
                 logger.info("收到推箱子信息变更" + data);
                 JSONObject obj = JSONObject.from(data);
+
                 String gameId = obj.getString("gameId");
-                if ("12".equals(gameId)) {
+                if (gameId == null || gameId.length() == 0) gameId = "12";
+                if (!"12".equals(gameId)) return;
+
+                int status = 0;
+                try {
+                    Object st = obj.get("status");
+                    status = (st == null ? 0 : Integer.parseInt(String.valueOf(st)));
+                } catch (Exception ignore) {}
+
+                // ✅关键：status==3 分流
+                if (status == 3) {
+                    // 1) 个人结算包：带 userIds -> 只发给对应 userId（不广播到房间）
+                    JSONArray uids = obj.getJSONArray("userIds");
+                    if (uids != null && uids.size() > 0) {
+                        for (Object u : uids) {
+                            String uid = String.valueOf(u);
+                            // 发给个人（下面会配合 ServerLotteryGameService 注册 updatePbxInfo(userId)）
+                            Push.push(PushCode.updatePbxInfo, uid, obj);
+                        }
+                        return;
+                    }
+
+                    // 2) 公共开奖展示包：不带 userIds -> 房间广播触发开奖动画
                     Push.push(PushCode.updatePbxInfo, gameId, obj);
+                    return;
                 }
+
+                // status!=3：正常房间广播（倒计时、结算中、记录统计等）
+                Push.push(PushCode.updatePbxInfo, gameId, obj);
             }
         }, this);
 
@@ -93,22 +120,27 @@ public class BattleRoyale2Socket extends BaseClientSocket {
             public void onReceive(BaseSocket baseSocket, Object data) {
                 logger.info("收到推箱子状态变更" + data);
                 JSONObject obj = JSONObject.from(data);
+
                 String gameId = obj.getString("gameId");
+                if (gameId == null || gameId.length() == 0) gameId = "12";
+
                 JSONArray ids = obj.getJSONArray("userIds");
-                if ("12".equals(gameId) && ids != null) {
-                    for (Object id : ids) {
-                        String userId = (String) id;
-                        JSONObject result = new JSONObject();
-                        result.put("userId", userId);
-                        result.put("gameStatus", obj.get("status"));
-                        result.put("userSettleInfo", obj.get("userSettleInfo"));
-                        mergeUnifiedSummary(result, obj, userId);
-                        Push.push(PushCode.updatePbxStatus, userId, result);
-                    }
+                if (!"12".equals(gameId) || ids == null) return;
+
+                for (Object id : ids) {
+                    String userId = String.valueOf(id);
+
+                    JSONObject result = new JSONObject();
+                    result.put("userId", userId);
+                    result.put("gameStatus", obj.get("status"));
+                    result.put("userSettleInfo", obj.get("userSettleInfo"));
+                    mergeUnifiedSummary(result, obj, userId);
+
+                    // 单播给个人（按 userId 路由）
+                    Push.push(PushCode.updatePbxStatus, userId, result);
                 }
             }
         }, this);
-
 
         JSONObject connectedData = ((JSONObject) data).getJSONObject("responseShakeHandsData");
         if (connectedData != null) {

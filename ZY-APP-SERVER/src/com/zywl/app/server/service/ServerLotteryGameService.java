@@ -118,6 +118,7 @@ public class ServerLotteryGameService extends BaseService {
             Push.doAddPush(appSocket, new PushBean(PushCode.updateDgsStatus, userId));
         } else if (gameId.equals("12")) {
             Push.doAddPush(appSocket, new PushBean(PushCode.updatePbxInfo, gameId));
+            Push.doAddPush(appSocket, new PushBean(PushCode.updatePbxInfo, userId));
             Push.doAddPush(appSocket, new PushBean(PushCode.updatePbxStatus, userId));
         }
     }
@@ -142,7 +143,9 @@ public class ServerLotteryGameService extends BaseService {
             Push.doRemovePush(appSocket, new PushBean(PushCode.updateDgsStatus, userId));
         } else if (gameId.equals("12")) {
             Push.doRemovePush(appSocket, new PushBean(PushCode.updatePbxInfo, gameId));
+            Push.doRemovePush(appSocket, new PushBean(PushCode.updatePbxInfo, userId));
             Push.doRemovePush(appSocket, new PushBean(PushCode.updatePbxStatus, userId));
+
         }
     }
 

@@ -12,6 +12,7 @@ import com.live.app.ws.socket.BaseSocket;
 import com.live.app.ws.util.DefaultPushHandler;
 import com.live.app.ws.util.Push;
 import com.zywl.app.defaultx.cache.UserCapitalCacheService;
+import com.zywl.app.defaultx.enmus.LotteryGameStatusEnum;
 import com.zywl.app.defaultx.service.IncomeRecordService;
 import com.zywl.app.defaultx.service.UserCapitalService;
 import com.zywl.app.defaultx.service.VersionService;
@@ -67,52 +68,79 @@ public class PbxSocket extends BaseClientSocket {
     @Override
     public void onConnect(Object data) {
 
+        // 1) 透传 updatePbxInfo（全服广播信息：倒计时/奖池/近16/近100）
         Push.registPush(new PushBean(PushCode.updatePbxInfo), new PushListener() {
-            public void onRegist(BaseSocket baseSocket, Object data) {
+            @Override
+            public void onRegist(BaseSocket baseSocket, Object data) {}
 
-            }
-
+            @Override
             public void onReceive(BaseSocket baseSocket, Object data) {
-                logger.info("收到推箱子信息变更" + data);
-                JSONObject obj = (JSONObject) data;
-                String gameId = obj.getString("gameId");
-                if ("12".equals(gameId)) {
-                    Push.push(PushCode.updatePbxInfo, gameId, obj);
+                if (data == null) return;
+
+                JSONObject obj;
+                try {
+                    obj = JSONObject.from(data);
+                } catch (Exception e) {
+                    logger.error("PBX updatePbxInfo payload parse error: " + data, e);
+                    return;
                 }
 
+                // ★全服广播给 App 端：保持 code 不变
+                Push.push(PushCode.updatePbxInfo, null, obj);
             }
         }, this);
+
+        // 2) 桥接 updatePbxStatus -> updateGameStatus（单播给对应 userId）
         Push.registPush(new PushBean(PushCode.updatePbxStatus), new PushListener() {
-            public void onRegist(BaseSocket baseSocket, Object data) {
+            @Override
+            public void onRegist(BaseSocket baseSocket, Object data) {}
 
-            }
-
+            @Override
             public void onReceive(BaseSocket baseSocket, Object data) {
-                logger.info("收到图箱子状态变更" + data);
-                JSONObject obj = JSONObject.from(data);
+                if (data == null) return;
+
+                JSONObject obj;
+                try {
+                    obj = JSONObject.from(data);
+                } catch (Exception e) {
+                    logger.error("PBX updatePbxStatus payload parse error: " + data, e);
+                    return;
+                }
+
                 String gameId = obj.getString("gameId");
                 JSONArray ids = obj.getJSONArray("userIds");
-                if ("12".equals(gameId)) {
-                    for (Object id : ids) {
-                        JSONObject result = new JSONObject();
-                        String userId = (String) id;
-                        result.put("userId",userId);
-                        result.put("gameStatus", obj.get("status"));
-                        result.put("userSettleInfo",obj.get("userSettleInfo"));
-                        mergeUnifiedSummary(result, obj, userId);
-                        Push.push(PushCode.updatePbxStatus, userId, result);
+                if (ids == null || ids.isEmpty()) return;
+
+                for (Object id : ids) {
+                    String userId = String.valueOf(id);
+                    JSONObject result = new JSONObject();
+
+                    int status = obj.getIntValue("status");
+                    result.put("status", status);
+                    result.put("gameId", gameId);
+                    result.put("userId", userId);
+
+                    // 透传结算信息
+                    if (obj.containsKey("userSettleInfo")) {
+                        result.put("userSettleInfo", obj.get("userSettleInfo"));
                     }
 
+                    // 合并统一汇总（近16/近100/总投入/总获得/时间）
+                    mergeUnifiedSummary(result, obj, userId);
+
+                    // ★关键：只单播 updateGameStatus 给客户端
+                    Push.push(PushCode.updateGameStatus, userId, result);
                 }
             }
         }, this);
 
-
+        // 原握手逻辑保留
         JSONObject connectedData = ((JSONObject) data).getJSONObject("responseShakeHandsData");
         if (connectedData != null) {
             TemplateLoadService.staticWebUrl = connectedData.getString("staticWebUrl");
             TemplateLoadService.managerWebUrl = connectedData.getString("managerWebUrl");
         }
+
         new Thread("同步握手数据监测") {
             public void run() {
                 try {
@@ -123,8 +151,6 @@ public class PbxSocket extends BaseClientSocket {
                     logger.error("同步握手数据异常：" + e, e);
                 }
             }
-
-            ;
         }.start();
     }
 
