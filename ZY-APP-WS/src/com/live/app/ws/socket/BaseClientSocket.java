@@ -157,16 +157,22 @@ public abstract class BaseClientSocket extends BaseSocket {
 		}.start();
 	}
 
-	public boolean sendCommand(Command command){
+	public boolean sendCommand(Command command) {
 		try {
-			if(isNull(command.getLocale())) {
+			if (isNull(command.getLocale())) {
 				command.setLocale(getLocale());
 			}
 			String data = JSON.toJSONString(command, filter);
-			if (!command.getCode().equals("700200") && !command.getCode().equals("syncTaskNum")) {
+
+			// ✅默认仍然保留原有的两类过滤
+			boolean defaultSkip = command.getCode().equals("700200") || command.getCode().equals("syncTaskNum");
+
+			// ✅新增：允许子类按业务（比如机器人）进一步决定是否打印发送日志
+			if (!defaultSkip && shouldLogSend(command, data)) {
 				logger().debug("发送到服务端：" + data);
 			}
-			if(isEncrypt(command)) {
+
+			if (isEncrypt(command)) {
 				data = DesUtil.encrypt(data, privateKey);
 			}
 			send(data);
@@ -175,6 +181,13 @@ public abstract class BaseClientSocket extends BaseSocket {
 			logger().error("发送失败：" + JSON.toJSONString(command), e);
 			return false;
 		}
+	}
+
+	/**
+	 * 是否打印“发送到服务端”日志（可由子类覆写）
+	 */
+	protected boolean shouldLogSend(Command command, String jsonText) {
+		return true;
 	}
 
 	public boolean isEncrypt(Command command) {

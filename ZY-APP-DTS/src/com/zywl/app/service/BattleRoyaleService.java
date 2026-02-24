@@ -39,6 +39,7 @@ import java.math.BigDecimal;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.atomic.AtomicInteger;
 
 @Service
 @ServiceClass(code = "101")
@@ -98,7 +99,7 @@ public class BattleRoyaleService extends BaseService {
     @Autowired
     private BattleRoyaleService battleRoyaleService;
 
-
+    private final ConcurrentHashMap<String, AtomicInteger> pendingBetCountByPeriod = new ConcurrentHashMap<>();
     @Autowired
     private BattleRoyaleRequsetMangerService requsetMangerService;
 

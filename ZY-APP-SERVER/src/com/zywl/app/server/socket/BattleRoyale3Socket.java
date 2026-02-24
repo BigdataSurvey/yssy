@@ -73,17 +73,12 @@ public class BattleRoyale3Socket extends BaseClientSocket {
 
             @Override
             public void onReceive(BaseSocket baseSocket, Object data) {
-               // logger.info("收到大逃杀3房间信息变更" + data);
-                if (data == null) {
-                    return;
-                }
+                if (data == null) return;
 
                 JSONArray array = new JSONArray();
                 if (data instanceof JSONObject) {
-                    // 如果是单对象，直接add进去
                     array.add((JSONObject) data);
                 } else if (data instanceof JSONArray) {
-                    // 如果是数组
                     array = (JSONArray) data;
                 } else {
                     try {
@@ -104,7 +99,6 @@ public class BattleRoyale3Socket extends BaseClientSocket {
                     if ("1".equals(gameId)) {
                         Push.push(PushCode.updateRoomDate, gameId, obj);
                     }
-                    // logger.info("DTS3 updateDts3Info receive gameId=" + gameId + ", payload=" + obj);
                 }
             }
         }, this);
@@ -119,36 +113,131 @@ public class BattleRoyale3Socket extends BaseClientSocket {
             @Override
             @SuppressWarnings("unchecked")
             public void onReceive(BaseSocket baseSocket, Object data) {
-               // logger.info("大逃杀3游戏状态变更" + data);
-                JSONObject obj = JSONObject.from(data);
+                if (data == null) return;
+
+                JSONObject obj;
+                try {
+                    obj = (data instanceof JSONObject) ? (JSONObject) data : JSONObject.from(data);
+                } catch (Exception e) {
+                    logger.error("DTS3 updateDts3Status 推送数据无法解析: " + data, e);
+                    return;
+                }
+
                 String gameId = obj.getString("gameId");
-               // logger.info("DTS3 updateDts3Status receive gameId=" + gameId + ", status=" + obj.get("status"));
                 JSONArray ids = obj.getJSONArray("userIds");
-                if ("1".equals(gameId) && ids != null) {
-                    for (Object id : ids) {
-                        JSONObject result = new JSONObject();
-                        String userId = (String) id;
-                        if (LotteryGameStatusEnum.settle.getValue() == obj.getIntValue("status")) {
-                            Map<String, Map<String, String>> map =
-                                    (Map<String, Map<String, String>>) obj.get("userSettleInfo");
-                            if (map != null && map.containsKey(userId)) {
-                                result.put("isBot", map.get(userId).get("isBot"));
-                                result.put("winAmount", map.get(userId).get("winAmount"));
-                                result.put("betAmount", map.get(userId).get("betAmount"));
-                                result.put("roomResult", Integer.parseInt(map.get(userId).get("isWin")));
-                            } else {
-                                result.put("roomResult", 2);
-                            }
-                        } else {
-                            dtsPublic(obj, result);
-                        }
-                        result.put("allLoseAmount", obj.get("allLoseAmount"));
-                        result.put("roomIds", obj.get("roomIds"));
-                        result.put("status", obj.get("status"));
-                        result.put("userId", userId);
-                        mergeUnifiedSummary(result, obj, userId);
-                        Push.push(PushCode.updateGameStatus, userId, result);
+
+                if (!"1".equals(gameId) || ids == null) {
+                    return;
+                }
+
+                // userSettleInfo 可能是 JSONObject / Map / 甚至 null，这里统一转成 Map
+                Map<String, Object> userSettleMap = null;
+                try {
+                    Object usi = obj.get("userSettleInfo");
+                    if (usi instanceof Map) {
+                        userSettleMap = (Map<String, Object>) usi;
+                    } else if (usi != null) {
+                        userSettleMap = JSONObject.from(usi);
                     }
+                } catch (Exception ignore) {
+                    userSettleMap = null;
+                }
+
+                // 顶层兼容映射（你在 DTS3 推送里可能会塞 getAmountMap/amountMap 等）
+                JSONObject getAmountMap = null;
+                JSONObject amountMap = null;
+                JSONObject awardMap = null;
+                JSONObject gainMap = null;
+                try {
+                    getAmountMap = obj.getJSONObject("getAmountMap");
+                    amountMap = obj.getJSONObject("amountMap");
+                    awardMap = obj.getJSONObject("awardMap");
+                    gainMap = obj.getJSONObject("gainMap");
+                } catch (Exception ignore) {}
+
+                for (Object id : ids) {
+                    String userId = String.valueOf(id);
+
+                    JSONObject result = new JSONObject();
+
+                    if (LotteryGameStatusEnum.settle.getValue() == obj.getIntValue("status")) {
+
+                        Map<String, Object> one = null;
+                        if (userSettleMap != null) {
+                            Object oneObj = userSettleMap.get(userId);
+                            if (oneObj instanceof Map) {
+                                one = (Map<String, Object>) oneObj;
+                            } else if (oneObj != null) {
+                                try {
+                                    one = JSONObject.from(oneObj);
+                                } catch (Exception ignore) {
+                                    one = null;
+                                }
+                            }
+                        }
+
+                        // 默认：未知/未找到该用户结算信息 => roomResult=2（你原来的逻辑就是 2）
+                        if (one == null) {
+                            result.put("roomResult", 2);
+                            result.put("isBot", "0");
+                            result.put("winAmount", "0");
+                            result.put("betAmount", "0");
+                        } else {
+                            String isBot = one.get("isBot") == null ? "0" : String.valueOf(one.get("isBot"));
+                            String winAmount = one.get("winAmount") == null ? null : String.valueOf(one.get("winAmount"));
+                            String betAmount = one.get("betAmount") == null ? null : String.valueOf(one.get("betAmount"));
+                            String isWin = one.get("isWin") == null ? null : String.valueOf(one.get("isWin"));
+
+                            // ✅关键：安全解析，杜绝 NumberFormatException
+                            int roomResult = safeParseInt(isWin, 2);
+
+                            result.put("isBot", isBot);
+                            result.put("winAmount", winAmount == null ? "0" : winAmount);
+                            result.put("betAmount", betAmount == null ? "0" : betAmount);
+                            result.put("roomResult", roomResult);
+
+                            // 顶层兼容：给前端可能直接取 totalGain/totalInvest 的情况兜底
+                            result.put("totalInvest", result.getString("betAmount"));
+                            result.put("totalGain", result.getString("winAmount"));
+
+                            // 兼容字段兜底（如果 settle 推送没带齐）
+                            String gain = result.getString("winAmount");
+                            result.put("award", gain);
+                            result.put("gain", gain);
+                            result.put("amount", gain);
+                            result.put("getAmount", gain);
+                        }
+
+                        // 如果你 DTS3 顶层补了 map（getAmountMap/amountMap/...），这里也可以兜底覆盖
+                        try {
+                            if (getAmountMap != null && getAmountMap.containsKey(userId)) {
+                                String v = String.valueOf(getAmountMap.get(userId));
+                                result.put("getAmount", v);
+                                result.put("totalGain", v);
+                            }
+                            if (amountMap != null && amountMap.containsKey(userId)) {
+                                result.put("amount", String.valueOf(amountMap.get(userId)));
+                            }
+                            if (awardMap != null && awardMap.containsKey(userId)) {
+                                result.put("award", String.valueOf(awardMap.get(userId)));
+                            }
+                            if (gainMap != null && gainMap.containsKey(userId)) {
+                                result.put("gain", String.valueOf(gainMap.get(userId)));
+                            }
+                        } catch (Exception ignore) {}
+
+                    } else {
+                        dtsPublic(obj, result);
+                    }
+
+                    result.put("allLoseAmount", obj.get("allLoseAmount"));
+                    result.put("roomIds", obj.get("roomIds"));
+                    result.put("status", obj.get("status"));
+                    result.put("userId", userId);
+
+                    mergeUnifiedSummary(result, obj, userId);
+
+                    Push.push(PushCode.updateGameStatus, userId, result);
                 }
             }
         }, this);
@@ -163,7 +252,6 @@ public class BattleRoyale3Socket extends BaseClientSocket {
                 if (data == null) return;
                 JSONObject obj = JSONObject.from(data);
                 String gameId = obj.getString("gameId");
-                // 转推到 APP 端 condition 用 gameId
                 Push.push(PushCode.updateDts3UserLeave, gameId, obj);
             }
         }, this);
@@ -277,5 +365,10 @@ public class BattleRoyale3Socket extends BaseClientSocket {
             result.put("serverTime", summary.get("serverTime"));
         }
     }
-
+    private int safeParseInt(String v, int def) {
+        if (v == null) return def;
+        v = v.trim();
+        if (v.length() == 0) return def;
+        try { return Integer.parseInt(v); } catch (Exception e) { return def; }
+    }
 }

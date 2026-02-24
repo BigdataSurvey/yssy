@@ -134,4 +134,71 @@
 		where order_no = #{orderNo}
 	</update>
 
+	<select id="findRecentPeriodsDistinct" resultType="java.util.Map">
+		select
+			periods_num as periodsNum,
+			max(lottery_result) as lotteryResult,
+			max(id) as maxId
+		from r_battle_royale2_record
+		where status = 1
+		  and lottery_result is not null
+		  and lottery_result != ''
+		group by periods_num
+		order by maxId desc
+			limit #{limit}
+	</select>
+
+	<!-- ✅按【期号 + 用户】批量结算该期所有未结算记录（下注阶段 orderNo 每次唯一，结算不能再按固定 orderNo 更新） -->
+	<update id="batchUpdateRecordByPeriodUser"  parameterType="java.util.List">
+		<foreach collection="list" item="item" index="index" open="" close="" separator=";">
+			update r_battle_royale2_record
+			<set>
+				profit=#{item.winAmount},lottery_result=#{item.lotteryResult},win_or_lose=#{item.isWin},status=1
+			</set>
+			where periods_num = #{item.periodNo}
+			and user_id = #{item.userId}
+			and status = 0
+		</foreach>
+	</update>
+
+
+	<!-- ✅按【期号 + 用户】聚合下注：存在则累加 bet_amount，并合并 bet_info（简单合并：直接覆盖同 elementId 的金额字符串） -->
+	<update id="addBetAmountAndMergeInfoByPeriodUser" parameterType="java.util.Map">
+		update r_battle_royale2_record
+		set
+			bet_amount = bet_amount + #{chip},
+			bet_info = #{betInfo},
+			update_time = #{now}
+		where periods_num = #{periodNo}
+		  and user_id = #{userId}
+		  and status = 0
+			limit 1
+	</update>
+
+
+
+
+
+
+	<!-- 查该用户该期未结算聚合记录（只取 id + bet_info） -->
+	<select id="findUnsettledIdAndInfoByPeriodUser" resultType="java.util.Map">
+		select id as id, bet_info as betInfo
+		from r_battle_royale2_record
+		where periods_num = #{periodNo}
+		  and user_id = #{userId}
+		  and status = 0
+		order by id desc
+			limit 1
+	</select>
+
+	<!-- 按主键更新：bet_amount += chip，bet_info 合并后的 JSON 直接写入 -->
+	<update id="addBetAmountAndMergeInfoById" parameterType="java.util.Map">
+		update r_battle_royale2_record
+		set
+			bet_amount = bet_amount + #{chip},
+			bet_info = #{betInfo},
+			update_time = #{now}
+		where id = #{id}
+			limit 1
+	</update>
 </mapper>

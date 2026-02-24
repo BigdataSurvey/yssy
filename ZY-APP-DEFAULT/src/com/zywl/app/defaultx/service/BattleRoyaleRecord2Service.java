@@ -116,87 +116,171 @@ public class BattleRoyaleRecord2Service extends DaoService {
 	}
 
 	/**
-	 * 结算推送阶段可传入本期实际获得（包含本金），用于弥补 profit 尚未落库的时间差；可为 null。
+	 * 返回最近16期汇总/最近100期明细/总投入/总获得/服务器时间。
+	 *
+	 * zeroBasedRoomId == true  : 输出 roomId = 0..5（给前端显示用）
+	 * zeroBasedRoomId == false : 输出 roomId = 1..6（内部默认）
+	 *
+	 * 注意：解析 DB lotteryResult 时会自动兼容：
+	 * - 若数组里包含 0，则视为旧 0..5 存储，内部统一 +1 变成 1..6
+	 * - 否则视为新 1..6 存储，内部直接使用
 	 */
 	public JSONObject buildUnifiedSummary(Long userId, boolean zeroBasedRoomId, BigDecimal extraGain) {
 		JSONObject res = new JSONObject();
-		if (userId == null) {
-			res.put("recent16Summary", new JSONArray());
-			res.put("recent100Periods", new JSONArray());
-			res.put("totalInvest", BigDecimal.ZERO.setScale(2, RoundingMode.HALF_UP));
-			res.put("totalGain", BigDecimal.ZERO.setScale(2, RoundingMode.HALF_UP));
-			res.put("serverTime", System.currentTimeMillis());
-			return res;
-		}
 
-		Map<String, Object> p = new HashMap<>();
-		p.put("userId", userId);
-		p.put("start", 0);
-		p.put("limit", 100);
-		List<BattleRoyale2Record> records = findList("findByUserId", p);
-		if (records == null) {
-			records = Collections.emptyList();
-		}
-
-		// recent100Periods 近100期统计
-		Map<Integer, Integer> cnt = new HashMap<>();
-		int take100 = Math.min(100, records.size());
-		for (int i = 0; i < take100; i++) {
-			BattleRoyale2Record r = records.get(i);
-			for (Integer rid : parseRoomIds(r.getBetInfo(), zeroBasedRoomId)) {
-				cnt.put(rid, cnt.getOrDefault(rid, 0) + 1);
-			}
-		}
-
-
-		// DTS2 固定 6 个元素：0~5
-		String[] dts2Names = new String[]{"小丑", "帽子", "喇叭", "大象", "狮子", "兔子"};
 		JSONArray recent100Periods = new JSONArray();
-		for (int rid = 0; rid < 6; rid++) {
+		JSONArray recent16Summary = new JSONArray();
+
+		// DTS2 固定 6 个元素：内部统一用 1..6
+		String[] names = new String[]{"小丑", "帽子", "喇叭", "大象", "狮子", "兔子"};
+
+		// ===== 1) 最近100期：统计开奖结果分布（全服口径，按 periodsNum 去重）=====
+		Map<Integer, Integer> cnt = new HashMap<>();
+		try {
+			Map<String, Object> p100 = new HashMap<>();
+			p100.put("limit", 100);
+			List<Map<String, Object>> periods100 = findList("findRecentPeriodsDistinct", p100);
+			if (periods100 != null) {
+				for (Map<String, Object> row : periods100) {
+					String lottery = row == null ? null : String.valueOf(row.get("lotteryResult"));
+					for (Integer eidInternal : parseElementIdsFromLotteryResultInternal(lottery)) {
+						if (eidInternal == null) continue;
+						cnt.put(eidInternal, cnt.getOrDefault(eidInternal, 0) + 1);
+					}
+				}
+			}
+		} catch (Exception ignore) {
+		}
+
+		for (int eidInternal = 1; eidInternal <= 6; eidInternal++) {
+			int outRoomId = zeroBasedRoomId ? (eidInternal - 1) : eidInternal;
+
 			JSONObject item = new JSONObject();
-			item.put("roomId", String.valueOf(rid));
-			item.put("roomName", dts2Names[rid]);
-			item.put("count", cnt.getOrDefault(rid, 0));
+			item.put("roomId", String.valueOf(outRoomId));
+			item.put("roomName", names[eidInternal - 1]);
+			item.put("count", cnt.getOrDefault(eidInternal, 0));
 			recent100Periods.add(item);
 		}
 
+		// ===== 近16期：返回每期的开奖结果 rooms 明细 =====
+		try {
+			Map<String, Object> p16 = new HashMap<>();
+			p16.put("limit", 16);
+			List<Map<String, Object>> periods16 = findList("findRecentPeriodsDistinct", p16);
+			if (periods16 != null) {
+				for (Map<String, Object> row : periods16) {
+					String periodsNum = row == null ? null : String.valueOf(row.get("periodsNum"));
+					String lottery = row == null ? null : String.valueOf(row.get("lotteryResult"));
 
-		// recent16Summary 近16期明细
-		JSONArray recent16Summary = new JSONArray();
-		int take16 = Math.min(16, records.size());
-		for (int i = 0; i < take16; i++) {
-			BattleRoyale2Record r = records.get(i);
+					JSONObject item = new JSONObject();
+					item.put("periodsNum", periodsNum);
 
-			JSONObject item = new JSONObject();
-			item.put("periodsNum", r.getPeriodsNum());
+					JSONArray rooms = new JSONArray();
+					List<Integer> eidsInternal = parseElementIdsFromLotteryResultInternal(lottery);
+					for (Integer eidInternal : eidsInternal) {
+						if (eidInternal == null) continue;
 
-			JSONArray rs = new JSONArray();
-			LinkedHashSet<Integer> set = new LinkedHashSet<>(parseRoomIds(r.getBetInfo(), zeroBasedRoomId));
-			for (Integer rid : set) {
-				JSONObject rr = new JSONObject();
-				rr.put("roomId", String.valueOf(rid));
-				rr.put("roomName", "房间" + rid);
-				rs.add(rr);
+						int outRoomId = zeroBasedRoomId ? (eidInternal - 1) : eidInternal;
+
+						JSONObject rr = new JSONObject();
+						rr.put("roomId", String.valueOf(outRoomId));
+						rr.put("roomName", names[Math.max(0, Math.min(5, eidInternal - 1))]);
+						rooms.add(rr);
+					}
+					item.put("rooms", rooms);
+
+					recent16Summary.add(item);
+				}
 			}
-			item.put("rooms", rs);
-			recent16Summary.add(item);
+		} catch (Exception ignore) {
 		}
 
-		Map<String, Object> tp = new HashMap<>();
-		tp.put("userId", userId);
-		Map<String, Object> totals = (Map<String, Object>) findOne("sumTotalsByUserId", tp);
-		BigDecimal totalInvest = safeBigDecimal(totals == null ? null : totals.get("totalInvest"));
-		BigDecimal totalGain = safeBigDecimal(totals == null ? null : totals.get("totalGain"));
-		if (extraGain != null) {
-			totalGain = totalGain.add(extraGain);
+		// ===== 2) 我的游戏记录：用户口径，仍然按 DB 汇总 =====
+		BigDecimal totalInvest = BigDecimal.ZERO;
+		BigDecimal totalGain = BigDecimal.ZERO;
+
+		if (userId != null) {
+			try {
+				Map<String, Object> tp = new HashMap<>();
+				tp.put("userId", userId);
+				Map<String, Object> totals = (Map<String, Object>) findOne("sumTotalsByUserId", tp);
+
+				totalInvest = safeBigDecimal(totals == null ? null : totals.get("totalInvest"));
+				totalGain = safeBigDecimal(totals == null ? null : totals.get("totalGain"));
+
+				if (extraGain != null) {
+					totalGain = totalGain.add(extraGain);
+				}
+			} catch (Exception ignore) {
+			}
 		}
 
-		res.put("recent100Periods", recent100Periods); // 近100期统计
-		res.put("recent16Summary", recent16Summary);   // 近16期明细
+		res.put("recent100Periods", recent100Periods);
+		res.put("recent16Summary", recent16Summary);
 		res.put("totalInvest", totalInvest.setScale(2, RoundingMode.HALF_UP));
 		res.put("totalGain", totalGain.setScale(2, RoundingMode.HALF_UP));
 		res.put("serverTime", System.currentTimeMillis());
 		return res;
+	}
+
+	/**
+	 * DTS2 的 lotteryResult 是 JSON 数组字符串，例如：[1,2,2] 或历史：[0,1,1]
+	 * 这里统一转换成内部 1..6 的 elementId 列表。
+	 */
+	private List<Integer> parseElementIdsFromLotteryResultInternal(String lotteryResult) {
+		if (lotteryResult == null || lotteryResult.trim().isEmpty()) {
+			return Collections.emptyList();
+		}
+		try {
+			JSONArray arr = JSON.parseArray(lotteryResult);
+			if (arr == null || arr.isEmpty()) return Collections.emptyList();
+
+			boolean hasZero = false;
+			List<Integer> raw = new ArrayList<>();
+			for (int i = 0; i < arr.size(); i++) {
+				Integer v = arr.getInteger(i);
+				if (v == null) continue;
+				if (v == 0) hasZero = true;
+				raw.add(v);
+			}
+			if (raw.isEmpty()) return Collections.emptyList();
+
+			List<Integer> out = new ArrayList<>();
+			for (Integer v : raw) {
+				if (v == null) continue;
+				int internal = hasZero ? (v + 1) : v; // 0..5 -> 1..6
+				out.add(internal);
+			}
+			return out;
+		} catch (Exception e) {
+			return Collections.emptyList();
+		}
+	}
+
+
+	/**
+	 * DTS2 的 lotteryResult 是 JSON 数组字符串，例如：[1,2,2]
+	 */
+	private List<Integer> parseElementIdsFromLotteryResult(String lotteryResult, boolean zeroBasedRoomId) {
+		if (lotteryResult == null || lotteryResult.trim().isEmpty()) {
+			return Collections.emptyList();
+		}
+		try {
+			JSONArray arr = JSON.parseArray(lotteryResult);
+			if (arr == null || arr.isEmpty()) return Collections.emptyList();
+
+			List<Integer> out = new ArrayList<>();
+			for (int i = 0; i < arr.size(); i++) {
+				Integer v = arr.getInteger(i);
+				if (v == null) continue;
+				// 兼容历史 0~5 表示法（如有）
+				if (zeroBasedRoomId) v = v + 1;
+				out.add(v);
+			}
+			return out;
+		} catch (Exception e) {
+			return Collections.emptyList();
+		}
 	}
 
 
@@ -274,6 +358,108 @@ public class BattleRoyaleRecord2Service extends DaoService {
 		params.put("orderNo", orderNo);
 		params.put("betInfo", betInfo);
 		return execute("addBetAmountAndInfo", params);
+	}
+
+	@Transactional
+	public void batchUpdateRecordByPeriodUser(JSONArray list) {
+		if (list == null || list.isEmpty()) return;
+		List<Map<String, Object>> paramsList = new ArrayList<Map<String, Object>>();
+		for (int i = 0; i < list.size(); i++) {
+			JSONObject item = list.getJSONObject(i);
+			if (item == null) continue;
+			String periodNo = item.getString("periodNo");
+			String userId = item.getString("userId");
+			BigDecimal winAmount = item.getBigDecimal("winAmount");
+			String lotteryResult = item.getString("lotteryResult");
+			Integer isWin = item.getInteger("isWin");
+			if (periodNo == null || userId == null) continue;
+			if (winAmount == null) winAmount = BigDecimal.ZERO;
+			if (isWin == null) isWin = 0;
+
+			Map<String, Object> map = new HashedMap<String, Object>();
+			map.put("periodNo", periodNo);
+			map.put("userId", Long.valueOf(userId));
+			map.put("winAmount", winAmount);
+			map.put("lotteryResult", lotteryResult);
+			map.put("isWin", isWin);
+			paramsList.add(map);
+		}
+		if (paramsList.isEmpty()) return;
+		execute("batchUpdateRecordByPeriodUser", paramsList);
+	}
+	/**
+	 * 按【期号 + 用户】聚合下注：同一期同一用户只保留一条 status=0 记录
+	 * - 存在：bet_amount += chip，bet_info(JSON) 合并累加
+	 * - 不存在：插入新记录
+	 */
+	@Transactional
+	public void mergeBetForPeriodUser(Long userId, String periodNo, Integer elementId, BigDecimal chip) {
+		if (userId == null || periodNo == null || elementId == null || chip == null) return;
+
+		// 1) 先查该用户该期未结算的聚合记录（只取 id + bet_info）
+		Map<String, Object> q = new HashMap<>();
+		q.put("userId", userId);
+		q.put("periodNo", periodNo);
+		Map<String, Object> row = (Map<String, Object>) findOne("findUnsettledIdAndInfoByPeriodUser", q);
+
+		Date now = new Date();
+
+		if (row != null && row.get("id") != null) {
+			Long id = Long.valueOf(String.valueOf(row.get("id")));
+			String oldBetInfo = row.get("betInfo") == null ? null : String.valueOf(row.get("betInfo"));
+
+			// 2) Java 合并 JSON：同 elementId 累加
+			JSONObject merged = new JSONObject();
+			try {
+				if (oldBetInfo != null && !oldBetInfo.trim().isEmpty()) {
+					merged = JSONObject.parseObject(oldBetInfo);
+					if (merged == null) merged = new JSONObject();
+				}
+			} catch (Exception ignore) {
+				merged = new JSONObject();
+			}
+
+			String k = String.valueOf(elementId);
+			BigDecimal old = BigDecimal.ZERO;
+			try {
+				Object v = merged.get(k);
+				if (v != null) old = new BigDecimal(String.valueOf(v));
+			} catch (Exception ignore) {
+				old = BigDecimal.ZERO;
+			}
+			BigDecimal nv = old.add(chip);
+			merged.put(k, nv.stripTrailingZeros().toPlainString());
+
+			Map<String, Object> up = new HashMap<>();
+			up.put("id", id);
+			up.put("chip", chip);
+			up.put("betInfo", merged.toJSONString());
+			up.put("now", now);
+
+			int updated = execute("addBetAmountAndMergeInfoById", up);
+			if (updated > 0) return;
+
+			// 极小概率：被别的线程更新/删除，继续走插入
+		}
+
+		// 3) 插入新聚合记录
+		BattleRoyale2Record record = new BattleRoyale2Record();
+		record.setUserId(userId);
+		record.setOrderNo("PBXREC-" + periodNo + "-" + userId);
+		record.setPeriodsNum(periodNo);
+
+		JSONObject betInfo = new JSONObject();
+		betInfo.put(String.valueOf(elementId), chip.stripTrailingZeros().toPlainString());
+		record.setBetInfo(betInfo.toJSONString());
+
+		record.setBetAmount(chip);
+		record.setProfit(BigDecimal.ZERO);
+		record.setLotteryResult(null);
+		record.setWinOrLose(0);
+		record.setStatus(0);
+		record.setCreateTime(now);
+		record.setUpdateTime(now);
+		save(record);
 	}
 
 }
