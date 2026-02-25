@@ -1,10 +1,7 @@
 package com.zywl.app.defaultx.enmus;
 
 /**
- *   游戏类型
- * 
- * @author DOE
- *
+ * 游戏类型枚举
  */
 public enum GameTypeEnum {
 

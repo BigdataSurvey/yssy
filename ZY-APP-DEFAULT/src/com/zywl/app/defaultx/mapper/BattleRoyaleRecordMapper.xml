@@ -46,7 +46,7 @@
 	</select>
 	
 	<select id="findByUserId" resultType="BattleRoyaleRecord">
-	    select * from r_battle_royale_record where user_id = #{userId} and status=1 order by id desc
+	    select * from r_battle_royale_record where user_id = #{userId}  order by id desc
 		<if test="start != null and limit != null">
 			limit #{start}, #{limit}
 		</if>

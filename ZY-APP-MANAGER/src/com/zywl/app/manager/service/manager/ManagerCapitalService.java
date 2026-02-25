@@ -538,8 +538,8 @@ public class ManagerCapitalService extends BaseService {
         BigDecimal fee = betAmount.multiply(feeRate).setScale(2, java.math.RoundingMode.HALF_UP);
         if (fee.compareTo(BigDecimal.ZERO) < 0) fee = BigDecimal.ZERO;
 
-        // 奖池入账金额
-        BigDecimal poolInAmount = fee;
+        // 奖池入账金额（全额入池，结算时扣 net=returnAmount*(1-feeRate)，差额即系统收益）
+        BigDecimal poolInAmount = betAmount;
 
         // 防止重复扣款
         String orderKey = "game:pbx:order:" + orderNo;

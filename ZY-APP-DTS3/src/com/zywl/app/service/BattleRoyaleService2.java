@@ -223,7 +223,7 @@ public class BattleRoyaleService2 extends BaseService {
 
 
     public void initKillRate() {
-        Config config = configService.getConfigByKey(Config.DTS_KILL_RATE);
+        Config config = configService.getConfigByKey(Config.DTS3_KILL_RATE);
         if (config != null) {
             String value = config.getValue();
             KILL_RATE = Integer.parseInt(value);
@@ -231,7 +231,7 @@ public class BattleRoyaleService2 extends BaseService {
     }
     public void initBotMoney() {
         BOT_MONEY.clear();
-        Config config = configService.getConfigByKey(Config.DTS_BOT_MONEY);
+        Config config = configService.getConfigByKey(Config.DTS3_BOT_MONEY);
         if (config == null) {
             return;
         }

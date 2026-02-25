@@ -496,15 +496,18 @@ public class BattleRoyaleService extends BaseService {
 
 
     public Map<String, String> updateCapital(String userId, BigDecimal amount, String orderNo, Long dataId) {
-        userCapitalService.subUserOccupyBalanceByDtsBet(Long.parseLong(userId), amount,CAPITAL_TYPE);
+        userCapitalService.subUserOccupyBalanceByDtsBet(Long.parseLong(userId), amount, CAPITAL_TYPE);
+
         Map<String, String> myOrder = new HashMap<>();
         myOrder.put("orderNo", orderNo);
         myOrder.put("dataId", String.valueOf(dataId));
         myOrder.put("betAmount", amount.toString());
         myOrder.put("userId", userId);
         myOrder.put("capitalType", String.valueOf(CAPITAL_TYPE));
-        List<Map<String, String>> maps = userCapitals.get(key);
-        maps.add(myOrder);
+
+
+        userCapitals.computeIfAbsent(key, k -> new CopyOnWriteArrayList<>()).add(myOrder);
+
         return myOrder;
     }
 
@@ -607,7 +610,6 @@ public class BattleRoyaleService extends BaseService {
     }
 
 
-
     public JSONObject userBetBet(String userId, String userBet, BigDecimal amount, Command lotteryCommand, JSONObject params) {
         if (STATUS == 0) {
             throwExp("游戏维护中，暂时不能进行游戏！");
@@ -629,6 +631,9 @@ public class BattleRoyaleService extends BaseService {
             }
         }
 
+        final boolean isRealUser = (userId != null && !BOT_USER.containsKey(userId));
+
+        // 记录用户当前选中房间
         ROOM.getUserCheckNum().put(userId, userBet);
 
         UserCapital userCapital = userCapitalService.findUserCapitalByUserIdAndCapitalType(Long.parseLong(userId), CAPITAL_TYPE);
@@ -650,34 +655,62 @@ public class BattleRoyaleService extends BaseService {
             }
             betUser.add(userId);
             try {
-                // 下注记录
                 String orderNo = OrderUtil.getOrder5Number();
+
                 boolean firstBetThisRoom = true;
                 Map<String, BigDecimal> userBets = ROOM.getUserBetInfo().get(userId);
                 if (userBets != null && userBets.containsKey(userBet)) {
                     firstBetThisRoom = false;
                 }
 
-                // 扣除资产 + 下注记录
                 Map<String, String> myOrder = new HashMap<>();
                 long dataId = 0L;
 
-                if (ROOM.getUserBetInfo().containsKey(userId)) {
+                boolean hasBetThisRound = ROOM.getUserBetInfo().containsKey(userId);
+
+                if (isRealUser) {
+                    String message = String.format("[进入下注核心逻辑] uid=%s, period=%s, room=%s, amount=%s, hasBetThisRound=%s, firstBetThisRoom=%s, status=%s, endTime=%s, now=%s",
+                            userId, ROOM.getPeridosNum(), userBet, amount.toPlainString(),
+                            hasBetThisRound, firstBetThisRoom, ROOM.getStatus(), ROOM.getEndTime(), System.currentTimeMillis());
+                    logger.warn(message);
+                }
+
+                if (hasBetThisRound) {
                     Map<String, String> orderInfo = ROOM.getUserBetOrderInfo().get(userId);
-                    if (orderInfo != null && orderInfo.get("dataId") != null) {
+                    if (orderInfo == null || orderInfo.get("orderNo") == null) {
+                        throwExp("下注信息异常，请返回大厅重新进入");
+                    }
+                    orderNo = orderInfo.get("orderNo");
+                    if (orderInfo.get("dataId") != null) {
                         dataId = Long.parseLong(orderInfo.get("dataId"));
+                    }
+
+                    battleRoyaleRecordService.addBetAmount(amount, orderNo);
+
+                    if (isRealUser) {
+                        logger.warn("[追加下注已累计记录] uid=" + userId + ", period=" + ROOM.getPeridosNum() +
+                                ", orderNo=" + orderNo + ", dataId=" + dataId + ", addAmount=" + amount.toPlainString());
                     }
                 } else {
                     dataId = battleRoyaleRecordService.addBattleRoyaleRecord(Long.parseLong(userId), orderNo,
                             ROOM.getPeridosNum(), userBet, amount);
+
+                    if (isRealUser) {
+                        logger.warn("[首次下注已创建记录] uid=" + userId + ", period=" + ROOM.getPeridosNum() +
+                                ", orderNo=" + orderNo + ", dataId=" + dataId + ", room=" + userBet + ", amount=" + amount.toPlainString());
+                    }
                 }
 
-                // 机器人也扣资产保证测试真实
                 myOrder = updateCapital(userId, amount, orderNo, dataId);
 
-                // 下注入内存
+                if (isRealUser) {
+                    logger.warn("[扣款入队成功] uid=" + userId + ", period=" + ROOM.getPeridosNum() +
+                            ", orderNo=" + orderNo + ", dataId=" + dataId + ", room=" + userBet +
+                            ", amount=" + amount.toPlainString() + ", capitalType=" + CAPITAL_TYPE);
+                }
+
                 BigDecimal allAmount = amount;
-                if (ROOM.getUserBetInfo().containsKey(userId)) {
+                if (hasBetThisRound) {
                     allAmount = addBet(userId, userBet, amount);
                 } else {
                     myOrder.put("orderNo", orderNo);
@@ -687,7 +720,6 @@ public class BattleRoyaleService extends BaseService {
                     bet(myOrder, userId, userBet, amount);
                 }
 
-                // 房间下注信息增加
                 if (firstBetThisRoom) {
                     ROOM.getBetOptionsInfo().get(userBet).put("betNumber",
                             String.valueOf((Integer.parseInt(ROOM.getBetOptionsInfo().get(userBet).get("betNumber")) + 1)));
@@ -698,7 +730,6 @@ public class BattleRoyaleService extends BaseService {
 
                 ROOM.setAllBetAmount(ROOM.getAllBetAmount().add(amount));
 
-                // 满足开局人数
                 synchronized (lock) {
                     if (ROOM.getBetNum() >= PEOPLE_NUM && ROOM.getStatus() == LotteryGameStatusEnum.ready.getValue()) {
                         ROOM.setBeginTime(System.currentTimeMillis());
@@ -707,24 +738,46 @@ public class BattleRoyaleService extends BaseService {
                     }
                 }
 
-                // 推送下注信息
-                appendInfo(ROOM.pushResult(1, userId, userBet, allAmount));
-                // 仅当是正常玩家请求
-                if (lotteryCommand != null) {
-                    Executer.response(CommandBuilder.builder(lotteryCommand).success(ROOM.pushResult(1, userId, userBet, allAmount)).build());
+                JSONObject pushItem = ROOM.pushResult(1, userId, userBet, allAmount);
+                appendInfo(pushItem);
+
+                if (isRealUser) {
+                    String roomBetAmount = null;
+                    String roomBetNumber = null;
+                    try {
+                        roomBetAmount = ROOM.getBetOptionsInfo().get(userBet).get("betAmount");
+                        roomBetNumber = ROOM.getBetOptionsInfo().get(userBet).get("betNumber");
+                    } catch (Exception ignore) {}
+                    logger.warn("[下注成功落内存] uid=" + userId + ", period=" + ROOM.getPeridosNum() +
+                            ", orderNo=" + orderNo + ", dataId=" + dataId + ", room=" + userBet +
+                            ", addAmount=" + amount.toPlainString() + ", userAllAmountInRoom=" + allAmount.toPlainString() +
+                            ", roomBetAmount=" + roomBetAmount + ", roomBetNumber=" + roomBetNumber +
+                            ", allBetAmount=" + ROOM.getAllBetAmount().toPlainString());
                 }
+
+                // ✅关键：不要手动 Executer.response，让框架自动回包
+                return pushItem;
+
             } catch (Exception e) {
                 e.printStackTrace();
                 logger.info(e);
 
+                if (isRealUser) {
+                    logger.warn("[下注失败] uid=" + userId + ", period=" + ROOM.getPeridosNum() +
+                            ", room=" + userBet + ", amount=" + String.valueOf(amount) + ", msg=" + e.getMessage());
+                }
+
                 if (params != null) {
                     Push.push(PushCode.cancelBet, null, params);
                 }
+
+                // ✅关键：抛出错误让框架返回 error，而不是返回空对象导致前端“看似成功但没数据”
+                throwExp(e.getMessage() == null ? "下注失败" : e.getMessage());
+                return new JSONObject();
             } finally {
                 betUser.remove(userId);
             }
         }
-        return new JSONObject();
     }
 
     private void initBotUsers() {
@@ -1172,6 +1225,37 @@ public class BattleRoyaleService extends BaseService {
         System.out.println("赢家" + allWinAmount);
         System.out.println("输家" + allLoseAmount);
 
+        // ====================== DTS7 settle debug begin ======================
+        // 可选：只打印某一个用户（启动参数加：-DDTS7_DEBUG_UID=937223）
+        String debugUid = System.getProperty("DTS7_DEBUG_UID");
+
+        // 1) result（本局被袭击 roomId）
+        // 4) betOptionsInfo（各房间总下注额，用于 allWin/allLose）
+        // 3) userCheckNum（用户当前站在哪/选中哪个房间）
+        // 在 settle() 里 debug begin 那段替换成下面这段
+
+        String debugUids = System.getProperty("DTS7_DEBUG_UIDS"); // 937223,937228
+        Set<String> debugSet = null;
+        if (debugUids != null && !debugUids.trim().isEmpty()) {
+            debugSet = new HashSet<>();
+            for (String s : debugUids.split(",")) {
+                if (s != null && !s.trim().isEmpty()) debugSet.add(s.trim());
+            }
+        }
+        System.out.println("[DTS7_SETTLE_DEBUG] result=" + result
+                + ", peridosNum=" + ROOM.getPeridosNum()
+                + ", allWinAmount=" + allWinAmount
+                + ", allLoseAmount=" + allLoseAmount
+                + ", betOptionsInfo=" + JSON.toJSONString(ROOM.getBetOptionsInfo())
+                + ", userCheckNumMap=" + JSON.toJSONString(ROOM.getUserCheckNum()));
+
+        for (String uid : ROOM.getUserBetInfo().keySet()) {
+            if (debugSet != null && !debugSet.contains(uid)) continue;
+            System.out.println("[DTS7_SETTLE_DEBUG] uid=" + uid
+                    + ", userBetInfo=" + JSON.toJSONString(ROOM.getUserBetInfo().get(uid))
+                    + ", userCheckNum=" + ROOM.getUserCheckNum().get(uid));
+        }
+
         JSONObject data = new JSONObject();
 
         // 免伤金额
@@ -1454,6 +1538,9 @@ public class BattleRoyaleService extends BaseService {
         return payload;
     }
 
+    private boolean isRealUser(String userId) {
+        return userId != null && (BOT_USER == null || !BOT_USER.containsKey(userId));
+    }
 
 
 }

@@ -49,7 +49,7 @@ public class MailUtil {
     }
 	
 	public static void main(String[] args) {
-		sendEmail("847502314@qq.com", "123456");
+		//sendEmail("847502314@qq.com", "123456");
 	}
 	
 }

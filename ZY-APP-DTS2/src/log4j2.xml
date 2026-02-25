@@ -24,19 +24,22 @@
 	</appenders>
 	<!--只有定义了logger并引入的appender，appender才会生效 -->
 	<loggers>
-		<logger name="org.springframework" level="info" />
-		<logger name="org.apache.http" level="info"/>
-		<logger name="net.rubyeye.xmemcached" level="info"/>
-		<logger name="freemarker.cache" level="info" />
-		<logger name="com.google.code.yanf4j" level="info"/>
-		<logger name="com.fxbtg.api.client" level="error" />
-		<logger name="druid.sql.Connection" level="error" />
-		<logger name="com.alibaba.druid.pool.PreparedStatementPool" level="error" />
-		<logger name="com.alibaba.druid.pool.DruidDataSource" level="error" />
-		<logger name="org.apache.kafka" level="error" />
-		<root level="debug">
-			<appender-ref ref="console" />
-			<appender-ref ref="RollingFile" />
+		<!-- 根级别不要 debug -->
+		<root level="info">
+			<appender-ref ref="console"/>
+			<appender-ref ref="RollingFile"/>
 		</root>
+
+		<!-- MyBatis / Spring-MyBatis 统统压下去 -->
+		<logger name="org.mybatis" level="warn"/>
+		<logger name="org.mybatis.spring" level="warn"/>
+		<logger name="org.mybatis.spring.SqlSessionUtils" level="error"/>
+
+		<!-- druid 连接池刷屏也压掉 -->
+		<logger name="druid.sql" level="error"/>
+		<logger name="com.alibaba.druid" level="error"/>
+
+		<!-- ✅ 关键：mapper 包不要 debug -->
+		<logger name="com.zywl.app.defaultx.mapper" level="info"/>
 	</loggers>
 </configuration>

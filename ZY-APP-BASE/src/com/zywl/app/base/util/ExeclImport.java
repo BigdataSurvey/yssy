@@ -244,8 +244,8 @@ public class ExeclImport {
 
 	public static void main(String[] args) throws Exception {
 		
-		System.out.println(isExcel2003("123.xls"));
-		System.out.println(isExcel2007("123.xls"));
+		//System.out.println(isExcel2003("123.xls"));
+		//System.out.println(isExcel2007("123.xls"));
 		ExeclImport poi = new ExeclImport();
 		List<List<String>> list = poi.read("C:\\Users\\Administrator\\Desktop\\测试服--赠金卡卷.xls");
 		if (list != null) {

@@ -74,7 +74,9 @@ public class BattleRoyale2Socket extends BaseClientSocket {
 
             @Override
             public void onReceive(BaseSocket baseSocket, Object data) {
-                logger.info("收到推箱子信息变更" + data);
+                if (logger.isDebugEnabled()) {
+                    logger.debug("收到推箱子信息变更" + data);
+                }
                 JSONObject obj = JSONObject.from(data);
 
                 String gameId = obj.getString("gameId");
@@ -87,20 +89,7 @@ public class BattleRoyale2Socket extends BaseClientSocket {
                     status = (st == null ? 0 : Integer.parseInt(String.valueOf(st)));
                 } catch (Exception ignore) {}
 
-                // ✅关键：status==3 分流
                 if (status == 3) {
-                    // 1) 个人结算包：带 userIds -> 只发给对应 userId（不广播到房间）
-                    JSONArray uids = obj.getJSONArray("userIds");
-                    if (uids != null && uids.size() > 0) {
-                        for (Object u : uids) {
-                            String uid = String.valueOf(u);
-                            // 发给个人（下面会配合 ServerLotteryGameService 注册 updatePbxInfo(userId)）
-                            Push.push(PushCode.updatePbxInfo, uid, obj);
-                        }
-                        return;
-                    }
-
-                    // 2) 公共开奖展示包：不带 userIds -> 房间广播触发开奖动画
                     Push.push(PushCode.updatePbxInfo, gameId, obj);
                     return;
                 }
@@ -118,7 +107,9 @@ public class BattleRoyale2Socket extends BaseClientSocket {
 
             @Override
             public void onReceive(BaseSocket baseSocket, Object data) {
-                logger.info("收到推箱子状态变更" + data);
+                if (logger.isDebugEnabled()) {
+                    logger.debug("收到推箱子状态变更" + data);
+                }
                 JSONObject obj = JSONObject.from(data);
 
                 String gameId = obj.getString("gameId");
