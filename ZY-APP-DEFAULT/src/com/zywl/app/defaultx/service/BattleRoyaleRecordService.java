@@ -35,7 +35,7 @@ public class BattleRoyaleRecordService extends DaoService {
 	 */
 	@Transactional
 	public Long addBattleRoyaleRecord(Long userId,String orderNo,String periodsNum,String betInfo,BigDecimal amount) {
-		System.out.println(123);
+		// System.out.println(123);
 		BattleRoyaleRecord record = new BattleRoyaleRecord();
 		record.setUserId(userId);
 		record.setOrderNo(orderNo);

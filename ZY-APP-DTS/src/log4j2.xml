@@ -24,17 +24,33 @@
 		</RollingFile>
 	</appenders>
 	<!--只有定义了logger并引入的appender，appender才会生效 -->
-	<loggers>
-		<logger name="com.amazonaws" level="info" />
-		<logger name="org.springframework" level="info" />
-		<logger name="org.apache.http" level="info" />
-		<logger name="net.rubyeye.xmemcached" level="info" />
-		<logger name="freemarker.cache" level="info" />
-		<logger name="com.google.code.yanf4j" level="info" />
+	<Loggers>
+		<!-- root 不要 DEBUG -->
+		<Root level="INFO">
+			<AppenderRef ref="Console"/>
+			<AppenderRef ref="RollingFile"/>
+		</Root>
 
-		<root level="debug">
-			<appender-ref ref="console" />
-			<appender-ref ref="RollingFile" />
-		</root>
-	</loggers>
+		<!-- MyBatis / Spring-MyBatis -->
+		<Logger name="org.mybatis" level="WARN" additivity="false">
+			<AppenderRef ref="RollingFile"/>
+		</Logger>
+		<Logger name="org.mybatis.spring" level="WARN" additivity="false">
+			<AppenderRef ref="RollingFile"/>
+		</Logger>
+
+		<!-- 你日志里的 SqlSessionUtils -->
+		<Logger name="org.mybatis.spring.SqlSessionUtils" level="WARN" additivity="false">
+			<AppenderRef ref="RollingFile"/>
+		</Logger>
+
+		<!-- Druid -->
+		<Logger name="druid.sql" level="WARN" additivity="false">
+			<AppenderRef ref="RollingFile"/>
+		</Logger>
+		<Logger name="com.alibaba.druid" level="WARN" additivity="false">
+			<AppenderRef ref="RollingFile"/>
+		</Logger>
+
+	</Loggers>
 </configuration>

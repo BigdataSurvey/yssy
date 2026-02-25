@@ -23,8 +23,7 @@ public class Config extends BaseBean {
 
 	public static final String RED_NUMBER = "RED_NUMBER";
 	public static final String LHD_KILL_RATE = "GAME_LHD_KILL_RATE";
-	public static final String DTS_KILL_RATE = "GAME_DTS_KILL_RATE";
-	public static final String DTS_BOT_MONEY = "GAME_DTS_BOT_MONEY";
+
 	public static final String NEW_USER_TIME = "NEW_USER_TIME";
 	public static final String MZ_NEED_WHITE = "MZ_NEED_WHITE";
 	public static final String ALIPAY_ONE_MONEY = "ALIPAY_ONE_MONEY";
@@ -64,16 +63,23 @@ public class Config extends BaseBean {
 	public static final String LHD_STATUS="LHD_STATUS";
 	public static final String QNYH_RATE="QNYH_RATE";
 
+
+	//开开乐 翻牌牌
 	public static final String DTS2_STATUS="GAME_DTS2_STATUS";
-
 	public static final String GAME_DTS2_NEED_BOT="GAME_DTS2_NEED_BOT";
+	//疯狂的狮子 大逃杀单杀
+	public static final String DTS_STATUS="GAME_DTS_STATUS";
+	public static final String DTS_BOT_MONEY = "GAME_DTS_BOT_MONEY";
 
-	public static final String GAME_LHD_NEED_BOT="GAME_LHD_NEED_BOT";
+	//消失的兔子 大逃杀多杀
+	public static final String DTS3_KILL_RATE = "GAME_DTS3_KILL_RATE";
+	public static final String DTS3_BOT_MONEY = "GAME_DTS_BOT_MONEY";
 
-	public static final String GAME_LHD_KKK="GAME_LHD_KKK";
 
 	public static final String DAILY_STOLEN_COUNT = "DAILY_STOLEN_COUNT";
-	public static final String DTS_STATUS="GAME_DTS_STATUS";
+	public static final String GAME_LHD_NEED_BOT="GAME_LHD_NEED_BOT";
+	public static final String GAME_LHD_KKK="GAME_LHD_KKK";
+
 	public static final String DZ_GAME_ON = "GAME_DZ_GAME_ON";
 	public static final String GAME_SG_RATE = "GAME_SG_RATE";
 	public static final String SG_STATUS="GAME_SG_STATUS";

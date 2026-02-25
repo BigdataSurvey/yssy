@@ -294,7 +294,8 @@ public class PbxService extends BaseService {
      * 修复跨期时保证上一期一定会结算（避免“最后5秒不开奖/不弹框”）
      */
     private void tickPeriod() {
-        long nowMs = System.currentTimeMillis();
+        long tickStartMs = System.currentTimeMillis();
+        long nowMs = tickStartMs;
 
         PeriodSnapshot rolloverSnapToSettle = null;
 
@@ -369,6 +370,11 @@ public class PbxService extends BaseService {
                 log.error("[PBX] tickPeriod pushPbxInfo error", e);
             }
         }
+
+        long tickDuration = System.currentTimeMillis() - tickStartMs;
+        if (tickDuration > 2000L) {
+            log.warn("[PBX] tick slow! duration=" + tickDuration + "ms, periodNo=" + currentPeriodNo);
+        }
     }
 
 
@@ -402,6 +408,7 @@ public class PbxService extends BaseService {
         final String periodNo;
         final long startMs;
         final long endMs;
+        final boolean needPush;
 
         synchronized (PERIOD_LOCK) {
             // 双重检查，避免并发触发
@@ -414,22 +421,9 @@ public class PbxService extends BaseService {
             periodNo = currentPeriodNo;
             startMs = currentPeriodStartMs;
             endMs = currentPeriodEndMs;
+            needPush = !onlineUserState.isEmpty();
 
-            // 1) 先广播“结算中”(status=2)，前端会进入结算态
-            // ✅关键修复：不要把 remainSeconds 强行写 0，让 buildPbxInfoByPeriod 计算结算期剩余秒数
-            if (!onlineUserState.isEmpty()) {
-                try {
-                    BigDecimal pool = (lastPoolBalance == null) ? BigDecimal.ZERO : lastPoolBalance;
-                    JSONObject settlingInfo = buildPbxInfoByPeriod(pool, periodNo, startMs, endMs, nowMs);
-                    settlingInfo.put("status", 2);
-                    // settlingInfo.put("remainSeconds", 0);  // ❌删除这行：它会导致前端“卡在结算态”
-                    Push.push(PushCode.updatePbxInfo, null, settlingInfo);
-                } catch (Exception e) {
-                    log.error("[PBX] push settling info error, periodNo=" + periodNo, e);
-                }
-            }
-
-            // 2) 创建本期下注快照（用于 settle）
+            // 创建本期下注快照（用于 settle）
             snapshot = new PeriodSnapshot(
                     periodNo,
                     startMs,
@@ -439,11 +433,22 @@ public class PbxService extends BaseService {
                     new HashMap<>(periodUserTotalBet)
             );
 
-            // 3) 放入 settlingSnapshotMap，接住“跨期晚到回调”的下注（避免丢单不结算）
             settlingSnapshotMap.put(periodNo, snapshot);
         }
 
-        // 4) 异步结算（不阻塞 tick）
+        // ✅ 关键修复：将 Push.push + buildPbxInfoByPeriod 移出 PERIOD_LOCK
+        // 避免 JSON 构建 + 网络推送占用锁，导致 tick 线程阻塞（倒计时卡住的根因）
+        if (needPush) {
+            try {
+                BigDecimal pool = (lastPoolBalance == null) ? BigDecimal.ZERO : lastPoolBalance;
+                JSONObject settlingInfo = buildPbxInfoByPeriod(pool, periodNo, startMs, endMs, nowMs);
+                settlingInfo.put("status", 2);
+                Push.push(PushCode.updatePbxInfo, null, settlingInfo);
+            } catch (Exception e) {
+                log.error("[PBX] push settling info error, periodNo=" + periodNo, e);
+            }
+        }
+
         settlePeriodAsync(snapshot);
     }
 
@@ -731,7 +736,7 @@ public class PbxService extends BaseService {
 
         boolean awaited;
         try {
-            awaited = betLatch.await(200, TimeUnit.MILLISECONDS);
+            awaited = betLatch.await(2000, TimeUnit.MILLISECONDS);
         } catch (InterruptedException ie) {
             Thread.currentThread().interrupt();
             awaited = false;
@@ -1062,7 +1067,7 @@ public class PbxService extends BaseService {
 
         // ✅只 hold 一个结算窗口（避免你现在这种“卡死几分钟”）
         // HOLD 至少给 30s：兼容 manager 抖动、IO 抖动、偶发排队
-        final long MAX_HOLD_MS = Math.max(30_000L, settleMs + 5000L);
+        final long MAX_HOLD_MS = Math.max(15_000L, settleMs + 3000L);
 
         synchronized (PERIOD_LOCK) {
             long cycleStartMs = bucket * cycleMs;
@@ -1135,6 +1140,14 @@ public class PbxService extends BaseService {
             openedResultElements = null;
             openedResultType = null;
             openedForcedNoWin = 0;
+
+            // 清理旧期号缓存，防止 settledPeriodNoSet 无限增长导致内存泄漏
+            try {
+                if (settledPeriodNoSet.size() > 200) {
+                    settledPeriodNoSet.clear();
+                    log.info("[PBX] settledPeriodNoSet cleared (size exceeded 200)");
+                }
+            } catch (Exception ignore) {}
         }
 
         // 锁外异步兜底结算（若需要）
@@ -1189,7 +1202,7 @@ public class PbxService extends BaseService {
 
             // ✅关键修复：等待下注回调归集（避免“回调晚到 -> 本期判空 -> 不结算/不弹框”）
             // 这里用 pending 驱动等待：只要还有待回调下注，就不会提前判空。
-            boolean hasBets = waitBetsArrive(snapshot, 4500L);
+            boolean hasBets = waitBetsArrive(snapshot, 3000L);
 
 
             // 2) 去重：同一期只允许结算一次
@@ -1256,13 +1269,9 @@ public class PbxService extends BaseService {
             // 6) 写历史
             pushResultHistory(snapshot.periodNo, resultElements, resultType, forcedNoWinFlag);
 
-            // ✅关键：没人下注也必须广播开奖结果
             if (!hasBets) {
-                log.warn("[PBX] settle: no bets collected after wait, only broadcast result. periodNo="
-                        + snapshot.periodNo
-                        + ", userTotalBetSize=" + (snapshot.userTotalBet == null ? 0 : snapshot.userTotalBet.size())
-                        + ", now=" + System.currentTimeMillis()
-                        + ", periodEndMs=" + snapshot.endMs);
+                log.warn("[PBX] settle: no bets, broadcast only. periodNo=" + snapshot.periodNo);
+                cacheOpenedResult(snapshot, resultElements, resultType, forcedNoWinFlag);
                 broadcastSettleInfo(snapshot, resultElements, resultType, poolBalance, forcedNoWinFlag);
                 return;
             }
@@ -1409,10 +1418,8 @@ public class PbxService extends BaseService {
      * ✅修复：给下注用户定向推 updatePbxInfo(status=3,totalGain)，否则前端弹窗 totalGain=undefined
      */
     private void handleForceLose(PeriodSnapshot snapshot, JSONArray resultElements, String resultType, BigDecimal poolBalance, String serverTime) {
-        // 先全服广播开奖结果（全服包不带用户 totalGain）
-        broadcastSettleInfo(snapshot, resultElements, resultType, poolBalance, 1);
+        cacheOpenedResult(snapshot, resultElements, resultType, 1);
 
-        // 落库 profit=-bet（recordExecutor 异步）
         try {
             batchUpdateRecordProfit(snapshot, resultElements, resultType, null);
         } catch (Exception e) {
@@ -1421,20 +1428,19 @@ public class PbxService extends BaseService {
 
         final BigDecimal finalPool = (poolBalance == null ? BigDecimal.ZERO : poolBalance);
 
-        // ✅推送剥离
         pushExecutor.execute(() -> {
             for (String uid : snapshot.userTotalBet.keySet()) {
                 try {
                     updateUserStatusToIdle(uid);
 
+                    if (isBotUser(uid)) continue;
+
                     BigDecimal totalBet = snapshot.userTotalBet.get(uid);
                     if (totalBet == null) totalBet = BigDecimal.ZERO;
 
-                    // profit = 0 - bet
                     BigDecimal profit = BigDecimal.ZERO.subtract(totalBet).setScale(2, RoundingMode.HALF_UP);
                     String profitStr = profit.stripTrailingZeros().toPlainString();
 
-                    // 1) 用户结算包 updatePbxStatus
                     JSONObject pushStatus = buildAutoSettleStatusPush(
                             uid, snapshot.periodNo, resultElements, resultType,
                             BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO,
@@ -1445,7 +1451,6 @@ public class PbxService extends BaseService {
                     appendRecordSummary(uid, pushStatus);
                     Push.push(PushCode.updatePbxStatus, null, pushStatus);
 
-                    // 2) ✅定向 updatePbxInfo(status=3,totalGain) 供前端弹窗
                     pushUserStatus3Info(uid, snapshot, resultElements, resultType, finalPool, 1, profitStr, totalBet);
 
                 } catch (Exception e) {
@@ -1462,7 +1467,7 @@ public class PbxService extends BaseService {
      * ✅修复：定向 updatePbxInfo(status=3,totalGain)
      */
     private void handleNormalNoWin(PeriodSnapshot snapshot, JSONArray resultElements, String resultType, BigDecimal poolBalance, String serverTime) {
-        broadcastSettleInfo(snapshot, resultElements, resultType, poolBalance, 0);
+        cacheOpenedResult(snapshot, resultElements, resultType, 0);
 
         try {
             batchUpdateRecordProfit(snapshot, resultElements, resultType, null);
@@ -1476,6 +1481,8 @@ public class PbxService extends BaseService {
             for (String uid : snapshot.userTotalBet.keySet()) {
                 try {
                     updateUserStatusToIdle(uid);
+
+                    if (isBotUser(uid)) continue;
 
                     BigDecimal totalBet = snapshot.userTotalBet.get(uid);
                     if (totalBet == null) totalBet = BigDecimal.ZERO;
@@ -1509,7 +1516,11 @@ public class PbxService extends BaseService {
      */
     private void handleSettleError(PeriodSnapshot snapshot, JSONArray resultElements, String resultType,
                                    BigDecimal poolBalance, String serverTime, JSONObject settleResp) {
-        broadcastSettleInfo(snapshot, resultElements, resultType, poolBalance, 0);
+        String errMsg = (settleResp == null) ? "null" : settleResp.getString("message");
+        log.warn("[PBX] handleSettleError: periodNo=" + snapshot.periodNo
+                + ", poolBalance=" + poolBalance + ", result=" + resultElements
+                + ", msg=" + errMsg);
+        cacheOpenedResult(snapshot, resultElements, resultType, 0);
 
         try {
             batchUpdateRecordProfit(snapshot, resultElements, resultType, null);
@@ -1524,6 +1535,8 @@ public class PbxService extends BaseService {
             for (String uid : snapshot.userTotalBet.keySet()) {
                 try {
                     updateUserStatusToIdle(uid);
+
+                    if (isBotUser(uid)) continue;
 
                     BigDecimal totalBet = snapshot.userTotalBet.get(uid);
                     if (totalBet == null) totalBet = BigDecimal.ZERO;
@@ -1571,16 +1584,18 @@ public class PbxService extends BaseService {
 
         JSONArray userList = settleResp.getJSONArray("userList");
         BigDecimal newPoolBalance = settleResp.getBigDecimal("poolBalance");
+        log.warn("[PBX] handleSettleSuccess: periodNo=" + snapshot.periodNo
+                + ", result=" + resultElements + ", resultType=" + resultType
+                + ", oldPool=" + poolBalance + ", newPool=" + newPoolBalance
+                + ", winnerCount=" + (userList == null ? 0 : userList.size()));
         if (newPoolBalance != null) {
             lastPoolBalance = newPoolBalance;
         } else {
             newPoolBalance = poolBalance;
         }
 
-        // 1) 先全服广播开奖（只包含开奖结果，不包含用户 totalGain）
-        broadcastSettleInfo(snapshot, resultElements, resultType, newPoolBalance, 0);
+        cacheOpenedResult(snapshot, resultElements, resultType, 0);
 
-        // 2) 组装 userInfoMap
         Map<String, JSONObject> userInfoMap = new HashMap<>();
         if (userList != null) {
             for (int i = 0; i < userList.size(); i++) {
@@ -1592,20 +1607,18 @@ public class PbxService extends BaseService {
             }
         }
 
-        // 3) 落库（异步线程池 recordExecutor 内部已封装）
         try {
             batchUpdateRecordProfit(snapshot, resultElements, resultType, userInfoMap);
         } catch (Exception e) {
             log.error("[PBX] batchUpdateRecordProfit error, periodNo=" + snapshot.periodNo, e);
         }
 
-        // 4) ✅把大量 push 从 settleExecutor 剥离：交给 pushExecutor
         final BigDecimal finalPool = newPoolBalance;
         pushExecutor.execute(() -> {
-            long nowMs = System.currentTimeMillis();
-
             for (String uid : snapshot.userTotalBet.keySet()) {
                 updateUserStatusToIdle(uid);
+
+                if (isBotUser(uid)) continue;
 
                 BigDecimal totalBet = snapshot.userTotalBet.get(uid);
                 if (totalBet == null) totalBet = BigDecimal.ZERO;
@@ -1621,11 +1634,9 @@ public class PbxService extends BaseService {
                 if (fee == null) fee = BigDecimal.ZERO;
                 if (net == null) net = BigDecimal.ZERO;
 
-                // profit = net - bet
                 BigDecimal profit = net.subtract(totalBet).setScale(2, RoundingMode.HALF_UP);
                 String profitStr = profit.stripTrailingZeros().toPlainString();
 
-                // 4.1 用户结算包（updatePbxStatus）
                 JSONObject pushStatus = buildAutoSettleStatusPush(
                         uid, snapshot.periodNo, resultElements, resultType,
                         gross, fee, net, balance, finalPool, serverTime,
@@ -1634,33 +1645,10 @@ public class PbxService extends BaseService {
                 appendRecordSummary(uid, pushStatus);
                 Push.push(PushCode.updatePbxStatus, null, pushStatus);
 
-                // 4.2 ✅定向 updatePbxInfo(status=3) 给“本局下注用户”，塞 totalGain（前端弹窗用）
-                //    说明：第二个参数如果你们 Push 实现支持“指定 userId”，这里传 uid；不支持的话请告诉我 Push.push 签名，我会改成你们的 TargetSocketType/uid 方式
-                try {
-                    JSONObject infoPush = buildPbxInfoByPeriod(finalPool, snapshot.periodNo, snapshot.startMs, snapshot.endMs, nowMs);
-                    infoPush.put("status", 3);
-                    infoPush.put("remainSeconds", 0);
-                    infoPush.put("resultElements", resultElements);
-                    infoPush.put("resultType", resultType);
-                    infoPush.put("forcedNoWin", 0);
-
-                    // ✅个人收益字段
-                    infoPush.put("totalGain", profitStr);
-                    infoPush.put("total", profitStr);
-                    infoPush.put("myTotalBet", totalBet.stripTrailingZeros().toPlainString());
-
-                    // ✅目标用户（给前端过滤）
-                    infoPush.put("targetUserId", uid);
-
-                    // ✅关键：updatePbxInfo 的 condition 必须是 gameId（"12"），否则 SERVER 桥接不会转发
-                    Push.push(PushCode.updatePbxInfo, String.valueOf(PBX_GAME_ID), infoPush);
-                } catch (Exception e) {
-                    log.error("[PBX] push user updatePbxInfo(status=3) error, uid=" + uid + ", periodNo=" + snapshot.periodNo, e);
-                }
+                pushUserStatus3Info(uid, snapshot, resultElements, resultType, finalPool, 0, profitStr, totalBet);
             }
         });
     }
-
 
 
     /**
@@ -1780,6 +1768,16 @@ public class PbxService extends BaseService {
     /**
      * 全服广播开奖结果（并缓存，防止 tick 覆盖）
      */
+    private void cacheOpenedResult(PeriodSnapshot snapshot,
+                                   JSONArray resultElements,
+                                   String resultType,
+                                   int forcedNoWin) {
+        this.openedPeriodNo = snapshot.periodNo;
+        this.openedResultElements = resultElements;
+        this.openedResultType = resultType;
+        this.openedForcedNoWin = forcedNoWin;
+    }
+
     private void broadcastSettleInfo(PeriodSnapshot snapshot,
                                      JSONArray resultElements,
                                      String resultType,
@@ -1791,14 +1789,6 @@ public class PbxService extends BaseService {
                 + ", forcedNoWin=" + forcedNoWin
                 + ", poolBalance=" + poolBalance);
 
-
-        // 1) 缓存本期开奖结果：tickPeriod 会用它持续广播 status=3
-        this.openedPeriodNo = snapshot.periodNo;
-        this.openedResultElements = resultElements;
-        this.openedResultType = resultType;
-        this.openedForcedNoWin = forcedNoWin;
-
-        // 2) 构造广播包（注意：nowMs 用当前时间，不要用 snapshot.endMs）
         long nowMs = System.currentTimeMillis();
         JSONObject infoPush = buildPbxInfoByPeriod(poolBalance, snapshot.periodNo, snapshot.startMs, snapshot.endMs, nowMs);
 
@@ -1833,6 +1823,8 @@ public class PbxService extends BaseService {
         List<OutcomePick> candidates = new ArrayList<>();
         List<OutcomePick> all = new ArrayList<>();
 
+        BigDecimal available = (poolBalance == null ? BigDecimal.ZERO : poolBalance);
+
         // Triple (三同号)
         for (int e = 1; e <= ELEMENT_COUNT; e++) {
             JSONArray res = new JSONArray();
@@ -1845,7 +1837,7 @@ public class PbxService extends BaseService {
             p.net = net;
 
             all.add(p);
-            if (poolBalance != null && net.compareTo(poolBalance) <= 0) candidates.add(p);
+            if (net.compareTo(available) <= 0) candidates.add(p);
         }
 
         // Double (两同号)
@@ -1863,7 +1855,7 @@ public class PbxService extends BaseService {
                 p.net = net;
 
                 all.add(p);
-                if (poolBalance != null && net.compareTo(poolBalance) <= 0) candidates.add(p);
+                if (net.compareTo(available) <= 0) candidates.add(p);
             }
         }
 
@@ -1884,7 +1876,7 @@ public class PbxService extends BaseService {
                     p.net = net;
 
                     all.add(p);
-                    if (poolBalance != null && net.compareTo(poolBalance) <= 0) candidates.add(p);
+                    if (net.compareTo(available) <= 0) candidates.add(p);
                 }
             }
         }
@@ -1899,21 +1891,33 @@ public class PbxService extends BaseService {
             chosen = new OutcomePick(min.resultElements, min.resultType, true, min.winElement, min.winElements, min.multiplier);
             chosen.net = calcNetForControl(calcGrossForOutcome(t, min));
         } else {
-            // 从可行集合里选 net 最小的一组，若并列随机
-            OutcomePick min = Collections.min(candidates, Comparator.comparing(p -> p.net));
-            BigDecimal bestNet = min.net;
+            candidates.sort(Comparator.comparing(p -> p.net));
+            int sz = candidates.size();
 
-            List<OutcomePick> best = new ArrayList<>();
-            for (OutcomePick p : candidates) {
-                if (p.net.compareTo(bestNet) == 0) best.add(p);
+            if (sz <= 3) {
+                chosen = candidates.get(ThreadLocalRandom.current().nextInt(sz));
+            } else {
+                int tier1 = Math.max(1, sz / 3);
+                int tier2 = Math.max(tier1 + 1, sz * 2 / 3);
+
+                double roll = ThreadLocalRandom.current().nextDouble();
+                List<OutcomePick> pool;
+                if (roll < 0.55) {
+                    pool = candidates.subList(0, tier1);
+                } else if (roll < 0.85) {
+                    pool = candidates.subList(tier1, tier2);
+                } else {
+                    pool = candidates.subList(tier2, sz);
+                }
+                chosen = pool.get(ThreadLocalRandom.current().nextInt(pool.size()));
             }
-
-            chosen = (best.size() == 1)
-                    ? best.get(0)
-                    : best.get(ThreadLocalRandom.current().nextInt(best.size()));
         }
 
         // ✅关键：展示顺序洗牌（DOUBLE/TRIPLE 不再永远“前两个一样、最后固定”）
+        log.warn("[PBX] pickOutcome: available=" + available + ", candidates=" + candidates.size()
+                + ", all=" + all.size() + ", chosen=" + chosen.resultType
+                + ", chosenNet=" + chosen.net + ", forceLose=" + chosen.forceLose);
+
         shuffleFastjson2Array(chosen.resultElements);
 
         return chosen;
@@ -2234,49 +2238,38 @@ public class PbxService extends BaseService {
         if (isBlank(periodNo) || isBlank(userId)) return;
         if (isBlank(orderNo)) return;
 
+        PeriodSnapshot settling = settlingSnapshotMap.get(periodNo);
+        if (settling != null) {
+            settling.elementTotalBet.merge(elementId, chip, BigDecimal::add);
+            settling.userElementBet.computeIfAbsent(userId, k -> new ConcurrentHashMap<>());
+            settling.userElementBet.get(userId).merge(elementId, chip, BigDecimal::add);
+            settling.userTotalBet.merge(userId, chip, BigDecimal::add);
+
+            try {
+                Long uidLong = Long.valueOf(userId);
+                battleRoyaleRecord2Service.mergeBetForPeriodUser(uidLong, periodNo, elementId, chip);
+            } catch (Exception e) {
+                log.error("[PBX] mergeBetForPeriodUser(settling) error, userId=" + userId + ", periodNo=" + periodNo, e);
+            }
+            return;
+        }
+
         String cur;
         synchronized (PERIOD_LOCK) {
             cur = currentPeriodNo;
         }
 
-        // 1) 正常：回调属于当前期，写入本期内存
         if (periodNo.equals(cur)) {
             periodElementTotalBet.merge(elementId, chip, BigDecimal::add);
-
             periodUserElementBet.computeIfAbsent(userId, k -> new ConcurrentHashMap<>());
             periodUserElementBet.get(userId).merge(elementId, chip, BigDecimal::add);
-
             periodUserTotalBet.merge(userId, chip, BigDecimal::add);
 
-            // ✅落库：每次下注插入一条记录（orderNo 唯一）
             try {
-                JSONObject betInfo = new JSONObject();
-                betInfo.put(String.valueOf(elementId), chip.stripTrailingZeros().toPlainString());
                 Long uidLong = Long.valueOf(userId);
-                battleRoyaleRecord2Service.addBattleRoyaleRecord(uidLong, orderNo, periodNo, betInfo.toJSONString(), chip);
+                battleRoyaleRecord2Service.mergeBetForPeriodUser(uidLong, periodNo, elementId, chip);
             } catch (Exception e) {
-                log.error("[PBX] addBattleRoyaleRecord error, userId=" + userId + ", orderNo=" + orderNo + ", periodNo=" + periodNo, e);
-            }
-            return;
-        }
-
-        // 2) 结算窗口晚到：归集到 settlingSnapshotMap（保证上一期结算不丢单）
-        PeriodSnapshot settling = settlingSnapshotMap.get(periodNo);
-        if (settling != null) {
-            settling.elementTotalBet.merge(elementId, chip, BigDecimal::add);
-
-            settling.userElementBet.computeIfAbsent(userId, k -> new ConcurrentHashMap<>());
-            settling.userElementBet.get(userId).merge(elementId, chip, BigDecimal::add);
-            settling.userTotalBet.merge(userId, chip, BigDecimal::add);
-
-            // ✅落库：晚到回调同样要入库
-            try {
-                JSONObject betInfo = new JSONObject();
-                betInfo.put(String.valueOf(elementId), chip.stripTrailingZeros().toPlainString());
-                Long uidLong = Long.valueOf(userId);
-                battleRoyaleRecord2Service.addBattleRoyaleRecord(uidLong, orderNo, periodNo, betInfo.toJSONString(), chip);
-            } catch (Exception e) {
-                log.error("[PBX] addBattleRoyaleRecord(late) error, userId=" + userId + ", orderNo=" + orderNo + ", periodNo=" + periodNo, e);
+                log.error("[PBX] mergeBetForPeriodUser error, userId=" + userId + ", periodNo=" + periodNo, e);
             }
         }
     }

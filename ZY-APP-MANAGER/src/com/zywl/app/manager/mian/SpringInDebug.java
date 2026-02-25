@@ -988,7 +988,7 @@ public class SpringInDebug {
             ManagerBountyService svc = ctx.getBean(ManagerBountyService.class);
             JSONObject params = new JSONObject();
             params.put("userId", MY_USER_ID);
-            params.put("taskId", 1);
+            params.put("taskId", 5);
             JSONObject res = svc.cancelTask(null, params);
             printResult(res);
         } catch (Exception e) {
@@ -1862,14 +1862,14 @@ public class SpringInDebug {
         // getTaskListTest();
         // getTaskDetailTest();
         //  getPublishTaskTest();
-        // getCancelTaskTest();
+        //getCancelTaskTest();
         // getTakeTaskTest();
         // getCancelOrderTest();
         // getSubmitOrderTest();
         // getResubmitOrderTest();
         // getAppealOrderTest();
         // getMyOrdersTest();
-        // getMyPublishTest();
+        getMyPublishTest();
         // getPendingAuditTest();
         // getAuditApproveTest();
         //getAuditRejectTest();
