@@ -337,7 +337,7 @@ public class ServerLotteryGameService extends BaseService {
             throwExp("用户信息异常");
         }
 
-        // 假数据
+/*        // 假数据
         boolean mock = params.containsKey("mock") && params.getIntValue("mock") == 1;
         if (mock) {
             int gameId = params.getIntValue("gameId");
@@ -423,9 +423,9 @@ public class ServerLotteryGameService extends BaseService {
             res.put("mockDesc", "004015 假数据，仅用于前端联调测试（gameId=12 按 DTS2 元素语义返回）");
 
             return res;
-        }
+        }*/
 
-
+        System.out.println("请求004015记录页,游戏ID："+params.getIntValue("gameId"));
         // 走原逻辑
         String reqCode = "101004";
         if (params.getIntValue("gameId") == 12) {

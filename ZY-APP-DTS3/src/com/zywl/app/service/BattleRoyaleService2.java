@@ -26,6 +26,7 @@ import com.zywl.app.defaultx.enmus.GameTypeEnum;
 import com.zywl.app.defaultx.enmus.LogCapitalTypeEnum;
 import com.zywl.app.defaultx.enmus.LotteryGameStatusEnum;
 import com.zywl.app.defaultx.service.*;
+import com.zywl.app.defaultx.service.DailyTaskProgressService;
 import com.zywl.app.socket.BattleRoyaleSocketServer2;
 import com.zywl.app.util.RequestManagerListener;
 import org.apache.commons.collections4.map.HashedMap;
@@ -98,6 +99,9 @@ public class BattleRoyaleService2 extends BaseService {
 
     @Autowired
     private ConfigService configService;
+
+    @Autowired
+    private DailyTaskProgressService dailyTaskProgressService;
     @Autowired
     private BattleRoyaleRequsetMangerService2 requsetMangerService;
 
@@ -891,6 +895,15 @@ public class BattleRoyaleService2 extends BaseService {
                 }
 
                 appendDts3Info(ROOM.pushResult(1, userId, userBet, allAmount));
+
+                // 每日任务推进：真人用户下注成功，推进 gameId=1（消失的兔子）
+                if (!BOT_USER.containsKey(userId)) {
+                    try {
+                        dailyTaskProgressService.pushDailyTaskByGameId(Long.parseLong(userId), 1);
+                    } catch (Exception e) {
+                        logger.error("[DailyTask] 推进每日任务失败 uid=" + userId, e);
+                    }
+                }
 
                 if (!BOT_USER.containsKey(userId)) {
                     REAL_ROOM_MONEY.put(userBet, REAL_ROOM_MONEY.getOrDefault(userBet, BigDecimal.ZERO).add(amount));

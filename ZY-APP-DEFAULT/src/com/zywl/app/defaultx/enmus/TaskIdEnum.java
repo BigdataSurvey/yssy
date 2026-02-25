@@ -16,6 +16,9 @@ public enum TaskIdEnum {
     INVITE3("邀请20名好友","8"),
     GREAT_NOVELS("参与四大名著","1"),
     SEA_HUNT("参与山海狩怪","10"),
+    GAME_DTS3("参与消失的兔子","101"),
+    GAME_DTS("参与疯狂的狮子","102"),
+    GAME_PBX("参与开开乐","103"),
     ;
 
     private TaskIdEnum(String name, String value) {

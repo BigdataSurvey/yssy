@@ -26,9 +26,9 @@ public class BattleRoyaleRecordService extends DaoService {
 
 
 	private static final Log logger = LogFactory.getLog(BattleRoyaleRecordService.class);
-	
-	
-	
+
+
+
 	/**
 	 * 增加大逃杀下注记录
 	 * @param userId
@@ -51,10 +51,10 @@ public class BattleRoyaleRecordService extends DaoService {
 		save(record);
 		return record.getId();
 	}
-	
-	
-	
-	
+
+
+
+
 	public List<BattleRoyaleRecord> findHistoryRecordByUserId(Long userId) {
 		Map<String, Object> params = new HashedMap<String, Object>();
 		params.put("userId", userId);
@@ -62,12 +62,12 @@ public class BattleRoyaleRecordService extends DaoService {
 		params.put("limit",20);
 		return  findList("findByUserId", params);
 	}
-	
+
 	//查找未开奖的下注信息
 	public List<BattleRoyaleRecord> findNoPrizeInfo(){
 		return findList("findNoPrize", null);
 	}
-	
+
 	public BattleRoyaleRecord findPeriodsNum() {
 		return (BattleRoyaleRecord) findOne("findPeriodsNum", null);
 	}
@@ -100,7 +100,7 @@ public class BattleRoyaleRecordService extends DaoService {
 			throwExp("参与失败！");
 		}
 	}
-	
+
 	@Override
 	protected Log logger() {
 		return logger;
@@ -119,11 +119,19 @@ public class BattleRoyaleRecordService extends DaoService {
 	 * 返回最近16期汇总/最近100期明细/总投入/总获得/服务器时间。
 	 */
 	public JSONObject buildUnifiedSummary(Long userId) {
-		return buildUnifiedSummary(userId, false, null);
+		return buildUnifiedSummary(userId, false, null, null);
 	}
 
 	public JSONObject buildUnifiedSummary(Long userId, boolean zeroBasedRoomId) {
-		return buildUnifiedSummary(userId, zeroBasedRoomId, null);
+		return buildUnifiedSummary(userId, zeroBasedRoomId, null, null);
+	}
+
+	/**
+	 * optionNum：房间数（DTS7=8）。为空则默认 8（兼容旧调用方）。
+	 */
+	public JSONObject buildUnifiedSummary(Long userId, boolean zeroBasedRoomId, BigDecimal extraGain, Integer optionNum) {
+		int opt = (optionNum == null || optionNum <= 0) ? 8 : optionNum;
+		return buildUnifiedSummary0(userId, zeroBasedRoomId, extraGain, opt);
 	}
 
 	/**
@@ -131,6 +139,12 @@ public class BattleRoyaleRecordService extends DaoService {
 	 */
 	@SuppressWarnings("unchecked")
 	public JSONObject buildUnifiedSummary(Long userId, boolean zeroBasedRoomId, BigDecimal extraGain) {
+		// 兼容旧签名：默认 8 个房间
+		return buildUnifiedSummary0(userId, zeroBasedRoomId, extraGain, 8);
+	}
+
+	@SuppressWarnings("unchecked")
+	private JSONObject buildUnifiedSummary0(Long userId, boolean zeroBasedRoomId, BigDecimal extraGain, int optionNum) {
 		JSONObject res = new JSONObject();
 		if (userId == null) {
 			res.put("recent16Summary", new JSONArray());
@@ -138,6 +152,10 @@ public class BattleRoyaleRecordService extends DaoService {
 			res.put("totalInvest", BigDecimal.ZERO.setScale(2, RoundingMode.HALF_UP));
 			res.put("totalGain", BigDecimal.ZERO.setScale(2, RoundingMode.HALF_UP));
 			res.put("serverTime", System.currentTimeMillis());
+			// 兼容字段
+			res.put("totalBetAmount", BigDecimal.ZERO.setScale(2, RoundingMode.HALF_UP));
+			res.put("totalWinAmount", BigDecimal.ZERO.setScale(2, RoundingMode.HALF_UP));
+			res.put("recent16Result", new JSONArray());
 			return res;
 		}
 
@@ -162,19 +180,19 @@ public class BattleRoyaleRecordService extends DaoService {
 			}
 		}
 
+		// ✅必须把 1~optionNum 全部返回（缺省 count=0），否则前端只显示“出现过的房间”
 		JSONArray recent100Periods = new JSONArray();
-		List<Integer> rooms = new ArrayList<>(cnt.keySet());
-		Collections.sort(rooms);
-		for (Integer rid : rooms) {
+		for (int rid = 1; rid <= optionNum; rid++) {
 			JSONObject item = new JSONObject();
 			item.put("roomId", String.valueOf(rid));
 			item.put("roomName", "房间" + rid);
-			item.put("count", cnt.get(rid));
+			item.put("count", cnt.getOrDefault(rid, 0));
 			recent100Periods.add(item);
 		}
 
 		// 近16期结果-> recent16Summary
 		JSONArray recent16Summary = new JSONArray();
+		JSONArray recent16Result = new JSONArray();
 		int take16 = Math.min(16, records.size());
 		for (int i = 0; i < take16; i++) {
 			BattleRoyaleRecord r = records.get(i);
@@ -189,6 +207,10 @@ public class BattleRoyaleRecordService extends DaoService {
 				rr.put("roomId", String.valueOf(rid));
 				rr.put("roomName", "房间" + rid);
 				rs.add(rr);
+				// 兼容：给前端一个“扁平化”的 16 期结果列表（只取第一个 roomId）
+				if (rs.size() == 1) {
+					recent16Result.add(String.valueOf(rid));
+				}
 			}
 			item.put("rooms", rs);
 			recent16Summary.add(item);
@@ -205,8 +227,12 @@ public class BattleRoyaleRecordService extends DaoService {
 
 		res.put("recent100Periods", recent100Periods); // 近100期统计
 		res.put("recent16Summary", recent16Summary);   // 近16期结果
+		res.put("recent16Result", recent16Result);
 		res.put("totalInvest", totalInvest.setScale(2, RoundingMode.HALF_UP));
 		res.put("totalGain", totalGain.setScale(2, RoundingMode.HALF_UP));
+		// 兼容字段：避免前端写死 totalBetAmount/totalWinAmount
+		res.put("totalBetAmount", totalInvest.setScale(2, RoundingMode.HALF_UP));
+		res.put("totalWinAmount", totalGain.setScale(2, RoundingMode.HALF_UP));
 		res.put("serverTime", System.currentTimeMillis());
 		return res;
 	}

@@ -366,15 +366,17 @@ public class KafkaConsumerService extends BaseService {
             Map userTask = cardGameCacheService.getUserTask(userId);
             boolean push = false;
             UserDailyTaskVo task = (UserDailyTaskVo) userTask.get(taskId);
-            if (task==null){
+            if (task == null) {
                 return;
             }
             if (task.getStatus() == 0) {
                 task.setSchedule(task.getSchedule() + 1);
-                if (task.getSchedule() == task.getCondition()) {
+
+                if (task.getSchedule() >= task.getCondition()) {
                     task.setStatus(1);
                     push = true;
                 }
+
                 userDailyTaskService.updateUserTask(userId, JSONArray.copyOf(userTask.values()));
                 cardGameCacheService.updateUserDailyTaskStatus(userId, taskId, task);
                 if (push) {
@@ -554,5 +556,30 @@ public class KafkaConsumerService extends BaseService {
     public void shutdown() {
         consumer.close();
         executorService.shutdown();
+    }
+
+    /**
+     * 无 Kafka 环境：业务侧直接推进每日任务（参与一次某小游戏）
+     * 约定映射（复用你当前 TaskIdEnum 的历史ID，避免大改）：
+     *  - gameId=1  消失的兔子（DTS3）
+     *  - gameId=7  疯狂的狮子（DTS）
+     *  - gameId=12 开开乐（DTS2）
+     */
+    public void pushDailyTaskByGameId(Long userId, Integer gameId) {
+        if (userId == null || gameId == null) return;
+
+        String taskId;
+        if (gameId == 1) {
+            taskId = "101";
+        } else if (gameId == 7) {
+            taskId = "102";
+        } else if (gameId == 12) {
+            taskId = "103";
+        } else {
+            return;
+        }
+
+        // 直接复用你现有推进逻辑
+        checkDailyTaskIsOk(userId, taskId);
     }
 }

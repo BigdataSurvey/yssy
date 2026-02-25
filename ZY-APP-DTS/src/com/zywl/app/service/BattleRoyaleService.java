@@ -27,6 +27,7 @@ import com.zywl.app.defaultx.enmus.LogCapitalTypeEnum;
 import com.zywl.app.defaultx.enmus.LotteryGameStatusEnum;
 import com.zywl.app.defaultx.enmus.UserCapitalTypeEnum;
 import com.zywl.app.defaultx.service.*;
+import com.zywl.app.defaultx.service.DailyTaskProgressService;
 import com.zywl.app.socket.BattleRoyaleSocketServer;
 import com.zywl.app.util.RequestManagerListener;
 import org.apache.commons.collections4.map.HashedMap;
@@ -105,6 +106,9 @@ public class BattleRoyaleService extends BaseService {
 
     @Autowired
     private GameCacheService gameCacheService;
+
+    @Autowired
+    private DailyTaskProgressService dailyTaskProgressService;
 
     private static final Object lock = new Object();
     private static final Object betLock = new Object();
@@ -334,7 +338,7 @@ public class BattleRoyaleService extends BaseService {
 
         // 统一补充 summary（近16/近100/总投入总收益等）
         try {
-            resp.putAll(battleRoyaleRecordService.buildUnifiedSummary(Long.parseLong(data.getString("userId")), true));
+            resp.putAll(battleRoyaleRecordService.buildUnifiedSummary(Long.parseLong(data.getString("userId")), true, null, OPTIONS_NUM));
         } catch (Exception ignore) {
         }
 
@@ -350,7 +354,9 @@ public class BattleRoyaleService extends BaseService {
         checkNull(params.get("userId"), params.get("betAmount"), params.get("bet"));
 
         String userId = params.getString("userId");
-        String userBet = params.getString("bet");
+        // ✅兼容 0-based(0~N-1) 与 1-based(1~N) 输入，统一转换为服务端内部 0-based 房间号
+        String userBet = normalizeRoomId(params.getString("bet"), ROOM.getOption());
+        params.put("bet", userBet);
         BigDecimal amount = params.getBigDecimal("betAmount");
         params.put("capitalType", CAPITAL_TYPE);
         if (amount == null) {
@@ -633,6 +639,9 @@ public class BattleRoyaleService extends BaseService {
 
         final boolean isRealUser = (userId != null && !BOT_USER.containsKey(userId));
 
+        // ✅再次归一化（防止内部调用/机器人下注绕过 userBet 的 normalize）
+        userBet = normalizeRoomId(userBet, ROOM.getOption());
+
         // 记录用户当前选中房间
         ROOM.getUserCheckNum().put(userId, userBet);
 
@@ -692,6 +701,7 @@ public class BattleRoyaleService extends BaseService {
                                 ", orderNo=" + orderNo + ", dataId=" + dataId + ", addAmount=" + amount.toPlainString());
                     }
                 } else {
+                    // ✅落库 bet_info 必须保存“内部 0-based 房间号”，否则结算/统计会出现房间号错位
                     dataId = battleRoyaleRecordService.addBattleRoyaleRecord(Long.parseLong(userId), orderNo,
                             ROOM.getPeridosNum(), userBet, amount);
 
@@ -753,6 +763,15 @@ public class BattleRoyaleService extends BaseService {
                             ", addAmount=" + amount.toPlainString() + ", userAllAmountInRoom=" + allAmount.toPlainString() +
                             ", roomBetAmount=" + roomBetAmount + ", roomBetNumber=" + roomBetNumber +
                             ", allBetAmount=" + ROOM.getAllBetAmount().toPlainString());
+                }
+
+                // 每日任务推进：真人用户下注成功，推进 gameId=7（疯狂的狮子）
+                if (isRealUser) {
+                    try {
+                        dailyTaskProgressService.pushDailyTaskByGameId(Long.parseLong(userId), 7);
+                    } catch (Exception e) {
+                        logger.error("[DailyTask] 推进每日任务失败 uid=" + userId, e);
+                    }
                 }
 
                 // ✅关键：不要手动 Executer.response，让框架自动回包
@@ -1113,7 +1132,12 @@ public class BattleRoyaleService extends BaseService {
 
             // ===== 构建“公共部分” =====
             com.alibaba.fastjson.JSONObject base = new com.alibaba.fastjson.JSONObject();
+            // roomId：内部 0-based（0~N-1），历史前端可能直接用这个
             base.put("roomId", result);
+            // displayRoomId：给 UI 直接展示的 1-based（1~N），避免前端再做 +1 且避免字符串拼接 bug
+            try {
+                base.put("displayRoomId", Integer.parseInt(String.valueOf(result)) + 1);
+            } catch (Exception ignore) {}
             base.put("status", status);
             base.put("gameId", GameTypeEnum.battleRoyale.getValue());
             base.putAll(ROOM.getSettleDate()); // 你原来的：winNumber/loseNumber/allLoseAmount/roomIds 等
@@ -1147,7 +1171,7 @@ public class BattleRoyaleService extends BaseService {
                         } catch (Exception ignore) { }
                         try {
                             userRecordSummaryMap.put(uid,
-                                    battleRoyaleRecordService.buildUnifiedSummary(Long.valueOf(uid), true, extraGain));
+                                    battleRoyaleRecordService.buildUnifiedSummary(Long.valueOf(uid), true, extraGain, OPTIONS_NUM));
                         } catch (Exception ignore) { }
                     }
                 }
@@ -1439,9 +1463,14 @@ public class BattleRoyaleService extends BaseService {
             public void handle(BaseClientSocket clientSocket, Command command) {
                 if (command.isSuccess()) {
                     battleRoyaleRecordService.batchUpdateRecord(updateRecord);
-                    Executer.response(CommandBuilder.builder(lotteryCommand).success(result).build());
+                    // ✅lotteryCommand 可能为 null（结算由服务端定时触发时无“请求-响应”链路），此时不能走 Executer.response
+                    if (lotteryCommand != null) {
+                        Executer.response(CommandBuilder.builder(lotteryCommand).success(result).build());
+                    }
                 } else {
-                    Executer.response(CommandBuilder.builder(lotteryCommand).error(command.getMessage(), command.getData()).build());
+                    if (lotteryCommand != null) {
+                        Executer.response(CommandBuilder.builder(lotteryCommand).error(command.getMessage(), command.getData()).build());
+                    }
                 }
             }
         });
@@ -1455,7 +1484,7 @@ public class BattleRoyaleService extends BaseService {
         checkNull(data);
         checkNull(data.get("userId"));
         Long userId = data.getLong("userId");
-        return battleRoyaleRecordService.buildUnifiedSummary(userId, true);
+        return battleRoyaleRecordService.buildUnifiedSummary(userId, true, null, OPTIONS_NUM);
     }
 
     public Integer getNext(){
