@@ -166,6 +166,20 @@ public class BattleRoyaleSocket extends BaseClientSocket {
 						roomIds.add(String.valueOf(obj.get("roomId")));
 					}
 
+					// ✅ DTS7 内部使用 0-based 房间号(0~N-1)，APP 前端需要 1-based(1~N)
+					// 结算状态下将 roomIds 中的房间号 +1 转为显示用 1-based
+					if (LotteryGameStatusEnum.settle.getValue() == status && !roomIds.isEmpty()) {
+						JSONArray converted = new JSONArray();
+						for (int ri = 0; ri < roomIds.size(); ri++) {
+							try {
+								converted.add(String.valueOf(Integer.parseInt(roomIds.getString(ri)) + 1));
+							} catch (Exception e) {
+								converted.add(roomIds.getString(ri));
+							}
+						}
+						roomIds = converted;
+					}
+
 					result.put("roomIds", roomIds);
 
 					String finalRoomId = "";

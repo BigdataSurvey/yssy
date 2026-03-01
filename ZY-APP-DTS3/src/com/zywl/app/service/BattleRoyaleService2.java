@@ -330,7 +330,7 @@ public class BattleRoyaleService2 extends BaseService {
                     }
                     userBetBet(botId, String.valueOf(option), getBotMoney(), null, null);
                 } catch (Exception e) {
-                    logger.error("[DTS3] robot bet error", e);
+                    logger.debug("[DTS3] robot bet error: " + e.getMessage());
                 }
             }
         }, 300, 100);
@@ -855,6 +855,8 @@ public class BattleRoyaleService2 extends BaseService {
                     if (orderInfo != null && orderInfo.get("dataId") != null) {
                         dataId = Long.parseLong(orderInfo.get("dataId"));
                     }
+                    // betAmount 由 batchUpdateRecord 在结算时一次性写入正确的累计值
+                    // 不在此处同步调用 addBetAmount，避免 DB 调用在 synchronized 块内排队导致超时
                 } else {
                     dataId = battleRoyaleRecordService.addBattleRoyaleRecord(Long.parseLong(userId), orderNo,
                             ROOM.getPeridosNum(), userBet, amount);
@@ -1270,7 +1272,10 @@ public class BattleRoyaleService2 extends BaseService {
             }
         }
 
-        // ✅现在再推送结算状态：此时 userSettleInfo 一定齐全，不会 null
+        // 先推送结算状态给客户端（必须在 batchUpdateRecord 之前！）
+        // batchUpdateRecord 含 101 条 UPDATE 巨型 SQL，耗时可达数秒，
+        // 若先落库再推送，1.5s 后的 force-ready 会先到达客户端，用户看不到结算动画
+        // getRecord (Fix3) 在 settle 状态已从内存注入当局数据，不依赖 DB 更新
         try {
             JSONObject push = new JSONObject();
             push.put("userIds", ROOM.getPlayers().keySet());
@@ -1286,18 +1291,18 @@ public class BattleRoyaleService2 extends BaseService {
             logger.error("[DTS3] push settle status error", e);
         }
 
+        // 后落库：batchUpdateRecord 写入 lotteryResult, profit, betAmount, status=1
+        try {
+            battleRoyaleRecordService.batchUpdateRecord(updateRecord);
+        } catch (Exception e) {
+            logger.error("[DTS3] batchUpdateRecord error", e);
+        }
+
         // 发给 manager 做资产结算 + 落库
         requsetMangerService.requestManagerBet(managerData, new Listener() {
             @Override
             public void handle(BaseClientSocket clientSocket, Command command) {
-
-                // 不管 manager 成功失败，先落库（避免页面旧数据）
-                try {
-                    battleRoyaleRecordService.batchUpdateRecord(updateRecord);
-                } catch (Exception e) {
-                    logger.error("[DTS3] batchUpdateRecord error", e);
-                }
-
+                // batchUpdateRecord 已在 settle push 之前同步执行完毕
                 if (command != null && command.isSuccess()) {
                     if (lotteryCommand != null) {
                         Executer.response(CommandBuilder.builder(lotteryCommand).success(result).build());
@@ -1324,9 +1329,92 @@ public class BattleRoyaleService2 extends BaseService {
         checkNull(data);
         checkNull(data.get("userId"));
         Long userId = data.getLong("userId");
+        String uid = String.valueOf(userId);
 
         //  DTS3 betInfo 是 0-based 房间id（0..N-1），这里必须 false，否则前端映射会出现 undefined
-        return battleRoyaleRecordService.buildUnifiedSummary(userId, false);
+        JSONObject summary;
+
+        // 当处于结算状态且该用户参与了本局，注入当局结果
+        if (ROOM.getStatus() == LotteryGameStatusEnum.settle.getValue()
+                && ROOM.getUserBetInfo() != null
+                && ROOM.getUserBetInfo().containsKey(uid)) {
+            try {
+                // 从内存获取当局结算信息
+                Map<String, String> si = ROOM.getUserBetOrderInfo() != null ? ROOM.getUserBetOrderInfo().get(uid) : null;
+                BigDecimal actualBetAmount = BigDecimal.ZERO;
+                BigDecimal winAmount = BigDecimal.ZERO;
+                boolean isWin = false;
+                if (si != null) {
+                    try { actualBetAmount = new BigDecimal(si.get("betAmount")); } catch (Exception ignore) {}
+                    try { winAmount = new BigDecimal(si.get("winAmount")); } catch (Exception ignore) {}
+                    isWin = "1".equals(si.get("isWin"));
+                }
+                // 计算当局净收益（profit）
+                BigDecimal profit = isWin ? winAmount.subtract(actualBetAmount) : actualBetAmount.negate();
+
+                // 使用 extraGain 修正 totalGain（DB中当局profit=0，需要加上实际profit）
+                summary = battleRoyaleRecordService.buildUnifiedSummary(userId, false, profit);
+
+                // 注入当局 lotteryResult 到 recent16Summary 和 recent100Periods
+                // （因为 DB 中当局记录 status=0 且 lotteryResult=null，buildUnifiedSummary 查不到）
+                List<Integer> killList = ROOM.getResult();
+                if (killList != null && !killList.isEmpty()) {
+                    // recent100Periods: 增加当局 killList 中每个房间的计数
+                    JSONArray recent100 = summary.getJSONArray("recent100Periods");
+                    if (recent100 == null) recent100 = new JSONArray();
+                    Map<String, Integer> countMap = new LinkedHashMap<>();
+                    for (int i = 0; i < recent100.size(); i++) {
+                        JSONObject item = recent100.getJSONObject(i);
+                        countMap.put(item.getString("roomId"), item.getIntValue("count"));
+                    }
+                    for (Integer rid : killList) {
+                        String ridStr = String.valueOf(rid);
+                        countMap.put(ridStr, countMap.getOrDefault(ridStr, 0) + 1);
+                    }
+                    JSONArray newRecent100 = new JSONArray();
+                    List<String> sortedKeys = new ArrayList<>(countMap.keySet());
+                    Collections.sort(sortedKeys, (a, b) -> {
+                        try { return Integer.compare(Integer.parseInt(a), Integer.parseInt(b)); }
+                        catch (Exception e) { return a.compareTo(b); }
+                    });
+                    for (String key : sortedKeys) {
+                        JSONObject item = new JSONObject();
+                        item.put("roomId", key);
+                        item.put("roomName", "房间" + key);
+                        item.put("count", countMap.get(key));
+                        newRecent100.add(item);
+                    }
+                    summary.put("recent100Periods", newRecent100);
+
+                    // recent16Summary: 在最前面插入当局
+                    JSONArray recent16 = summary.getJSONArray("recent16Summary");
+                    if (recent16 == null) recent16 = new JSONArray();
+                    JSONObject currentRound = new JSONObject();
+                    currentRound.put("periodsNum", ROOM.getPeridosNum());
+                    JSONArray rooms = new JSONArray();
+                    for (Integer rid : killList) {
+                        JSONObject rr = new JSONObject();
+                        rr.put("roomId", String.valueOf(rid));
+                        rr.put("roomName", "房间" + rid);
+                        rooms.add(rr);
+                    }
+                    currentRound.put("rooms", rooms);
+                    JSONArray newRecent16 = new JSONArray();
+                    newRecent16.add(currentRound);
+                    for (int i = 0; i < recent16.size() && newRecent16.size() < 16; i++) {
+                        newRecent16.add(recent16.get(i));
+                    }
+                    summary.put("recent16Summary", newRecent16);
+                }
+            } catch (Exception e) {
+                logger.error("[DTS3] getRecord inject current round error uid=" + uid, e);
+                summary = battleRoyaleRecordService.buildUnifiedSummary(userId, false);
+            }
+        } else {
+            summary = battleRoyaleRecordService.buildUnifiedSummary(userId, false);
+        }
+
+        return summary;
     }
 
 

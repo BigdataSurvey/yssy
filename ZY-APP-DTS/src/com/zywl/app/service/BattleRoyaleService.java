@@ -982,8 +982,10 @@ public class BattleRoyaleService extends BaseService {
                     userBetBet(String.valueOf(bot.getId()), betOpt, getBotMoney(), null, null);
 
                 } catch (Exception e) {
-                    // 机器人异常不影响主流程
-                    logger.error("[DTS-7] robot bet error", e);
+                    // 机器人异常不影响主流程（仅打消息不打堆栈，避免高频error日志刷屏）
+                    if (logger.isDebugEnabled()) {
+                        logger.debug("[DTS-7] robot bet skip: " + e.getMessage());
+                    }
                 }
             }
         }, 300, 100);
@@ -1032,7 +1034,12 @@ public class BattleRoyaleService extends BaseService {
             ROOM.setPeridosNum("1");
         } else {
             ROOM.setPeridosNum(String.valueOf((Long.parseLong(battleRoyaleRecord.getPeriodsNum()) + 1)));
-            ROOM.setLastResult(battleRoyaleRecord.getLotteryResult());
+            // ✅ DB 中 lotteryResult 是 0-based(0~N-1)，lastResult 推给前端需要 1-based(1~N)
+            try {
+                ROOM.setLastResult(String.valueOf(Integer.parseInt(battleRoyaleRecord.getLotteryResult()) + 1));
+            } catch (NumberFormatException e) {
+                ROOM.setLastResult(battleRoyaleRecord.getLotteryResult());
+            }
         }
 
         logger.info("初始化大逃杀期数信息完成");
@@ -1117,13 +1124,16 @@ public class BattleRoyaleService extends BaseService {
             Push.push(PushCode.updateGameStatus, null, data);
 
         } else if (ROOM.getStatus() == LotteryGameStatusEnum.settle.getValue()) {
+            long settleStartMs = System.currentTimeMillis();
 
             String result = battleRoyaleService.draw();
             ROOM.setResult(result);
-            ROOM.setLastResult(result);
+            // ✅ result 是 0-based(0~N-1)，lastResult 推给前端需要 1-based(1~N)
+            ROOM.setLastResult(String.valueOf(Integer.parseInt(result) + 1));
 
             // 结算（这里会把 ROOM.getUserBetOrderInfo() 填好 winAmount/betAmount/isWin 等）
             battleRoyaleService.settle(String.valueOf(result), lotteryCommand);
+            logger.info("[DTS-7-TIMING] draw+settle 完成, period=" + ROOM.getPeridosNum() + ", result=" + result + ", 耗时=" + (System.currentTimeMillis() - settleStartMs) + "ms");
 
             ROOM.setReadyTime(System.currentTimeMillis());
 
@@ -1143,16 +1153,22 @@ public class BattleRoyaleService extends BaseService {
             base.putAll(ROOM.getSettleDate());
 
             // ===== 按 userId 拆包单播（不含全量 userSettleInfo/userRecordSummaryMap，减小包体） =====
+            long pushStartMs = System.currentTimeMillis();
+            int pushRealCount = 0;
             if (ROOM.getPlayers() != null && ROOM.getPlayers().keySet() != null) {
                 for (String uid : ROOM.getPlayers().keySet()) {
+
+                    // ✅ 跳过机器人用户：bot 无 APP 连接，推送无意义且浪费 IO
+                    if (BOT_USER.containsKey(uid)) continue;
+                    pushRealCount++;
 
                     com.alibaba.fastjson.JSONObject onePayload = new com.alibaba.fastjson.JSONObject();
                     onePayload.putAll(base);
 
                     onePayload.putAll(buildUserSettlePayload(uid, GameTypeEnum.battleRoyale.getValue()));
 
-                    // 仅非机器人的真实用户构建记录摘要（避免为 ~100 个 bot 做 DB 查询导致结算卡顿）
-                    if (!BOT_USER.containsKey(uid)) {
+                    // 真实用户构建记录摘要
+                    {
                         try {
                             BigDecimal extraGain = null;
                             if (userBetOrderInfo != null) {
@@ -1178,6 +1194,7 @@ public class BattleRoyaleService extends BaseService {
             } else {
                 Push.push(PushCode.updateGameStatus, null, base);
             }
+            logger.info("[DTS-7-TIMING] 结算推送完成, period=" + ROOM.getPeridosNum() + ", 推送真实用户数=" + pushRealCount + ", 耗时=" + (System.currentTimeMillis() - pushStartMs) + "ms, 总耗时=" + (System.currentTimeMillis() - settleStartMs) + "ms");
 
             // 回到 ready
             Executer.executeService(new Runnable() {
@@ -1510,7 +1527,20 @@ public class BattleRoyaleService extends BaseService {
         checkNull(data);
         checkNull(data.get("userId"));
         Long userId = data.getLong("userId");
-        return battleRoyaleRecordService.buildUnifiedSummary(userId, true, null, OPTIONS_NUM);
+        JSONObject summary = battleRoyaleRecordService.buildUnifiedSummary(userId, true, null, OPTIONS_NUM);
+
+        // ✅ 如果当前处于结算中状态，DB 中当局记录可能尚未 commit，手动注入当局结果
+        // 避免记录页在结算瞬间请求时拿不到最新一期数据
+        if (ROOM.getStatus() == LotteryGameStatusEnum.settle.getValue() && ROOM.getResult() != null) {
+            try {
+                com.alibaba.fastjson2.JSONObject summary2 = com.alibaba.fastjson2.JSONObject.parseObject(summary.toJSONString());
+                injectCurrentRoundIntoSummary(summary2, ROOM.getResult(), ROOM.getPeridosNum());
+                return JSONObject.parseObject(summary2.toJSONString());
+            } catch (Exception e) {
+                logger.warn("[DTS-7] getRecord injectCurrentRound failed: " + e.getMessage());
+            }
+        }
+        return summary;
     }
 
     public Integer getNext(){
