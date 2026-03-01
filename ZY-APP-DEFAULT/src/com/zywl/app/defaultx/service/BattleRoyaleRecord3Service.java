@@ -75,6 +75,7 @@ public class BattleRoyaleRecord3Service extends DaoService {
 		return (BattleRoyale2Record) findOne("findByOrderNo", params);
 	}
 
+	@Transactional
 	public void batchUpdateRecord(JSONObject obj) {
 		List<Map<String, Object>> list = new ArrayList<Map<String, Object>>();
 		Set<String> set = obj.keySet();
