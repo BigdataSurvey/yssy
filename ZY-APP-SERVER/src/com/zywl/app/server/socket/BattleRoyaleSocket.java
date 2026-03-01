@@ -134,22 +134,20 @@ public class BattleRoyaleSocket extends BaseClientSocket {
 
 					BattleRoyale2Socket.dtsPublic(obj, result);
 
-					// 结算状态
+					// 每个推送包已是单播（userIds=singleton），顶层字段由 buildUserSettlePayload 填入
+					String perRoundWinAmount = "0";
+					String perRoundBetAmount = "0";
 					if (LotteryGameStatusEnum.settle.getValue() == status) {
-						JSONObject settleInfo = obj.getJSONObject("userSettleInfo");
-						JSONObject one = (settleInfo == null ? null : settleInfo.getJSONObject(userId));
+						perRoundWinAmount = obj.getString("winAmount");
+						perRoundBetAmount = obj.getString("betAmount");
+						String isWinStr = obj.getString("isWin");
 
-						if (one != null) {
-							result.put("winAmount", one.getString("winAmount"));
-							result.put("betAmount", one.getString("betAmount"));
-							// 0输 1赢
-							result.put("roomResult", Integer.parseInt(one.getString("isWin")));
-						} else {
-							// 没下注/无结算信息
-							result.put("winAmount", "0");
-							result.put("betAmount", "0");
-							result.put("roomResult", 2);
-						}
+						if (perRoundWinAmount == null) perRoundWinAmount = "0";
+						if (perRoundBetAmount == null) perRoundBetAmount = "0";
+
+						result.put("winAmount", perRoundWinAmount);
+						result.put("betAmount", perRoundBetAmount);
+						result.put("roomResult", isWinStr != null ? Integer.parseInt(isWinStr) : 2);
 					}
 
 					result.put("allLoseAmount", obj.get("allLoseAmount"));
@@ -170,9 +168,6 @@ public class BattleRoyaleSocket extends BaseClientSocket {
 
 					result.put("roomIds", roomIds);
 
-					// roomId
-					// 有开奖结果 -> roomId=roomIds[0]
-					// 无开奖结果 -> roomId=当前用户所在房间 myRoomId（从 roomList 反查）
 					String finalRoomId = "";
 					if (roomIds.size() > 0) {
 						finalRoomId = roomIds.getString(0);
@@ -183,7 +178,6 @@ public class BattleRoyaleSocket extends BaseClientSocket {
 					if (finalRoomId != null && finalRoomId.length() > 0) {
 						result.put("roomId", finalRoomId);
 					} else {
-						// 不下发空 roomId（避免前端收到 ""）
 						result.remove("roomId");
 					}
 
@@ -191,6 +185,14 @@ public class BattleRoyaleSocket extends BaseClientSocket {
 					result.put("userId", userId);
 
 					mergeUnifiedSummary(result, obj, userId);
+
+					// 结算状态下，totalGain/totalInvest 必须用当局值覆盖历史累计值
+					// 避免前端弹窗"获得"显示历史总额而非当局获得
+					if (LotteryGameStatusEnum.settle.getValue() == status) {
+						result.put("totalGain", perRoundWinAmount == null ? "0" : perRoundWinAmount);
+						result.put("totalInvest", perRoundBetAmount == null ? "0" : perRoundBetAmount);
+					}
+
 					Push.push(PushCode.updateGameStatus, userId, result);
 				}
 			}

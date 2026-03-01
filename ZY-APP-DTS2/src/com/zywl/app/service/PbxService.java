@@ -719,41 +719,47 @@ public class PbxService extends BaseService {
                     // 只有真下注成功，才本地归集 & 落库
                     recordBet(periodNo, userId, finalElementId, chip, orderNoForAck);
 
-                    // 每日任务推进：真人用户下注成功，推进 gameId=12（开开乐）
-                    if (!BOT_USER.containsKey(userId)) {
+                    // 立即设置响应，让主线程尽快解除阻塞（减少下注延迟感）
+                    betRespRef.set(resp);
+
+                    // 以下操作异步执行（DB查摘要、Push推送等），不阻塞 operate() 的返回
+                    final BigDecimal fBalance = balance;
+                    final BigDecimal fPoolBalance = poolBalance;
+                    final BigDecimal fFee = fee;
+                    final BigDecimal fFeeRate = feeRate;
+                    pushExecutor.execute(() -> {
                         try {
-                            dailyTaskProgressService.pushDailyTaskByGameId(Long.parseLong(userId), 12);
-                        } catch (Exception dailyEx) {
-                            log.error("[DailyTask] 推进每日任务失败 uid=" + userId, dailyEx);
-                        }
-                    }
-
-                    JSONObject pushStatus = buildPbxStatusPush(
-                            userId, 2, true, orderNoForAck, periodNo, finalElementId, chip,
-                            balance, poolBalance, fee, feeRate);
-
-                    // ✅关键修复：不要用 putAll(sum) 直接覆盖（避免把 total/totalGain 等字段覆盖成 null）
-                    try {
-                        JSONObject sum = battleRoyaleRecord2Service.buildUnifiedSummary(Long.valueOf(userId), false);
-                        if (sum != null) {
-                            JSONObject mp = new JSONObject();
-                            mp.put(userId, sum);
-                            pushStatus.put("userRecordSummaryMap", mp);
-
-                            // 只补充 summary，不覆盖 pushStatus 已有的关键字段
-                            for (String k : sum.keySet()) {
-                                if (!pushStatus.containsKey(k)) {
-                                    pushStatus.put(k, sum.get(k));
+                            if (!BOT_USER.containsKey(userId)) {
+                                try {
+                                    dailyTaskProgressService.pushDailyTaskByGameId(Long.parseLong(userId), 12);
+                                } catch (Exception dailyEx) {
+                                    log.error("[DailyTask] uid=" + userId, dailyEx);
                                 }
                             }
+
+                            JSONObject pushStatus = buildPbxStatusPush(
+                                    userId, 2, true, orderNoForAck, periodNo, finalElementId, chip,
+                                    fBalance, fPoolBalance, fFee, fFeeRate);
+                            try {
+                                JSONObject sum = battleRoyaleRecord2Service.buildUnifiedSummary(Long.valueOf(userId), false);
+                                if (sum != null) {
+                                    JSONObject mp = new JSONObject();
+                                    mp.put(userId, sum);
+                                    pushStatus.put("userRecordSummaryMap", mp);
+                                    for (String k : sum.keySet()) {
+                                        if (!pushStatus.containsKey(k)) {
+                                            pushStatus.put(k, sum.get(k));
+                                        }
+                                    }
+                                }
+                            } catch (Exception ignore) {}
+
+                            Push.push(PushCode.updatePbxStatus, null, pushStatus);
+                            pushPbxInfo(lastPoolBalance);
+                        } catch (Exception e) {
+                            log.warn("[PBX] async bet push error, uid=" + userId, e);
                         }
-                    } catch (Exception ignore) {
-                    }
-
-                    Push.push(PushCode.updatePbxStatus, null, pushStatus);
-                    pushPbxInfo(lastPoolBalance);
-
-                    betRespRef.set(resp);
+                    });
 
                 } catch (Exception e) {
                     log.error("[PBX] pbxBet callback exception", e);
@@ -1503,8 +1509,8 @@ public class PbxService extends BaseService {
                     if (totalBet == null)
                         totalBet = BigDecimal.ZERO;
 
-                    BigDecimal profit = BigDecimal.ZERO.subtract(totalBet).setScale(2, RoundingMode.HALF_UP);
-                    String profitStr = profit.stripTrailingZeros().toPlainString();
+                    // 全员输：获得=0
+                    String gainStr = "0";
 
                     JSONObject pushStatus = buildAutoSettleStatusPush(
                             uid, snapshot.periodNo, resultElements, resultType,
@@ -1515,12 +1521,13 @@ public class PbxService extends BaseService {
                     appendRecordSummary(uid, pushStatus);
                     Push.push(PushCode.updatePbxStatus, null, pushStatus);
 
-                    pushUserStatus3Info(uid, snapshot, resultElements, resultType, finalPool, 1, profitStr, totalBet);
+                    pushUserStatus3Info(uid, snapshot, resultElements, resultType, finalPool, 1, gainStr, totalBet);
 
                 } catch (Exception e) {
                     log.error("[PBX] handleForceLose push error, uid=" + uid + ", periodNo=" + snapshot.periodNo, e);
                 }
             }
+            pushNonBettingUsersSettleInfo(snapshot, resultElements, resultType, finalPool, 1);
         });
     }
 
@@ -1553,8 +1560,8 @@ public class PbxService extends BaseService {
                     if (totalBet == null)
                         totalBet = BigDecimal.ZERO;
 
-                    BigDecimal profit = BigDecimal.ZERO.subtract(totalBet).setScale(2, RoundingMode.HALF_UP);
-                    String profitStr = profit.stripTrailingZeros().toPlainString();
+                    // 全员输：获得=0
+                    String gainStr = "0";
 
                     JSONObject pushStatus = buildAutoSettleStatusPush(
                             uid, snapshot.periodNo, resultElements, resultType,
@@ -1565,12 +1572,13 @@ public class PbxService extends BaseService {
                     appendRecordSummary(uid, pushStatus);
                     Push.push(PushCode.updatePbxStatus, null, pushStatus);
 
-                    pushUserStatus3Info(uid, snapshot, resultElements, resultType, finalPool, 0, profitStr, totalBet);
+                    pushUserStatus3Info(uid, snapshot, resultElements, resultType, finalPool, 0, gainStr, totalBet);
 
                 } catch (Exception e) {
                     log.error("[PBX] handleNormalNoWin push error, uid=" + uid + ", periodNo=" + snapshot.periodNo, e);
                 }
             }
+            pushNonBettingUsersSettleInfo(snapshot, resultElements, resultType, finalPool, 0);
         });
     }
 
@@ -1608,8 +1616,8 @@ public class PbxService extends BaseService {
                     if (totalBet == null)
                         totalBet = BigDecimal.ZERO;
 
-                    BigDecimal profit = BigDecimal.ZERO.subtract(totalBet).setScale(2, RoundingMode.HALF_UP);
-                    String profitStr = profit.stripTrailingZeros().toPlainString();
+                    // 结算异常：获得=0
+                    String gainStr = "0";
 
                     JSONObject pushStatus = buildAutoSettleStatusPush(
                             uid, snapshot.periodNo, resultElements, resultType,
@@ -1620,12 +1628,13 @@ public class PbxService extends BaseService {
                     appendRecordSummary(uid, pushStatus);
                     Push.push(PushCode.updatePbxStatus, null, pushStatus);
 
-                    pushUserStatus3Info(uid, snapshot, resultElements, resultType, finalPool, 0, profitStr, totalBet);
+                    pushUserStatus3Info(uid, snapshot, resultElements, resultType, finalPool, 0, gainStr, totalBet);
 
                 } catch (Exception e) {
                     log.error("[PBX] handleSettleError push error, uid=" + uid + ", periodNo=" + snapshot.periodNo, e);
                 }
             }
+            pushNonBettingUsersSettleInfo(snapshot, resultElements, resultType, finalPool, 0);
         });
     }
 
@@ -1707,8 +1716,10 @@ public class PbxService extends BaseService {
                 if (net == null)
                     net = BigDecimal.ZERO;
 
-                BigDecimal profit = net.subtract(totalBet).setScale(2, RoundingMode.HALF_UP);
-                String profitStr = profit.stripTrailingZeros().toPlainString();
+                // "获得" = net（返还总额，不出现负数）
+                String gainStr = net.compareTo(BigDecimal.ZERO) <= 0
+                        ? "0"
+                        : net.setScale(2, RoundingMode.HALF_UP).stripTrailingZeros().toPlainString();
 
                 JSONObject pushStatus = buildAutoSettleStatusPush(
                         uid, snapshot.periodNo, resultElements, resultType,
@@ -1717,8 +1728,9 @@ public class PbxService extends BaseService {
                 appendRecordSummary(uid, pushStatus);
                 Push.push(PushCode.updatePbxStatus, null, pushStatus);
 
-                pushUserStatus3Info(uid, snapshot, resultElements, resultType, finalPool, 0, profitStr, totalBet);
+                pushUserStatus3Info(uid, snapshot, resultElements, resultType, finalPool, 0, gainStr, totalBet);
             }
+            pushNonBettingUsersSettleInfo(snapshot, resultElements, resultType, finalPool, 0);
         });
     }
 
@@ -1885,7 +1897,34 @@ public class PbxService extends BaseService {
         infoPush.put("resultType", resultType);
         infoPush.put("forcedNoWin", forcedNoWin);
 
+        // 未下注用户也带上 totalGain=0, myTotalBet=0，确保前端弹窗正常展示
+        infoPush.put("totalGain", "0");
+        infoPush.put("total", "0");
+        infoPush.put("myTotalBet", "0");
+
         Push.push(PushCode.updatePbxInfo, null, infoPush);
+    }
+
+    /**
+     * 给在线但未下注的用户也推送 status=3 结算弹窗（投入=0, 获得=0）
+     */
+    private void pushNonBettingUsersSettleInfo(PeriodSnapshot snapshot,
+            JSONArray resultElements,
+            String resultType,
+            BigDecimal poolBalance,
+            int forcedNoWin) {
+        if (onlineUserState == null || onlineUserState.isEmpty()) return;
+
+        Set<String> bettors = (snapshot.userTotalBet == null)
+                ? Collections.emptySet() : snapshot.userTotalBet.keySet();
+
+        for (String uid : onlineUserState.keySet()) {
+            if (bettors.contains(uid)) continue;
+            if (isBotUser(uid)) continue;
+
+            pushUserStatus3Info(uid, snapshot, resultElements, resultType,
+                    poolBalance, forcedNoWin, "0", BigDecimal.ZERO);
+        }
     }
 
     /**
@@ -2623,14 +2662,16 @@ public class PbxService extends BaseService {
         info.put("net", net);
         info.put("totalBet", totalBet);
 
-        // profit = net - bet
-        BigDecimal profit = net.subtract(totalBet).setScale(2, RoundingMode.HALF_UP);
-        String profitStr = profit.stripTrailingZeros().toPlainString();
+        // "获得" = net（用户实际拿回的金额，不含投入扣减）
+        // 输家: net=0 -> 获得=0；赢家: net=gross-fee -> 获得>0
+        // 与 DTS(疯狂的狮子) 的"获得"含义一致：返还总额，不出现负数
+        String gainStr = net.compareTo(BigDecimal.ZERO) <= 0
+                ? "0"
+                : net.setScale(2, RoundingMode.HALF_UP).stripTrailingZeros().toPlainString();
 
-        // ✅核心兼容字段
-        info.put("totalGain", profitStr); // 后端已有
-        info.put("total", profitStr); // ✅前端弹窗需要
-        info.put("gain", profitStr); // 备用
+        info.put("totalGain", gainStr);
+        info.put("total", gainStr);
+        info.put("gain", gainStr);
 
         if (balance != null) {
             info.put("balance", balance);
@@ -2638,10 +2679,15 @@ public class PbxService extends BaseService {
 
         pushStatus.put("userSettleInfo", info);
 
-        // ✅顶层也放一份，兼容不同前端取值路径
-        pushStatus.put("totalGain", profitStr);
-        pushStatus.put("total", profitStr);
-        pushStatus.put("gain", profitStr);
+        // 定向路由：必须包含 userIds，否则 Server 的 BattleRoyale2Socket 不会转发
+        JSONArray userIds = new JSONArray();
+        userIds.add(uid);
+        pushStatus.put("userIds", userIds);
+
+        // 顶层也放一份，兼容不同前端取值路径
+        pushStatus.put("totalGain", gainStr);
+        pushStatus.put("total", gainStr);
+        pushStatus.put("gain", gainStr);
 
         if (poolBalance != null) {
             pushStatus.put("poolBalance", poolBalance);

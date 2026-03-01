@@ -170,12 +170,15 @@ public class BattleRoyaleRecordService extends DaoService {
 			records = Collections.emptyList();
 		}
 
-		// 近100期统计（房间次数统计） -> recent100Periods
+		// 近100期统计（开奖结果房间次数统计） -> recent100Periods
+		// 使用 lotteryResult（狮子袭击的房间）而非 betInfo（用户下注的房间）
 		Map<Integer, Integer> cnt = new HashMap<>();
 		int take100 = Math.min(100, records.size());
 		for (int i = 0; i < take100; i++) {
 			BattleRoyaleRecord r = records.get(i);
-			for (Integer rid : parseRoomIds(r.getBetInfo(), zeroBasedRoomId)) {
+			String lr = r.getLotteryResult();
+			if (lr == null || lr.trim().isEmpty()) continue;
+			for (Integer rid : parseRoomIds(lr, zeroBasedRoomId)) {
 				cnt.put(rid, cnt.getOrDefault(rid, 0) + 1);
 			}
 		}
@@ -190,18 +193,20 @@ public class BattleRoyaleRecordService extends DaoService {
 			recent100Periods.add(item);
 		}
 
-		// 近16期结果-> recent16Summary
+		// 近16期结果 -> recent16Summary（使用 lotteryResult 开奖结果）
 		JSONArray recent16Summary = new JSONArray();
 		JSONArray recent16Result = new JSONArray();
-		int take16 = Math.min(16, records.size());
-		for (int i = 0; i < take16; i++) {
+		int added16 = 0;
+		for (int i = 0; i < records.size() && added16 < 16; i++) {
 			BattleRoyaleRecord r = records.get(i);
+			String lr = r.getLotteryResult();
+			if (lr == null || lr.trim().isEmpty()) continue;
 
 			JSONObject item = new JSONObject();
 			item.put("periodsNum", r.getPeriodsNum());
 
 			JSONArray rs = new JSONArray();
-			LinkedHashSet<Integer> set = new LinkedHashSet<>(parseRoomIds(r.getBetInfo(), zeroBasedRoomId));
+			LinkedHashSet<Integer> set = new LinkedHashSet<>(parseRoomIds(lr, zeroBasedRoomId));
 			for (Integer rid : set) {
 				JSONObject rr = new JSONObject();
 				rr.put("roomId", String.valueOf(rid));
@@ -214,6 +219,7 @@ public class BattleRoyaleRecordService extends DaoService {
 			}
 			item.put("rooms", rs);
 			recent16Summary.add(item);
+			added16++;
 		}
 
 		Map<String, Object> tp = new HashMap<>();

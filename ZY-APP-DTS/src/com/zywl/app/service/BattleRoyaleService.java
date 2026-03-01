@@ -1140,61 +1140,42 @@ public class BattleRoyaleService extends BaseService {
             } catch (Exception ignore) {}
             base.put("status", status);
             base.put("gameId", GameTypeEnum.battleRoyale.getValue());
-            base.putAll(ROOM.getSettleDate()); // 你原来的：winNumber/loseNumber/allLoseAmount/roomIds 等
+            base.putAll(ROOM.getSettleDate());
 
-            base.put("userSettleInfo", userBetOrderInfo);
-
-            // userSettleList（你原来的列表结构，保留）
-            com.alibaba.fastjson.JSONArray userSettleList = new com.alibaba.fastjson.JSONArray();
-            if (userBetOrderInfo != null) {
-                for (String uid : userBetOrderInfo.keySet()) {
-                    com.alibaba.fastjson.JSONObject one = new com.alibaba.fastjson.JSONObject();
-                    one.put("userId", uid);
-                    Map<String, String> si = userBetOrderInfo.get(uid);
-                    if (si != null) one.putAll(si);
-                    userSettleList.add(one);
-                }
-            }
-            base.put("userSettleList", userSettleList);
-
-            // userRecordSummaryMap（你原来的：包含 totalInvest/totalGain 历史汇总，保留）
-            com.alibaba.fastjson.JSONObject userRecordSummaryMap = new com.alibaba.fastjson.JSONObject();
-            try {
-                if (userBetOrderInfo != null) {
-                    for (String uid : userBetOrderInfo.keySet()) {
-                        BigDecimal extraGain = null;
-                        try {
-                            Map<String, String> si = userBetOrderInfo.get(uid);
-                            if (si != null && si.get("winAmount") != null) {
-                                extraGain = new BigDecimal(si.get("winAmount"));
-                            }
-                        } catch (Exception ignore) { }
-                        try {
-                            userRecordSummaryMap.put(uid,
-                                    battleRoyaleRecordService.buildUnifiedSummary(Long.valueOf(uid), true, extraGain, OPTIONS_NUM));
-                        } catch (Exception ignore) { }
-                    }
-                }
-            } catch (Exception ignore) { }
-            base.put("userRecordSummaryMap", userRecordSummaryMap);
-
-            // ===== ✅关键改动：按 userId 拆包单播，顶层补齐 totalGain =====
+            // ===== 按 userId 拆包单播（不含全量 userSettleInfo/userRecordSummaryMap，减小包体） =====
             if (ROOM.getPlayers() != null && ROOM.getPlayers().keySet() != null) {
                 for (String uid : ROOM.getPlayers().keySet()) {
 
                     com.alibaba.fastjson.JSONObject onePayload = new com.alibaba.fastjson.JSONObject();
                     onePayload.putAll(base);
 
-                    // 单人结算字段：顶层 totalGain/totalInvest + 兼容字段
                     onePayload.putAll(buildUserSettlePayload(uid, GameTypeEnum.battleRoyale.getValue()));
 
-                    // ✅让 Push 层明确只推给这个人
+                    // 仅非机器人的真实用户构建记录摘要（避免为 ~100 个 bot 做 DB 查询导致结算卡顿）
+                    if (!BOT_USER.containsKey(uid)) {
+                        try {
+                            BigDecimal extraGain = null;
+                            if (userBetOrderInfo != null) {
+                                Map<String, String> si = userBetOrderInfo.get(uid);
+                                if (si != null && si.get("winAmount") != null) {
+                                    extraGain = new BigDecimal(si.get("winAmount"));
+                                }
+                            }
+                            com.alibaba.fastjson2.JSONObject summary =
+                                    battleRoyaleRecordService.buildUnifiedSummary(Long.valueOf(uid), true, extraGain, OPTIONS_NUM);
+                            injectCurrentRoundIntoSummary(summary, result, ROOM.getPeridosNum());
+
+                            com.alibaba.fastjson.JSONObject summaryMap = new com.alibaba.fastjson.JSONObject();
+                            summaryMap.put(uid, summary);
+                            onePayload.put("userRecordSummaryMap", summaryMap);
+                        } catch (Exception ignore) { }
+                    }
+
                     onePayload.put("userIds", java.util.Collections.singleton(uid));
 
                     Push.push(PushCode.updateGameStatus, null, onePayload);
                 }
             } else {
-                // 兜底：如果 players 异常，仍然广播一次（避免直接没推送）
                 Push.push(PushCode.updateGameStatus, null, base);
             }
 
@@ -1211,6 +1192,51 @@ public class BattleRoyaleService extends BaseService {
                 }
             });
         }
+    }
+
+    /**
+     * 将当局开奖结果注入到记录摘要中（DB 中当局 lotteryResult 尚未更新，需手动补入）
+     */
+    private void injectCurrentRoundIntoSummary(com.alibaba.fastjson2.JSONObject summary,
+                                                String result, String periodsNum) {
+        if (summary == null || result == null) return;
+        try {
+            int resultRoom = Integer.parseInt(result) + 1; // 0-based -> 1-based
+
+            // recent16Summary: 在开头插入当局结果
+            com.alibaba.fastjson2.JSONArray r16 = summary.getJSONArray("recent16Summary");
+            if (r16 != null) {
+                com.alibaba.fastjson2.JSONObject cur = new com.alibaba.fastjson2.JSONObject();
+                cur.put("periodsNum", periodsNum);
+                com.alibaba.fastjson2.JSONArray rooms = new com.alibaba.fastjson2.JSONArray();
+                com.alibaba.fastjson2.JSONObject room = new com.alibaba.fastjson2.JSONObject();
+                room.put("roomId", String.valueOf(resultRoom));
+                room.put("roomName", "房间" + resultRoom);
+                rooms.add(room);
+                cur.put("rooms", rooms);
+                r16.add(0, cur);
+                while (r16.size() > 16) r16.remove(r16.size() - 1);
+            }
+
+            // recent16Result: 在开头插入当局结果
+            com.alibaba.fastjson2.JSONArray r16r = summary.getJSONArray("recent16Result");
+            if (r16r != null) {
+                r16r.add(0, String.valueOf(resultRoom));
+                while (r16r.size() > 16) r16r.remove(r16r.size() - 1);
+            }
+
+            // recent100Periods: 对应房间计数 +1
+            com.alibaba.fastjson2.JSONArray r100 = summary.getJSONArray("recent100Periods");
+            if (r100 != null) {
+                for (int i = 0; i < r100.size(); i++) {
+                    com.alibaba.fastjson2.JSONObject item = r100.getJSONObject(i);
+                    if (item != null && String.valueOf(resultRoom).equals(item.getString("roomId"))) {
+                        item.put("count", item.getIntValue("count") + 1);
+                        break;
+                    }
+                }
+            }
+        } catch (Exception ignore) {}
     }
 
     public void rankRebate(String userId, BigDecimal amount, String orderNo) {
