@@ -147,7 +147,7 @@ public class TaskService extends BaseService {
         topService.updateTop1Info();
         adminSocketService.initKeepAlive();
         adminSocketService.initGiftInfo();
-        adminSocketService.initWfsbNumber();
+
         initPrizePool();
 
         new Timer("每周日24点重置奖品").schedule(new TimerTask() {
@@ -187,7 +187,7 @@ public class TaskService extends BaseService {
                     adminSocketService.initAllBalance();
                     topService.updateTop1Info();
                     adminSocketService.initAllBalance();
-                    adminSocketService.initWfsbNumber();
+
                     Thread.sleep(1000);
                     gameService.updateStatic();
                 } catch (Exception e) {

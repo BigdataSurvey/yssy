@@ -128,7 +128,7 @@ public class ServerManagerService {
 			shakeHandsDatas.put("address", serverProperties.get("template.server"));
 			shakeHandsDatas.put("host", serverProperties.get("template.server"));
 			shakeHandsDatas.put("weight", serverProperties.get("server.weight"));
-			battleRoyale3Socket = new BattleRoyale3Socket(TargetSocketType.dts3, -1, managerProperties.get("dts3Server.ws.address"), shakeHandsDatas);
+			battleRoyale3Socket = new BattleRoyale3Socket(TargetSocketType.battleRoyale2, -1, managerProperties.get("dts3Server.ws.address"), shakeHandsDatas);
 			battleRoyale3Socket.connect();
 		}
 	}

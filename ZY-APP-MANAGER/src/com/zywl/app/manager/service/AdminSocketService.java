@@ -121,9 +121,7 @@ public class AdminSocketService extends BaseService {
 		logger.info("查询礼包用时："+(System.currentTimeMillis()-time));
 	}
 
-	public void initWfsbNumber(){
-		WFSB_NUMBER =  backpackService.getWfsbNumber();
-	}
+
 
 
 	public void initKeepAlive(){

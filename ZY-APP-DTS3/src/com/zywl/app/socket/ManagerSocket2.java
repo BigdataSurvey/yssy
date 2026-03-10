@@ -38,7 +38,10 @@ public class ManagerSocket2 extends BaseClientSocket {
 	
 	private IncomeRecordService incomeRecordService;
 	
-
+	
+	
+	
+	
 	public ManagerSocket2(TargetSocketType socketType, int reconnect, String server, JSONObject shakeHandsDatas) {
 		super(socketType, false, reconnect, server, shakeHandsDatas);
 		versionService = SpringUtil.getService(VersionService.class);
@@ -75,32 +78,29 @@ public class ManagerSocket2 extends BaseClientSocket {
 				logger.info("收到系统参数修改推送：" + data);
 				JSONObject object = (JSONObject) data;
 				Config config = object.toJavaObject(Config.class);
-				if (config.getKey().equals(Config.DTS2_STATUS)) {
+				if (config.getKey().equals(Config.DTS2_STATUS)){
 					int status = Integer.parseInt(config.getValue());
-					BattleRoyaleService2.STATUS = status;
-					// DTS3 实际 gameId=1（GameTypeEnum.dts2）
-					gameService.updateGameStatus(GameTypeEnum.dts2.getValue(), status);
+					BattleRoyaleService2.STATUS=status;
+					gameService.updateGameStatus(GameTypeEnum.battleRoyale.getValue(),status);
 				}
-
 				if (config.getKey().equals(Config.DAILY_STOLEN_COUNT)){
 					BigDecimal status = new BigDecimal(config.getValue());
-					logger.info("调整飞仙手续费："+status);
+					logger.info("调整多杀手续费："+status);
 					battleRoyaleService2.updateRate(status);
 					//gameService.updateGameStatus(GameTypeEnum.battleRoyale.getValue(),status);
 				}
 				if (config.getKey().equals(Config.GAME_DTS2_NEED_BOT)){
 					BattleRoyaleService2.NEED_BOT=Integer.parseInt(config.getValue());
 				}
-				if (config.getKey().equals(Config.DTS3_BOT_MONEY)){
+				if (config.getKey().equals(Config.DTS_BOT_MONEY)){
 					battleRoyaleService2.initBotMoney();
 				}
-				if (config.getKey().equals(Config.DTS3_KILL_RATE)){
-					BattleRoyaleService2.KILL_RATE = Integer.parseInt(config.getValue());
+				if (config.getKey().equals(Config.DTS2_KILL_RATE)){
+					BattleRoyaleService2.KILL_RATE= Integer.parseInt(config.getValue());
 				}
-				if (config.getKey().equals(Config.QNYH_RATE)){
+				if (config.getKey().equals(Config.SZHT_RATE)){
 					battleRoyaleService2.initRateList();
 				}
-
 
 			}
 		}, this);

@@ -8,6 +8,7 @@ import com.zywl.app.base.bean.*;
 import com.zywl.app.base.bean.vo.CapitalTopVo;
 import com.zywl.app.base.constant.RedisKeyConstant;
 import com.zywl.app.base.constant.TableNameConstant;
+import com.zywl.app.base.util.DateUtil;
 import com.zywl.app.base.util.LockUtil;
 import com.zywl.app.base.util.OrderUtil;
 import com.zywl.app.defaultx.cache.AppConfigCacheService;
@@ -273,6 +274,56 @@ public class UserCapitalService extends DaoService {
                     null,
                     (String) o.getOrDefault("tableName", null)
             );
+        }
+    }
+
+    @Transactional
+    public void betUpdateBalance2(JSONObject obj) {
+        int capitalType = UserCapitalTypeEnum.xxxhhb.getValue();
+        List<Map<String, Object>> list = new ArrayList<>();
+        Set<String> set = obj.keySet();
+        LogCapitalTypeEnum em = null;
+        Map<String, BigDecimal> beforeMoney = new HashMap<>();
+
+        for (String key : set) {
+            Map<String, Object> map = new HashedMap<>();
+            map.put("userId", key);
+            UserCapital userCapital = userCapitalCacheService.getUserCapitalCacheByType(Long.parseLong(key), UserCapitalTypeEnum.xxxhhb.getValue());
+            beforeMoney.put(key, userCapital.getBalance());
+            JSONObject o = obj.getJSONObject(key);
+            map.put("amount", o.get("amount"));
+            map.put("id",userCapital.getId());
+            em = LogCapitalTypeEnum.getEm(o.getIntValue("em"));
+            map.put("capitalType", o.get("capitalType"));
+            //报表用
+            map.put("week", DateUtil.format2(new Date()));
+            capitalType = o.getIntValue("capitalType");
+            list.add(map);
+        }
+        int a = execute("betUpdateBalance2", list);
+        if (a < 1) {
+            for (String key : set) {
+                userCapitalCacheService.deltedUserCapitalCache(Long.parseLong(key), UserCapitalTypeEnum.xxxhhb.getValue());
+            }
+            if (em.getValue() == LogCapitalTypeEnum.game_bet.getValue()) {
+                throwExp("失败！");
+            } else {
+                throwExp("结算失败！");
+            }
+        }
+        if (a > 0) {
+            for (String userId : set) {
+                BigDecimal before;
+                if (!beforeMoney.containsKey(userId)) {
+                    before = userCapitalCacheService.getUserCapitalCacheByType(Long.parseLong(userId), UserCapitalTypeEnum.xxxhhb.getValue()).getBalance();
+                } else {
+                    before = beforeMoney.get(userId);
+                }
+                BigDecimal occupyBefore = BigDecimal.ZERO;
+                JSONObject o = (JSONObject) obj.get(userId);
+                userCapitalCacheService.add(Long.parseLong(userId), capitalType, o.getBigDecimal("amount"), BigDecimal.ZERO);
+                pushLog(1, Long.parseLong(userId), capitalType, before, occupyBefore, o.getBigDecimal("amount"), em, (String) o.getOrDefault("orderNo", null), null, (String) o.getOrDefault("tableName", null));
+            }
         }
     }
 

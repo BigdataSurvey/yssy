@@ -10,47 +10,31 @@
 		<Console name="console" target="SYSTEM_OUT">
 			<!--只输出level及以上级别的信息（onMatch），其他的直接拒绝（onMismatch） -->
 			<ThresholdFilter level="DEBUG" onMatch="ACCEPT"
-				onMismatch="DENY" />
+							 onMismatch="DENY" />
 			<PatternLayout pattern="[%-5p] [%d{HH:mm:ss}] %c - %m%n" />
 		</Console>
 
 		<RollingFile name="RollingFile" fileName="${LOG_HOME}/${SERVER_NAME}_log"
-			filePattern="${LOG_HOME}/${SERVER_NAME}/%d{yyyy-MM-dd}.log">
+					 filePattern="${LOG_HOME}/${SERVER_NAME}/%d{yyyy-MM-dd}.log">
 			<PatternLayout pattern="[%-5p] [%d{HH:mm:ss:SSS}] %c - %m%n" />
 			<Policies>
 				<TimeBasedTriggeringPolicy modulate="true"
-					interval="1" />
+										   interval="1" />
 			</Policies>
 		</RollingFile>
 	</appenders>
 	<!--只有定义了logger并引入的appender，appender才会生效 -->
-	<Loggers>
-		<!-- root 不要 DEBUG -->
-		<Root level="INFO">
-			<AppenderRef ref="Console"/>
-			<AppenderRef ref="RollingFile"/>
-		</Root>
+	<loggers>
+		<logger name="com.amazonaws" level="info" />
+		<logger name="org.springframework" level="info" />
+		<logger name="org.apache.http" level="info" />
+		<logger name="net.rubyeye.xmemcached" level="info" />
+		<logger name="freemarker.cache" level="info" />
+		<logger name="com.google.code.yanf4j" level="info" />
 
-		<!-- MyBatis / Spring-MyBatis -->
-		<Logger name="org.mybatis" level="WARN" additivity="false">
-			<AppenderRef ref="RollingFile"/>
-		</Logger>
-		<Logger name="org.mybatis.spring" level="WARN" additivity="false">
-			<AppenderRef ref="RollingFile"/>
-		</Logger>
-
-		<!-- 你日志里的 SqlSessionUtils -->
-		<Logger name="org.mybatis.spring.SqlSessionUtils" level="WARN" additivity="false">
-			<AppenderRef ref="RollingFile"/>
-		</Logger>
-
-		<!-- Druid -->
-		<Logger name="druid.sql" level="WARN" additivity="false">
-			<AppenderRef ref="RollingFile"/>
-		</Logger>
-		<Logger name="com.alibaba.druid" level="WARN" additivity="false">
-			<AppenderRef ref="RollingFile"/>
-		</Logger>
-
-	</Loggers>
+		<root level="debug">
+			<appender-ref ref="console" />
+			<appender-ref ref="RollingFile" />
+		</root>
+	</loggers>
 </configuration>

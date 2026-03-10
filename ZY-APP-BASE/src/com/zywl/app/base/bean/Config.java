@@ -7,6 +7,16 @@ import java.util.List;
 
 public class Config extends BaseBean {
 
+	//--------------------------
+	//单杀人机
+	public static final String GAME_DTS_NEED_BOT = "GAME_DTS_NEED_BOT";
+	//单杀杀率
+	public static final String DTS_KILL_RATE = "DTS_KILL_RATE";
+	//击杀房间数量的概率
+	public static final String SZHT_RATE = "SZHT_RATE";
+	//多杀概率
+	public static final String DTS2_KILL_RATE = "DTS2_KILL_RATE";
+	//--------------------------
 
 	public static final String XQ_XW_RATE = "XQ_XW_RATE";
 	public static final String SHOP_MANAGER_REWARD = "SHOP_MANAGER_REWARD";

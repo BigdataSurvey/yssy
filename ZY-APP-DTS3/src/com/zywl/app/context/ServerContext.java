@@ -1,11 +1,11 @@
 package com.zywl.app.context;
 
-import javax.servlet.ServletContextEvent;
-import javax.servlet.ServletContextListener;
-
 import com.zywl.app.defaultx.APP;
 import com.zywl.app.defaultx.util.SpringUtil;
 import com.zywl.app.service.ServerManagerService2;
+
+import javax.servlet.ServletContextEvent;
+import javax.servlet.ServletContextListener;
 
 /**
  * 上下文监听

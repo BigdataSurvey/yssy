@@ -1,16 +1,15 @@
 package com.zywl.app.bean;
 
+import com.alibaba.fastjson2.JSONObject;
+import com.zywl.app.base.BaseBean;
+import com.zywl.app.defaultx.enmus.GameTypeEnum;
+import com.zywl.app.service.BattleRoyaleService2;
+
 import java.math.BigDecimal;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-
-import com.zywl.app.defaultx.enmus.GameTypeEnum;
-
-import com.alibaba.fastjson2.JSONObject;
-import com.zywl.app.base.BaseBean;
-import com.zywl.app.service.BattleRoyaleService2;
 
 public class BattleRoyaleRoom2 extends BaseBean{
 
