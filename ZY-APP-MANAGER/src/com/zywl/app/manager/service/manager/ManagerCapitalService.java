@@ -1566,11 +1566,11 @@ public class ManagerCapitalService extends BaseService {
         return new JSONObject();
     }
     /**
-     * DTS3 新协议兼容（200821 -> 200801 逻辑一致）
+     * DTS3 大逃杀多杀下注修改内存
      */
     @Transactional
     @ServiceMethod(code = "821", description = "大逃杀多杀下注修改内存")
-    public JSONObject updateCacheByDts(ManagerDTS3SocketServer adminSocketServer, JSONObject data) throws InterruptedException {
+    public JSONObject updateCacheByDts(BaseServerSocket adminSocketServer, JSONObject data) throws InterruptedException {
         checkNull(data);
         checkNull(data.get("betArray"));
         JSONArray betArray = data.getJSONArray("betArray");
@@ -1869,7 +1869,7 @@ public class ManagerCapitalService extends BaseService {
 
     @Transactional
     @ServiceMethod(code = "710", description = "多杀结算")
-    public JSONObject dtsSettle(ManagerDTS3SocketServer adminSocketServer, JSONObject data) {
+    public JSONObject dtsSettle(BaseServerSocket  adminSocketServer, JSONObject data) {
         checkNull(data);
         Set<String> set = data.keySet();
         if (set.size() == 0) {

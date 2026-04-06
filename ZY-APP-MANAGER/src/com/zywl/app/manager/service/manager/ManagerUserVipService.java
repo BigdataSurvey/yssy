@@ -101,8 +101,8 @@ public class ManagerUserVipService extends BaseService {
             Date vip1ExpireTime = user.getVipExpireTime();
             Date vip2ExpireTime = user.getVip2ExpireTime();
 
-            boolean vip1Active = isActive(vip1ExpireTime, now);
-            boolean vip2Active = isActive(vip2ExpireTime, now);
+            boolean vip1Active = isActive(user.getVip1(), vip1ExpireTime, now);
+            boolean vip2Active = isActive(user.getVip2(), vip2ExpireTime, now);
 
             int vip1CardCount = (int) gameService.getUserItemNumber(userId, String.valueOf(vip1Cfg.getCardItemId()));
             int vip2CardCount = (int) gameService.getUserItemNumber(userId, String.valueOf(vip2Cfg.getCardItemId()));
@@ -186,8 +186,9 @@ public class ManagerUserVipService extends BaseService {
 
             UserCapital userCapital = userCapitalService.findUserCapitalByUserIdAndCapitalType(userId, capitalTypeId);
             if (userCapital == null || userCapital.getBalance() == null) {
-                throwExp(String.format("用户资产账户不存在, 无法开通VIP服务.{用户ID: %s, 资产类型: %s, VIP类型: %s}",
-                        userId, capitalTypeId, vipType));
+                //throwExp(String.format("用户资产不足, 无法开通VIP服务.{用户ID: %s, 资产类型: %s, VIP类型: %s}",userId, capitalTypeId, vipType));
+                throwExp(String.format("用户资产不足, 无法开通VIP服务!"));
+
             }
 
             BigDecimal balanceBefore = userCapital.getBalance();
@@ -196,8 +197,7 @@ public class ManagerUserVipService extends BaseService {
             }
 
             if (balanceBefore.compareTo(price) < 0) {
-                throwExp(String.format("用户资产账户不足, 无法开通VIP服务.{用户ID: %s, 剩余资产: %s, 所需资产: %s}",
-                        userId, balanceBefore, price));
+                throwExp(String.format("用户资产不足, 无法开通VIP服务!"));
             }
 
             String orderNo = "VIP_BUY_" + vipType + "_" + OrderUtil.getOrder32Number();
@@ -247,9 +247,8 @@ public class ManagerUserVipService extends BaseService {
             long now = System.currentTimeMillis();
 
             Date vip1Expire = user.getVipExpireTime();
-            if (!isActive(vip1Expire, now)) {
-                throwExp(String.format("VIP1未开通或已到期, 无法领取奖励.{用户ID: %s, VIP1到期时间: %s}",
-                        userId, vip1Expire));
+            if (!isActive(user.getVip1(), vip1Expire, now)) {
+                throwExp(String.format("VIP1未开通或已到期, 无法领取奖励!"));
             }
 
             DicVip vip1Cfg = getVipCfg((int) VipLevelTypeEnum.VIP1.getLevel());
@@ -325,12 +324,12 @@ public class ManagerUserVipService extends BaseService {
 
         if (toUserId == null || toUserId <= 0) {
             if (StringUtils.isBlank(toUserNo)) {
-                throwExp(String.format("接收方不能为空.{用户ID: %s, 用户编号: %s,}",
+                throwExp(String.format("接收方不能为空.{用户编号: %s,}",
                         toUserId, toUserNo));
             }
             User toUser = userService.findByUserNo(toUserNo);
             if (toUser == null) {
-                throwExp(String.format("接收方不存在.{用户ID: %s, 用户编号: %s,}",
+                throwExp(String.format("接收方不存在.{用户编号: %s,}",
                         toUserId, toUserNo));
             }
             toUserId = toUser.getId();
@@ -362,7 +361,7 @@ public class ManagerUserVipService extends BaseService {
                 double cardCount = gameService.getUserItemNumber(fromUserId, cardItemId);
 
                 if (cardCount < cardNum) {
-                    throwExp(String.format("转赠卡数量不足.{用户ID: %s, 卡数量: %s,}",
+                    throwExp(String.format("转赠卡数量不足.{卡数量: %s,}",
                             fromUserId, cardCount));
                 }
 
@@ -425,7 +424,7 @@ public class ManagerUserVipService extends BaseService {
         Integer vipType = params.getInteger("vipType");
 
         if (vipType == null || (vipType != VipLevelTypeEnum.VIP1.getLevel() && vipType != VipLevelTypeEnum.VIP2.getLevel())) {
-            throwExp(String.format("vipType 参数错误, VIP类型仅支持 1/2.{用户ID: %s, 当前VIP类型: %s,}",
+            throwExp(String.format("vipType 参数错误, VIP类型仅支持 1/2.{当前VIP类型: %s,}",
                     userId, vipType));
         }
 
@@ -436,8 +435,7 @@ public class ManagerUserVipService extends BaseService {
             String cardItemId = String.valueOf(vipCfg.getCardItemId());
             double cardCount = gameService.getUserItemNumber(userId, cardItemId);
             if (cardCount < 1) {
-                throwExp(String.format("无可激活卡.{用户ID: %s, 卡数量: %s,}",
-                        userId, cardCount));
+                throwExp(String.format("无可激活卡"));
             }
 
             //背包扣卡
@@ -642,8 +640,10 @@ public class ManagerUserVipService extends BaseService {
         return cfg;
     }
 
-    private boolean isActive(Date expireTime, long now) {
-        return expireTime != null && expireTime.getTime() > now;
+    private boolean isActive(Integer vipFlag, Date expireTime, long now) {
+        return vipFlag != null && vipFlag == 1
+                && expireTime != null
+                && expireTime.getTime() > now;
     }
 
     /** 续期统一规则：expire<=now/空 -> now+duration；expire>now -> expire+duration */
@@ -712,9 +712,13 @@ public class ManagerUserVipService extends BaseService {
         Date vip1ExpireTime = user.getVipExpireTime();
         Date vip2ExpireTime = user.getVip2ExpireTime();
 
-        boolean vip1Active = vip1ExpireTime != null && vip1ExpireTime.getTime() > now;
-        boolean vip2Active = vip2ExpireTime != null && vip2ExpireTime.getTime() > now;
+        boolean vip1Active = user.getVip1() == 1
+                && vip1ExpireTime != null
+                && vip1ExpireTime.getTime() > now;
 
+        boolean vip2Active = user.getVip2() == 1
+                && vip2ExpireTime != null
+                && vip2ExpireTime.getTime() > now;
         int vip1CardCount = (int) gameService.getUserItemNumber(userId, String.valueOf(vip1Cfg.getCardItemId()));
         int vip2CardCount = (int) gameService.getUserItemNumber(userId, String.valueOf(vip2Cfg.getCardItemId()));
 

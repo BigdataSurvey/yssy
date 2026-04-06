@@ -110,7 +110,7 @@ public class GameLotteryResultService extends DaoService {
 		return save(result);
 
 	}
-	
+
 	@Transactional
 	public int updateLotteryStatus(Long gameId,String periodsNum,String result) {
 		Map<String, Object> params = new HashMap<String, Object>();
@@ -120,7 +120,21 @@ public class GameLotteryResultService extends DaoService {
 		params.put("status", 1);
 		return execute("drawLottery", params);
 	}
-	
+
+	@Transactional(readOnly = true)
+	public String findLastPeriodsNumByGameId(Long gameId) {
+		if (gameId == null) {
+			throwExp("gameId不能为空");
+		}
+		Map<String, Object> params = new HashedMap<String, Object>();
+		params.put("gameId", gameId);
+
+		Object one = findOne("findLastPeriodsNumByGameId", params);
+		if (one == null) {
+			return null;
+		}
+		return String.valueOf(one);
+	}
 
 	@Override
 	protected Log logger() {

@@ -124,7 +124,7 @@ public class ServerBountyService extends BaseService {
     @ServiceMethod(code = "009", description = "悬赏任务-申诉")
     public Object appealOrder(final AppSocket appSocket, Command appCommand, JSONObject params) {
         checkNull(params);
-        checkNull(params.get("taskId"), params.get("appealReason"));
+        checkNull(params.get("taskId"), params.get("appealReason"), params.get("appealImgs"));
         long userId = appSocket.getWsidBean().getUserId();
         params.put("userId", userId);
 

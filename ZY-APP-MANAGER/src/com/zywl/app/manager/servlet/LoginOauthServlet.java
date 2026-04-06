@@ -43,13 +43,67 @@ public class LoginOauthServlet extends BaseServlet {
     }
 
 
+    /**
+     * 处理旧版微信登录 / Taptap登录 / gameToken登录
+     *
+     * 支持三种登录路径：
+     * 1. gameToken 登录
+     * 2. Taptap 登录（tabtabId）
+     * 3. 微信登录（accessToken + openId）
+     *
+     */
+    @Override
     public Object doProcess(HttpServletRequest request, HttpServletResponse response, String clientIp)
             throws AppException, Exception {
+
         return new AsyncServletProcessor(request) {
+            @Override
             public void run() {
                 try {
                     JSONObject result = new JSONObject();
-                    request.getSession().invalidate();
+
+                    // 读取请求参数
+                    String accessToken = trimToNull(request.getParameter("accessToken"));
+                    String openId = trimToNull(request.getParameter("openId"));
+                    String oldWsid = trimToNull(request.getParameter("oldWsid"));
+                    String versionId = trimToNull(request.getParameter("versionId"));
+                    String inviteCode = trimToNull(request.getParameter("inviteCode"));
+                    String tabtabId = trimToNull(request.getParameter("tabtabId"));
+                    String authCode = trimToNull(request.getParameter("auth_code"));
+                    String deviceId = trimToNull(request.getParameter("deviceId"));
+                    String os = trimToNull(request.getParameter("os"));
+                    String gameToken = trimToNull(request.getParameter("gameToken"));
+                    String userName = trimToNull(request.getParameter("userName"));
+                    String userHead = trimToNull(request.getParameter("userHead"));
+
+                    // 入口日志
+                    logger.info(String.format("wxLoginOauth请求开始，uri=%s, method=%s, queryString=%s, contentType=%s, clientIp=%s",
+                            request.getRequestURI(),
+                            request.getMethod(),
+                            request.getQueryString(),
+                            request.getContentType(),
+                            clientIp));
+
+                    logger.info(String.format("wxLoginOauth参数：oldWsid=%s, versionId=%s, inviteCode=%s, tabtabId=%s, authCode=%s, deviceId=%s, os=%s, openId=%s, accessToken=%s, gameToken=%s, userName=%s, userHead=%s",
+                            oldWsid,
+                            versionId,
+                            inviteCode,
+                            tabtabId,
+                            authCode,
+                            deviceId,
+                            os,
+                            openId,
+                            accessToken,
+                            gameToken,
+                            userName,
+                            userHead));
+
+                    // session处理
+                    if (request.getSession(false) != null) {
+                        request.getSession(false).invalidate();
+                    }
+
+                    // 服务状态校验
                     if (managerConfigService.getInteger(Config.SERVICE_STATUS) == 0) {
                         String baiIp = appConfigCacheService.getConfigByKey(RedisKeyConstant.APP_CONFIG_BAI_IP, Config.BAI_IP);
                         if (!clientIp.equals(baiIp)) {
@@ -57,74 +111,117 @@ public class LoginOauthServlet extends BaseServlet {
                             return;
                         }
                     }
-                    String accessToken = request.getParameter("accessToken");
-                    String openId = request.getParameter("openId");
+
                     String baiIp = appConfigCacheService.getConfigByKey(RedisKeyConstant.APP_CONFIG_BAI_IP, Config.BAI_IP);
-                    String oldWsid = request.getParameter("oldWsid");
-                    String versionId = request.getParameter("versionId");
-                    String inviteCode = request.getParameter("inviteCode");
-                    String tabtabId = request.getParameter("tabtabId");
-                    String authCode = request.getParameter("auth_code");
-                    String deviceId = request.getParameter("deviceId");
-                    String os = request.getParameter("os");
-                    String gameToken = request.getParameter("gameToken");
+
+                    // gameToken登录
                     if (gameToken != null) {
-                        Response.doResponse(asyncContext, loginService.loginByGameToken(gameToken, oldWsid, versionId, clientIp).toJSONString());
+                        logger.info("wxLoginOauth走gameToken登录");
+                        Response.doResponse(
+                                asyncContext,
+                                loginService.loginByGameToken(gameToken, oldWsid, versionId, clientIp).toJSONString()
+                        );
                         return;
                     }
-                    if (StringUtils.isNotEmpty(tabtabId)) {
-                        //taptap登录
-                        String userName = request.getParameter("userName");
-                        String userHead = request.getParameter("userHead");
-                        Response.doResponse(asyncContext, loginService.loginOrRegisterTabtab(tabtabId, clientIp, versionId, oldWsid, inviteCode, userName, userHead).toJSONString());
-                        return;
-                    } else {
-                            if (isNull(accessToken) || isNull(openId)) {
-                                throwExp("accessToken或openId异常");
-                            }
-                            String urlParameters = "?access_token=" + accessToken + "&openid=" + openId;
-                            String wxLoginURL = WX_LOGIN_URL + urlParameters;
-                            String getJSON;
-                            JSONObject wxInfo = new JSONObject();
-                            int accessTokenVail = 1;
-                            if (openId.length() < 5 && clientIp.equals(baiIp)) {
-                                wxInfo.put("nickname", "测试号-" + openId);
-                            } else {
-                                try {
-                                    checkAccessToken(urlParameters);
-                                    logger.info("请求微信登录接口[" + wxLoginURL + "]");
-                                    getJSON = HTTPUtil.get(wxLoginURL);
-                                    logger.info("微信登录接口请求结果[" + wxLoginURL + "]：" + getJSON);
-                                    wxInfo = JSON.parseObject(getJSON);
-                                    openId = wxInfo.getString("openid");
-                                } catch (Exception e) {
-                                    logger.info("accessToken过期，跳过验证");
-                                    accessTokenVail = 0;
-                                }
 
-                            }
-                            if (wxInfo.containsKey("errcode") && wxInfo.getString("errcode").equals("40001")) {
-                                Response.doResponse(asyncContext, "网络异常，连接服务器失败");
-                                return;
-                            }
-                            wxInfo.put("password", accessToken);
-                            Response.doResponse(asyncContext, loginService.loginOrRegister(openId, clientIp, versionId, oldWsid, inviteCode, wxInfo, accessTokenVail, deviceId, os).toJSONString());
-                            return;
+                    // Taptap登录
+                    if (StringUtils.isNotEmpty(tabtabId)) {
+                        logger.info(String.format("wxLoginOauth走Taptap登录，tabtabId=%s", tabtabId));
+                        Response.doResponse(
+                                asyncContext,
+                                loginService.loginOrRegisterTabtab(
+                                        tabtabId,
+                                        clientIp,
+                                        versionId,
+                                        oldWsid,
+                                        inviteCode,
+                                        userName,
+                                        userHead
+                                ).toJSONString()
+                        );
+                        return;
+                    }
+
+                    // 微信 accessToken + openId 登录
+                    if (accessToken == null || openId == null) {
+                        logger.warn(String.format("wxLoginOauth缺少accessToken或openId，accessToken=%s, openId=%s",
+                                accessToken,
+                                openId));
+                        throwExp("accessToken或openId异常");
+                    }
+
+                    String urlParameters = "?access_token=" + accessToken + "&openid=" + openId;
+                    String wxLoginURL = WX_LOGIN_URL + urlParameters;
+                    String getJSON;
+                    JSONObject wxInfo = new JSONObject();
+                    int accessTokenVail = 1;
+
+                    // 测试号逻辑：只对白名单IP生效，且openId长度很短
+                    if (openId != null && openId.length() < 5 && clientIp.equals(baiIp)) {
+                        logger.info(String.format("wxLoginOauth命中测试号逻辑，openId=%s", openId));
+                        wxInfo.put("nickname", "测试号-" + openId);
+                    } else {
+                        try {
+                            checkAccessToken(urlParameters);
+                            logger.info(String.format("请求微信登录接口：%s", wxLoginURL));
+
+                            getJSON = HTTPUtil.get(wxLoginURL);
+                            logger.info(String.format("微信登录接口请求结果：%s", getJSON));
+
+                            wxInfo = JSON.parseObject(getJSON);
+                            openId = wxInfo.getString("openid");
+                        } catch (Exception e) {
+                            // 将格式化后的字符串作为 message，e 作为 Throwable 传入，完美兼容 Commons Logging
+                            logger.warn(String.format("wxLoginOauth accessToken校验失败或已过期：%s", e.getMessage()), e);
+                            accessTokenVail = 0;
                         }
+                    }
+
+                    if (wxInfo.containsKey("errcode") && "40001".equals(wxInfo.getString("errcode"))) {
+                        logger.warn(String.format("微信登录接口返回40001，wxInfo=%s", wxInfo.toJSONString()));
+                        Response.doResponse(asyncContext, "网络异常，连接服务器失败");
+                        return;
+                    }
+
+                    wxInfo.put("password", accessToken);
+
+                    Response.doResponse(
+                            asyncContext,
+                            loginService.loginOrRegister(
+                                    openId,
+                                    clientIp,
+                                    versionId,
+                                    oldWsid,
+                                    inviteCode,
+                                    wxInfo,
+                                    accessTokenVail,
+                                    deviceId,
+                                    os
+                            ).toJSONString()
+                    );
+                    return;
+
                 } catch (AppException e) {
-                    logger().warn("执行异常：" + e);
+                    logger().warn(String.format("wxLoginOauth执行异常：%s", e.getMessage()), e);
                     Response.doResponse(asyncContext, e.getMessage());
                 } catch (Exception e) {
-                    logger().error("未知异常", e);
+                    logger().error("wxLoginOauth未知异常", e);
                     Response.doResponse(asyncContext, "网络异常，连接服务器失败");
                 }
-
-
             }
         };
-
     }
 
+    /**
+     * 去掉前后空格；空串转为 null
+     */
+    private String trimToNull(String value) {
+        if (value == null) {
+            return null;
+        }
+        value = value.trim();
+        return value.isEmpty() ? null : value;
+    }
 
 
 

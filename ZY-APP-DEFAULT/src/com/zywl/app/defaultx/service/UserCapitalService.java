@@ -37,8 +37,7 @@ public class UserCapitalService extends DaoService {
 
     @Autowired
     private TradingRecordService tradingRecordService;
-
-
+    // 用户资产缓存服务
     @Autowired
     private UserCapitalCacheService userCapitalCacheService;
     @Autowired

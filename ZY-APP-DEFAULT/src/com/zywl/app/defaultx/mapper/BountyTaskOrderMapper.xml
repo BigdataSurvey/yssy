@@ -25,6 +25,7 @@
         <result column="appeal_handle_reason" property="appealHandleReason"/>
         <result column="appeal_handle_time"   property="appealHandleTime"/>
         <result column="appeal_handle_user_id" property="appealHandleUserId"/>
+        <result column="appeal_imgs"      property="appealImgs"/>
         <result column="unit_price"       property="unitPrice"/>
         <result column="capital_type"     property="capitalType"/>
         <result column="create_time"      property="createTime"/>
@@ -52,6 +53,7 @@
         appeal_handle_reason,
         appeal_handle_time,
         appeal_handle_user_id,
+        appeal_imgs,
         unit_price,
         capital_type,
         create_time,
@@ -88,6 +90,7 @@
             appeal_handle_reason,
             appeal_handle_time,
             appeal_handle_user_id,
+            appeal_imgs,
             unit_price,
             capital_type,
             create_time,
@@ -113,6 +116,7 @@
                 #{appealHandleReason},
                 #{appealHandleTime},
                 #{appealHandleUserId},
+                #{appealImgs},
                 #{unitPrice},
                 #{capitalType},
                 #{createTime},
@@ -142,6 +146,7 @@
             <if test="appealHandleReason != null">appeal_handle_reason = #{appealHandleReason},</if>
             <if test="appealHandleTime != null">appeal_handle_time = #{appealHandleTime},</if>
             <if test="appealHandleUserId != null">appeal_handle_user_id = #{appealHandleUserId},</if>
+            <if test="appealImgs != null">appeal_imgs = #{appealImgs},</if>
             <if test="unitPrice != null">unit_price = #{unitPrice},</if>
             <if test="capitalType != null">capital_type = #{capitalType},</if>
             update_time = #{updateTime}
@@ -232,9 +237,27 @@
             <if test="rejectReason != null">reject_reason = #{rejectReason},</if>
             <if test="appealReason != null">appeal_reason = #{appealReason},</if>
             <if test="appealTime != null">appeal_time = #{appealTime},</if>
+            <if test="appealImgs != null">appeal_imgs = #{appealImgs},</if>
             update_time = now()
         </set>
         where id = #{id}
     </update>
+
+
+    <select id="statAvgTimeByTaskId" parameterType="long" resultType="map">
+        select
+            ifnull(avg(case
+                           when take_time is not null and submit_time is not null
+                               then timestampdiff(minute, take_time, submit_time)
+                           else null
+                end), 0) as avgUseTime,
+            ifnull(avg(case
+                           when submit_time is not null and audit_time is not null
+                               then timestampdiff(minute, submit_time, audit_time)
+                           else null
+                end), 0) as avgAuditTime
+        from t_bounty_task_order
+        where task_id = #{taskId}
+    </select>
 
 </mapper>

@@ -133,4 +133,11 @@
 		select *  from l_game_lottery_result where game_id=#{gameId}  and status=1 order by id DESC limit 1
 	</select>
 
+	<select id="findLastPeriodsNumByGameId" parameterType="map" resultType="java.lang.String">
+		SELECT periods_num
+		FROM l_game_lottery_result
+		WHERE game_id = #{gameId}
+		ORDER BY id DESC
+			LIMIT 1
+	</select>
 </mapper>

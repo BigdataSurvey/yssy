@@ -1,4 +1,6 @@
 package com.zywl.app.service;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import com.alibaba.fastjson2.JSON;
 import com.alibaba.fastjson2.JSONArray;
@@ -39,11 +41,13 @@ import java.math.BigDecimal;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
-
+/**
+ * DTS 小游戏服务 狮子：单杀玩法服）
+ * **/
 @Service
 @ServiceClass(code = "101")
 public class BattleRoyaleService extends BaseService {
-
+    /** 当前房间内存态：包含本局状态、期号、下注信息、历史统计等 */
     public static BattleRoyaleRoom ROOM;
 
     public static int KILL_RATE = 0;
@@ -380,7 +384,7 @@ public class BattleRoyaleService extends BaseService {
         checkNull(data);
         checkNull(data.get("userId"), data.get("userNo"), data.get("userName"));
         if (ROOM.getEndTime() > System.currentTimeMillis() && (ROOM.getEndTime() - System.currentTimeMillis()) < 1000) {
-            throwExp("火山即将喷发，停止更换");
+            throwExp("狮子即将到来，停止更换");
         }
         System.out.println(ROOM.getRoomList());
         String userId = data.getString("userId");
@@ -388,7 +392,7 @@ public class BattleRoyaleService extends BaseService {
         String newRoomId = data.getString("bet");
         synchronized (LockUtil.getlock(userId + "bet")) {
             if (ROOM.getRoomList().get(newRoomId).containsKey(userId)) {
-                throwExp("已经在该岛屿啦~");
+                throwExp("已经在该房间啦~");
             }
             ROOM.getUserCheckNum().put(userId, newRoomId);
             JSONObject result = new JSONObject();
@@ -408,7 +412,7 @@ public class BattleRoyaleService extends BaseService {
                 }
             }
             if (roomId == null) {
-                throwExp("更换岛屿频繁");
+                throwExp("更换房间频繁");
             }
             updateRoomUser.add(userId);
             BigDecimal amount = ROOM.getUserBetInfo().get(userId).get(roomId);
@@ -418,7 +422,7 @@ public class BattleRoyaleService extends BaseService {
             ROOM.getUserBetInfo().remove(userId);
             ROOM.getUserBetInfo().put(userId, newRoomBetInfo);
             if (!ROOM.getRoomList().get(roomId).containsKey(userId)) {
-                throwExp("更换岛屿频繁");
+                throwExp("更换房间频繁");
             }
             ROOM.getRoomList().get(newRoomId).put(userId, ROOM.getRoomList().get(roomId).get(userId));
             ROOM.getRoomList().get(roomId).remove(userId);
@@ -510,7 +514,7 @@ public class BattleRoyaleService extends BaseService {
 
     public JSONObject userBetBet(String userId, String userBet, BigDecimal amount, Command lotteryCommand, JSONObject params) {
         if (STATUS == 0) {
-            throwExp("即将维护，暂时不能进行游戏！");
+            throwExp("疯狂的狮子即将维护，暂时不能进行游戏！");
         }
         if (ROOM.getStatus() == LotteryGameStatusEnum.settle.getValue()) {
             throwExp("上局结算中");
@@ -713,7 +717,7 @@ public class BattleRoyaleService extends BaseService {
             data.put("status", ROOM.getStatus());
             data.put("periodsNum", ROOM.getPeridosNum());
             data.put("lastResult", ROOM.getLastResult());
-            Push.push(PushCode.updateGameStatus, null, data);
+            runAfterCommit(() -> Push.push(PushCode.updateGameStatus, null, data));
         } else if (ROOM.getStatus() == LotteryGameStatusEnum.gaming.getValue()) {
             data.put("status", ROOM.getStatus());
             data.put("endTime", ROOM.getEndTime());
@@ -723,7 +727,7 @@ public class BattleRoyaleService extends BaseService {
                     startGame(lotteryCommand);
                 }
             });
-            Push.push(PushCode.updateGameStatus, null, data);
+            runAfterCommit(() -> Push.push(PushCode.updateGameStatus, null, data));
         } else if (ROOM.getStatus() == LotteryGameStatusEnum.settle.getValue()) {
             String result = battleRoyaleService.draw();
             ROOM.setResult(result);
@@ -736,7 +740,7 @@ public class BattleRoyaleService extends BaseService {
             data.put("status", status);
             data.putAll(ROOM.getSettleDate());
             data.put("userSettleInfo", userBetOrderInfo);
-            Push.push(PushCode.updateGameStatus, null, data);
+            runAfterCommit(() -> Push.push(PushCode.updateGameStatus, null, data));
             Executer.executeService(new Runnable() {
                 @Override
                 public void run() {
@@ -917,10 +921,10 @@ public class BattleRoyaleService extends BaseService {
         checkNull(data);
         checkNull(data.get("userId"));
         Long userId = data.getLong("userId");
-        JSONObject history20Result = ROOM.getHistory20Reuslt();
-        JSONObject history100Result = ROOM.getHistory100Reuslt();
+
+        // 1) 我的开奖记录（保持原逻辑）
         List<BattleRoyaleRecord> records = battleRoyaleRecordService.findHistoryRecordByUserId(userId);
-        JSONArray resultArray = new JSONArray();
+        JSONArray myRecord = new JSONArray();
         for (BattleRoyaleRecord record : records) {
             JSONObject obj = new JSONObject();
             obj.put("periodsNum", record.getPeriodsNum());
@@ -929,13 +933,75 @@ public class BattleRoyaleService extends BaseService {
             obj.put("betAmount", record.getBetAmount());
             obj.put("profit", record.getProfit());
             obj.put("create", record.getCreateTime());
-            resultArray.add(obj);
+            myRecord.add(obj);
         }
+
+        // 2) DB 权威：最近16期逐期结果 —— 直接作为 result16 返回（关键：必须是16条列表）
+        List<GameLotteryResult> db16 = gameLotteryResultService.findHistoryResultByGameId(7L, 16);
+        JSONArray result16 = new JSONArray();
+        for (GameLotteryResult r : db16) {
+            JSONObject o = new JSONObject();
+            o.put("periodsNum", r.getPeriodsNum());
+            o.put("result", r.getLotteryResult());
+            // 如果你确定前端完全不用 createTime，就删掉这一行
+            o.put("createTime", r.getCreateTime());
+            result16.add(o);
+        }
+        System.out.println("result16运行结果: " + com.alibaba.fastjson.JSON.toJSONString(result16));
+        // 3) 近100期统计 —— 仍然给 result100（Map：0..7 -> 次数，补齐不丢号）
+        List<GameLotteryResult> db100 = gameLotteryResultService.findHistoryResultByGameId(7L, 100);
+        Map<String, Integer> cnt100 = new HashMap<>();
+        for (GameLotteryResult r : db100) {
+            String k = String.valueOf(r.getLotteryResult()).trim();
+            if (k.isEmpty()) continue;
+            cnt100.put(k, cnt100.getOrDefault(k, 0) + 1);
+        }
+
+        Map<String, Integer> result100 = new LinkedHashMap<>();
+        for (int i = 0; i < OPTIONS_NUM; i++) {
+            String k = String.valueOf(i);
+            result100.put(k, cnt100.getOrDefault(k, 0));
+        }
+
         JSONObject result = new JSONObject();
-        result.put("result16", history20Result);
-        result.put("result100", history100Result);
-        result.put("myRecord", resultArray);
+        result.put("result16", result16);     // ✅ 现在是“最新16期逐期结果列表”
+        result.put("result100", result100);   // ✅ 近100期统计
+        result.put("myRecord", myRecord);
         return result;
+    }
+
+    /**
+     * 兼容解析：
+     * - "7" -> [7]
+     * - "[4,0]" / "[4, 0]" -> [4,0]
+     */
+    private List<Integer> parseLotteryNumsCompat(String raw) {
+        if (raw == null) return Collections.emptyList();
+        String s = raw.trim();
+        if (s.isEmpty()) return Collections.emptyList();
+
+        if (s.startsWith("[") && s.endsWith("]")) {
+            JSONArray arr = JSON.parseArray(s);
+            List<Integer> out = new ArrayList<>(arr.size());
+            for (Object o : arr) {
+                if (o == null) continue;
+                out.add(Integer.parseInt(String.valueOf(o).trim()));
+            }
+            return out;
+        }
+
+        if (s.indexOf(',') >= 0) {
+            String[] parts = s.split(",");
+            List<Integer> out = new ArrayList<>(parts.length);
+            for (String p : parts) {
+                String t = p == null ? "" : p.trim();
+                if (t.isEmpty()) continue;
+                out.add(Integer.parseInt(t));
+            }
+            return out;
+        }
+
+        return Collections.singletonList(Integer.parseInt(s));
     }
 
     public Integer getNext() {
@@ -1027,4 +1093,23 @@ public class BattleRoyaleService extends BaseService {
         logger.info("初始化大逃杀游戏配置完成");
     }
 
+
+
+    private void runAfterCommit(Runnable r) {
+        if (!TransactionSynchronizationManager.isSynchronizationActive()) {
+            r.run();
+            return;
+        }
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+
+            @Override public void suspend() {}
+            @Override public void resume() {}
+            @Override public void flush() {}
+            @Override public void beforeCommit(boolean readOnly) {}
+            @Override public void beforeCompletion() {}
+            @Override public void afterCommit() { r.run(); }
+            @Override public void afterCompletion(int status) {}
+
+        });
+    }
 }

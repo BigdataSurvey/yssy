@@ -4,7 +4,9 @@ import com.zywl.app.base.bean.UserFarmLand;
 import com.zywl.app.defaultx.dbutil.DaoService;
 import org.springframework.stereotype.Service;
 
+import java.math.BigDecimal;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 /**
@@ -60,5 +62,15 @@ public class BountyTaskService extends DaoService {
      */
     public int updateCounts(Map<String, Object> params) {
         return getBaseDao().execute(mapperSpace, "updateCounts", params);
+    }
+
+    public int updateEscrowAmountByTaskId(Long taskId, BigDecimal escrowAmount) {
+        if (taskId == null || escrowAmount == null) {
+            return 0;
+        }
+        Map<String, Object> params = new HashMap<>();
+        params.put("taskId", taskId);
+        params.put("escrowAmount", escrowAmount);
+        return getBaseDao().execute(mapperSpace, "updateEscrowAmountByTaskId", params);
     }
 }

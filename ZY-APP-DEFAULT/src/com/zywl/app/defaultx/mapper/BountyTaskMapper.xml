@@ -224,4 +224,10 @@
         where id = #{taskId}
     </update>
 
+    <update id="updateEscrowAmountByTaskId" parameterType="map">
+        update t_bounty_task
+        set escrow_amount = #{escrowAmount},
+            update_time = now()
+        where id = #{taskId}
+    </update>
 </mapper>

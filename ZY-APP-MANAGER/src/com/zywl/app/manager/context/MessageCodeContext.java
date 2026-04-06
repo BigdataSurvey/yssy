@@ -18,6 +18,7 @@ public class MessageCodeContext {
 	public final static String MAIL_SERVER="800";
 	public final static String ADMIN_SERVER="011";
 	public final static String BANNER_SERVER = "033";
+	public final static String HEAD_IMG_SERVER = "034";
 	public final static String DZ_SERVER="035";
 	public final static String NOTIC_SERVER = "016";
 	public final static String SOCKET_SERVER = "006";
@@ -37,9 +38,7 @@ public class MessageCodeContext {
 	public final static String NEW_WX_PAY_SERVER = "032";
 
 
-	public final static String PAY_ORDER_SERVER = "034";
 
-	public final static String USER_GIFT_SERVER = "035";
 
 	public final static String USER_FARM = "036";
 
@@ -50,6 +49,10 @@ public class MessageCodeContext {
 	public final  static String BOUNTY_TASK="039";
 	// OSS 直传/资源服务
 	public final  static String OSS="040";
+
+	public final static String PAY_ORDER_SERVER = "041";
+
+	public final static String USER_GIFT_SERVER = "042";
 
 	public final static String KP_PLAYER_CARD= "1001";
 

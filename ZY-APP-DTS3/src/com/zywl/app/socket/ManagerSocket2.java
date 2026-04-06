@@ -37,11 +37,7 @@ public class ManagerSocket2 extends BaseClientSocket {
 	private GameService gameService;
 	
 	private IncomeRecordService incomeRecordService;
-	
-	
-	
-	
-	
+
 	public ManagerSocket2(TargetSocketType socketType, int reconnect, String server, JSONObject shakeHandsDatas) {
 		super(socketType, false, reconnect, server, shakeHandsDatas);
 		versionService = SpringUtil.getService(VersionService.class);
@@ -89,13 +85,13 @@ public class ManagerSocket2 extends BaseClientSocket {
 					battleRoyaleService2.updateRate(status);
 					//gameService.updateGameStatus(GameTypeEnum.battleRoyale.getValue(),status);
 				}
-				if (config.getKey().equals(Config.GAME_DTS2_NEED_BOT)){
-					BattleRoyaleService2.NEED_BOT=Integer.parseInt(config.getValue());
+				if (config.getKey().equals(Config.GAME_DTS3_NEED_BOT)){
+					BattleRoyaleService2.NEED_BOT = Integer.parseInt(config.getValue());
 				}
-				if (config.getKey().equals(Config.DTS_BOT_MONEY)){
+				if (config.getKey().equals(Config.DTS3_BOT_MONEY)){
 					battleRoyaleService2.initBotMoney();
 				}
-				if (config.getKey().equals(Config.DTS2_KILL_RATE)){
+				if (config.getKey().equals(Config.DTS3_KILL_RATE)){
 					BattleRoyaleService2.KILL_RATE= Integer.parseInt(config.getValue());
 				}
 				if (config.getKey().equals(Config.SZHT_RATE)){
