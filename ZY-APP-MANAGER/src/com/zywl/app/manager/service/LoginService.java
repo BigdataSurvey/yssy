@@ -22,10 +22,7 @@ import com.zywl.app.defaultx.service.*;
 import com.zywl.app.manager.context.KafkaEventContext;
 import com.zywl.app.manager.context.KafkaTopicContext;
 import com.zywl.app.manager.context.UserConfigContext;
-import com.zywl.app.manager.service.manager.ManagerConfigService;
-import com.zywl.app.manager.service.manager.ManagerGameBaseService;
-import com.zywl.app.manager.service.manager.ManagerPromoteService;
-import com.zywl.app.manager.service.manager.ManagerUserService;
+import com.zywl.app.manager.service.manager.*;
 import org.apache.commons.collections4.map.HashedMap;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -109,6 +106,8 @@ public class LoginService extends BaseService {
 
     public static Map<String, User> onlineUsers = new ConcurrentHashMap<>();
 
+    @Autowired
+    private ManagerHeadImgService managerHeadImgService;
 
     private static final List<String> MODELS = new ArrayList<>();
 
@@ -750,6 +749,119 @@ public class LoginService extends BaseService {
         }
     }
 
+    @Transactional
+    public JSONObject registerByTel(String tel, String clientIp, String oldWsid, String versionId, String inviteCode, String os) {
+        int canRegister = managerConfigService.getInteger(Config.CAN_REGISTER);
+        if (canRegister == 0) {
+            JSONObject result = new JSONObject();
+            result.put("error", 1);
+            result.put("msg", "未开放新用户注册权限。");
+            return result;
+        }
 
+        logger.info("新用户注册，注册使用邀请码：" + inviteCode);
 
+        String configByKey = appConfigCacheService.getConfigByKey(RedisKeyConstant.APP_CONFIG_REGISTER_NUMBER, Config.REGISTER_NUM);
+        long number = Long.parseLong(configByKey);
+        if (number != -1) {
+            long todayRegister = userCacheService.getTodayRegister();
+            if (todayRegister > number) {
+                return JSONUtil.getReturnDate(0, null, "注册数量已达上限。");
+            }
+        }
+
+        String gameToken = generateToken();
+        List<HeadImg> headImg = managerHeadImgService.getHeadImg();
+        String headUrl = "";
+        if (!headImg.isEmpty()) {
+            headUrl = headImg.get(0).getImg3_1();
+        }
+
+        String parentTree = "";
+        String cno = null;
+        User parentUser = userService.findUserByInviteCode(inviteCode);
+        if (parentUser == null) {
+            inviteCode = null;
+        } else {
+            cno = parentUser.getCno();
+            parentTree = parentUser.getParentTree() == null ? "" : parentUser.getParentTree() + "&" + parentUser.getId();
+        }
+
+        User newPlayer = userService.insertUserInfoByTel(
+                tel,
+                clientIp,
+                inviteCode,
+                getNo(),
+                ipService.getCityName(clientIp),
+                ipService.getRegionName(clientIp),
+                gameToken,
+                cno,
+                headUrl,
+                parentTree
+        );
+
+        if ("android".equals(os)) {
+            userService.addDeviceCount(1);
+        } else if ("ios".equals(os)) {
+            userService.addDeviceCount(2);
+        }
+
+        initUserInfo(newPlayer.getId());
+
+        // 创建ws 返回用户用以创建握手连接
+        WsidBean wsid = authService.createWsid(newPlayer.getId(), oldWsid, versionId);
+
+        JSONObject result = new JSONObject();
+        result.put("userInfo", newPlayer);
+        result.put("wsInfo", wsid);
+
+        JSONObject result2 = JSONUtil.getReturnDate(1, result, "");
+        userCacheService.addTodayRegister();
+        managerUserService.pushAddUser();
+        logger.info("手机号注册返回：" + result2);
+
+        checkChannelNo(newPlayer);
+        return result2;
+    }
+
+    @Transactional
+    public JSONObject loginOrRegisterByTel(String tel, String clientIp, String versionId, String oldWsid, String inviteCode, String os) {
+        User user = userService.findByUserTel(tel);
+
+        if (user != null) {
+            if (user.getStatus() == 0) {
+                return JSONUtil.getReturnDate(0, null, "账号已注销！");
+            }
+            if (user.getStatus() == 2) {
+                return JSONUtil.getReturnDate(0, null, "账号被封禁！");
+            }
+
+            if (!onlineUsers.containsKey(user.getId().toString())) {
+                onlineUsers.put(user.getId().toString(), user);
+            }
+
+            checkUserCno(user);
+            checkChannelNo(user);
+
+            user.setGameToken(generateToken());
+
+            WsidBean wsid = authService.createWsid(user.getId(), oldWsid, versionId);
+
+            JSONObject result = new JSONObject();
+            result.put("userInfo", user);
+            result.put("wsInfo", wsid);
+
+            JSONObject result2 = JSONUtil.getReturnDate(1, result, "");
+
+            if (user.getLastLoginTime().getTime() < DateUtil.getToDayBegin()) {
+                userCacheService.addTodayLogin();
+                managerUserService.pushAddUser();
+            }
+
+            userService.loginSuccessByTel(user.getId(), clientIp, user.getGameToken(), DateUtil.getDateByDay(7));
+            return result2;
+        } else {
+            return registerByTel(tel, clientIp, oldWsid, versionId, inviteCode, os);
+        }
+    }
 }

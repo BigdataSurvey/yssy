@@ -259,7 +259,9 @@
 	<select id="findOneByOpenId" resultType="User">
 		select * from t_user where open_id = #{openId}
 	</select>
-
+	<select id="findOneByTel" resultType="User">
+		select * from t_user where phone = #{phone} and status = 1 limit 1
+	</select>
 	<select id="findOneByParentId" resultType="User">
 		select * from t_user where parent_id = #{userId}
 	</select>

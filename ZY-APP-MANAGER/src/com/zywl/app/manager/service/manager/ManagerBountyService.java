@@ -43,13 +43,21 @@ import java.util.*;
 @Service
 @ServiceClass(code = MessageCodeContext.BOUNTY_TASK)
 public class ManagerBountyService extends BaseService {
-
+    /*** 任务状态*/
+    // 上架中
     private static final int TASK_STATUS_ONLINE = 1;
+    // 任务已下架
     private static final int TASK_STATUS_CANCEL = 2;
 
+    /*** 申诉状态*/
+    // 无申诉
     private static final int APPEAL_STATUS_NONE = 0;
+    // 申诉处理中
     private static final int APPEAL_STATUS_DOING = 1;
-    private static final int APPEAL_STATUS_DONE = 2;
+    // 申诉通过
+    private static final int APPEAL_STATUS_PASS = 2;
+    // 申诉驳回
+    private static final int APPEAL_STATUS_REJECT = 3;
 
     @Autowired
     private UserCacheService userCacheService;
@@ -149,8 +157,19 @@ public class ManagerBountyService extends BaseService {
             throwExp("任务已下架");
         }
 
+        JSONObject taskJson = beanToJson(task);
+
+        Map<String, Object> avgStat = bountyTaskOrderService.statAvgTimeByTaskId(taskId);
+        if (avgStat != null) {
+            taskJson.put("avgUseTime", toInt(avgStat.get("avgUseTime")));
+            taskJson.put("avgAuditTime", toInt(avgStat.get("avgAuditTime")));
+        } else {
+            taskJson.put("avgUseTime", 0);
+            taskJson.put("avgAuditTime", 0);
+        }
+
         JSONObject response = new JSONObject();
-        response.put("task", beanToJson(task));
+        response.put("task", taskJson);
         response.put("myOrder", myOrder == null ? null : orderToJson(myOrder));
         response.put("serverTime", System.currentTimeMillis());
         return response;
@@ -399,7 +418,7 @@ public class ManagerBountyService extends BaseService {
 
         refreshTimeoutIfNeeded(task, order);
         if (order.getStatus() == BountyStatusEnum.TIMEOUT.getCode()) throwExp("订单已超时");
-        if (order.getStatus() != BountyStatusEnum.DOING.getCode()) throwExp("当前状态不可提交");
+        if (order.getStatus() != BountyStatusEnum.DOING.getCode()) throwExp("当前状态不可提交，请前往申诉");
 
         // 默认 1~10 张
         String submitImgs = aliOssDirectUploadService.normalizeAndCheckUrlArrayJsonString(
@@ -460,7 +479,14 @@ public class ManagerBountyService extends BaseService {
 
         order.setRejectReason(null);
         order.setAuditTime(null);
+        order.setAppealStatus(APPEAL_STATUS_NONE);
 
+        order.setAppealReason(null);
+        order.setAppealTime(null);
+        order.setAppealImgs(null);
+        order.setAppealHandleReason(null);
+        order.setAppealHandleTime(null);
+        order.setAppealHandleUserId(null);
         bountyTaskOrderService.updateOrder(order);
 
         JSONObject response = new JSONObject();
@@ -478,10 +504,12 @@ public class ManagerBountyService extends BaseService {
     @ServiceMethod(code = "009", description = "悬赏任务-申诉")
     public JSONObject appealOrder(ManagerSocketServer socket, JSONObject params) {
         checkNull(params);
-        checkNull(params.get("userId"), params.get("taskId"), params.get("appealReason"));
+        checkNull(params.get("userId"), params.get("taskId"), params.get("appealReason"), params.get("appealImgs"));
         Long userId = params.getLong("userId");
         Long taskId = params.getLong("taskId");
         String appealReason = params.getString("appealReason");
+        String appealImgs = aliOssDirectUploadService.normalizeAndCheckUrlArrayJsonString(
+                params.getString("appealImgs"), "appealImgs", 1, 9 );
 
         BountyTask task = bountyTaskService.findById(taskId);
         if (task == null) throwExp("任务不存在");
@@ -499,6 +527,7 @@ public class ManagerBountyService extends BaseService {
         order.setAppealReason(appealReason);
         order.setAppealTime(new Date());
         order.setUpdateTime(new Date());
+        order.setAppealImgs(appealImgs);
         bountyTaskOrderService.updateOrder(order);
 
         JSONObject response = new JSONObject();
@@ -521,6 +550,7 @@ public class ManagerBountyService extends BaseService {
         if (pageSize <= 0) pageSize = 10;
         if (pageSize > 50) pageSize = 50;
         int offset = (pageNo - 1) * pageSize;
+
         // 通过枚举策略获取该Tab对应的状态码列表
         List<Integer> statusList = BountyStatusEnum.getCodesByTab(tab);
 
@@ -535,12 +565,13 @@ public class ManagerBountyService extends BaseService {
         JSONArray resultArray = new JSONArray();
         if (list != null) {
             for (BountyTaskOrder order : list) {
-                // 检查关联任务的状态，刷新超时情况
+                // 检查关联任务状态，必要时刷新超时
                 BountyTask task = bountyTaskService.findById(order.getTaskId());
                 if (task != null) {
                     refreshTimeoutIfNeeded(task, order);
                 }
-                resultArray.add(orderToJson(order));
+
+                resultArray.add(orderWithTaskToJson(order, task));
             }
         }
 
@@ -618,7 +649,11 @@ public class ManagerBountyService extends BaseService {
         JSONArray resultArray = new JSONArray();
         if (list != null) {
             for (BountyTaskOrder order : list) {
-                resultArray.add(orderToJson(order));
+                BountyTask task = bountyTaskService.findById(order.getTaskId());
+                if (task != null) {
+                    refreshTimeoutIfNeeded(task, order);
+                }
+                resultArray.add(orderWithTaskToJson(order, task));
             }
         }
         JSONObject response = new JSONObject();
@@ -679,7 +714,7 @@ public class ManagerBountyService extends BaseService {
 
         // 如果是申诉通过，记录处理信息
         if (isAppeal) {
-            order.setAppealStatus(APPEAL_STATUS_DONE);
+            order.setAppealStatus(APPEAL_STATUS_PASS);
             order.setAppealHandleUserId(userId);
             order.setAppealHandleTime(now);
             order.setAppealHandleReason(params.getString("appealHandleReason"));
@@ -695,9 +730,11 @@ public class ManagerBountyService extends BaseService {
         bountyTaskService.updateCounts(updateMap);
 
         // 扣除任务托管金余额
-        task.setEscrowAmount(task.getEscrowAmount().subtract(order.getUnitPrice()));
-        if (task.getEscrowAmount().compareTo(BigDecimal.ZERO) < 0) task.setEscrowAmount(BigDecimal.ZERO);
-        bountyTaskService.updateTask(task);
+        BigDecimal newEscrowAmount = task.getEscrowAmount().subtract(order.getUnitPrice());
+        if (newEscrowAmount.compareTo(BigDecimal.ZERO) < 0) {
+            newEscrowAmount = BigDecimal.ZERO;
+        }
+        bountyTaskService.updateEscrowAmountByTaskId(task.getId(), newEscrowAmount);
 
         JSONObject response = new JSONObject();
         response.put("orderId", orderId);
@@ -736,7 +773,7 @@ public class ManagerBountyService extends BaseService {
 
         // 申诉单被驳回：申诉状态也置为已处理
         if (isAppeal) {
-            order.setAppealStatus(APPEAL_STATUS_DONE);
+            order.setAppealStatus(APPEAL_STATUS_REJECT);
             order.setAppealHandleUserId(userId);
             order.setAppealHandleTime(now);
             order.setAppealHandleReason(params.getString("appealHandleReason"));
@@ -881,14 +918,64 @@ public class ManagerBountyService extends BaseService {
         json.put("appealHandleReason", order.getAppealHandleReason());
         json.put("appealHandleTime", order.getAppealHandleTime());
         json.put("appealHandleUserId", order.getAppealHandleUserId());
+        json.put("appealImgs", aliOssDirectUploadService.toReadableUrlArrayJsonString(order.getAppealImgs(), null));
+        json.put("appealImgsRaw", order.getAppealImgs());
         return json;
     }
+    private JSONObject orderWithTaskToJson(BountyTaskOrder order, BountyTask task) {
+        JSONObject json = orderToJson(order);
+        if (task == null) {
+            return json;
+        }
 
+        json.put("taskTitle", task.getTaskTitle());
+        json.put("taskName", task.getTaskName());
+
+        String downloadImgs = aliOssDirectUploadService.toReadableUrlArrayJsonString(task.getDownloadImgs(), null);
+        json.put("downloadImgs", downloadImgs);
+        json.put("downloadImgsRaw", task.getDownloadImgs());
+
+        // 给前端一个更直接可用的别名字段
+        json.put("activityName", task.getTaskName());
+        json.put("activityImg", extractFirstImg(downloadImgs));
+
+        return json;
+    }
+    private String extractFirstImg(String readableUrlArrayJsonString) {
+        if (!StringUtils.hasText(readableUrlArrayJsonString)) {
+            return null;
+        }
+
+        try {
+            JSONArray imgArr = JSONArray.parseArray(readableUrlArrayJsonString);
+            if (imgArr == null || imgArr.isEmpty()) {
+                return null;
+            }
+            return imgArr.getString(0);
+        } catch (Exception e) {
+            log.warn("解析悬赏任务图片首图失败, readableUrlArrayJsonString={}", readableUrlArrayJsonString, e);
+            return null;
+        }
+    }
     private Date addHours(Date now, Integer hours) {
         if (now == null || hours == null) return null;
         Calendar calendar = Calendar.getInstance();
         calendar.setTime(now);
         calendar.add(Calendar.HOUR_OF_DAY, hours);
         return calendar.getTime();
+    }
+
+    private int toInt(Object value) {
+        if (value == null) {
+            return 0;
+        }
+        if (value instanceof Number) {
+            return ((Number) value).intValue();
+        }
+        try {
+            return new BigDecimal(String.valueOf(value)).intValue();
+        } catch (Exception e) {
+            return 0;
+        }
     }
 }

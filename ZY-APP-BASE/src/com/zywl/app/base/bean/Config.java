@@ -7,6 +7,16 @@ import java.util.List;
 
 public class Config extends BaseBean {
 
+	//--------------------------
+	//单杀人机
+	public static final String GAME_DTS_NEED_BOT = "GAME_DTS_NEED_BOT";
+	//单杀杀率
+	public static final String DTS_KILL_RATE = "DTS_KILL_RATE";
+	//击杀房间数量的概率
+	public static final String SZHT_RATE = "SZHT_RATE";
+	//多杀概率
+	public static final String DTS2_KILL_RATE = "DTS2_KILL_RATE";
+	//--------------------------
 
 	public static final String XQ_XW_RATE = "XQ_XW_RATE";
 	public static final String SHOP_MANAGER_REWARD = "SHOP_MANAGER_REWARD";
@@ -72,9 +82,9 @@ public class Config extends BaseBean {
 	public static final String DTS_BOT_MONEY = "GAME_DTS_BOT_MONEY";
 
 	//消失的兔子 大逃杀多杀
+	public static final String GAME_DTS3_NEED_BOT = "GAME_DTS3_NEED_BOT";
 	public static final String DTS3_KILL_RATE = "GAME_DTS3_KILL_RATE";
-	public static final String DTS3_BOT_MONEY = "GAME_DTS_BOT_MONEY";
-
+	public static final String DTS3_BOT_MONEY = "GAME_DTS3_BOT_MONEY";
 
 	public static final String DAILY_STOLEN_COUNT = "DAILY_STOLEN_COUNT";
 	public static final String GAME_LHD_NEED_BOT="GAME_LHD_NEED_BOT";
@@ -277,6 +287,8 @@ public class Config extends BaseBean {
 
 	// VIP配置表版本
 	public static final String VIP_TABLE_VERSION = "VERSION_VIP";
+	public static final String CAN_REGISTER="CAN_REGISTER";
+	public static final String APP_HOME_HEAD_IMG = "APP_HOME_HEAD_IMG";
 
 	private String key;
 

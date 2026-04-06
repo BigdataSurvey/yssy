@@ -31,7 +31,7 @@ public class YunpianUtil extends Base {
 		params.put("nonce", String.valueOf(new Random().nextInt(99999)));
 		String signature = genSignature("d8f6bcbe90804cff854c629074801f42", params);
 		params.put("signature", signature);
-		
+		//行为验证
 		String post = HTTPUtil.post("https://captcha.yunpian.com/v1/api/authenticate", params, null);
 		logger.debug("行为验证结果：" + post);
 		if(post != null) {

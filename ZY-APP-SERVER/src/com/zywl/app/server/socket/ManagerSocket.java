@@ -130,15 +130,8 @@ public class ManagerSocket extends BaseClientSocket {
                 logger.info("用户资产变动推送" + data);
                 JSONObject obj = (JSONObject) data;
                 String userId = obj.getString("userId");
-                if (!obj.containsKey("isDts")) {
-                    Push.push(PushCode.updateUserCapital, userId, data);
-                }
-                if (obj.containsKey("isDts")) {
-                    //大逃杀结算 判断用户是否在房间 不在的话 推送
-                    if (!ServerLotteryGameService.userLotteryPush.containsKey(userId)) {
-                        Push.push(PushCode.updateUserCapital, userId, data);
-                    }
-                }
+                // 无论是否在游戏房间内，都推送资产变动，确保右上角余额实时更新
+                Push.push(PushCode.updateUserCapital, userId, data);
             }
         }, this);
 

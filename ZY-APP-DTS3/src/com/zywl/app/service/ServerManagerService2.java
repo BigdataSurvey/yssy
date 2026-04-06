@@ -1,18 +1,18 @@
 package com.zywl.app.service;
 
-import org.springframework.stereotype.Service;
-
 import com.alibaba.fastjson2.JSONObject;
 import com.live.app.ws.enums.TargetSocketType;
 import com.zywl.app.base.util.PropertiesUtil;
+import com.zywl.app.defaultx.enmus.GameTypeEnum;
 import com.zywl.app.socket.ManagerSocket2;
+import org.springframework.stereotype.Service;
 
 @Service
 public class ServerManagerService2 {
 
 	private ManagerSocket2 managerSocket2;
-
-
+	
+	
 	public void connectManager(){
 		if(managerSocket2 == null){
 			PropertiesUtil managerProperties = new PropertiesUtil("manager.properties");
@@ -23,9 +23,9 @@ public class ServerManagerService2 {
 			shakeHandsDatas.put("host", serverProperties.get("server.host"));
 			shakeHandsDatas.put("weight", serverProperties.get("server.weight"));
 			shakeHandsDatas.put("gameId", 1);
-			managerSocket2 = new ManagerSocket2(TargetSocketType.dts3, -1, managerProperties.get("manager.ws.address"), shakeHandsDatas);
+			managerSocket2 = new ManagerSocket2(TargetSocketType.battleRoyale2, -1, managerProperties.get("manager.ws.address"), shakeHandsDatas);
 			managerSocket2.connect();
 		}
 	}
-
+	
 }

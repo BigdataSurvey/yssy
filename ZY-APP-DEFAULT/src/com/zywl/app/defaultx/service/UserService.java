@@ -8,6 +8,7 @@ import com.zywl.app.base.bean.vo.DSTopVo;
 import com.zywl.app.base.bean.vo.TempVo;
 import com.zywl.app.base.util.DateUtil;
 import com.zywl.app.base.util.EnNameUtil;
+import com.zywl.app.base.util.GameNicknameGenerator;
 import com.zywl.app.base.util.MD5Util;
 import com.zywl.app.defaultx.cache.UserCacheService;
 import com.zywl.app.defaultx.dbutil.DaoService;
@@ -102,8 +103,9 @@ public class UserService extends DaoService {
         newPlayer.setIsCash(0);
         newPlayer.setVip1(0);
         newPlayer.setVip2(0);
-        newPlayer.setVipExpireTime(DateUtil.getDateByDay(7));
-        newPlayer.setVip2ExpireTime(new Date());
+        //fix:用户注册默认没有VIP
+        newPlayer.setVipExpireTime(null);
+        newPlayer.setVip2ExpireTime(null);
         newPlayer.setFirstCharge(0);
         newPlayer.setInviteCode(newPlayer.getUserNo());
         newPlayer.setOldInviteCode(newPlayer.getUserNo());
@@ -133,10 +135,10 @@ public class UserService extends DaoService {
         newPlayer.setHeadImageUrl(userHead == null ? "" : userHead);
         newPlayer.setStatus(1);
         newPlayer.setAuthentication(0);
-        newPlayer.setVipExpireTime(new Date());
-        newPlayer.setVip2ExpireTime(new Date());
         newPlayer.setVip1(0);
         newPlayer.setVip2(0);
+        newPlayer.setVipExpireTime(null);
+        newPlayer.setVip2ExpireTime(null);
         newPlayer.setVipTransferEnable(0);
         save(newPlayer);
         return newPlayer;
@@ -158,6 +160,10 @@ public class UserService extends DaoService {
         newPlayer.setStatus(1);
         newPlayer.setAuthentication(0);
         newPlayer.setVipTransferEnable(0);
+        newPlayer.setVip1(0);
+        newPlayer.setVip2(0);
+        newPlayer.setVipExpireTime(null);
+        newPlayer.setVip2ExpireTime(null);
         save(newPlayer);
         return newPlayer;
     }
@@ -206,6 +212,10 @@ public class UserService extends DaoService {
         newPlayer.setUnionId("");
         newPlayer.setStatus(1);
         newPlayer.setVipTransferEnable(0);
+        newPlayer.setVip1(0);
+        newPlayer.setVip2(0);
+        newPlayer.setVipExpireTime(null);
+        newPlayer.setVip2ExpireTime(null);
         save(newPlayer);
         return newPlayer;
     }
@@ -1069,4 +1079,46 @@ public class UserService extends DaoService {
         return r == null ? 0 : r;
     }
 
+    @Transactional
+    public int loginSuccessByTel(Long userId, String ip, String gameToken, Date tokenTime) {
+        Map<String, Object> params = new HashedMap<>();
+        params.put("userId", userId);
+        params.put("lastLoginTime", new Date());
+        params.put("ip", ip);
+        params.put("gameToken", gameToken);
+        params.put("tokenTime", tokenTime);
+        userCacheService.removeUserInfoCache(userId);
+        return execute("loginSuccess", params);
+    }
+    public User findByUserTel(String tel) {
+        Map<String, Object> params = new HashedMap<>();
+        params.put("phone", tel);
+        return (User) findOne("findOneByTel", params);
+    }
+
+    @Transactional
+    public User insertUserInfoByTel(String tel, String clientIp, String inviteCode, String userNo, String city, String province, String gameToken, String cno,String headImg,String parentTree) {
+        User newPlayer = createUser(clientIp, inviteCode, userNo, gameToken, cno);
+        newPlayer.setName(GameNicknameGenerator.generateLOLNickname());
+        newPlayer.setNameStatus(0);
+        newPlayer.setMail(null);
+        newPlayer.setOpenId(null);
+        newPlayer.setPhone(tel);
+        newPlayer.setRoleId(1);
+        newPlayer.setCity(city);
+        newPlayer.setRiskPlus(0);
+        newPlayer.setParentTree(parentTree);
+        newPlayer.setProvince(province);
+        newPlayer.setIsCash(1);
+        newPlayer.setUnionId(null);
+        newPlayer.setHeadImageUrl(headImg);
+        newPlayer.setStatus(1);
+        if (tel.startsWith("101")){
+            newPlayer.setAuthentication(1);
+        }else {
+            newPlayer.setAuthentication(0);
+        }
+        save(newPlayer);
+        return newPlayer;
+    }
 }

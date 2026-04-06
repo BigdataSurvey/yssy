@@ -75,6 +75,7 @@ public class BattleRoyaleRecord3Service extends DaoService {
 		return (BattleRoyale2Record) findOne("findByOrderNo", params);
 	}
 
+	@Transactional
 	public void batchUpdateRecord(JSONObject obj) {
 		List<Map<String, Object>> list = new ArrayList<Map<String, Object>>();
 		Set<String> set = obj.keySet();
@@ -163,12 +164,16 @@ public class BattleRoyaleRecord3Service extends DaoService {
 			records = Collections.emptyList();
 		}
 
-		// 近100期统计（房间次数统计） -> recent100Periods
+		// 近100期统计（开奖房间次数统计） -> recent100Periods
+		// 改用 lotteryResult（开奖结果）替代 betInfo（用户下注房间）
 		Map<Integer, Integer> cnt = new HashMap<>();
-		int take100 = Math.min(100, records.size());
-		for (int i = 0; i < take100; i++) {
+		int count100 = 0;
+		for (int i = 0; i < records.size() && count100 < 100; i++) {
 			BattleRoyale2Record r = records.get(i);
-			for (Integer rid : parseRoomIds(r.getBetInfo(), zeroBasedRoomId)) {
+			String lrStr = r.getLotteryResult() == null ? null : r.getLotteryResult().toString();
+			if (lrStr == null || lrStr.trim().isEmpty()) continue;
+			count100++;
+			for (Integer rid : parseRoomIds(lrStr, zeroBasedRoomId)) {
 				cnt.put(rid, cnt.getOrDefault(rid, 0) + 1);
 			}
 		}
@@ -184,17 +189,19 @@ public class BattleRoyaleRecord3Service extends DaoService {
 			recent100Periods.add(item);
 		}
 
-		// 近16期结果（每期 rooms） -> recent16Summary
+		// 近16期结果（每期开奖房间） -> recent16Summary
+		// 改用 lotteryResult（开奖结果）替代 betInfo（用户下注房间）
 		JSONArray recent16Summary = new JSONArray();
-		int take16 = Math.min(16, records.size());
-		for (int i = 0; i < take16; i++) {
+		for (int i = 0; i < records.size() && recent16Summary.size() < 16; i++) {
 			BattleRoyale2Record r = records.get(i);
+			String lrStr = r.getLotteryResult() == null ? null : r.getLotteryResult().toString();
+			if (lrStr == null || lrStr.trim().isEmpty()) continue;
 
 			JSONObject item = new JSONObject();
 			item.put("periodsNum", r.getPeriodsNum());
 
 			JSONArray rs = new JSONArray();
-			LinkedHashSet<Integer> set = new LinkedHashSet<>(parseRoomIds(r.getBetInfo(), zeroBasedRoomId));
+			LinkedHashSet<Integer> set = new LinkedHashSet<>(parseRoomIds(lrStr, zeroBasedRoomId));
 			for (Integer rid : set) {
 				JSONObject rr = new JSONObject();
 				rr.put("roomId", String.valueOf(rid));

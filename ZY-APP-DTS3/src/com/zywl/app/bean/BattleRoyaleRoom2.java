@@ -1,16 +1,15 @@
 package com.zywl.app.bean;
 
+import com.alibaba.fastjson2.JSONObject;
+import com.zywl.app.base.BaseBean;
+import com.zywl.app.defaultx.enmus.GameTypeEnum;
+import com.zywl.app.service.BattleRoyaleService2;
+
 import java.math.BigDecimal;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-
-import com.zywl.app.defaultx.enmus.GameTypeEnum;
-
-import com.alibaba.fastjson2.JSONObject;
-import com.zywl.app.base.BaseBean;
-import com.zywl.app.service.BattleRoyaleService2;
 
 public class BattleRoyaleRoom2 extends BaseBean{
 
@@ -25,59 +24,59 @@ public class BattleRoyaleRoom2 extends BaseBean{
 
 	//下一期的结果
 	public static List<Integer> nextResult;
-	
+
 	//用户下注信息
 	private ConcurrentHashMap<String, Map<String, BigDecimal>> userBetInfo ;
 
 	private Map<String,String> userCheckNum = new ConcurrentHashMap<>();
 
 	private Map<String,BigDecimal> userBetAmount = new ConcurrentHashMap<>();
-	
-	
+
+
 	//可下注选项对应金额以及人数
 	private ConcurrentHashMap<String, Map<String, String>> betOptionsInfo;
-	
-	
+
+
 	//用户下注订单信息
 	private ConcurrentHashMap<String, Map<String, String>> userBetOrderInfo;
-	
+
 	private String peridosNum;
-	
+
 	private String lotteryResult;
-	
+
 	private JSONObject history100Reuslt;
-	
+
 	private JSONObject history20Reuslt;
-	
+
 	private int status;
-	
+
 	//最近一期开奖结果
 	private List<Integer> result;
 
 	//状态为游戏中时的 游戏开始时间
 	private long  beginTime;
-	
+
 	//本局结束时间
 	private long endTime;
-	
+
 	//下注人数
 	private int betNum;
-	
+
 	//观看人数
 	private int lookNum;
 
 
 	private Map<String,  Map<String, JSONObject>> roomList;
-	
+
 	private Map<String, Map<String, Object>> lookList ;
-	
+
 	//下注金额
 	private BigDecimal allBetAmount;
-	
+
 	private int option;
-	
+
 	private JSONObject settleDate;
-	
+
 	public void initRoomInfo() {
 		betNum=0;
 		allBetAmount=BigDecimal.ZERO;
@@ -109,11 +108,11 @@ public class BattleRoyaleRoom2 extends BaseBean{
 			map.put("betAmount", BigDecimal.ZERO.toString());
 			betOptionsInfo.put(String.valueOf(i), map);
 		}
-		
+
 	}
 
-	
-	
+
+
 	public BattleRoyaleRoom2() {
 		status = 1;
 		players=new ConcurrentHashMap<String, Map<String,String>>();
@@ -130,7 +129,7 @@ public class BattleRoyaleRoom2 extends BaseBean{
 		allBetAmount=BigDecimal.ZERO;
 		settleDate = new JSONObject();
 	}
-	
+
 	public BattleRoyaleRoom2(int option) {
 		status = 1;
 		players=new ConcurrentHashMap<String, Map<String,String>>();
@@ -152,9 +151,9 @@ public class BattleRoyaleRoom2 extends BaseBean{
 		this.option=option;
 		settleDate = new JSONObject();
 	}
-	
-	
-	
+
+
+
 	public Map<String, Map<String, String>> getPlayers() {
 		return players;
 	}
@@ -318,7 +317,7 @@ public class BattleRoyaleRoom2 extends BaseBean{
 		result.put("lastWeekTopThree",lastWeekTopThree);
 		return result;
 	}
-	
+
 	public JSONObject pushResult(int type,String userId,String bet,BigDecimal amount) {
 		JSONObject pushResult = new JSONObject();
 		pushResult.put("type", type);

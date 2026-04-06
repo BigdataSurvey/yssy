@@ -90,7 +90,27 @@ public class GameLotteryResultService extends DaoService {
 		return save(result);
 		
 	}
-	
+
+	@Transactional
+	public int drawLottery(Long gameId,String periodsNum,String lottryResult,BigDecimal playerBet,
+						   BigDecimal playerProfit,BigDecimal winLose,int allTakeNum,int winNum,int loseNum,int status) {
+		GameLotteryResult result = new GameLotteryResult();
+		result.setGameId(gameId);
+		result.setPeriodsNum(periodsNum);
+		result.setAllTakeNum(allTakeNum);
+		result.setCreateTime(new Date());
+		result.setLoseNum(loseNum);
+		result.setLotteryResult(lottryResult);
+		result.setPlayerBet(playerBet);
+
+		result.setPlayerProfit(playerProfit);
+		result.setWinLose(winLose);
+		result.setWinNum(winNum);
+		result.setStatus(status);
+		return save(result);
+
+	}
+
 	@Transactional
 	public int updateLotteryStatus(Long gameId,String periodsNum,String result) {
 		Map<String, Object> params = new HashMap<String, Object>();
@@ -100,7 +120,21 @@ public class GameLotteryResultService extends DaoService {
 		params.put("status", 1);
 		return execute("drawLottery", params);
 	}
-	
+
+	@Transactional(readOnly = true)
+	public String findLastPeriodsNumByGameId(Long gameId) {
+		if (gameId == null) {
+			throwExp("gameId不能为空");
+		}
+		Map<String, Object> params = new HashedMap<String, Object>();
+		params.put("gameId", gameId);
+
+		Object one = findOne("findLastPeriodsNumByGameId", params);
+		if (one == null) {
+			return null;
+		}
+		return String.valueOf(one);
+	}
 
 	@Override
 	protected Log logger() {

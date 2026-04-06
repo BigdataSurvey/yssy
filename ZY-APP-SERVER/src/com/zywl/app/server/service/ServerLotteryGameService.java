@@ -99,23 +99,13 @@ public class ServerLotteryGameService extends BaseService {
     }
 
     public void registPush(AppSocket appSocket, String userId, String gameId) {
-        if ("7".equals(gameId) || "1".equals(gameId)) {
-            addCommonLotteryPush(appSocket, gameId, userId);
-        } else if (gameId.equals("4")) {
-            Push.doAddPush(appSocket, new PushBean(PushCode.updateDnsInfo, gameId));
-            Push.doAddPush(appSocket, new PushBean(PushCode.updateDnsStatus, gameId));
-        } else if (gameId.equals("5")) {
-            Push.doAddPush(appSocket, new PushBean(PushCode.updateNhInfo, gameId));
-            Push.doAddPush(appSocket, new PushBean(PushCode.updateNhStatus, userId));
-        }  else if (gameId.equals("8")) {
-            Push.doAddPush(appSocket, new PushBean(PushCode.updateSgInfo, gameId));
-            Push.doAddPush(appSocket, new PushBean(PushCode.updateSgStatus, userId));
-        } else if (gameId.equals("9")) {
-            Push.doAddPush(appSocket, new PushBean(PushCode.updateBtInfo, gameId));
-            Push.doAddPush(appSocket, new PushBean(PushCode.updateBtStatus, userId));
-        } else if (gameId.equals("10")) {
-            Push.doAddPush(appSocket, new PushBean(PushCode.updateDgsInfo, gameId));
-            Push.doAddPush(appSocket, new PushBean(PushCode.updateDgsStatus, userId));
+        logger.info("registPush userId=" + userId + ", gameId=" + gameId + ", session=" + appSocket.getWsidBean().getUserId() + ", wsid=" + appSocket.getId());
+        if ("1".equals(gameId)) {
+            Push.doAddPush(appSocket, new PushBean(PushCode.updateDts2Info, gameId));
+            Push.doAddPush(appSocket, new PushBean(PushCode.updateDts2Status, userId));
+        } else if (gameId.equals("7")) {
+            Push.doAddPush(appSocket, new PushBean(PushCode.updateRoomDate, gameId));
+            Push.doAddPush(appSocket, new PushBean(PushCode.updateGameStatus, userId));
         } else if (gameId.equals("12")) {
             Push.doAddPush(appSocket, new PushBean(PushCode.updatePbxInfo, gameId));
             Push.doAddPush(appSocket, new PushBean(PushCode.updatePbxStatus, userId));
@@ -123,24 +113,13 @@ public class ServerLotteryGameService extends BaseService {
     }
 
     public void removePush(AppSocket appSocket, String userId, String gameId) {
-        if ("7".equals(gameId) || "1".equals(gameId)) {
-            removeCommonLotteryPush(appSocket, gameId, userId);
-        } else if (gameId.equals("4")) {
-            Push.doRemovePush(appSocket, new PushBean(PushCode.updateDnsInfo, gameId));
-            Push.doRemovePush(appSocket, new PushBean(PushCode.updateDnsStatus, gameId));
-        } else if (gameId.equals("5")) {
-            Push.doRemovePush(appSocket, new PushBean(PushCode.updateNhInfo, gameId));
-            Push.doRemovePush(appSocket, new PushBean(PushCode.updateNhStatus, userId));
-        }  else if (gameId.equals("8")) {
-            Push.doRemovePush(appSocket, new PushBean(PushCode.updateSgInfo, gameId));
-            Push.doRemovePush(appSocket, new PushBean(PushCode.updateSgStatus, userId));
-        } else if (gameId.equals("9")) {
-            Push.doRemovePush(appSocket, new PushBean(PushCode.updateBtInfo, gameId));
-            Push.doRemovePush(appSocket, new PushBean(PushCode.updateBtStatus, userId));
-        } else if (gameId.equals("10")) {
-            Push.doRemovePush(appSocket, new PushBean(PushCode.updateDgsInfo, gameId));
-            Push.doRemovePush(appSocket, new PushBean(PushCode.updateDgsStatus, userId));
-        } else if (gameId.equals("12")) {
+        if ( "1".equals(gameId)) {
+            Push.doRemovePush(appSocket, new PushBean(PushCode.updateDts2Info, gameId));
+            Push.doRemovePush(appSocket, new PushBean(PushCode.updateDts2Status, userId));
+        }else if (gameId.equals("7")) {
+            Push.doRemovePush(appSocket, new PushBean(PushCode.updateRoomDate, gameId));
+            Push.doRemovePush(appSocket, new PushBean(PushCode.updateGameStatus, userId));
+        }else if (gameId.equals("12")) {
             Push.doRemovePush(appSocket, new PushBean(PushCode.updatePbxInfo, gameId));
             Push.doRemovePush(appSocket, new PushBean(PushCode.updatePbxStatus, userId));
         }
@@ -188,7 +167,7 @@ public class ServerLotteryGameService extends BaseService {
                 if (command.isSuccess()) {
                     JSONObject result = JSONObject.from(command.getData());
                     Executer.response(CommandBuilder.builder(appCommand).success(result).build());
-
+                    System.out.println("加入房间成功---- 下一步推送：");
                     registPush(appSocket, String.valueOf(userId), String.valueOf(gameId));
                     userLotteryPush.put(String.valueOf(userId), TargetSocketType.getServerEnum(gameId));
                 } else {
@@ -337,7 +316,7 @@ public class ServerLotteryGameService extends BaseService {
             throwExp("用户信息异常");
         }
 
-        // 假数据
+/*        // 假数据
         boolean mock = params.containsKey("mock") && params.getIntValue("mock") == 1;
         if (mock) {
             int gameId = params.getIntValue("gameId");
@@ -423,9 +402,9 @@ public class ServerLotteryGameService extends BaseService {
             res.put("mockDesc", "004015 假数据，仅用于前端联调测试（gameId=12 按 DTS2 元素语义返回）");
 
             return res;
-        }
+        }*/
 
-
+        System.out.println("请求004015记录页,游戏ID："+params.getIntValue("gameId"));
         // 走原逻辑
         String reqCode = "101004";
         if (params.getIntValue("gameId") == 12) {

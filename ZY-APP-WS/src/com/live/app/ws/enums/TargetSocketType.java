@@ -42,7 +42,7 @@ public enum TargetSocketType {
 
 	public static TargetSocketType getServerEnum(int gameId) {
 		if (gameId==1) {
-			return dts3;
+			return battleRoyale2;
 		}else if(gameId==2) {
 			return starChange;
 		}else if(gameId==3) {

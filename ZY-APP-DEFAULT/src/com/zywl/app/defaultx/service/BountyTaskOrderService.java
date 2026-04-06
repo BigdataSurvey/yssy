@@ -59,4 +59,12 @@ public class BountyTaskOrderService extends DaoService {
     public int updateStatus(Map<String, Object> params) {
         return getBaseDao().execute(mapperSpace, "updateStatus", params);
     }
+
+    @SuppressWarnings("unchecked")
+    public Map<String, Object> statAvgTimeByTaskId(Long taskId) {
+        if (taskId == null) {
+            return null;
+        }
+        return (Map<String, Object>) findOne("statAvgTimeByTaskId", taskId);
+    }
 }

@@ -13,7 +13,6 @@ import com.live.app.ws.util.Executer;
 import com.live.app.ws.util.Push;
 import com.zywl.app.base.bean.Config;
 import com.zywl.app.defaultx.enmus.GameTypeEnum;
-import com.zywl.app.defaultx.enmus.LotteryGameStatusEnum;
 import com.zywl.app.defaultx.service.GameService;
 import com.zywl.app.defaultx.service.IncomeRecordService;
 import com.zywl.app.defaultx.service.VersionService;
@@ -30,19 +29,19 @@ import java.math.BigDecimal;
 public class ManagerSocket extends BaseClientSocket {
 	private static final Log logger = LogFactory.getLog(ManagerSocket.class);
 
-	
+
 	private VersionService versionService;
-	
+
 	private BattleRoyaleService battleRoyaleService;
 
 	private GameService gameService;
-	
+
 	private IncomeRecordService incomeRecordService;
-	
-	
-	
-	
-	
+
+
+
+
+
 	public ManagerSocket(TargetSocketType socketType, int reconnect, String server, JSONObject shakeHandsDatas) {
 		super(socketType, false, reconnect, server, shakeHandsDatas);
 		versionService = SpringUtil.getService(VersionService.class);
@@ -53,7 +52,7 @@ public class ManagerSocket extends BaseClientSocket {
 			public void onRegist(BaseSocket baseSocket, PushBean pushBean) {
 			}
 		});
-		
+
 		Push.addPushSuport(PushCode.syncTaskNum, new DefaultPushHandler() {
 			public void onRegist(BaseSocket baseSocket, PushBean pushBean) {
 				pushBean.setShakeHands(Executer.size() + "," + Executer.QPS());
@@ -90,6 +89,15 @@ public class ManagerSocket extends BaseClientSocket {
 					battleRoyaleService.updateRate(status);
 					//gameService.updateGameStatus(GameTypeEnum.battleRoyale.getValue(),status);
 				}
+				if (config.getKey().equals(Config.GAME_DTS_NEED_BOT)){
+					BattleRoyaleService.NEED_BOT=Integer.parseInt(config.getValue());
+				}
+				if (config.getKey().equals(Config.DTS_BOT_MONEY)){
+					battleRoyaleService.initBotMoney();
+				}
+				if (config.getKey().equals(Config.DTS_KILL_RATE)){
+					BattleRoyaleService.KILL_RATE= Integer.parseInt(config.getValue());
+				}
 
 			}
 		}, this);
@@ -114,7 +122,7 @@ public class ManagerSocket extends BaseClientSocket {
 	public void onDisconnect(int surplusReconnectNum) {
 		logger.debug("剩余重连次数：" + surplusReconnectNum);
 		ServerStateService.stopService();
-	//	ServerNoticeService.setOpenNotice(false);
+		//	ServerNoticeService.setOpenNotice(false);
 	}
 	@Override
 	public boolean isEncrypt(Command command) {

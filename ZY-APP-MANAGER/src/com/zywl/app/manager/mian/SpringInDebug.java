@@ -913,7 +913,7 @@ public class SpringInDebug {
     // =================================================================================================================
 
     public static void getTaskListTest() {
-        String module = "悬赏任务";
+        String module = "001 悬赏任务";
         String funcName = "大厅列表";
         System.out.println("=[" + module + "]-" + funcName + "-测试-开始=========>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>==========");
         long start = System.currentTimeMillis();
@@ -933,15 +933,15 @@ public class SpringInDebug {
     }
 
     private static void getTaskDetailTest() {
-        String module = "悬赏任务";
+        String module = "002 悬赏任务";
         String funcName = "任务详情";
         System.out.println("=[" + module + "]-" + funcName + "-测试-开始=========>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>==========");
         long start = System.currentTimeMillis();
         try {
             ManagerBountyService svc = ctx.getBean(ManagerBountyService.class);
             JSONObject params = new JSONObject();
-            params.put("userId", FRIEND_USER_ID);
-            params.put("taskId", 1);
+            params.put("userId", 937228L);
+            params.put("taskId", 13);
             JSONObject res = svc.getTaskDetail(null, params);
             printResult(res);
         } catch (Exception e) {
@@ -1093,15 +1093,15 @@ public class SpringInDebug {
     }
 
     public static void getMyOrdersTest() {
-        String module = "悬赏任务";
+        String module = "010 悬赏任务";
         String funcName = "我的接单列表";
         System.out.println("=[" + module + "]-" + funcName + "-测试-开始=========>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>==========");
         long start = System.currentTimeMillis();
         try {
             ManagerBountyService svc = ctx.getBean(ManagerBountyService.class);
             JSONObject params = new JSONObject();
-            params.put("userId", FRIEND_USER_ID);
-            params.put("pageNo", 1);
+            params.put("userId", 937228L);
+            params.put("pageNo", 0);
             params.put("pageSize", 10);
             params.put("tab", 1); // 1进行中, 2待审核, 3已完成
             JSONObject res = svc.myOrders(null, params);
@@ -1132,14 +1132,14 @@ public class SpringInDebug {
     }
 
     private static void getPendingAuditTest() {
-        String module = "悬赏任务";
+        String module = "012 悬赏任务";
         String funcName = "待审核列表";
         System.out.println("=[" + module + "]-" + funcName + "-测试-开始=========>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>==========");
         long start = System.currentTimeMillis();
         try {
             ManagerBountyService svc = ctx.getBean(ManagerBountyService.class);
             JSONObject params = new JSONObject();
-            params.put("userId", 928762L);
+            params.put("userId", 937228L);
             params.put("pageNo", 1);
             params.put("pageSize", 10);
             JSONObject res = svc.pendingAudit(null, params);
@@ -1859,8 +1859,8 @@ public class SpringInDebug {
         //petTribeHomeInfoTest();
 
         // --- 7. 悬赏任务 ---
-        // getTaskListTest();
-        // getTaskDetailTest();
+        getTaskListTest();
+       getTaskDetailTest();
         //  getPublishTaskTest();
         //getCancelTaskTest();
         // getTakeTaskTest();
@@ -1868,9 +1868,9 @@ public class SpringInDebug {
         // getSubmitOrderTest();
         // getResubmitOrderTest();
         // getAppealOrderTest();
-        // getMyOrdersTest();
-        getMyPublishTest();
-        // getPendingAuditTest();
+        getMyOrdersTest();
+        // getMyPublishTest();
+        getPendingAuditTest();
         // getAuditApproveTest();
         //getAuditRejectTest();
 

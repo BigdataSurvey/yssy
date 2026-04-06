@@ -77,6 +77,8 @@ public class BountyTaskOrder extends BaseBean {
     /** 申诉处理人 */
     private Long appealHandleUserId;
 
+    /** 申诉图片 */
+    private String appealImgs;
 
     /** 单价快照 */
     private BigDecimal unitPrice;
@@ -270,5 +272,13 @@ public class BountyTaskOrder extends BaseBean {
 
     public void setUpdateTime(Date updateTime) {
         this.updateTime = updateTime;
+    }
+
+    public String getAppealImgs() {
+        return appealImgs;
+    }
+
+    public void setAppealImgs(String appealImgs) {
+        this.appealImgs = appealImgs;
     }
 }

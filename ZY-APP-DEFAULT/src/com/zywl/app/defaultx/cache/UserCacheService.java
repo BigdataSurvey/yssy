@@ -96,17 +96,14 @@ public class UserCacheService extends RedisService {
 
 
 
-    public boolean canLogin(String loginIp,Long userId){
-        String key = RedisKeyConstant.IP_USER+loginIp;
+    public boolean canLogin(String loginIp, Long userId){
+        String key = RedisKeyConstant.IP_USER + loginIp;
         Map<String, Object> hmget = hmget(key);
-        if (hmget.size()<=3){
+        if (hmget == null || hmget.size() <= 3){
             return true;
         }
         Object hget = hget(key, String.valueOf(userId));
-        if (hget!=null){
-            return true;
-        }
-        return false;
+        return hget != null;
     }
 
     public User getUserInfoByGameToken(String gameToken) {
@@ -780,4 +777,22 @@ public class UserCacheService extends RedisService {
             return new BigDecimal(bigDecimal);
         }
     }
+
+    public String getIpRequestCache(String ip){
+        String key = RedisKeyConstant.IP_REQUEST+ip;
+        return get(key);
+    }
+    public void setIpRequestCache(String ip){
+        String key = RedisKeyConstant.IP_REQUEST+ip;
+        set(key,1,60);
+    }
+    public void setTelMessageCode(String tel,String code){
+        String key = RedisKeyConstant.TEL_MESSAGE_CODE+tel;
+        set(key,code,180);
+    }
+    public String getTelMessageCode(String tel){
+        String key = RedisKeyConstant.TEL_MESSAGE_CODE+tel;
+        return get(key);
+    }
+
 }

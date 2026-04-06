@@ -1,12 +1,5 @@
 package com.zywl.app.socket;
 
-import java.util.Set;
-
-import javax.websocket.server.ServerEndpoint;
-
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
-
 import com.alibaba.fastjson2.JSONObject;
 import com.live.app.ws.bean.Command;
 import com.live.app.ws.bean.ConnectedData;
@@ -26,6 +19,11 @@ import com.zywl.app.defaultx.service.UserCapitalService;
 import com.zywl.app.defaultx.util.SpringUtil;
 import com.zywl.app.service.BattleRoyaleRequsetMangerService2;
 import com.zywl.app.service.BattleRoyaleService2;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+
+import javax.websocket.server.ServerEndpoint;
+import java.util.Set;
 
 @ServerEndpoint(value = "/BattleRoyale2Server"
 		+ SocketConstants.SOCKET_CONNECT_SHAKE_HANDS, configurator = HttpSessionConfigurator.class)
@@ -156,7 +154,7 @@ public class BattleRoyaleSocketServer2 extends BaseServerSocket {
 						//判断是否是观众席，观众席的话 移除，通知房间所有人
 						if (BattleRoyaleService2.ROOM.getLookList().containsKey(userId)) {
 							BattleRoyaleService2.ROOM.getLookList().remove(userId);
-							Push.push(PushCode.updateDts3Info, null, BattleRoyaleService2.ROOM.pushResult(2, userId, null, null));
+							Push.push(PushCode.updateDts2Info, null, BattleRoyaleService2.ROOM.pushResult(2, userId, null, null));
 							BattleRoyaleService2.ROOM.getPlayers().remove(userId);
 						}
 						if (!BattleRoyaleService2.ROOM.getUserBetInfo().containsKey(userId)) {

@@ -61,7 +61,7 @@
 			ifnull(sum(bet_amount), 0) as totalInvest,
 			ifnull(sum(profit), 0) as totalGain
 		from r_battle_royale3_record
-		where user_id = #{userId}
+		where user_id = #{userId} and status=1
 	</select>
 
 	<update id="batchUpdateRecord" parameterType="java.util.List">

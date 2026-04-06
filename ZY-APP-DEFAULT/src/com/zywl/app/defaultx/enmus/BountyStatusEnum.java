@@ -8,7 +8,7 @@ import java.util.List;
  * @Author: lzx
  * @Create: 2026/1/8
  * @Version: V1.2
- * @Description: 悬赏订单状态枚举及页签映射逻辑
+ * @Description: 悬赏订单状态枚举及页签映射逻辑 （订单状态）
  */
 public enum BountyStatusEnum {
 

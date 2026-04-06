@@ -18,7 +18,7 @@ public class CommandBuilder {
 		this.command.setId(commandId);
 	}
 
-	
+
 	public CommandBuilder(Command command) {
 		this.command = command;
 	}
@@ -32,6 +32,10 @@ public class CommandBuilder {
 	}
 
 	public synchronized static CommandBuilder builder(Command command) {
+		// ✅防御性：避免上层误传 null 导致 NPE（尤其在异步/定时任务场景）
+		if (command == null) {
+			return new CommandBuilder();
+		}
 		return new CommandBuilder(command);
 	}
 
@@ -45,19 +49,19 @@ public class CommandBuilder {
 		this.command.setData(data);
 		return this;
 	}
-	
+
 	public CommandBuilder request(String code, Object data,String message) {
 		this.command.setCode(code);
 		this.command.setData(data);
 		this.command.setMessage(message);
 		return this;
 	}
-	
+
 
 	public CommandBuilder success(Object data) {
 		return response(true, false, null, data);
 	}
-	
+
 	public CommandBuilder success(Object data,String message) {
 		return response(true, false, message, data);
 	}
@@ -65,7 +69,7 @@ public class CommandBuilder {
 	public CommandBuilder error(String message) {
 		return response(false, false, message, null);
 	}
-	
+
 	public CommandBuilder error(String message, Object data) {
 		return response(false, false, message, data);
 	}
@@ -74,7 +78,7 @@ public class CommandBuilder {
 		this.command.setCode(pushCode.name());
 		return response(true, true, null, data);
 	}
-	
+
 	public CommandBuilder push(String pushCode, Object data) {
 		this.command.setCode(pushCode);
 		return response(true, true, null, data);
@@ -84,7 +88,7 @@ public class CommandBuilder {
 		this.command.setCode(massCode);
 		return response(true, true, null, data);
 	}
-	
+
 	public CommandBuilder response(boolean success, boolean push, String message, Object data) {
 		this.command.setPush(push);
 		this.command.setSuccess(success);
@@ -97,7 +101,7 @@ public class CommandBuilder {
 	public Command build() {
 		return build(SystemLocale.DEFAULT_LOCALE);
 	}
-	
+
 	public Command build(String locale) {
 		this.command.setLocale(locale);
 		return this.command;
