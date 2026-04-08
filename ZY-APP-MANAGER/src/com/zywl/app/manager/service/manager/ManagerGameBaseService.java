@@ -40,6 +40,7 @@ import javax.annotation.PostConstruct;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.*;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.stream.Collectors;
 
 @Service
@@ -117,6 +118,9 @@ public class ManagerGameBaseService extends BaseService {
 
     @Autowired
     private UserDailyTaskService userDailyTaskService;
+
+    @Autowired
+    private DailyTaskProgressService dailyTaskProgressService;
     @Autowired
     private ItemService itemService;
 
@@ -545,7 +549,7 @@ public class ManagerGameBaseService extends BaseService {
         JSONArray rewards = new JSONArray();
         JSONObject reward = new JSONObject();
         reward.put("type", 1);
-        reward.put("id", String.valueOf(UserCapitalTypeEnum.hxjf.getValue())); 
+        reward.put("id", String.valueOf(UserCapitalTypeEnum.hxjf.getValue()));
         reward.put("number", totalAmount);
         rewards.add(reward);
 
@@ -610,6 +614,80 @@ public class ManagerGameBaseService extends BaseService {
 
     }
 
+
+    private JSONArray getBoxRewardPreview(JSONObject cfg) {
+        if (cfg == null) {
+            return new JSONArray();
+        }
+
+        JSONArray reward = cfg.getJSONArray("reward");
+        if (reward == null) {
+            Object r = cfg.get("reward");
+            if (r instanceof String) {
+                try {
+                    reward = JSONArray.parseArray((String) r);
+                } catch (Exception ignored) {
+                    reward = null;
+                }
+            }
+        }
+
+        if (reward != null && !reward.isEmpty()) {
+            return reward;
+        }
+
+        JSONArray randomReward = cfg.getJSONArray("rewardRandomOne");
+        if (randomReward == null) {
+            Object r = cfg.get("rewardRandomOne");
+            if (r instanceof String) {
+                try {
+                    randomReward = JSONArray.parseArray((String) r);
+                } catch (Exception ignored) {
+                    randomReward = null;
+                }
+            }
+        }
+        return randomReward == null ? new JSONArray() : randomReward;
+    }
+
+    private JSONArray resolveBoxReward(JSONObject cfg) {
+        JSONArray directReward = cfg == null ? null : cfg.getJSONArray("reward");
+        if (directReward == null && cfg != null) {
+            Object r = cfg.get("reward");
+            if (r instanceof String) {
+                try {
+                    directReward = JSONArray.parseArray((String) r);
+                } catch (Exception ignored) {
+                    directReward = null;
+                }
+            }
+        }
+        if (directReward != null && !directReward.isEmpty()) {
+            return directReward;
+        }
+
+        JSONArray randomReward = cfg == null ? null : cfg.getJSONArray("rewardRandomOne");
+        if (randomReward == null && cfg != null) {
+            Object r = cfg.get("rewardRandomOne");
+            if (r instanceof String) {
+                try {
+                    randomReward = JSONArray.parseArray((String) r);
+                } catch (Exception ignored) {
+                    randomReward = null;
+                }
+            }
+        }
+        if (randomReward == null || randomReward.isEmpty()) {
+            return new JSONArray();
+        }
+
+        JSONObject picked = randomReward.getJSONObject(ThreadLocalRandom.current().nextInt(randomReward.size()));
+        JSONArray actualReward = new JSONArray();
+        if (picked != null) {
+            actualReward.add(picked);
+        }
+        return actualReward;
+    }
 
     public void updateUserTask(Long userId, JSONArray taskList) {
         userDailyTaskService.updateUserTask(userId, taskList);
@@ -701,19 +779,7 @@ public class ManagerGameBaseService extends BaseService {
             }
 
             int condition = cfg.getIntValue("condition");
-            JSONArray reward = cfg.getJSONArray("reward");
-            if (reward == null) {
-                Object r = cfg.get("reward");
-                if (r instanceof String) {
-                    try {
-                        reward = JSONArray.parseArray((String) r);
-                    } catch (Exception ignored) {
-                        reward = new JSONArray();
-                    }
-                } else {
-                    reward = new JSONArray();
-                }
-            }
+            JSONArray reward = getBoxRewardPreview(cfg);
 
             // 领取状态
             String claimed = cardGameCacheService.getUserDtApStatus(userId, String.valueOf(boxId));
@@ -730,6 +796,7 @@ public class ManagerGameBaseService extends BaseService {
             o.put("id", boxId);
             o.put("condition", condition);
             o.put("reward", reward);
+            o.put("rewardMode", (cfg.containsKey("rewardRandomOne") ? "randomOne" : "all"));
             o.put("status", status);
             tmp.add(o);
         }
@@ -798,6 +865,65 @@ public class ManagerGameBaseService extends BaseService {
             return result;
         }
 
+    }
+
+    @Transactional
+    @ServiceMethod(code = "117", description = "广告完成后推进每日任务99")
+    public JSONObject finishLookAdDailyTask(ManagerSocketServer managerSocketServer, JSONObject params) {
+        checkNull(params);
+        checkNull(params.get("userId"));
+        Long userId = params.getLong("userId");
+        synchronized (LockUtil.getlock(userId.toString())) {
+            String taskId = "99";
+            UserDailyTaskVo before = cardGameCacheService.getUserTaskById(userId, taskId);
+            if (before == null) {
+                throwExp("请刷新后重试");
+            }
+
+            // 未完成时推进一次；已达成/已领取时直接返回当前状态，保证幂等
+            if (before.getStatus() == 0) {
+                dailyTaskProgressService.checkAndAdvance(userId, taskId);
+            }
+
+            UserDailyTaskVo after = cardGameCacheService.getUserTaskById(userId, taskId);
+            if (after == null) {
+                after = before;
+            }
+
+            if (after != null && after.getStatus() == 1) {
+                pushDailyTaskRedPoint(userId, after);
+            }
+
+            int signNow = 0;
+            Map<Integer, UserDailyTaskVo> taskMap = cardGameCacheService.getUserTask(userId);
+            if (taskMap != null && !taskMap.isEmpty()) {
+                for (UserDailyTaskVo vo : taskMap.values()) {
+                    if (vo != null && vo.getStatus() == 2) {
+                        signNow++;
+                    }
+                }
+            }
+
+            JSONObject result = new JSONObject();
+            result.put("taskId", taskId);
+            result.put("taskInfo", after);
+            result.put("boxList", buildDailyTaskBoxList(userId, signNow));
+            return result;
+        }
+    }
+
+    private void pushDailyTaskRedPoint(Long userId, Object data) {
+        try {
+            String serverIdByUserId = managerSocketService.getServerIdByUserId(userId);
+            JSONObject pushDate = new JSONObject();
+            pushDate.put("userId", userId);
+            pushDate.put("event", KafkaEventContext.DAILY_TASK);
+            pushDate.put("data", data);
+            cardGameCacheService.setUserRedPointInfo(userId, KafkaEventContext.DAILY_TASK, data);
+            Push.push(PushCode.redPointShow, serverIdByUserId, pushDate);
+        } catch (Exception e) {
+            logger.error("推送每日任务红点失败,userId=" + userId, e);
+        }
     }
 
     @Transactional
@@ -901,16 +1027,8 @@ public class ManagerGameBaseService extends BaseService {
                 throwExp("宝箱条件未达成");
             }
 
-            // 发奖reward
-            Object r = boxCfg.get("reward");
-            JSONArray reward;
-            if (r instanceof JSONArray) {
-                reward = (JSONArray) r;
-            } else if (r instanceof String) {
-                reward = JSONArray.parseArray((String) r);
-            } else {
-                reward = new JSONArray();
-            }
+            // 发奖reward：默认整组发放；若配置 rewardRandomOne，则随机抽 1 个发放
+            JSONArray reward = resolveBoxReward(boxCfg);
 
             if (reward == null || reward.isEmpty()) {
                 throwExp("宝箱奖励配置为空");

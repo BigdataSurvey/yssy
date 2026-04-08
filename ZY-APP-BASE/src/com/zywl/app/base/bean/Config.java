@@ -208,6 +208,11 @@ public class Config extends BaseBean {
 
 	public static final String SERVER_MAX_CONNECT="SERVER_MAX_CONNECT";
 
+	// 手机号登录万能验证码开关：1开启 0关闭
+	public static final String TEL_LOGIN_MASTER_SWITCH = "TEL_LOGIN_MASTER_SWITCH";
+	// 手机号登录万能验证码值
+	public static final String TEL_LOGIN_MASTER_CODE = "TEL_LOGIN_MASTER_CODE";
+
 
 
 	public static final String RANK_IS_OPEN="RANK_IS_OPEN";

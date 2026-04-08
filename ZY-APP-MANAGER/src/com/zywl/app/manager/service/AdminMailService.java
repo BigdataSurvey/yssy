@@ -1836,5 +1836,4 @@ public class AdminMailService extends BaseService {
         return result;
     }
 
-
 }

@@ -186,7 +186,14 @@ public class CardGameCacheService extends RedisService {
                 cond = Integer.parseInt(String.valueOf(dt.getCondition()));
             } catch (Exception ignored) {}
 
-            if (cond <= 0) {
+            // 特殊口径：id=99 现在改成“看一次广告”，不能再沿用 cond<=0 即直接可领 的旧逻辑。
+            // 保持现库数据兼容：即便表里 condition 仍为 0，这里也强制按 1 次广告任务初始化。
+            boolean adTask99 = dt.getId() != null && dt.getId() == 99;
+            if (adTask99) {
+                vo.setCondition(1);
+                vo.setSchedule(0);
+                vo.setStatus(0);
+            } else if (cond <= 0) {
                 vo.setCondition(1);
                 vo.setSchedule(1);
                 // 1=可领取

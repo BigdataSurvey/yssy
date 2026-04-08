@@ -91,6 +91,9 @@ public class BattleRoyaleService2 extends BaseService {
     private GameCacheService gameCacheService;
 
     @Autowired
+    private DailyTaskProgressService dailyTaskProgressService;
+
+    @Autowired
     private UserCapitalService userCapitalService;
 
     @Autowired
@@ -671,6 +674,14 @@ public class BattleRoyaleService2 extends BaseService {
 
                 pushArray.get(key2).add(ROOM.pushResult(1, userId, userBet, allAmount));
 
+                if (!BOT_USER.containsKey(userId)) {
+                    try {
+                        dailyTaskProgressService.pushDailyTaskByGameId(Long.parseLong(userId), 1);
+                    } catch (Exception dailyEx) {
+                        logger.error("[DailyTask] uid=" + userId, dailyEx);
+                    }
+                }
+
                 //Push.push(PushCode.updateDts2Info, null, ROOM.pushResult(1, userId, userBet, allAmount));
                 if (!BOT_USER.containsKey(userId)) {
                     REAL_ROOM_MONEY.put(userBet,
@@ -893,8 +904,8 @@ public class BattleRoyaleService2 extends BaseService {
                 } else {
                     winAmount = allWinAmount.compareTo(BigDecimal.ZERO) == 0 ? BigDecimal.ZERO
                             : new BigDecimal(userAllAmount.toString()).divide(allWinAmount, 6, BigDecimal.ROUND_DOWN)
-                            .multiply(allLoseAmount.multiply(rate))
-                            .setScale(2, BigDecimal.ROUND_DOWN);
+                              .multiply(allLoseAmount.multiply(rate))
+                              .setScale(2, BigDecimal.ROUND_DOWN);
                 }
                 JSONObject o = new JSONObject();
                 BigDecimal add = winAmount.add(new BigDecimal(userAllAmount.toString()));
@@ -1224,7 +1235,7 @@ public class BattleRoyaleService2 extends BaseService {
             sortedEntries.forEach(entry -> killList.add(Integer.valueOf(entry.getKey())));
             if (killList.size() > count) {
                 List<Integer> list = killList.subList(0, count);
-               // System.out.println("击杀：" + list);
+                // System.out.println("击杀：" + list);
                 return list;
             }
             return killList;

@@ -96,17 +96,30 @@ public class TelLoginServlet extends BaseServlet {
                         return;
                     }
 
-                    String telMessageCode = userCacheService.getTelMessageCode(tel);
-                    if (telMessageCode != null
-                            && telMessageCode.length() >= 2
-                            && telMessageCode.startsWith("\"")
-                            && telMessageCode.endsWith("\"")) {
-                        telMessageCode = telMessageCode.substring(1, telMessageCode.length() - 1);
+                    // 万能验证码：开启后，只要输入匹配的万能验证码即可直接跳过短信验证码校验
+                    boolean masterCodePassed = false;
+                    String masterCodeSwitch = managerConfigService.getString(Config.TEL_LOGIN_MASTER_SWITCH);
+                    String masterCode = managerConfigService.getString(Config.TEL_LOGIN_MASTER_CODE);
+                    if ("1".equals(masterCodeSwitch)
+                            && masterCode != null
+                            && !"".equals(masterCode.trim())
+                            && masterCode.trim().equals(code)) {
+                        masterCodePassed = true;
                     }
 
-                    if (telMessageCode == null || !telMessageCode.equals(code)) {
-                        Response.doResponse(asyncContext, JSONUtil.getReturnDate(0, null, "请输入正确的验证码").toJSONString());
-                        return;
+                    if (!masterCodePassed) {
+                        String telMessageCode = userCacheService.getTelMessageCode(tel);
+                        if (telMessageCode != null
+                                && telMessageCode.length() >= 2
+                                && telMessageCode.startsWith("\"")
+                                && telMessageCode.endsWith("\"")) {
+                            telMessageCode = telMessageCode.substring(1, telMessageCode.length() - 1);
+                        }
+
+                        if (telMessageCode == null || !telMessageCode.equals(code)) {
+                            Response.doResponse(asyncContext, JSONUtil.getReturnDate(0, null, "请输入正确的验证码").toJSONString());
+                            return;
+                        }
                     }
 
                     JSONObject jsonObject = loginService.loginOrRegisterByTel(tel, clientIp, versionId, oldWsid, inviteCode, os);

@@ -474,6 +474,40 @@ public class GameBaseService extends BaseService {
         return result;
     }
 
+    private JSONArray getBoxRewardPreview(JSONObject cfg) {
+        if (cfg == null) {
+            return new JSONArray();
+        }
+
+        JSONArray reward = cfg.getJSONArray("reward");
+        if (reward == null) {
+            Object r = cfg.get("reward");
+            if (r instanceof String) {
+                try {
+                    reward = JSONArray.parseArray((String) r);
+                } catch (Exception ignored) {
+                    reward = null;
+                }
+            }
+        }
+        if (reward != null && !reward.isEmpty()) {
+            return reward;
+        }
+
+        JSONArray randomReward = cfg.getJSONArray("rewardRandomOne");
+        if (randomReward == null) {
+            Object r = cfg.get("rewardRandomOne");
+            if (r instanceof String) {
+                try {
+                    randomReward = JSONArray.parseArray((String) r);
+                } catch (Exception ignored) {
+                    randomReward = null;
+                }
+            }
+        }
+        return randomReward == null ? new JSONArray() : randomReward;
+    }
+
     /**
      * 每日任务宝箱列表：配置来自 t_config.DAILY_TASK_BOX_CONFIG（JSON 数组）。
      *
@@ -520,19 +554,7 @@ public class GameBaseService extends BaseService {
             }
 
             int condition = cfg.getIntValue("condition");
-            JSONArray reward = cfg.getJSONArray("reward");
-            if (reward == null) {
-                Object r = cfg.get("reward");
-                if (r instanceof String) {
-                    try {
-                        reward = JSONArray.parseArray((String) r);
-                    } catch (Exception ignored) {
-                        reward = new JSONArray();
-                    }
-                } else {
-                    reward = new JSONArray();
-                }
-            }
+            JSONArray reward = getBoxRewardPreview(cfg);
 
             // 领取状态（默认读 redis：APP_USER_DAILY_TASK_AP::<date>:<userId>[boxId]）
             String claimed = cardGameCacheService.getUserDtApStatus(userId, idStr);
@@ -549,6 +571,7 @@ public class GameBaseService extends BaseService {
             o.put("id", boxId);
             o.put("condition", condition);
             o.put("reward", reward);
+            o.put("rewardMode", (cfg.containsKey("rewardRandomOne") ? "randomOne" : "all"));
             o.put("status", status);
             tmp.add(o);
         }
@@ -688,15 +711,17 @@ public class GameBaseService extends BaseService {
     }*/
 
 
-   /* @ServiceMethod(code = "026", description = "开始看广告")
-    public Object beginLook(AppSocket appSocket, Command command, JSONObject data) {
-        checkNull(data);
-        checkNull(data.get("adIndex"));
-        int adIndex = data.getIntValue("adIndex");
+    @ServiceMethod(code = "026", description = "广告完成后推进每日任务99")
+    public Object finishLookAdDailyTask(AppSocket appSocket, Command command, JSONObject data) {
+        if (data == null) {
+            data = new JSONObject();
+        }
         long userId = appSocket.getWsidBean().getUserId();
-        userCacheService.beginLookAd(userId, adIndex);
-        return data;
-    }*/
+        data.put("userId", userId);
+        Executer.request(TargetSocketType.manager, CommandBuilder.builder().request("100117", data).build(),
+                new RequestManagerListener(command));
+        return async();
+    }
 
     @ServiceMethod(code = "027", description = "获取某种道具的数量")
     public Object getItemNumber(AppSocket appSocket, Command command, JSONObject data) {
