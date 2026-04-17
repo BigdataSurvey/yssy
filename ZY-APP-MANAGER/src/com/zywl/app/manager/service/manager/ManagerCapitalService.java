@@ -779,12 +779,14 @@ public class ManagerCapitalService extends BaseService {
             JSONArray userResult = new JSONArray();
             for (JSONObject n : normalized) {
                 Long uid = n.getLong("userId");
-                UserCapital userCapital = userCapitalCacheService.getUserCapitalCacheByType(uid, capitalType);
+                userCapitalCacheService.deltedUserCapitalCache(uid, capitalType);
+                UserCapital dbUc = userCapitalService.findUserCapitalByUserIdAndCapitalType(uid, capitalType);
+                BigDecimal balance = (dbUc != null && dbUc.getBalance() != null) ? dbUc.getBalance() : BigDecimal.ZERO;
 
                 JSONObject pushData = new JSONObject();
                 pushData.put("userId", uid);
                 pushData.put("capitalType", capitalType);
-                pushData.put("balance", userCapital.getBalance());
+                pushData.put("balance", balance);
                 Push.push(PushCode.updateUserCapital, managerSocketService.getServerIdByUserId(uid), pushData);
 
                 // 计入用户历史总返还 & 总净利
@@ -798,7 +800,7 @@ public class ManagerCapitalService extends BaseService {
                 ur.put("returnAmount", n.getBigDecimal("returnAmount"));
                 ur.put("fee", n.getBigDecimal("fee"));
                 ur.put("net", n.getBigDecimal("net"));
-                ur.put("balance", userCapital.getBalance());
+                ur.put("balance", balance);
                 userResult.add(ur);
             }
 

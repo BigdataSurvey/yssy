@@ -143,7 +143,6 @@ public class BattleRoyaleService2 extends BaseService {
 
     public static List<BigDecimal> BOT_MONEY = new ArrayList<>();
 
-
     public void updateRate(BigDecimal a) {
         rate = a;
     }
@@ -805,23 +804,38 @@ public class BattleRoyaleService2 extends BaseService {
             ROOM.setResult(killList);
             ROOM.setLastResult(killList.toString());
             battleRoyaleService2.settle(killList, lotteryCommand);
+
+            // 记录本局结算完成时间，后续用于拦截下注/机器人
             ROOM.setReadyTime(System.currentTimeMillis());
+
             int status = ROOM.getStatus();
             ConcurrentHashMap<String, Map<String, String>> userBetOrderInfo = ROOM.getUserBetOrderInfo();
             data.put("roomId", killList);
             data.put("status", status);
             data.putAll(ROOM.getSettleDate());
             data.put("userSettleInfo", userBetOrderInfo);
+
             runAfterCommit(() -> Push.push(PushCode.updateDts2Status, null, data));
+
             Executer.executeService(new Runnable() {
                 @Override
                 public void run() {
                     try {
-                        Thread.sleep(1500);
+                        Thread.sleep(2000);
                     } catch (InterruptedException e) {
                         logger.info(e);
                     }
-                    changeRoomStatus(LotteryGameStatusEnum.ready.getValue(), lotteryCommand);
+
+                    // 结算状态3推完后，延迟2秒再进入下一轮。
+                    // 这里不能只手动 push status=2；必须统一走 gaming 分支，
+                    // 这样才会启动 startGame()，前端才有倒计时。
+                    ROOM.initRoomInfo();
+                    initHistoryResult();
+                    initRealMoney();
+
+                    ROOM.setBeginTime(System.currentTimeMillis());
+                    ROOM.setEndTime(DateUtil.getTimeByM(TIME));
+                    changeRoomStatus(LotteryGameStatusEnum.gaming.getValue(), lotteryCommand);
                 }
             });
         }

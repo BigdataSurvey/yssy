@@ -697,6 +697,21 @@
 		where id=#{userId} and status=1
 	</update>
 
+	<update id="updateSocialInfo" parameterType="User">
+		update t_user
+		<set>
+			<if test="qq != null">
+				qq=#{qq},
+			</if>
+			<if test="wechatId != null">
+				wechat_id=#{wechatId},
+			</if>
+			<if test="headImageUrl != null">
+				head_image_url=#{headImageUrl},
+			</if>
+		</set>
+		where id=#{userId} and status=1
+	</update>
 
 	<update id="userDeleteAccount" parameterType="User">
 		update t_user set status = 0  where id=#{userId}
