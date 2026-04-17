@@ -832,6 +832,7 @@ public class ManagerGameBaseService extends BaseService {
             //获取玩家每日任务的信息
             UserDailyTaskVo userTaskById = cardGameCacheService.getUserTaskById(userId, taskId);
             if (userTaskById == null) {
+
                 throwExp("请刷新后尝试领取");
             }
             if (userTaskById.getStatus() == 2) {

@@ -800,10 +800,17 @@ public class BattleRoyaleService2 extends BaseService {
             });
             runAfterCommit(() -> Push.push(PushCode.updateDts2Status, null, data));
         } else if (ROOM.getStatus() == LotteryGameStatusEnum.settle.getValue()) {
+            long debugStartTime = System.currentTimeMillis();
+            String debugPeriod = ROOM.getPeridosNum(); // 获取当前期号用于日志追踪
+            logger.info(String.format("[DTS3 Debug] [%s] 1. 进入结算分支, 当前线程: %s", debugPeriod, Thread.currentThread().getName()));
+
             List<Integer> killList = battleRoyaleService2.draw();
             ROOM.setResult(killList);
             ROOM.setLastResult(killList.toString());
+
+            logger.info(String.format("[DTS3 Debug] [%s] 2. 准备执行 settle 数据库事务...", debugPeriod));
             battleRoyaleService2.settle(killList, lotteryCommand);
+            logger.info(String.format("[DTS3 Debug] [%s] 3. settle 事务执行完毕, 耗时: %d ms", debugPeriod, (System.currentTimeMillis() - debugStartTime)));
 
             // 记录本局结算完成时间，后续用于拦截下注/机器人
             ROOM.setReadyTime(System.currentTimeMillis());
@@ -815,28 +822,35 @@ public class BattleRoyaleService2 extends BaseService {
             data.putAll(ROOM.getSettleDate());
             data.put("userSettleInfo", userBetOrderInfo);
 
-            runAfterCommit(() -> Push.push(PushCode.updateDts2Status, null, data));
+            logger.info(String.format("[DTS3 Debug] [%s] 4. 准备注册 runAfterCommit 回调...", debugPeriod));
 
-            Executer.executeService(new Runnable() {
-                @Override
-                public void run() {
-                    try {
-                        Thread.sleep(2000);
-                    } catch (InterruptedException e) {
-                        logger.info(e);
+            runAfterCommit(() -> {
+                logger.info(String.format("[DTS3 Debug] [%s] 5. runAfterCommit 触发! 真正推送状态 3 (进入结算), 当前时间: %d, 线程: %s", debugPeriod, System.currentTimeMillis(), Thread.currentThread().getName()));
+
+                Push.push(PushCode.updateDts2Status, null, data);
+
+                Executer.executeService(new Runnable() {
+                    @Override
+                    public void run() {
+                        logger.info(String.format("[DTS3 Debug] [%s] 6. 进入异步延迟线程, 准备休眠 2000ms. 线程: %s", debugPeriod, Thread.currentThread().getName()));
+                        try {
+                            Thread.sleep(2000);
+                        } catch (InterruptedException e) {
+                            logger.error(String.format("[DTS3 Debug] [%s] 休眠被意外中断!", debugPeriod), e);
+                        }
+                        logger.info(String.format("[DTS3 Debug] [%s] 7. 2秒休眠结束! 当前时间: %d. 准备清理房间并切回 gaming 状态...", debugPeriod, System.currentTimeMillis()));
+
+                        ROOM.initRoomInfo();
+                        initHistoryResult();
+                        initRealMoney();
+
+                        ROOM.setBeginTime(System.currentTimeMillis());
+                        ROOM.setEndTime(DateUtil.getTimeByM(TIME));
+
+                        changeRoomStatus(LotteryGameStatusEnum.gaming.getValue(), lotteryCommand);
+                        logger.info(String.format("[DTS3 Debug] [%s] 8. changeRoomStatus(2) 调用完毕.", debugPeriod));
                     }
-
-                    // 结算状态3推完后，延迟2秒再进入下一轮。
-                    // 这里不能只手动 push status=2；必须统一走 gaming 分支，
-                    // 这样才会启动 startGame()，前端才有倒计时。
-                    ROOM.initRoomInfo();
-                    initHistoryResult();
-                    initRealMoney();
-
-                    ROOM.setBeginTime(System.currentTimeMillis());
-                    ROOM.setEndTime(DateUtil.getTimeByM(TIME));
-                    changeRoomStatus(LotteryGameStatusEnum.gaming.getValue(), lotteryCommand);
-                }
+                });
             });
         }
     }
