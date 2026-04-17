@@ -579,7 +579,7 @@ public class BattleRoyaleService2 extends BaseService {
     }
 
     public JSONObject userBetBet(String userId, String userBet, BigDecimal amount, Command lotteryCommand,
-            JSONObject params) {
+                                 JSONObject params) {
         if (STATUS == 0) {
             throwExp("消失的兔子即将维护，暂时不能进行游戏！");
         }
@@ -982,8 +982,8 @@ public class BattleRoyaleService2 extends BaseService {
                 } else {
                     winAmount = allWinAmount.compareTo(BigDecimal.ZERO) == 0 ? BigDecimal.ZERO
                             : new BigDecimal(userAllAmount.toString()).divide(allWinAmount, 6, BigDecimal.ROUND_DOWN)
-                                    .multiply(allLoseAmount.multiply(rate))
-                                    .setScale(2, BigDecimal.ROUND_DOWN);
+                              .multiply(allLoseAmount.multiply(rate))
+                              .setScale(2, BigDecimal.ROUND_DOWN);
                 }
                 JSONObject o = new JSONObject();
                 BigDecimal add = winAmount.add(new BigDecimal(userAllAmount.toString()));
