@@ -91,6 +91,9 @@ public class BattleRoyaleService2 extends BaseService {
     private GameCacheService gameCacheService;
 
     @Autowired
+    private DailyTaskProgressService dailyTaskProgressService;
+
+    @Autowired
     private UserCapitalService userCapitalService;
 
     @Autowired
@@ -139,7 +142,6 @@ public class BattleRoyaleService2 extends BaseService {
     public static int KILL_RATE = 0;
 
     public static List<BigDecimal> BOT_MONEY = new ArrayList<>();
-
 
     public void updateRate(BigDecimal a) {
         rate = a;
@@ -671,6 +673,14 @@ public class BattleRoyaleService2 extends BaseService {
 
                 pushArray.get(key2).add(ROOM.pushResult(1, userId, userBet, allAmount));
 
+                if (!BOT_USER.containsKey(userId)) {
+                    try {
+                        dailyTaskProgressService.pushDailyTaskByGameId(Long.parseLong(userId), 1);
+                    } catch (Exception dailyEx) {
+                        logger.error("[DailyTask] uid=" + userId, dailyEx);
+                    }
+                }
+
                 //Push.push(PushCode.updateDts2Info, null, ROOM.pushResult(1, userId, userBet, allAmount));
                 if (!BOT_USER.containsKey(userId)) {
                     REAL_ROOM_MONEY.put(userBet,
@@ -794,23 +804,38 @@ public class BattleRoyaleService2 extends BaseService {
             ROOM.setResult(killList);
             ROOM.setLastResult(killList.toString());
             battleRoyaleService2.settle(killList, lotteryCommand);
+
+            // 记录本局结算完成时间，后续用于拦截下注/机器人
             ROOM.setReadyTime(System.currentTimeMillis());
+
             int status = ROOM.getStatus();
             ConcurrentHashMap<String, Map<String, String>> userBetOrderInfo = ROOM.getUserBetOrderInfo();
             data.put("roomId", killList);
             data.put("status", status);
             data.putAll(ROOM.getSettleDate());
             data.put("userSettleInfo", userBetOrderInfo);
+
             runAfterCommit(() -> Push.push(PushCode.updateDts2Status, null, data));
+
             Executer.executeService(new Runnable() {
                 @Override
                 public void run() {
                     try {
-                        Thread.sleep(1500);
+                        Thread.sleep(2000);
                     } catch (InterruptedException e) {
                         logger.info(e);
                     }
-                    changeRoomStatus(LotteryGameStatusEnum.ready.getValue(), lotteryCommand);
+
+                    // 结算状态3推完后，延迟2秒再进入下一轮。
+                    // 这里不能只手动 push status=2；必须统一走 gaming 分支，
+                    // 这样才会启动 startGame()，前端才有倒计时。
+                    ROOM.initRoomInfo();
+                    initHistoryResult();
+                    initRealMoney();
+
+                    ROOM.setBeginTime(System.currentTimeMillis());
+                    ROOM.setEndTime(DateUtil.getTimeByM(TIME));
+                    changeRoomStatus(LotteryGameStatusEnum.gaming.getValue(), lotteryCommand);
                 }
             });
         }
@@ -893,8 +918,8 @@ public class BattleRoyaleService2 extends BaseService {
                 } else {
                     winAmount = allWinAmount.compareTo(BigDecimal.ZERO) == 0 ? BigDecimal.ZERO
                             : new BigDecimal(userAllAmount.toString()).divide(allWinAmount, 6, BigDecimal.ROUND_DOWN)
-                            .multiply(allLoseAmount.multiply(rate))
-                            .setScale(2, BigDecimal.ROUND_DOWN);
+                              .multiply(allLoseAmount.multiply(rate))
+                              .setScale(2, BigDecimal.ROUND_DOWN);
                 }
                 JSONObject o = new JSONObject();
                 BigDecimal add = winAmount.add(new BigDecimal(userAllAmount.toString()));
@@ -1224,7 +1249,7 @@ public class BattleRoyaleService2 extends BaseService {
             sortedEntries.forEach(entry -> killList.add(Integer.valueOf(entry.getKey())));
             if (killList.size() > count) {
                 List<Integer> list = killList.subList(0, count);
-               // System.out.println("击杀：" + list);
+                // System.out.println("击杀：" + list);
                 return list;
             }
             return killList;

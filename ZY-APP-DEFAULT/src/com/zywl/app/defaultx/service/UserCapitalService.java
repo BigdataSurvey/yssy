@@ -250,16 +250,15 @@ public class UserCapitalService extends DaoService {
             BigDecimal amount = o.getBigDecimal("amount");
             if (amount == null || amount.compareTo(BigDecimal.ZERO) == 0) continue;
 
-            // 余额更新前值 用于日志
-            BigDecimal before = beforeMoney.containsKey(userIdStr)
-                    ? beforeMoney.get(userIdStr)
-                    : userCapitalCacheService.getUserCapitalCacheByType(Long.parseLong(userIdStr), capitalType).getBalance();
+            Long uid = Long.parseLong(userIdStr);
 
+            // 先取旧值用于日志；如果缓存没有，直接查 DB
+            UserCapital beforeUc = userCapitalCacheService.getUserCapitalCacheByType(uid, capitalType);
+            BigDecimal before = (beforeUc != null && beforeUc.getBalance() != null) ? beforeUc.getBalance() : BigDecimal.ZERO;
             BigDecimal occupyBefore = BigDecimal.ZERO;
 
-            // 更新缓存
-            userCapitalCacheService.add(Long.parseLong(userIdStr), capitalType, amount, BigDecimal.ZERO);
-
+            // 不做 add，直接删缓存，避免 DB 已更新后再次叠加
+            userCapitalCacheService.deltedUserCapitalCache(uid, capitalType);
             // 写流水
             pushLog(
                     1,

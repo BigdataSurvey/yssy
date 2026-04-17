@@ -107,6 +107,9 @@ public class BattleRoyaleService extends BaseService {
     @Autowired
     private GameCacheService gameCacheService;
 
+    @Autowired
+    private DailyTaskProgressService dailyTaskProgressService;
+
     private static final Object lock = new Object();
 
     private static final Object betLock = new Object();
@@ -595,6 +598,14 @@ public class BattleRoyaleService extends BaseService {
                     }
                 }
                 pushArray.get(key2).add(ROOM.pushResult(1, userId, userBet, allAmount));
+
+                if (!BOT_USER.containsKey(userId)) {
+                    try {
+                        dailyTaskProgressService.pushDailyTaskByGameId(Long.parseLong(userId), 7);
+                    } catch (Exception dailyEx) {
+                        logger.error("[DailyTask] uid=" + userId, dailyEx);
+                    }
+                }
                 ROOM_MONEY.put(userBet,ROOM_MONEY.get(userBet).add(amount));
                 //Push.push(PushCode.updateRoomDate, null, ROOM.pushResult(1, userId, userBet, allAmount));
                 if (!BOT_USER.containsKey(userId)) {
@@ -841,8 +852,8 @@ public class BattleRoyaleService extends BaseService {
                 } else {
                     winAmount = allWinAmount.compareTo(BigDecimal.ZERO) == 0 ? BigDecimal.ZERO
                             : new BigDecimal(userAllAmount.toString()).divide(allWinAmount, 6, BigDecimal.ROUND_DOWN)
-                            .multiply(allLoseAmount.multiply(rate))
-                            .setScale(2, BigDecimal.ROUND_DOWN);
+                              .multiply(allLoseAmount.multiply(rate))
+                              .setScale(2, BigDecimal.ROUND_DOWN);
                 }
                 JSONObject o = new JSONObject();
                 BigDecimal add = winAmount.add(new BigDecimal(userAllAmount.toString()));

@@ -532,7 +532,18 @@ public class UserService extends DaoService {
         userCacheService.removeUserInfoCache(userId);
         return execute("setQQWX", params);
     }
+    @Transactional
+    public int updateSocialInfo(Long userId, String wechatId, String qq, String headImageUrl) {
+        Map<String, Object> params = new HashedMap<String, Object>();
+        params.put("userId", userId);
+        params.put("wechatId", wechatId);
+        params.put("qq", qq);
+        params.put("headImageUrl", headImageUrl);
 
+        int a = execute("updateSocialInfo", params);
+        userCacheService.removeUserInfoCache(userId);
+        return a;
+    }
 
     public Set<String> findAllUserNo() {
         List<User> users = findList("findAllUserNo", null);

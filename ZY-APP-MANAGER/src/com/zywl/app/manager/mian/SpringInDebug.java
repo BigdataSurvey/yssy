@@ -1786,6 +1786,54 @@ public class SpringInDebug {
     }
 
 
+
+    // =================================================================================================================
+    //                                         用户相关信息
+    // =================================================================================================================
+
+    /**
+     * 用户信息：用户个人头像、昵称、QQ
+     */
+    public static void setSocialInfo() {
+        String module = "用户模块";
+        String funcName = "用户个人信息修改-头像、昵称、QQ";
+        System.out.println("=[" + module + "]-" + funcName + "-测试-开始=========>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>==========");
+        long start = System.currentTimeMillis();
+        try {
+            ManagerUserService svc = ctx.getBean(ManagerUserService.class);
+            JSONObject params = new JSONObject();
+            params.put("userId", MY_USER_ID);
+            params.put("headImageUrl", "yssy/bounty/20260115/937223/11.jpg");
+            Object resp = svc.setSocialInfo(null, params);
+            printResult(resp);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        System.out.println("=【" + module + "-" + funcName + "-测试-结束】=用时：" + (System.currentTimeMillis() - start) + "ms=====>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>=============");
+    }
+
+    /**
+     * 用户看广告回调
+     */
+    public static void finishLookAdDailyTask() {
+        String module = "用户模块";
+        String funcName = "用户看广告回调";
+        System.out.println("=[" + module + "]-" + funcName + "-测试-开始=========>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>==========");
+        long start = System.currentTimeMillis();
+        try {
+            ManagerGameBaseService svc = ctx.getBean(ManagerGameBaseService.class);
+            JSONObject params = new JSONObject();
+            params.put("userId", MY_USER_ID);
+            Object resp = svc.finishLookAdDailyTask(null, params);
+            printResult(resp);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        System.out.println("=【" + module + "-" + funcName + "-测试-结束】=用时：" + (System.currentTimeMillis() - start) + "ms=====>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>=============");
+    }
+
+
+
     // =================================================================================================================
     //                                         Main
     // =================================================================================================================
@@ -1859,8 +1907,8 @@ public class SpringInDebug {
         //petTribeHomeInfoTest();
 
         // --- 7. 悬赏任务 ---
-        getTaskListTest();
-       getTaskDetailTest();
+       // getTaskListTest();
+      // getTaskDetailTest();
         //  getPublishTaskTest();
         //getCancelTaskTest();
         // getTakeTaskTest();
@@ -1868,9 +1916,9 @@ public class SpringInDebug {
         // getSubmitOrderTest();
         // getResubmitOrderTest();
         // getAppealOrderTest();
-        getMyOrdersTest();
+       // getMyOrdersTest();
         // getMyPublishTest();
-        getPendingAuditTest();
+       // getPendingAuditTest();
         // getAuditApproveTest();
         //getAuditRejectTest();
 
@@ -1920,5 +1968,8 @@ public class SpringInDebug {
      //  ossCanonicalizeUrlTest();
 //        System.out.println(">>>>>>>>>> Debug测试结束 <<<<<<<<<<");
 //        System.exit(0);
+
+       // setSocialInfo();
+        finishLookAdDailyTask();
     }
 }

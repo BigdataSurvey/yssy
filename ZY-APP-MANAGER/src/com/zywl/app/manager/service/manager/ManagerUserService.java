@@ -25,6 +25,7 @@ import com.zywl.app.manager.context.KafkaEventContext;
 import com.zywl.app.manager.context.KafkaTopicContext;
 import com.zywl.app.manager.context.MessageCodeContext;
 import com.zywl.app.manager.service.*;
+import com.zywl.app.manager.service.oss.AliOssDirectUploadService;
 import com.zywl.app.manager.servlet.AppUploadFileServlet;
 import com.zywl.app.manager.socket.AdminSocketServer;
 import com.zywl.app.manager.socket.ManagerSocketServer;
@@ -134,6 +135,8 @@ public class ManagerUserService extends BaseService {
 
     @Autowired
     private UserPowerService userPowerService;
+    @Autowired
+    private AliOssDirectUploadService aliOssDirectUploadService;
 
     public static List<User> users = new CopyOnWriteArrayList<>();
 
@@ -488,13 +491,35 @@ public class ManagerUserService extends BaseService {
 
 
     @ServiceMethod(code = "009", description = "设置社交信息")
-    public JSONObject qqwx(ManagerSocketServer adminSocketServer, JSONObject data) {
+    public JSONObject setSocialInfo(ManagerSocketServer adminSocketServer, JSONObject data) {
         checkNull(data);
+
         Long userId = data.getLong("userId");
         String wx = data.getString("wx");
         String qq = data.getString("qq");
-        userService.setQQWX(userId, wx, qq);
-        return data;
+        String headImageUrl = data.getString("headImageUrl");
+
+        if (headImageUrl != null) {
+            headImageUrl = aliOssDirectUploadService.canonicalizeAndCheckOssUrl(
+                    headImageUrl, "headImageUrl", true
+            );
+        }
+
+        userService.updateSocialInfo(userId, wx, qq, headImageUrl);
+
+        JSONObject pushDate = new JSONObject();
+        pushDate.put("userId", userId);
+        User user = userCacheService.getUserInfoById(userId);
+        UserVo userVo = new UserVo();
+        BeanUtils.copy(user, userVo);
+        pushDate.put("userInfo", userVo);
+        Push.push(PushCode.updateUserInfo, managerSocketService.getServerIdByUserId(userId), pushDate);
+
+        JSONObject result = new JSONObject();
+        result.put("wx", wx);
+        result.put("qq", qq);
+        result.put("headImageUrl", headImageUrl);
+        return result;
     }
 
     @ServiceMethod(code = "010", description = "注销")

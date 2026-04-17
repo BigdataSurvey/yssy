@@ -84,8 +84,10 @@ public class GetCodeServlet extends BaseServlet {
     }
 
     public static String getCode2(String tel) {
-        String testUsername = "aa15650986"; // 在短信宝注册的用户名
-        String testPassword = "aa1234";     // 在短信宝注册的密码
+//        String testUsername = "aa15650986"; // 在短信宝注册的用户名
+//        String testPassword = "aa1234";     // 在短信宝注册的密码
+        String testUsername = "niutong"; // 在短信宝注册的用户名
+        String testPassword = "Niutong123";     // 在短信宝注册的密码
         int mobileCode = (int) ((Math.random() * 9 + 1) * 100000);
 
         String content = "【马戏团】您的验证码是：" + mobileCode + "。请不要把验证码泄露给其他人。";
