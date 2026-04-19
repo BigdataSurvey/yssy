@@ -1424,6 +1424,7 @@ public class PbxService extends BaseService {
             }
 
             // 13) 成功
+            settleResp = ensureSettleRespHasUserList(stableSnap, resultElements, resultType, settleResp, poolBalance);
             handleSettleSuccess(stableSnap, resultElements, resultType, poolBalance, serverTime, settleResp);
 
         } catch (Exception e) {
@@ -1638,9 +1639,127 @@ public class PbxService extends BaseService {
         });
     }
 
-    /**
-     * 处理结算成功后的数据更新与广播（赢家/输家都落库 profit）
-     */
+    private JSONObject ensureSettleRespHasUserList(PeriodSnapshot snapshot,
+                                                   JSONArray resultElements,
+                                                   String resultType,
+                                                   JSONObject settleResp,
+                                                   BigDecimal poolBalance) {
+
+        if (settleResp == null || !settleResp.getBooleanValue("success")) {
+            return settleResp;
+        }
+
+        JSONArray userList = settleResp.getJSONArray("userList");
+        if (userList != null) {
+            return settleResp;
+        }
+
+        OutcomePick pick = rebuildOutcomePick(resultElements, resultType);
+        if (pick == null) {
+            return settleResp;
+        }
+
+        JSONArray rebuiltUserList = new JSONArray();
+        BigDecimal totalReturn = BigDecimal.ZERO;
+        BigDecimal totalFee = BigDecimal.ZERO;
+        BigDecimal totalNet = BigDecimal.ZERO;
+
+        if (snapshot != null && snapshot.userElementBet != null) {
+            for (Map.Entry<String, ConcurrentHashMap<Integer, BigDecimal>> e : snapshot.userElementBet.entrySet()) {
+                String userId = e.getKey();
+                BigDecimal gross = calcUserGross(e.getValue(), pick);
+                if (gross == null || gross.compareTo(BigDecimal.ZERO) <= 0) {
+                    continue;
+                }
+
+                gross = gross.setScale(2, RoundingMode.HALF_UP);
+                BigDecimal fee = gross.multiply(FEE_RATE).setScale(2, RoundingMode.HALF_UP);
+                BigDecimal net = gross.subtract(fee).setScale(2, RoundingMode.HALF_UP);
+
+                JSONObject one = new JSONObject();
+                one.put("userId", userId);
+                one.put("returnAmount", gross);
+                one.put("fee", fee);
+                one.put("net", net);
+                rebuiltUserList.add(one);
+
+                totalReturn = totalReturn.add(gross);
+                totalFee = totalFee.add(fee);
+                totalNet = totalNet.add(net);
+            }
+        }
+
+        if (rebuiltUserList.isEmpty()) {
+            return settleResp;
+        }
+
+        JSONObject fixed = JSON.parseObject(settleResp.toJSONString());
+        fixed.put("success", true);
+        fixed.put("message", settleResp.getString("message"));
+        fixed.put("userList", rebuiltUserList);
+        fixed.put("totalReturnAmount", totalReturn.setScale(2, RoundingMode.HALF_UP));
+        fixed.put("totalFee", totalFee.setScale(2, RoundingMode.HALF_UP));
+        fixed.put("totalNet", totalNet.setScale(2, RoundingMode.HALF_UP));
+        if (fixed.getBigDecimal("poolBalance") == null && poolBalance != null) {
+            fixed.put("poolBalance", poolBalance);
+        }
+
+        log.warn("[PBX] settleResp missing userList, rebuilt from snapshot. periodNo="
+                + (snapshot == null ? "null" : snapshot.periodNo)
+                + ", resultType=" + resultType
+                + ", rebuiltWinnerCount=" + rebuiltUserList.size()
+                + ", originalMessage=" + settleResp.getString("message"));
+        return fixed;
+    }
+
+    private OutcomePick rebuildOutcomePick(JSONArray resultElements, String resultType) {
+        if (resultElements == null || resultElements.size() != 3 || isBlank(resultType)) {
+            return null;
+        }
+
+        List<Integer> list = new ArrayList<>(3);
+        for (int i = 0; i < resultElements.size(); i++) {
+            Integer v = resultElements.getInteger(i);
+            if (v == null) {
+                return null;
+            }
+            list.add(v);
+        }
+
+        if ("TRIPLE".equals(resultType)) {
+            Integer winElement = list.get(0);
+            return new OutcomePick(resultElements, resultType, false, winElement, null, MULT_TRIPLE);
+        }
+
+        if ("DOUBLE".equals(resultType)) {
+            Map<Integer, Integer> counter = new HashMap<>();
+            for (Integer v : list) {
+                counter.put(v, counter.getOrDefault(v, 0) + 1);
+            }
+            Integer winElement = null;
+            for (Map.Entry<Integer, Integer> e : counter.entrySet()) {
+                if (e.getValue() != null && e.getValue() == 2) {
+                    winElement = e.getKey();
+                    break;
+                }
+            }
+            if (winElement == null) {
+                return null;
+            }
+            return new OutcomePick(resultElements, resultType, false, winElement, null, MULT_DOUBLE);
+        }
+
+        if ("ALL_DIFF".equals(resultType)) {
+            Set<Integer> winElements = new LinkedHashSet<>(list);
+            if (winElements.size() != 3) {
+                return null;
+            }
+            return new OutcomePick(resultElements, resultType, false, null, winElements, MULT_ALL_DIFF);
+        }
+
+        return null;
+    }
+
     /**
      * 处理结算成功后的数据更新与广播（赢家/输家都落库 profit）
      * ✅关键修复：

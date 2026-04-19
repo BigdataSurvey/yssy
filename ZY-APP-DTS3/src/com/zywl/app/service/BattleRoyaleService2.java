@@ -831,76 +831,35 @@ public class BattleRoyaleService2 extends BaseService {
         } else if (ROOM.getStatus() == LotteryGameStatusEnum.settle.getValue()) {
             long debugStartTime = System.currentTimeMillis();
             String debugPeriod = ROOM.getPeridosNum(); // 获取当前期号用于日志追踪
+            List<Integer> killList = new ArrayList<>();
             logger.info(String.format("[DTS3 Debug] [%s] 1. 进入结算分支, 当前线程: %s", debugPeriod,
                     Thread.currentThread().getName()));
 
-            List<Integer> killList = battleRoyaleService2.draw();
-            ROOM.setResult(killList);
-            ROOM.setLastResult(killList.toString());
+            int status = ROOM.getStatus();
+            ConcurrentHashMap<String, Map<String, String>> userBetOrderInfo = ROOM.getUserBetOrderInfo();
+            data.put("status", status);
+            data.put("userSettleInfo", userBetOrderInfo);
+            try {
+                killList = battleRoyaleService2.draw();
+                ROOM.setResult(killList);
+                ROOM.setLastResult(killList.toString());
 
-            logger.info(String.format("[DTS3 Debug] [%s] 2. 准备执行 settle 数据库事务...", debugPeriod));
-            battleRoyaleService2.settle(killList, lotteryCommand);
-            logger.info(String.format("[DTS3 Debug] [%s] 3. settle 事务执行完毕, 耗时: %d ms", debugPeriod,
-                    (System.currentTimeMillis() - debugStartTime)));
+                logger.info(String.format("[DTS3 Debug] [%s] 2. 准备执行 settle 数据库事务...", debugPeriod));
+                battleRoyaleService2.settle(killList, lotteryCommand);
+                logger.info(String.format("[DTS3 Debug] [%s] 3. settle 事务执行完毕, 耗时: %d ms", debugPeriod,
+                        (System.currentTimeMillis() - debugStartTime)));
+            } catch (Exception e) {
+                logger.error(String.format("[DTS3 Debug] [%s] 结算分支异常，仍将继续执行状态切换保护", debugPeriod), e);
+            }
 
             // 记录本局结算完成时间，后续用于拦截下注/机器人
             ROOM.setReadyTime(System.currentTimeMillis());
 
-            int status = ROOM.getStatus();
-            ConcurrentHashMap<String, Map<String, String>> userBetOrderInfo = ROOM.getUserBetOrderInfo();
             data.put("roomId", killList);
-            data.put("status", status);
             data.putAll(ROOM.getSettleDate());
-            data.put("userSettleInfo", userBetOrderInfo);
 
             logger.info(String.format("[DTS3 Debug] [%s] 4. 准备注册 runAfterCommit 回调...", debugPeriod));
-
-            runAfterCommit(() -> {
-                logger.info(String.format("[DTS3 Debug] [%s] 5. 准备真正推送状态 3", debugPeriod));
-                // 确保事务彻底提交后，【第一步】把状态 3 推送到发送队列
-                Push.push(PushCode.updateDts2Status, null, data);
-                long taskVersion = SETTLE_TASK_VERSION.incrementAndGet();
-                logger.info(String.format("[DTS3 Debug] [%s] 6. 已创建延迟任务, taskVersion=%d, delay=2000ms", debugPeriod,
-                        taskVersion));
-
-                // 【第二步】使用专用单线程调度器，避免线程池串扰和历史任务覆盖当前状态
-                SETTLE_TRANSITION_EXECUTOR.schedule(() -> {
-                    try {
-                        if (taskVersion != SETTLE_TASK_VERSION.get()) {
-                            logger.info(String.format("[DTS3 Debug] [%s] 7. 跳过过期延迟任务, taskVersion=%d, latest=%d",
-                                    debugPeriod, taskVersion, SETTLE_TASK_VERSION.get()));
-                            return;
-                        }
-                        if (ROOM.getStatus() != LotteryGameStatusEnum.settle.getValue()) {
-                            logger.info(String.format("[DTS3 Debug] [%s] 7. 当前状态已非结算态(status=%d), 忽略切换任务",
-                                    debugPeriod, ROOM.getStatus()));
-                            return;
-                        }
-                        if (!Objects.equals(debugPeriod, ROOM.getPeridosNum())) {
-                            logger.info(String.format("[DTS3 Debug] [%s] 7. 当前期号已变化(new=%s), 忽略切换任务",
-                                    debugPeriod, ROOM.getPeridosNum()));
-                            return;
-                        }
-
-                        logger.info(String.format("[DTS3 Debug] [%s] 7. 延迟结束，准备清理房间并切回 gaming 状态...",
-                                debugPeriod));
-
-                        // 延迟结束后，清理房间数据并重置时间
-                        ROOM.initRoomInfo();
-                        initHistoryResult();
-                        initRealMoney();
-                        ROOM.setBeginTime(System.currentTimeMillis());
-                        ROOM.setEndTime(DateUtil.getTimeByM(TIME));
-
-                        // 【第三步】正式切入下一局游戏状态 (2)
-                        changeRoomStatus(LotteryGameStatusEnum.gaming.getValue(), lotteryCommand);
-                        logger.info(String.format("[DTS3 Debug] [%s] 8. changeRoomStatus(2) 调用完毕.", debugPeriod));
-                    } catch (Exception e) {
-                        logger.error(String.format("[DTS3 Debug] [%s] 延迟切换任务异常, taskVersion=%d", debugPeriod,
-                                taskVersion), e);
-                    }
-                }, 2, TimeUnit.SECONDS);
-            });
+            scheduleSettleTransition(debugPeriod, lotteryCommand, data);
         }
     }
 
@@ -1021,7 +980,7 @@ public class BattleRoyaleService2 extends BaseService {
             JSONObject record = new JSONObject();
             record.put("winAmount", ROOM.getUserBetOrderInfo().get(uid).get("winAmount"));
             record.put("lotteryResult", result);
-            BigDecimal betAmount = map.get(uid);
+            BigDecimal betAmount = resolveBetAmount(uid, map);
             record.put("betAmount", betAmount);
             record.put("betInfo", ROOM.getUserCheckNum().get(uid));
             record.put("isWin", ROOM.getUserBetOrderInfo().get(uid).get("isWin"));
@@ -1067,6 +1026,64 @@ public class BattleRoyaleService2 extends BaseService {
                                     .build());
                 }
             }
+        });
+    }
+
+    private BigDecimal resolveBetAmount(String userId, Map<String, BigDecimal> amountMap) {
+        BigDecimal betAmount = amountMap.get(userId);
+        if (betAmount != null) {
+            return betAmount;
+        }
+        Map<String, BigDecimal> userBetInfo = ROOM.getUserBetInfo().get(userId);
+        if (userBetInfo != null && !userBetInfo.isEmpty()) {
+            return userBetInfo.values().iterator().next();
+        }
+        logger.error("[DTS3 Debug] 结算补偿 betAmount 失败，userId=" + userId + "，按 0 处理");
+        return BigDecimal.ZERO;
+    }
+
+    private void scheduleSettleTransition(String debugPeriod, Command lotteryCommand, JSONObject data) {
+        runAfterCommit(() -> {
+            logger.info(String.format("[DTS3 Debug] [%s] 5. 准备真正推送状态 3", debugPeriod));
+            Push.push(PushCode.updateDts2Status, null, data);
+            long taskVersion = SETTLE_TASK_VERSION.incrementAndGet();
+            logger.info(String.format("[DTS3 Debug] [%s] 6. 已创建延迟任务, taskVersion=%d, delay=2000ms", debugPeriod,
+                    taskVersion));
+
+            SETTLE_TRANSITION_EXECUTOR.schedule(() -> {
+                try {
+                    if (taskVersion != SETTLE_TASK_VERSION.get()) {
+                        logger.info(String.format("[DTS3 Debug] [%s] 7. 跳过过期延迟任务, taskVersion=%d, latest=%d",
+                                debugPeriod, taskVersion, SETTLE_TASK_VERSION.get()));
+                        return;
+                    }
+                    if (ROOM.getStatus() != LotteryGameStatusEnum.settle.getValue()) {
+                        logger.info(String.format("[DTS3 Debug] [%s] 7. 当前状态已非结算态(status=%d), 忽略切换任务",
+                                debugPeriod, ROOM.getStatus()));
+                        return;
+                    }
+                    if (!Objects.equals(debugPeriod, ROOM.getPeridosNum())) {
+                        logger.info(String.format("[DTS3 Debug] [%s] 7. 当前期号已变化(new=%s), 忽略切换任务",
+                                debugPeriod, ROOM.getPeridosNum()));
+                        return;
+                    }
+
+                    logger.info(String.format("[DTS3 Debug] [%s] 7. 延迟结束，准备清理房间并切回 gaming 状态...",
+                            debugPeriod));
+
+                    ROOM.initRoomInfo();
+                    initHistoryResult();
+                    initRealMoney();
+                    ROOM.setBeginTime(System.currentTimeMillis());
+                    ROOM.setEndTime(DateUtil.getTimeByM(TIME));
+
+                    changeRoomStatus(LotteryGameStatusEnum.gaming.getValue(), lotteryCommand);
+                    logger.info(String.format("[DTS3 Debug] [%s] 8. changeRoomStatus(2) 调用完毕.", debugPeriod));
+                } catch (Exception e) {
+                    logger.error(String.format("[DTS3 Debug] [%s] 延迟切换任务异常, taskVersion=%d", debugPeriod,
+                            taskVersion), e);
+                }
+            }, 2, TimeUnit.SECONDS);
         });
     }
 
@@ -1285,7 +1302,17 @@ public class BattleRoyaleService2 extends BaseService {
     public List<Integer> draw() {
         // 先开奖
         List<Integer> killList;
-        killList = getKillList(getResultCount());
+
+        int resultCount = getResultCount();
+
+        // 只在结算结果层做强制收口：严格限制为 3~8 杀
+        if (resultCount < 3) {
+            resultCount = 3;
+        } else if (resultCount > 8) {
+            resultCount = 8;
+        }
+
+        killList = getKillList(resultCount);
 
         gameLotteryResultService.drawLottery(1L, ROOM.getPeridosNum() == null ? "1" : ROOM.getPeridosNum(),
                 String.valueOf(killList), ROOM.getAllBetAmount(), BigDecimal.ZERO, BigDecimal.ONE, ROOM.getBetNum(), 0,

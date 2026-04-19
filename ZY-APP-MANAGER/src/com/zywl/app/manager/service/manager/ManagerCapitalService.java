@@ -628,14 +628,30 @@ public class ManagerCapitalService extends BaseService {
         // 参数解析
         String gameId = data.getString("gameId");
         String periodNo = data.getString("periodNo");
-
-        // 防止重复派奖
         String settleKey = "game:pbx:period:" + periodNo + ":settled";
+        String settleResultKey = "game:pbx:period:" + periodNo + ":settleResp";
+
+        // 防止重复派奖：若已结算，优先返回完整缓存结果，避免下游把 success=true 误当成“无人中奖”
         String settled = gameCacheService.get(settleKey);
         if (StringUtils.isNotBlank(settled)) {
+            String settleRespJson = gameCacheService.get(settleResultKey);
+            if (StringUtils.isNotBlank(settleRespJson)) {
+                try {
+                    JSONObject cached = JSON.parseObject(settleRespJson);
+                    if (cached != null) {
+                        cached.put("success", true);
+                        cached.put("message", "period already settled");
+                        return cached;
+                    }
+                } catch (Exception e) {
+                    throwExp("[PBX] parse cached settleResp error, periodNo=" + periodNo);
+                }
+            }
             JSONObject resp = new JSONObject();
             resp.put("success", true);
             resp.put("message", "period already settled");
+            resp.put("gameId", gameId);
+            resp.put("periodNo", periodNo);
             return resp;
         }
 
@@ -726,7 +742,7 @@ public class ManagerCapitalService extends BaseService {
             empty.put("poolBalance", poolBalance);
             empty.put("userList", new JSONArray());
 
-            // 标记已结算
+            gameCacheService.set(settleResultKey, empty.toJSONString(), 86400 * 2);
             gameCacheService.set(settleKey, "1", 86400 * 2);
             return empty;
         }
@@ -735,9 +751,26 @@ public class ManagerCapitalService extends BaseService {
 
         // 奖池扣款与入账
         synchronized (LockUtil.getlock("pbx_pool_" + week)) {
-            // 二次检查幂等
+            // 二次检查幂等：锁内也优先回放完整缓存结果
             if (StringUtils.isNotBlank(gameCacheService.get(settleKey))) {
-                return new JSONObject().fluentPut("success", true);
+                String settleRespJson = gameCacheService.get(settleResultKey);
+                if (StringUtils.isNotBlank(settleRespJson)) {
+                    try {
+                        JSONObject cached = JSON.parseObject(settleRespJson);
+                        if (cached != null) {
+                            cached.put("success", true);
+                            cached.put("message", "period already settled");
+                            return cached;
+                        }
+                    } catch (Exception e) {
+                        throwExp("[PBX] parse cached settleResp in lock error, periodNo=" + periodNo);
+                    }
+                }
+                return new JSONObject()
+                        .fluentPut("success", true)
+                        .fluentPut("message", "period already settled")
+                        .fluentPut("gameId", gameId)
+                        .fluentPut("periodNo", periodNo);
             }
 
             String poolCentsStr = gameCacheService.get(poolKey);
@@ -771,9 +804,6 @@ public class ManagerCapitalService extends BaseService {
                 batch.put(String.valueOf(n.getLong("userId")), one);
             }
             userCapitalService.betUpdateBalance2(batch, capitalType);
-
-            // 标记已结算
-            gameCacheService.set(settleKey, "1", 86400 * 2);
 
             // 推送与回包
             JSONArray userResult = new JSONArray();
@@ -834,6 +864,9 @@ public class ManagerCapitalService extends BaseService {
             result.put("totalNet", totalNet.setScale(2, java.math.RoundingMode.HALF_UP));
             result.put("poolBalance", poolBalance);
             result.put("userList", userResult);
+
+            gameCacheService.set(settleResultKey, result.toJSONString(), 86400 * 2);
+            gameCacheService.set(settleKey, "1", 86400 * 2);
             return result;
         }
     }
