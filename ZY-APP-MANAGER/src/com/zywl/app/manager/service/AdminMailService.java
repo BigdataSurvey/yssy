@@ -162,12 +162,49 @@ public class AdminMailService extends BaseService {
         }
 
         Long count = mailService.count("countByConditions", condition);
-        List<CashRecord> recrods = mailService.findByConditions(condition);
+        List<Mail> records = mailService.findByConditions(condition);
+
+        JSONArray array = new JSONArray();
+        for (Mail mail : records) {
+            JSONObject obj = (JSONObject) JSON.toJSON(mail);
+            obj.put("fromUserName", mail.getFromUserName() == null ? "" : mail.getFromUserName());
+            obj.put("toUserName", mail.getToUserName() == null ? "" : mail.getToUserName());
+            array.add(obj);
+        }
 
         JSONObject data = new JSONObject();
-        data.put("list", recrods);
+        data.put("list", array);
         data.put("count", count);
         return data;
+    }
+
+    @ServiceMethod(code = "004", description = "查询用户(发送邮件前验证)")
+    public Object searchUserForMail(AdminSocketServer adminSocketServer, Command webCommand, JSONObject params) {
+        checkNull(params);
+        Long userId = params.getLong("userId");
+        String userNo = params.getString("userNo");
+
+        logger().info("[查询用户] userId=" + userId + ", userNo=" + userNo);
+
+        User user = null;
+        if (userId != null && userId > 0) {
+            user = userCacheService.getUserInfoById(userId);
+            logger().info("[查询用户] 按userId查询结果: " + (user != null ? "找到, id=" + user.getId() + ", name=" + user.getName() : "未找到"));
+        }
+        if (user == null && userNo != null && !userNo.trim().isEmpty()) {
+            user = userCacheService.getUserInfoByUserNo(userNo.trim());
+            logger().info("[查询用户] 按userNo查询结果: " + (user != null ? "找到, id=" + user.getId() + ", name=" + user.getName() : "未找到"));
+        }
+        if (user == null) {
+            logger().warn("[查询用户] 两种查询均未找到用户");
+            return null;
+        }
+        JSONObject result = new JSONObject();
+        result.put("id", user.getId());
+        result.put("userNo", user.getUserNo());
+        result.put("name", user.getName());
+        result.put("headImageUrl", user.getHeadImageUrl());
+        return result;
     }
 
     @ServiceMethod(code = "002", description = "发送邮件")
@@ -182,11 +219,11 @@ public class AdminMailService extends BaseService {
         JSONArray itemArr = (JSONArray) params.get("itemArr");
 
         JSONArray detailArr = new JSONArray();
-        JSONObject detail = new JSONObject();
         for (int i = 0; i < itemArr.size(); i++) {
             JSONObject item = JSONObject.from(itemArr.get(i));
             int itemId = item.getIntValue("itemId");
             BigDecimal itemNum = item.getBigDecimal("itemNum");
+            JSONObject detail = new JSONObject();
             detail.put("type", 1);
             detail.put("id", itemId);
             detail.put("number", itemNum);
@@ -214,17 +251,29 @@ public class AdminMailService extends BaseService {
             mail.setAttachmentsDetails(detailArr);
             mail.setStatus(1);
             mail.setIsRead(0);
-            int n = mailService.save(mail);
+            mailService.save(mail);
             return new JSONObject();
         }
-        for (
-                Object o : userIdArr) {
-            String toId = o.toString();
-            Mail mail = new Mail();
-            User toUser = userCacheService.getUserInfoByUserNo(toId);
+
+        JSONArray successUsers = new JSONArray();
+        JSONArray failedUsers = new JSONArray();
+        for (Object o : userIdArr) {
+            String toIdStr = o.toString().trim();
+            User toUser = null;
+            try {
+                long toId = Long.parseLong(toIdStr);
+                if (toId > 0) {
+                    toUser = userCacheService.getUserInfoById(toId);
+                }
+            } catch (NumberFormatException ignored) {}
             if (toUser == null) {
+                toUser = userCacheService.getUserInfoByUserNo(toIdStr);
+            }
+            if (toUser == null) {
+                failedUsers.add(toIdStr);
                 continue;
             }
+            Mail mail = new Mail();
             mail.setFromUserId(-1L);
             mail.setToUserId(toUser.getId());
             mail.setFromUserNo("");
@@ -242,8 +291,14 @@ public class AdminMailService extends BaseService {
             mail.setAttachmentsDetails(detailArr);
             mail.setStatus(1);
             mail.setIsRead(0);
-            int n = mailService.save(mail);
+            mailService.save(mail);
+            successUsers.add(toUser.getUserNo());
         }
+
+        JSONObject result = new JSONObject();
+        result.put("successCount", successUsers.size());
+        result.put("failedCount", failedUsers.size());
+        result.put("failedUsers", failedUsers);
 
         JSONObject content = new JSONObject();
         content.put("userIdArr", userIdArr);
@@ -254,7 +309,7 @@ public class AdminMailService extends BaseService {
         if (adminSocketServer != null) {
             adminLogService.addAdminLog(adminSocketServer.getAdmin(), "sendMail", content);
         }
-        return new JSONObject();
+        return result;
     }
 
     @ServiceMethod(code = "003", description = "获取道具列表")
@@ -262,12 +317,13 @@ public class AdminMailService extends BaseService {
         Collection<Item> items = PlayGameService.itemMap.values();
         JSONArray data = new JSONArray();
         for (Item item : items) {
-            JSONObject obj = new JSONObject();
-            obj.put("itemName", item.getName());
-            obj.put("itemId", item.getId());
-            data.add(obj);
+            if (item.getId() != null && item.getId() >= 1000) {
+                JSONObject obj = new JSONObject();
+                obj.put("itemName", item.getName());
+                obj.put("itemId", item.getId());
+                data.add(obj);
+            }
         }
-
         return data;
     }
 
@@ -606,7 +662,7 @@ public class AdminMailService extends BaseService {
         }
         JSONObject delObj = new JSONObject();
         delObj.put("id", member.getId());
-        guildMemberService.delete(delObj);
+        guildMemberService.delete(new HashMap<>(delObj));
         guildCacheService.removeMember(userId);
 
         long guildId = member.getGuildId();
@@ -634,13 +690,13 @@ public class AdminMailService extends BaseService {
             userService.updateUserRoleId(member.getUserId(), 1);
             JSONObject delParam = new JSONObject();
             delParam.put("id", member.getId());
-            guildMemberService.delete(delParam);
+            guildMemberService.delete(new HashMap<>(delParam));
             guildCacheService.removeMember(member.getUserId());
         }
 
         JSONObject delParam = new JSONObject();
         delParam.put("id", guild.getId());
-        guildService.delete(delParam);
+        guildService.delete(new HashMap<>(delParam));
         guildCacheService.removeGuilds();
 
         JSONObject content = new JSONObject();
@@ -652,29 +708,38 @@ public class AdminMailService extends BaseService {
     @ServiceMethod(code = "030", description = "查询货币日志")
     public Object searchTreasureLog(AdminSocketServer adminSocketServer, Command webCommand, JSONObject params) {
         checkNull(params);
+
         int page = params.getIntValue("page", 1);
         if (page <= 0) {
             page = 1;
         }
+
         int limit = params.getIntValue("limit", 10);
+        if (limit <= 0) {
+            limit = 10;
+        }
+        if (limit > 100) {
+            limit = 100;
+        }
+
         long userId = params.getLongValue("userId", 0);
         String userNo = params.getString("userNo");
         String userName = params.getString("userName");
 
         User user = findUser(userId, userNo, userName);
 
-        Integer start = (page - 1) * limit;
-        Integer end = page * limit;
+        int start = (page - 1) * limit;
+
         JSONObject condition = new JSONObject();
         condition.put("start", start);
         condition.put("limit", limit);
 
-        if (user != null) {
-            condition.put("tableName", LogUserCapital.tablePrefix + user.getId().toString().charAt(user.getId().toString().length() - 1));
+        int tableIndex = 0;
+        if (user != null && user.getId() != null) {
+            tableIndex = (int) (user.getId() % 10);
             condition.put("userId", user.getId());
-        } else {
-            condition.put("tableName", LogUserCapital.tablePrefix + 0);
         }
+        condition.put("tableName", LogUserCapital.tablePrefix + tableIndex);
 
         long count = logUserCapitalService.count("dbCountByConditions", condition);
         List<LogUserCapital> list = logUserCapitalService.findList("dbFindByConditions", condition);
@@ -696,29 +761,38 @@ public class AdminMailService extends BaseService {
     @ServiceMethod(code = "040", description = "查询背包日志")
     public Object searchBackpackLog(AdminSocketServer adminSocketServer, Command webCommand, JSONObject params) {
         checkNull(params);
+
         int page = params.getIntValue("page", 1);
         if (page <= 0) {
             page = 1;
         }
+
         int limit = params.getIntValue("limit", 10);
+        if (limit <= 0) {
+            limit = 10;
+        }
+        if (limit > 100) {
+            limit = 100;
+        }
+
         long userId = params.getLongValue("userId", 0);
         String userNo = params.getString("userNo");
         String userName = params.getString("userName");
 
         User user = findUser(userId, userNo, userName);
 
-        Integer start = (page - 1) * limit;
-        Integer end = page * limit;
+        int start = (page - 1) * limit;
+
         JSONObject condition = new JSONObject();
         condition.put("start", start);
         condition.put("limit", limit);
 
-        if (user != null) {
-            condition.put("tableName", LogUserBackpack.tablePrefix + user.getId().toString().charAt(user.getId().toString().length() - 1));
+        int tableIndex = 0;
+        if (user != null && user.getId() != null) {
+            tableIndex = (int) (user.getId() % 10);
             condition.put("userId", user.getId());
-        } else {
-            condition.put("tableName", LogUserBackpack.tablePrefix + 0);
         }
+        condition.put("tableName", LogUserBackpack.tablePrefix + tableIndex);
 
         long count = logUserBackpackService.count("dbCountByConditions", condition);
         List<LogUserBackpack> list = logUserBackpackService.findList("dbFindByConditions", condition);
@@ -729,7 +803,7 @@ public class AdminMailService extends BaseService {
             User user1 = userCacheService.getUserInfoById(logUserBackpack.getUserId());
             obj.put("userName", user1 == null ? "" : user1.getName());
             Item item = itemCacheService.getItemInfoById(logUserBackpack.getItemId());
-            obj.put("itemName", item.getName());
+            obj.put("itemName", item == null ? "" : item.getName());
             array.add(obj);
         }
 
@@ -755,31 +829,61 @@ public class AdminMailService extends BaseService {
 
         Integer start = (page - 1) * limit;
         Integer end = page * limit;
-        Map<String, Object> condition = new HashMap<>();
-        condition.put("start", start);
-        condition.put("limit", limit);
-
-        if (user != null) {
-            condition.put("tableName", Backpack.tablePrefix + user.getId().toString().charAt(user.getId().toString().length() - 1));
-            condition.put("userId", user.getId());
-        } else {
-            condition.put("tableName", Backpack.tablePrefix + 0);
-        }
-
-        long count = backpackService.count("dbCountByConditions", condition);
-        List<Backpack> list = backpackService.findList("dbFindByConditions", condition);
 
         JSONArray array = new JSONArray();
-        for (Backpack backpack : list) {
-            JSONObject obj = (JSONObject) JSON.toJSON(backpack);
-            User user1 = userCacheService.getUserInfoById(backpack.getUserId());
-            obj.put("userName", user1 == null ? "" : user1.getName());
-            array.add(obj);
+        long totalCount = 0;
+
+        if (user != null) {
+            Map<String, Object> condition = new HashMap<>();
+            condition.put("start", start);
+            condition.put("limit", limit);
+            condition.put("tableName", Backpack.tablePrefix + user.getId().toString().charAt(user.getId().toString().length() - 1));
+            condition.put("userId", user.getId());
+
+            long count = backpackService.count("dbCountByConditions", condition);
+            List<Backpack> list = backpackService.findList("dbFindByConditions", condition);
+            for (Backpack backpack : list) {
+                JSONObject obj = (JSONObject) JSON.toJSON(backpack);
+                obj.put("userName", user.getName());
+                Item item = itemCacheService.getItemInfoById(backpack.getItemId());
+                obj.put("itemName", item == null ? "" : item.getName());
+                array.add(obj);
+            }
+            totalCount = count;
+        } else {
+            for (int i = 0; i < 10; i++) {
+                Map<String, Object> condition = new HashMap<>();
+                condition.put("tableName", Backpack.tablePrefix + i);
+
+                long count = backpackService.count("dbCountByConditions", condition);
+                totalCount += count;
+            }
+
+            for (int i = 0; i < 10; i++) {
+                Map<String, Object> condition = new HashMap<>();
+                condition.put("start", start);
+                condition.put("limit", limit);
+                condition.put("tableName", Backpack.tablePrefix + i);
+
+                List<Backpack> list = backpackService.findList("dbFindByConditions", condition);
+                for (Backpack backpack : list) {
+                    JSONObject obj = (JSONObject) JSON.toJSON(backpack);
+                    User user1 = userCacheService.getUserInfoById(backpack.getUserId());
+                    obj.put("userName", user1 == null ? "" : user1.getName());
+                    Item item = itemCacheService.getItemInfoById(backpack.getItemId());
+                    obj.put("itemName", item == null ? "" : item.getName());
+                    array.add(obj);
+                }
+            }
+
+            if (array.size() > limit) {
+                array = new JSONArray(array.subList(0, limit));
+            }
         }
 
         JSONObject data = new JSONObject();
         data.put("list", array);
-        data.put("count", count);
+        data.put("count", totalCount);
         return data;
     }
 
@@ -798,10 +902,14 @@ public class AdminMailService extends BaseService {
         User user = findUser(userId, userNo, userName);
 
         Integer start = (page - 1) * limit;
-        Integer end = page * limit;
         Map<String, Object> condition = new HashMap<>();
         condition.put("start", start);
         condition.put("limit", limit);
+        condition.put("capitalTypes", Arrays.asList(
+                UserCapitalTypeEnum.hxjf.getValue(),
+                UserCapitalTypeEnum.xxxhhb.getValue(),
+                UserCapitalTypeEnum.ejjf.getValue()
+        ));
 
         if (user != null) {
             condition.put("userId", user.getId());
@@ -815,6 +923,7 @@ public class AdminMailService extends BaseService {
             JSONObject obj = (JSONObject) JSON.toJSON(userCapital);
             User user1 = userCacheService.getUserInfoById(userCapital.getUserId());
             obj.put("userName", user1 == null ? "" : user1.getName());
+            obj.put("userNo", user1 == null ? "" : user1.getUserNo());
             array.add(obj);
         }
 
@@ -926,19 +1035,25 @@ public class AdminMailService extends BaseService {
     @ServiceMethod(code = "071", description = "封号解封")
     public Object banLogin(AdminSocketServer adminSocketServer, Command webCommand, JSONObject params) {
         checkNull(params);
-        checkNull(params.get("operation"), params.get("id"));
-        checkAuth(adminSocketServer);
+        if (adminSocketServer == null || adminSocketServer.getAdmin() == null) {
+            throwExp("登录状态失效，请重新登录");
+        }
 
-        long userId = params.getLongValue("id", -1);
-        int status = params.getIntValue("operation", -1);//0禁登录 1解登录 2禁功能 3解功能
+        long userId = params.getLongValue("id", params.getLongValue("userId", -1));
+        int status = params.containsKey("operation")
+                ? params.getIntValue("operation", -1)
+                : params.getIntValue("status", -1);//0禁登录 1解登录 2禁功能 3解功能
         String mark = params.getString("mark");
         Admin admin = adminSocketServer.getAdmin();
         return banUser(userId, status, mark, admin);
     }
 
     public Object banUser(Long userId, int status, String mark, Admin admin) {
-        if (userId < 0 || status < 0 || status > 3 || mark == null) {
+        if (userId < 0 || status < 0 || status > 3) {
             throwExp("参数错误");
+        }
+        if (mark == null || mark.trim().isEmpty()) {
+            mark = "后台封禁操作";
         }
 
         User user = userService.findByIdAllStatus(userId);
@@ -991,7 +1106,8 @@ public class AdminMailService extends BaseService {
         String userName = params.getString("userName");
 
         Integer start = (page - 1) * limit;
-        JSONObject condition = new JSONObject();
+
+        Map<String, Object> condition = new HashMap<>();
         condition.put("start", start);
         condition.put("limit", limit);
 
@@ -1005,8 +1121,6 @@ public class AdminMailService extends BaseService {
             condition.put("userName", userName);
         }
 
-        //记录封号或者解封原因
-        Admin admin = adminSocketServer.getAdmin();
         long count = userBanRecordService.count("countByConditions", condition);
         List<UserBanRecord> records = userBanRecordService.findByConditions(condition);
 
@@ -1386,8 +1500,9 @@ public class AdminMailService extends BaseService {
             obj.put("online", managerSocketService.getUserOnlineInfo(user.getId().toString()) != null);
             if (user.getParentId() != null) {
                 User parent = userCacheService.getUserInfoById(user.getParentId());
-                obj.put("parentNo", parent.getUserNo());
+                obj.put("parentNo", parent == null ? "" : parent.getUserNo());
             } else {
+                obj.put("parentNo", "");
             }
             obj.remove("password");
             for (int i = 1; i <= 3; i++) {
@@ -1500,24 +1615,47 @@ public class AdminMailService extends BaseService {
     public Object getAdminLog(AdminSocketServer adminSocketServer, Command webCommand, JSONObject params) {
         checkNull(params);
         checkAuth(adminSocketServer);
+
         int page = params.getIntValue("page", 1);
         if (page <= 0) {
             page = 1;
         }
-        int limit = params.getIntValue("limit", 10);
 
-        Integer start = (page - 1) * limit;
-        Integer end = page * limit;
-        JSONObject condition = new JSONObject();
+        int limit = params.getIntValue("limit", 10);
+        if (limit <= 0) {
+            limit = 10;
+        }
+        if (limit > 100) {
+            limit = 100;
+        }
+
+        int start = (page - 1) * limit;
+
+        Map<String, Object> condition = new HashMap<>(8);
         condition.put("start", start);
         condition.put("limit", limit);
 
+        String adminName = params.getString("adminName");
+        if (adminName != null && !adminName.trim().isEmpty()) {
+            condition.put("adminName", adminName.trim());
+        }
+
+        String adminAccount = params.getString("adminAccount");
+        if (adminAccount != null && !adminAccount.trim().isEmpty()) {
+            condition.put("adminAccount", adminAccount.trim());
+        }
+
         long count = adminLogService.count("countByConditions", condition);
-        List<AdminLog> list = adminLogService.findList("findByConditions", condition);
+        List<AdminLog> list = Collections.emptyList();
+        if (count > 0) {
+            list = adminLogService.findList("findByConditions", condition);
+        }
 
         JSONObject data = new JSONObject();
         data.put("list", list);
         data.put("count", count);
+        data.put("page", page);
+        data.put("limit", limit);
         return data;
     }
 

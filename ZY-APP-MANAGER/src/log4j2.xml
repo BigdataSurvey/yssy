@@ -3,7 +3,7 @@
 
 	<Properties>
 		<!-- 日志文件存放路径 -->
-		<Property name="LOG_HOME">/data/logs/manager8001</Property>
+		<Property name="LOG_HOME">E:/Work/NIU/logs/manager8001</Property>
 		<!-- 应用名称 -->
 		<Property name="SERVER_NAME">manager</Property>
 	</Properties>

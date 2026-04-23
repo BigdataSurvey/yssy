@@ -38,11 +38,11 @@
                #{sourceType},
                #{createTime},
                #{updateTime}
-               
+
 		)
 	</insert>
-	
-	<insert id="batchInsert" parameterType="java.util.List">   
+
+	<insert id="batchInsert" parameterType="java.util.List">
 	 insert into ${tableName} (
                log_type,
                user_id,
@@ -59,10 +59,10 @@
                source_type,
                create_time,
                update_time
-		) 
-		values  
-		
-	   <foreach collection="list" item="item" separator=",">    
+		)
+		values
+
+	   <foreach collection="list" item="item" separator=",">
 	      (
                #{item.logType},
                #{item.userId},
@@ -79,11 +79,11 @@
                #{item.sourceType},
                #{item.createTime},
                #{item.updateTime}
-               
+
 		)
 	         </foreach>
 	</insert>
-	
+
 	<update id="update" parameterType="LogUserCapital">
 		update t_user_capital
 		<set >
@@ -93,24 +93,24 @@
      		<if test="balance != null">
      		balance= #{balance},
      		</if>
-     		
+
      		<if test="updateTime != null">
      		update_time= #{updateTime}
      		</if>
     	</set>
-		where  id= #{id} 
+		where  id= #{id}
 	</update>
-	
+
 	<delete id="delete">
-		delete from ${tableName} where  id= #{id}               
+		delete from ${tableName} where  id= #{id}
 	</delete>
-	
-	
-	
+
+
+
 	<select id="findAll" resultType="LogUserCapital">
 	    select * from ${tableName}
 	</select>
-	
+
 	<select id="findOne" resultType="LogUserCapital">
 	    select * from ${tableName} where id = #{id}
 	</select>
@@ -150,41 +150,40 @@
     	</if>
 	</sql>
 
-	<select id="countByConditions" resultType="Long">
+	<select id="countByConditions" parameterType="java.util.Map" resultType="Long">
 		select count(1) from ${tableName}
 		<where>
 			<include refid="conditions"></include>
 		</where>
 	</select>
 
-	<select id="findByConditions" resultType="LogUserCapital">
-	    select * from ${tableName}
-	    <where>
-	    	<include refid="conditions"></include>
-	    </where>
-
+	<select id="findByConditions" parameterType="java.util.Map" resultType="LogUserCapital">
+		select * from ${tableName}
+		<where>
+			<include refid="conditions"></include>
+		</where>
 		ORDER BY id desc
 		<if test="start != null and limit != null">
-	   	 limit #{start}, #{limit}
-	   	</if>
+			limit ${start}, ${limit}
+		</if>
 	</select>
 
-	<select id="dbCountByConditions" resultType="Long">
+	<select id="dbCountByConditions" parameterType="java.util.Map" resultType="Long">
 		select count(1) from `tsg-log`.${tableName}
 		<where>
 			<include refid="conditions"></include>
 		</where>
 	</select>
 
-	<select id="dbFindByConditions" resultType="LogUserCapital">
+
+	<select id="dbFindByConditions" parameterType="java.util.Map" resultType="LogUserCapital">
 		select * from `tsg-log`.${tableName}
 		<where>
 			<include refid="conditions"></include>
 		</where>
-
 		ORDER BY create_time desc
 		<if test="start != null and limit != null">
-			limit #{start}, #{limit}
+			limit ${start}, ${limit}
 		</if>
 	</select>
 

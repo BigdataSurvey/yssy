@@ -44,18 +44,21 @@
 	    select * from t_admin_log
 	</select>
 
-	<select id="countByConditions" resultType="Long">
+	<select id="countByConditions" parameterType="java.util.Map" resultType="Long">
 		select count(1) from t_admin_log
+		<where>
+			<include refid="conditions"></include>
+		</where>
 	</select>
-	
-	<select id="findByConditions" resultType="AdminLog">
-	    select * from t_admin_log
-	    <where>
-	    	<include refid="conditions"></include>
-	    </where>
+
+	<select id="findByConditions" parameterType="java.util.Map" resultType="AdminLog">
+		select * from t_admin_log
+		<where>
+			<include refid="conditions"></include>
+		</where>
 		ORDER BY record_time desc
 		<if test="start != null and limit != null">
-			limit #{start}, #{limit}
+			limit ${start}, ${limit}
 		</if>
 	</select>
 	

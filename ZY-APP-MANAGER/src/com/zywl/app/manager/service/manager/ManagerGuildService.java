@@ -302,7 +302,7 @@ public class ManagerGuildService extends BaseService {
         if (guild == null) {
             throwExp("公会申请不存在");
         }
-        if (guild.getStatus() == null || guild.getStatus() != 2) {
+        if (guild.getStatus() == null && guild.getStatus() != 2) {
             throwExp("申请状态异常");
         }
 
@@ -310,7 +310,8 @@ public class ManagerGuildService extends BaseService {
         if (user == null) {
             throwExp("查询玩家信息失败");
         }
-        if (user.getRoleId() != 1) {
+        if (user.getRoleId() != 1 && user.getRoleId() != 2) {
+            System.out.println("user.getRoleId()::: "+user.getRoleId());
             throwExp("身份异常");
         }
 
@@ -344,7 +345,7 @@ public class ManagerGuildService extends BaseService {
         if (guild == null) {
             throwExp("公会申请不存在");
         }
-        if (guild.getStatus() == null || guild.getStatus() != 2) {
+        if (guild.getStatus() == null && guild.getStatus() != 2) {
             throwExp("申请状态异常");
         }
 

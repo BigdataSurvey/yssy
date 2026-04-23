@@ -67,7 +67,8 @@ public class GuildMemberService extends DaoService{
 	public GuildMember findByUserId(Long userId){
 		Map<String,Object> params = new HashMap<>();
 		params.put("userId",userId);
-		return (GuildMember) findOne("findByUserId",params);
+		List<GuildMember> list = findList("findByUserId",params);
+		return list != null && !list.isEmpty() ? list.get(0) : null;
 	}
 
 

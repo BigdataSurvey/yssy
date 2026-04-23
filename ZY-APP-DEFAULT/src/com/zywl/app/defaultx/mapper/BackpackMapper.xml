@@ -45,7 +45,6 @@
 		<if test="itemId != null">
 		 and item_id=#{itemId}
 		</if>
-   		
     	<if test="startDate != null">
     	 AND create_time <![CDATA[ >= ]]> #{startDate}
     	</if>
@@ -123,6 +122,7 @@
 	<select id="dbCountByConditions" resultType="Long">
 		select count(1) from ${tableName}
 		<where>
+			AND LENGTH(item_id) >= 4
 			<include refid="conditions"></include>
 		</where>
 	</select>
@@ -130,6 +130,7 @@
 	<select id="dbFindByConditions" resultType="Backpack">
 		select * from ${tableName}
 		<where>
+			AND LENGTH(item_id) >= 4
 			<include refid="conditions"></include>
 		</where>
 

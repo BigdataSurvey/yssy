@@ -359,7 +359,7 @@ public class PbxService extends BaseService {
                             + ", periodEndMs=" + currentPeriodEndMs
                             + ", cycleEndMs=" + currentCycleEndMs
                             + ", userBetCount=" + (rolloverSnapToSettle.userTotalBet == null ? 0
-                                    : rolloverSnapToSettle.userTotalBet.size()));
+                            : rolloverSnapToSettle.userTotalBet.size()));
                 }
             }
         }
@@ -1487,7 +1487,7 @@ public class PbxService extends BaseService {
      * ✅修复：给下注用户定向推 updatePbxInfo(status=3,totalGain)，否则前端弹窗 totalGain=undefined
      */
     private void handleForceLose(PeriodSnapshot snapshot, JSONArray resultElements, String resultType,
-            BigDecimal poolBalance, String serverTime) {
+                                 BigDecimal poolBalance, String serverTime) {
         cacheOpenedResult(snapshot, resultElements, resultType, 1);
 
         try {
@@ -1538,7 +1538,7 @@ public class PbxService extends BaseService {
      * ✅修复：定向 updatePbxInfo(status=3,totalGain)
      */
     private void handleNormalNoWin(PeriodSnapshot snapshot, JSONArray resultElements, String resultType,
-            BigDecimal poolBalance, String serverTime) {
+                                   BigDecimal poolBalance, String serverTime) {
         cacheOpenedResult(snapshot, resultElements, resultType, 0);
 
         try {
@@ -1589,7 +1589,7 @@ public class PbxService extends BaseService {
      * ✅修复：定向 updatePbxInfo(status=3,totalGain)
      */
     private void handleSettleError(PeriodSnapshot snapshot, JSONArray resultElements, String resultType,
-            BigDecimal poolBalance, String serverTime, JSONObject settleResp) {
+                                   BigDecimal poolBalance, String serverTime, JSONObject settleResp) {
         String errMsg = (settleResp == null) ? "null" : settleResp.getString("message");
         log.warn("[PBX] handleSettleError: periodNo=" + snapshot.periodNo
                 + ", poolBalance=" + poolBalance + ", result=" + resultElements
@@ -1728,7 +1728,7 @@ public class PbxService extends BaseService {
 
         if ("TRIPLE".equals(resultType)) {
             Integer winElement = list.get(0);
-            return new OutcomePick(resultElements, resultType, false, winElement, null, MULT_TRIPLE);
+            return new OutcomePick(resultElements, resultType, false, winElement, null, null, MULT_TRIPLE);
         }
 
         if ("DOUBLE".equals(resultType)) {
@@ -1737,16 +1737,18 @@ public class PbxService extends BaseService {
                 counter.put(v, counter.getOrDefault(v, 0) + 1);
             }
             Integer winElement = null;
+            Integer singleElement = null;
             for (Map.Entry<Integer, Integer> e : counter.entrySet()) {
                 if (e.getValue() != null && e.getValue() == 2) {
                     winElement = e.getKey();
-                    break;
+                } else if (e.getValue() != null && e.getValue() == 1) {
+                    singleElement = e.getKey();
                 }
             }
-            if (winElement == null) {
+            if (winElement == null || singleElement == null) {
                 return null;
             }
-            return new OutcomePick(resultElements, resultType, false, winElement, null, MULT_DOUBLE);
+            return new OutcomePick(resultElements, resultType, false, winElement, singleElement, null, MULT_DOUBLE);
         }
 
         if ("ALL_DIFF".equals(resultType)) {
@@ -1754,7 +1756,7 @@ public class PbxService extends BaseService {
             if (winElements.size() != 3) {
                 return null;
             }
-            return new OutcomePick(resultElements, resultType, false, null, winElements, MULT_ALL_DIFF);
+            return new OutcomePick(resultElements, resultType, false, null, null, winElements, MULT_ALL_DIFF);
         }
 
         return null;
@@ -1770,11 +1772,11 @@ public class PbxService extends BaseService {
      * 避免 settleExecutor 被大量 push 拖死，从而触发 HOLD 超时 rollover（有时不开）
      */
     private void handleSettleSuccess(PeriodSnapshot snapshot,
-            JSONArray resultElements,
-            String resultType,
-            BigDecimal poolBalance,
-            String serverTime,
-            JSONObject settleResp) {
+                                     JSONArray resultElements,
+                                     String resultType,
+                                     BigDecimal poolBalance,
+                                     String serverTime,
+                                     JSONObject settleResp) {
 
         JSONArray userList = settleResp.getJSONArray("userList");
         BigDecimal newPoolBalance = settleResp.getBigDecimal("poolBalance");
@@ -1864,9 +1866,9 @@ public class PbxService extends BaseService {
      * 所以这里 row.winAmount 必须放 profit（不是 gross）
      */
     private void batchUpdateRecordProfit(PeriodSnapshot snapshot,
-            JSONArray resultElements,
-            String resultType,
-            Map<String, JSONObject> userInfoMap) {
+                                         JSONArray resultElements,
+                                         String resultType,
+                                         Map<String, JSONObject> userInfoMap) {
         if (snapshot == null || snapshot.userTotalBet == null || snapshot.userTotalBet.isEmpty())
             return;
 
@@ -1985,9 +1987,9 @@ public class PbxService extends BaseService {
      * 全服广播开奖结果（并缓存，防止 tick 覆盖）
      */
     private void cacheOpenedResult(PeriodSnapshot snapshot,
-            JSONArray resultElements,
-            String resultType,
-            int forcedNoWin) {
+                                   JSONArray resultElements,
+                                   String resultType,
+                                   int forcedNoWin) {
         this.openedPeriodNo = snapshot.periodNo;
         this.openedResultElements = resultElements;
         this.openedResultType = resultType;
@@ -1995,10 +1997,10 @@ public class PbxService extends BaseService {
     }
 
     private void broadcastSettleInfo(PeriodSnapshot snapshot,
-            JSONArray resultElements,
-            String resultType,
-            BigDecimal poolBalance,
-            int forcedNoWin) {
+                                     JSONArray resultElements,
+                                     String resultType,
+                                     BigDecimal poolBalance,
+                                     int forcedNoWin) {
         log.warn("[PBX] broadcastSettleInfo called. periodNo=" + snapshot.periodNo
                 + ", resultElements=" + resultElements
                 + ", resultType=" + resultType
@@ -2028,10 +2030,10 @@ public class PbxService extends BaseService {
      * 给在线但未下注的用户也推送 status=3 结算弹窗（投入=0, 获得=0）
      */
     private void pushNonBettingUsersSettleInfo(PeriodSnapshot snapshot,
-            JSONArray resultElements,
-            String resultType,
-            BigDecimal poolBalance,
-            int forcedNoWin) {
+                                               JSONArray resultElements,
+                                               String resultType,
+                                               BigDecimal poolBalance,
+                                               int forcedNoWin) {
         if (onlineUserState == null || onlineUserState.isEmpty()) return;
 
         Set<String> bettors = (snapshot.userTotalBet == null)
@@ -2078,7 +2080,7 @@ public class PbxService extends BaseService {
             BigDecimal gross = safe(t.get(e)).multiply(MULT_TRIPLE);
             BigDecimal net = calcNetForControl(gross);
 
-            OutcomePick p = new OutcomePick(res, "TRIPLE", false, e, null, MULT_TRIPLE);
+            OutcomePick p = new OutcomePick(res, "TRIPLE", false, e, null, null, MULT_TRIPLE);
             p.net = net;
 
             all.add(p);
@@ -2086,7 +2088,7 @@ public class PbxService extends BaseService {
                 candidates.add(p);
         }
 
-        // Double (两同号)
+        // Double (两同号)：重复元素按 x4，单独元素按 x1.8
         for (int e = 1; e <= ELEMENT_COUNT; e++) {
             for (int f = 1; f <= ELEMENT_COUNT; f++) {
                 if (f == e)
@@ -2097,10 +2099,11 @@ public class PbxService extends BaseService {
                 res.add(e);
                 res.add(f);
 
-                BigDecimal gross = safe(t.get(e)).multiply(MULT_DOUBLE);
+                BigDecimal gross = safe(t.get(e)).multiply(MULT_DOUBLE)
+                        .add(safe(t.get(f)).multiply(MULT_ALL_DIFF));
                 BigDecimal net = calcNetForControl(gross);
 
-                OutcomePick p = new OutcomePick(res, "DOUBLE", false, e, null, MULT_DOUBLE);
+                OutcomePick p = new OutcomePick(res, "DOUBLE", false, e, f, null, MULT_DOUBLE);
                 p.net = net;
 
                 all.add(p);
@@ -2126,7 +2129,7 @@ public class PbxService extends BaseService {
                     winSet.add(b);
                     winSet.add(c);
 
-                    OutcomePick p = new OutcomePick(res, "ALL_DIFF", false, null, winSet, MULT_ALL_DIFF);
+                    OutcomePick p = new OutcomePick(res, "ALL_DIFF", false, null, null, winSet, MULT_ALL_DIFF);
                     p.net = net;
 
                     all.add(p);
@@ -2143,8 +2146,8 @@ public class PbxService extends BaseService {
                 BigDecimal gross = calcGrossForOutcome(t, o);
                 return calcNetForControl(gross);
             }));
-            chosen = new OutcomePick(min.resultElements, min.resultType, true, min.winElement, min.winElements,
-                    min.multiplier);
+            chosen = new OutcomePick(min.resultElements, min.resultType, true, min.winElement, min.singleElement,
+                    min.winElements, min.multiplier);
             chosen.net = calcNetForControl(calcGrossForOutcome(t, min));
         } else {
             candidates.sort(Comparator.comparing(p -> p.net));
@@ -2189,7 +2192,10 @@ public class PbxService extends BaseService {
             return safe(elementTotalBet.get(pick.winElement)).multiply(MULT_TRIPLE);
         }
         if ("DOUBLE".equals(pick.resultType)) {
-            return safe(elementTotalBet.get(pick.winElement)).multiply(MULT_DOUBLE);
+            BigDecimal pairBet = safe(elementTotalBet.get(pick.winElement));
+            BigDecimal singleBet = safe(elementTotalBet.get(pick.singleElement));
+            return pairBet.multiply(MULT_DOUBLE)
+                    .add(singleBet.multiply(MULT_ALL_DIFF));
         }
         if ("ALL_DIFF".equals(pick.resultType)) {
             BigDecimal sum = BigDecimal.ZERO;
@@ -2212,9 +2218,16 @@ public class PbxService extends BaseService {
         if (userBetByElement == null || userBetByElement.isEmpty())
             return BigDecimal.ZERO;
 
-        if ("TRIPLE".equals(pick.resultType) || "DOUBLE".equals(pick.resultType)) {
+        if ("TRIPLE".equals(pick.resultType)) {
             BigDecimal bet = safe(userBetByElement.get(pick.winElement));
             return bet.multiply(pick.multiplier).setScale(2, RoundingMode.HALF_UP);
+        }
+        if ("DOUBLE".equals(pick.resultType)) {
+            BigDecimal pairBet = safe(userBetByElement.get(pick.winElement));
+            BigDecimal singleBet = safe(userBetByElement.get(pick.singleElement));
+            return pairBet.multiply(MULT_DOUBLE)
+                    .add(singleBet.multiply(MULT_ALL_DIFF))
+                    .setScale(2, RoundingMode.HALF_UP);
         }
         if ("ALL_DIFF".equals(pick.resultType)) {
             BigDecimal sum = BigDecimal.ZERO;
@@ -2416,7 +2429,7 @@ public class PbxService extends BaseService {
 
     /**
      * 向主服查询奖池（带重试/兜底）
-     * 
+     *
      * @param userId 操作用户ID
      * @return 奖池与榜单信息
      */
@@ -2605,7 +2618,7 @@ public class PbxService extends BaseService {
      * 推送下注失败消息
      */
     private void pushBetFailed(String userId, String orderNo, String periodNo, Integer elementId, BigDecimal chip,
-            String message) {
+                               String message) {
         JSONObject state = onlineUserState.get(userId);
         if (state != null) {
             state.put("status", 1);
@@ -2640,10 +2653,10 @@ public class PbxService extends BaseService {
      * status=2 结算展示期：remainSeconds=结算剩余（关键修复：不再永远为0）
      */
     private JSONObject buildPbxInfoByPeriod(BigDecimal poolBalance,
-            String periodNo,
-            long periodStartMs,
-            long periodEndMs,
-            long nowMs) {
+                                            String periodNo,
+                                            long periodStartMs,
+                                            long periodEndMs,
+                                            long nowMs) {
 
         if (poolBalance == null)
             poolBalance = BigDecimal.ZERO;
@@ -2748,11 +2761,11 @@ public class PbxService extends BaseService {
      * 构建自动结算状态推送包
      */
     private JSONObject buildAutoSettleStatusPush(String uid, String periodNo,
-            JSONArray resultElements, String resultType,
-            BigDecimal gross, BigDecimal fee, BigDecimal net,
-            BigDecimal balance, BigDecimal poolBalance,
-            String serverTime, JSONArray winList,
-            int isWin, BigDecimal totalBet) {
+                                                 JSONArray resultElements, String resultType,
+                                                 BigDecimal gross, BigDecimal fee, BigDecimal net,
+                                                 BigDecimal balance, BigDecimal poolBalance,
+                                                 String serverTime, JSONArray winList,
+                                                 int isWin, BigDecimal totalBet) {
         JSONObject pushStatus = new JSONObject();
         pushStatus.put("gameId", String.valueOf(PBX_GAME_ID));
         pushStatus.put("periodNo", periodNo);
@@ -2823,8 +2836,8 @@ public class PbxService extends BaseService {
      * 构建下注状态推送包
      */
     private JSONObject buildPbxStatusPush(String userId, int status, boolean success, String orderNo, String periodNo,
-            Integer elementId, BigDecimal chip, BigDecimal balance, BigDecimal poolBalance,
-            BigDecimal fee, BigDecimal feeRate) {
+                                          Integer elementId, BigDecimal chip, BigDecimal balance, BigDecimal poolBalance,
+                                          BigDecimal fee, BigDecimal feeRate) {
         JSONObject data = new JSONObject();
         data.put("gameId", String.valueOf(PBX_GAME_ID));
         JSONArray userIds = new JSONArray();
@@ -3317,9 +3330,9 @@ public class PbxService extends BaseService {
         final ConcurrentHashMap<String, BigDecimal> userTotalBet;
 
         PeriodSnapshot(String periodNo, long startMs, long endMs,
-                Map<Integer, BigDecimal> elementTotalBet,
-                Map<String, Map<Integer, BigDecimal>> userElementBet,
-                Map<String, BigDecimal> userTotalBet) {
+                       Map<Integer, BigDecimal> elementTotalBet,
+                       Map<String, Map<Integer, BigDecimal>> userElementBet,
+                       Map<String, BigDecimal> userTotalBet) {
             this.periodNo = periodNo;
             this.startMs = startMs;
             this.endMs = endMs;
@@ -3352,6 +3365,7 @@ public class PbxService extends BaseService {
         final String resultType;
         final boolean forceLose;
         final Integer winElement;
+        final Integer singleElement;
         final Set<Integer> winElements;
         final BigDecimal multiplier;
 
@@ -3359,11 +3373,12 @@ public class PbxService extends BaseService {
         BigDecimal net = BigDecimal.ZERO;
 
         OutcomePick(JSONArray resultElements, String resultType, boolean forceLose,
-                Integer winElement, Set<Integer> winElements, BigDecimal multiplier) {
+                    Integer winElement, Integer singleElement, Set<Integer> winElements, BigDecimal multiplier) {
             this.resultElements = resultElements;
             this.resultType = resultType;
             this.forceLose = forceLose;
             this.winElement = winElement;
+            this.singleElement = singleElement;
             this.winElements = winElements;
             this.multiplier = multiplier;
         }
@@ -3509,13 +3524,13 @@ public class PbxService extends BaseService {
      * 关键点：定向路由用 payload.userIds，而不是 Push.push 的第二个参数
      */
     private void pushUserStatus3Info(String uid,
-            PeriodSnapshot snapshot,
-            JSONArray resultElements,
-            String resultType,
-            BigDecimal poolBalance,
-            int forcedNoWin,
-            String totalGainStr,
-            BigDecimal totalBet) {
+                                     PeriodSnapshot snapshot,
+                                     JSONArray resultElements,
+                                     String resultType,
+                                     BigDecimal poolBalance,
+                                     int forcedNoWin,
+                                     String totalGainStr,
+                                     BigDecimal totalBet) {
         try {
             long nowMs = System.currentTimeMillis();
 

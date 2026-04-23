@@ -80,33 +80,47 @@ public class AdminSocketService extends BaseService {
 
 	public void initAllBalance(){
 		long time = System.currentTimeMillis();
-		BigDecimal sumBalance = userCapitalService.findSumBalance(UserCapitalTypeEnum.currency_2.getValue());
-		allBalance.put("lingshi",sumBalance);
 
-		/*sumBalance = userCapitalService.findSumBalance(UserCapitalTypeEnum.currency_3.getValue());
-		allBalance.put("xianjing",sumBalance);*/
+		// 首页三种游戏资产：1001=小丑币，1002=弹珠，1003=师毛
+		BigDecimal clownCoin = userCapitalService.findSumBalance(UserCapitalTypeEnum.hxjf.getValue());
+		allBalance.put("clownCoin", clownCoin == null ? BigDecimal.ZERO : clownCoin);
 
-		BigDecimal no1 = userCapitalService.findNo1(UserCapitalTypeEnum.currency_2.getValue());
-		allBalance.put("no1",no1);
+		BigDecimal marble = userCapitalService.findSumBalance(UserCapitalTypeEnum.xxxhhb.getValue());
+		allBalance.put("marble", marble == null ? BigDecimal.ZERO : marble);
 
-		sumBalance = userCapitalService.findSumBalance2(UserCapitalTypeEnum.currency_2.getValue());
-		allBalance.put("canUseC2",sumBalance);
+		BigDecimal teacherHair = userCapitalService.findSumBalance(UserCapitalTypeEnum.ejjf.getValue());
+		allBalance.put("teacherHair", teacherHair == null ? BigDecimal.ZERO : teacherHair);
 
-		BigDecimal totalNo10 = userCapitalService.findSumBalanceNo10(UserCapitalTypeEnum.currency_2.getValue());
-		allBalance.put("totalNo10",totalNo10);
+		// 下面这些先保留原逻辑，避免影响别的卡片
+		BigDecimal no1 = userCapitalService.findNo1(UserCapitalTypeEnum.xxxhhb.getValue());
+		allBalance.put("no1", no1 == null ? BigDecimal.ZERO : no1);
+
+		BigDecimal sumBalance = userCapitalService.findSumBalance2(UserCapitalTypeEnum.xxxhhb.getValue());
+		allBalance.put("canUseC2", sumBalance == null ? BigDecimal.ZERO : sumBalance);
+
+		BigDecimal totalNo10 = userCapitalService.findSumBalanceNo10(UserCapitalTypeEnum.xxxhhb.getValue());
+		allBalance.put("totalNo10", totalNo10 == null ? BigDecimal.ZERO : totalNo10);
 
 		List<CashTotalInfo> info = cashRecordService.findWaitTotalInfo();
-		if(info.size() > 0) {
+		if(info != null && info.size() > 0) {
 			Integer count = info.get(0).getOrderCount();
-			allBalance.put("waitCashCount", new BigDecimal( String.valueOf(count)));
-			allBalance.put("waitCashAmount", info.get(0).getAmount());
+			allBalance.put("waitCashCount", new BigDecimal(String.valueOf(count == null ? 0 : count)));
+			allBalance.put("waitCashAmount", info.get(0).getAmount() == null ? BigDecimal.ZERO : info.get(0).getAmount());
+		} else {
+			allBalance.put("waitCashCount", BigDecimal.ZERO);
+			allBalance.put("waitCashAmount", BigDecimal.ZERO);
 		}
+
 		info = cashRecordService.findCashTotalInfo();
-		if(info.size() > 0) {
+		if(info != null && info.size() > 0) {
 			Integer count = info.get(0).getOrderCount();
-			allBalance.put("cashCount", new BigDecimal( String.valueOf(count)));
-			allBalance.put("cashAmount", info.get(0).getAmount());
+			allBalance.put("cashCount", new BigDecimal(String.valueOf(count == null ? 0 : count)));
+			allBalance.put("cashAmount", info.get(0).getAmount() == null ? BigDecimal.ZERO : info.get(0).getAmount());
+		} else {
+			allBalance.put("cashCount", BigDecimal.ZERO);
+			allBalance.put("cashAmount", BigDecimal.ZERO);
 		}
+
 		logger.info("查询总资产用时："+(System.currentTimeMillis()-time));
 		managerUserService.pushAddUser();
 	}
@@ -173,41 +187,45 @@ public class AdminSocketService extends BaseService {
 			});
 		}
 	}
-	
+
 	public JSONObject getMonitorData() {
 		JSONObject data = new JSONObject();
 		data.put("totalUser", LoginService.userNos.size());
-		data.put("todayRegister",userCacheService.getTodayRegister());
+		data.put("todayRegister", userCacheService.getTodayRegister());
 		data.put("todayLogin", userCacheService.getTodayLogin());
-		
-		data.put("totalCur2", allBalance.getOrDefault("lingshi",BigDecimal.ZERO));
-		data.put("totalCur3", allBalance.getOrDefault("xianjing",BigDecimal.ZERO));
-		data.put("no1", allBalance.getOrDefault("no1",BigDecimal.ZERO));
-		data.put("totalCanUseCur2", allBalance.getOrDefault("canUseC2",BigDecimal.ZERO));
-		data.put("totalNo10", allBalance.getOrDefault("totalNo10",BigDecimal.ZERO));
+
+		data.put("totalCur2", allBalance.getOrDefault("clownCoin", BigDecimal.ZERO));
+		data.put("totalCur3", allBalance.getOrDefault("marble", BigDecimal.ZERO));
+		data.put("totalRMB", allBalance.getOrDefault("teacherHair", BigDecimal.ZERO));
+
+		data.put("no1", allBalance.getOrDefault("no1", BigDecimal.ZERO));
+		data.put("totalCanUseCur2", allBalance.getOrDefault("canUseC2", BigDecimal.ZERO));
+		data.put("totalNo10", allBalance.getOrDefault("totalNo10", BigDecimal.ZERO));
 		data.put("totalCashOrder", "还没写");
 
-		data.put("waitCashCount", allBalance.getOrDefault("waitCashCount",BigDecimal.ZERO));
-		data.put("waitCashAmount", allBalance.getOrDefault("waitCashAmount",BigDecimal.ZERO));
-		data.put("cashCount", allBalance.getOrDefault("cashCount",BigDecimal.ZERO));
-		data.put("cashAmount", allBalance.getOrDefault("cashAmount",BigDecimal.ZERO));
+		data.put("waitCashCount", allBalance.getOrDefault("waitCashCount", BigDecimal.ZERO));
+		data.put("waitCashAmount", allBalance.getOrDefault("waitCashAmount", BigDecimal.ZERO));
+		data.put("cashCount", allBalance.getOrDefault("cashCount", BigDecimal.ZERO));
+		data.put("cashAmount", allBalance.getOrDefault("cashAmount", BigDecimal.ZERO));
 
-		data.put("oneKeepAlive",keepAlive.getOrDefault("one","未查询到结果"));
-		data.put("threeKeepAlive",keepAlive.getOrDefault("three","未查询到结果"));
-		data.put("sevenKeepAlive",keepAlive.getOrDefault("seven","未查询到结果"));
-		data.put("monthKeepAlive",keepAlive.getOrDefault("month","未查询到结果"));
+		data.put("oneKeepAlive", keepAlive.getOrDefault("one", "未查询到结果"));
+		data.put("threeKeepAlive", keepAlive.getOrDefault("three", "未查询到结果"));
+		data.put("sevenKeepAlive", keepAlive.getOrDefault("seven", "未查询到结果"));
+		data.put("monthKeepAlive", keepAlive.getOrDefault("month", "未查询到结果"));
 
+		// 礼包相关
+		data.put("gift99All", gift.getOrDefault("gift99All", 0L));
+		data.put("gift499All", gift.getOrDefault("gift499All", 0L));
+		data.put("gift99Pay", gift.getOrDefault("gift99Pay", 0L));
+		data.put("gift499Pay", gift.getOrDefault("gift499Pay", 0L));
 
-		//礼包相关
-		data.put("gift99All",gift.getOrDefault("gift99All",0L));
-		data.put("gift499All",gift.getOrDefault("gift499All",0L));
-		data.put("gift99Pay",gift.getOrDefault("gift99Pay",0L));
-		data.put("gift499Pay",gift.getOrDefault("gift499Pay",0L));
+		data.put("vipInfo", invest.getOrDefault("vipInfo", "未查询到结果"));
+		data.put("petUserInfo", invest.getOrDefault("petUserInfo", "未查询到结果"));
+		data.put("againInfo", invest.getOrDefault("againInfo", "未查询到结果"));
 
-		data.put("vipInfo",invest.getOrDefault("vipInfo","未查询到结果"));
-		data.put("petUserInfo",invest.getOrDefault("petUserInfo","未查询到结果"));
-		data.put("againInfo",invest.getOrDefault("againInfo","未查询到结果"));
-		data.put("todayAdNum",WFSB_NUMBER);
+		// 今日广告次数：平台当天广告观看总次数
+		data.put("todayAdNum", userCacheService.getPlatformAdvertLookNum());
+
 		return data;
 	}
 	

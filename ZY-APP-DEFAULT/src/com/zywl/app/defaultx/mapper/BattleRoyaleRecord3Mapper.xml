@@ -65,17 +65,39 @@
 	</select>
 
 	<update id="batchUpdateRecord" parameterType="java.util.List">
-		<foreach collection="list" item="item" index="index" open="" close="" separator=";">
-			update r_battle_royale3_record
-			<set>
-				profit=#{item.profit},
-				lottery_result=#{item.lotteryResult},
-				win_or_lose=#{item.isWin},
-				status=1,
-				bet_info=#{item.betInfo},
-				bet_amount=#{item.betAmount}
-			</set>
-			where order_no = #{item.orderNo}
+		update r_battle_royale3_record
+		<set>
+			profit = case order_no
+			<foreach collection="list" item="item">
+				when #{item.orderNo} then #{item.profit}
+			</foreach>
+			else profit end,
+			lottery_result = case order_no
+			<foreach collection="list" item="item">
+				when #{item.orderNo} then #{item.lotteryResult}
+			</foreach>
+			else lottery_result end,
+			win_or_lose = case order_no
+			<foreach collection="list" item="item">
+				when #{item.orderNo} then #{item.isWin}
+			</foreach>
+			else win_or_lose end,
+			bet_info = case order_no
+			<foreach collection="list" item="item">
+				when #{item.orderNo} then #{item.betInfo}
+			</foreach>
+			else bet_info end,
+			bet_amount = case order_no
+			<foreach collection="list" item="item">
+				when #{item.orderNo} then #{item.betAmount}
+			</foreach>
+			else bet_amount end,
+			status = 1,
+			update_time = now()
+		</set>
+		where order_no in
+		<foreach collection="list" item="item" open="(" close=")" separator=",">
+			#{item.orderNo}
 		</foreach>
 	</update>
 

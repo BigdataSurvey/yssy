@@ -69,50 +69,48 @@
     	 AND create_time <![CDATA[ <= ]]> #{endDate}
     	</if>
 	</sql>
-	
-	<select id="countByConditions" resultType="Long">
+
+	<select id="countByConditions" parameterType="java.util.Map" resultType="Long">
 		select count(1) from ${tableName}
 		<where>
 			<include refid="conditions"></include>
 		</where>
 	</select>
-	
-	<select id="findByConditions" resultType="LogUserBackpack">
-	    select * from ${tableName} 
-	    <where>
-	    	<include refid="conditions"></include>
-	    </where>
-	    
-		ORDER BY create_time desc 
+
+	<select id="findByConditions" parameterType="java.util.Map" resultType="LogUserBackpack">
+		select * from ${tableName}
+		<where>
+			<include refid="conditions"></include>
+		</where>
+		ORDER BY create_time desc
 		<if test="start != null and limit != null">
-	   	 limit #{start}, #{limit} 
-	   	</if>
+			limit ${start}, ${limit}
+		</if>
 	</select>
 
-
-	<select id="dbCountByConditions" resultType="Long">
+	<select id="dbCountByConditions" parameterType="java.util.Map" resultType="Long">
 		select count(1) from `tsg-log`.${tableName}
 		<where>
 			<include refid="conditions"></include>
 		</where>
 	</select>
 
-	<select id="findLQG" resultType="LogUserBackpack">
+	<select id="findLQG" parameterType="java.util.Map" resultType="LogUserBackpack">
 		select * from `tsg-log`.${tableName}
 		<where>
 			<include refid="conditions"></include>
 		</where>
 	</select>
 
-	<select id="dbFindByConditions" resultType="LogUserBackpack">
+
+	<select id="dbFindByConditions" parameterType="java.util.Map" resultType="LogUserBackpack">
 		select * from `tsg-log`.${tableName}
 		<where>
 			<include refid="conditions"></include>
 		</where>
-
 		ORDER BY create_time desc
 		<if test="start != null and limit != null">
-			limit #{start}, #{limit}
+			limit ${start}, ${limit}
 		</if>
 	</select>
 

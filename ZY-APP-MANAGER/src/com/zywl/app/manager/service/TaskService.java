@@ -137,7 +137,7 @@ public class TaskService extends BaseService {
         itemInfo.put("itemNum", 66);
         itemArr.add(itemInfo);
         params.put("itemArr", itemArr);
-        adminMailService.sendMail(null, params, null);
+     //   adminMailService.sendMail(null, params, null);
     }
 
 
