@@ -84,16 +84,29 @@ public class UserService extends DaoService {
         User newPlayer = new User();
         if (inviteCode != null && !inviteCode.equals("")) {
             User parentUser = findUserByInviteCode(inviteCode);
+            // 修改 1：使用字符串拼接，注意三元运算符外面加了括号保障优先级
+            logger.info("[createUser-邀请绑定] inviteCode=" + inviteCode + ", parentUser=" + (parentUser != null ? "id=" + parentUser.getId() : "null"));
+
             if (parentUser != null) {
                 Long parentId = parentUser.getId();
                 newPlayer.setParentId(parentId);
                 userCacheService.addSonCount(parentId, 3);
+                // 修改 2：使用字符串拼接
+                logger.info("[createUser-邀请绑定] 设置parentId=" + parentId + ", 增加上级好友数");
+
                 if (parentUser.getParentId() != null) {
                     newPlayer.setGrandfaId(parentUser.getParentId());
                     userCacheService.addSonCount(parentUser.getParentId(), 3);
+                    // 修改 3：使用字符串拼接
+                    logger.info("[createUser-邀请绑定] 设置grandfaId=" + parentUser.getParentId());
                 } else {
                     newPlayer.setGrandfaId(null);
+                    // 这里原本就没有参数，保持原样即可
+                    logger.info("[createUser-邀请绑定] 上级无parentId，grandfaId设为null");
                 }
+            } else {
+                // 修改 4：使用字符串拼接
+                logger.info("[createUser-邀请绑定] inviteCode=" + inviteCode + " 未找到对应上级用户，不绑定上下级");
             }
         }
         newPlayer.setUserNo(userNo);

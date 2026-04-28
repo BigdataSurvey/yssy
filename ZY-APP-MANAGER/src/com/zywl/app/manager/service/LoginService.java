@@ -847,11 +847,19 @@ public class LoginService extends BaseService {
         String parentTree = "";
         String cno = null;
         User parentUser = userService.findUserByInviteCode(inviteCode);
+        // 修改 1：使用字符串拼接，长三元运算符外层加括号
+        logger.info("[注册-邀请绑定] tel=" + tel + ", 传入inviteCode=" + inviteCode + ", 查询结果parentUser=" + (parentUser != null ? "id=" + parentUser.getId() + ", inviteCode=" + parentUser.getInviteCode() : "null"));
+
         if (parentUser == null) {
+            // 修改 2：使用字符串拼接
+            logger.info("[注册-邀请绑定] tel=" + tel + ", inviteCode无效，清空邀请码");
             inviteCode = null;
         } else {
             cno = parentUser.getCno();
             parentTree = parentUser.getParentTree() == null ? "" : parentUser.getParentTree() + "&" + parentUser.getId();
+
+            // 修改 3：使用字符串拼接
+            logger.info("[注册-邀请绑定] tel=" + tel + ", 找到上级: parentId=" + parentUser.getId() + ", cno=" + cno + ", parentTree=" + parentTree);
         }
 
         User newPlayer = userService.insertUserInfoByTel(
@@ -896,6 +904,10 @@ public class LoginService extends BaseService {
         User user = userService.findByUserTel(tel);
 
         if (user != null) {
+            if (inviteCode != null && !inviteCode.isEmpty()) {
+                // 使用字符串拼接
+                logger.warn("[登录-邀请码] tel=" + tel + ", 用户已存在但inviteCode=" + inviteCode + "被忽略，老用户登录不绑定上下级");
+            }
             if (user.getStatus() == 0) {
                 return JSONUtil.getReturnDate(0, null, "账号已注销！");
             }

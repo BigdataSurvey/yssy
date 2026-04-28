@@ -58,7 +58,6 @@ public class AdminMailService extends BaseService {
     private ApplyForService applyForService;
     @Autowired
     private GameCacheService gameCacheService;
-
     @Autowired
     private PlayGameService gameService;
     @Autowired

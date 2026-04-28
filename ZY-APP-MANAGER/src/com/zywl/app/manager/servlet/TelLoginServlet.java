@@ -68,6 +68,8 @@ public class TelLoginServlet extends BaseServlet {
                     String code = request.getParameter("code");
                     String oldWsid = request.getParameter("oldWsid");
 
+                    logger.info("[TelLoginServlet] tel=" + tel + ", inviteCode=" + inviteCode + ", os=" + os + ", gameToken=" + gameToken + ", versionId=" + versionId);
+
                     if (gameToken != null) {
                         Response.doResponse(asyncContext, loginService.loginByGameToken(gameToken, oldWsid, versionId, clientIp).toJSONString());
                         return;
