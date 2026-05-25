@@ -72,6 +72,9 @@ public class ManagerGuildService extends BaseService {
     private ConfigService configService;
 
     @Autowired
+    private ManagerConfigService managerConfigService;
+
+    @Autowired
     private GuildGrantRecordService guildGrantRecordService;
 
     @Autowired
@@ -86,6 +89,25 @@ public class ManagerGuildService extends BaseService {
 
     private BigDecimal GUILD_CREATE_FEE_RATE;
 
+    /** 供 ManagerConfigService.updateGameKey 热更调用 */
+    public void reloadGuildConfig() {
+        Config config = configService.getConfigByKey(Config.GUILD_FEE);
+        if (config != null) {
+            GUILD_FEE = new BigDecimal(config.getValue());
+        }
+        Config config2 = configService.getConfigByKey(Config.GUILD_MEMBER_FEE);
+        if (config2 != null) {
+            GUILD_MEMBER_FEE = new BigDecimal(config2.getValue());
+        }
+        Config config3 = configService.getConfigByKey(Config.GUILD_CREATE_FEE_RATE);
+        if (config3 != null && config3.getValue() != null && !config3.getValue().trim().isEmpty()) {
+            BigDecimal rate = new BigDecimal(config3.getValue().trim());
+            if (rate.compareTo(BigDecimal.ONE) > 0) {
+                rate = rate.divide(new BigDecimal("100"), 6, RoundingMode.HALF_UP);
+            }
+            GUILD_CREATE_FEE_RATE = rate;
+        }
+    }
 
     @PostConstruct
     public void _construct() {
@@ -571,6 +593,36 @@ public class ManagerGuildService extends BaseService {
         result.put("guildMemberFee", GUILD_MEMBER_FEE);
         return result;
     }
+    @Transactional
+    @ServiceMethod(code = "012", description = "更新公会配置（创建公会单价/手续费比例/成员费用）")
+    public JSONObject updateGuildConfig(ManagerSocketServer adminSocketServer, JSONObject data) {
+        checkNull(data);
+        // 走 updateConfigData 完整热更链路：DB → Push(PushCode.updateConfig) → CONFIG内存 → updateGameKey → reloadGuildConfig
+        if (data.containsKey("guildUnitPrice")) {
+            managerConfigService.updateConfigData(Config.GUILD_FEE, data.getString("guildUnitPrice"));
+            managerConfigService.updateGameKey(Config.GUILD_FEE, data.getString("guildUnitPrice"));
+        }
+        if (data.containsKey("createFeeRate")) {
+            BigDecimal rate = new BigDecimal(data.getString("createFeeRate"));
+            if (rate.compareTo(BigDecimal.ONE) > 0) {
+                rate = rate.divide(new BigDecimal("100"), 6, RoundingMode.HALF_UP);
+            }
+            String value = rate.stripTrailingZeros().toPlainString();
+            managerConfigService.updateConfigData(Config.GUILD_CREATE_FEE_RATE, value);
+            managerConfigService.updateGameKey(Config.GUILD_CREATE_FEE_RATE, value);
+        }
+        if (data.containsKey("guildMemberFee")) {
+            managerConfigService.updateConfigData(Config.GUILD_MEMBER_FEE, data.getString("guildMemberFee"));
+            managerConfigService.updateGameKey(Config.GUILD_MEMBER_FEE, data.getString("guildMemberFee"));
+        }
+        reloadGuildConfig();
+        JSONObject result = new JSONObject();
+        result.put("guildUnitPrice", GUILD_FEE);
+        result.put("createFeeRate", GUILD_CREATE_FEE_RATE);
+        result.put("guildMemberFee", GUILD_MEMBER_FEE);
+        return result;
+    }
+
     @Transactional
     @ServiceMethod(code = "014", description = "玩家申请加入公会")
     public JSONObject applyJoinGuild(ManagerSocketServer adminSocketServer, JSONObject data) {

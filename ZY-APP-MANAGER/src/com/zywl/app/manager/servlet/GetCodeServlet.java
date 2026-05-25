@@ -90,7 +90,7 @@ public class GetCodeServlet extends BaseServlet {
         String testPassword = "Niutong123";     // 在短信宝注册的密码
         int mobileCode = (int) ((Math.random() * 9 + 1) * 100000);
 
-        String content = "【马戏团】您的验证码是：" + mobileCode + "。请不要把验证码泄露给其他人。";
+        String content = "【天津鑫深】您的验证码是：" + mobileCode + "。请不要把验证码泄露给其他人。";
         String httpUrl = "http://api.smsbao.com/sms";
 
         StringBuffer httpArg = new StringBuffer();

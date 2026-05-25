@@ -35,7 +35,7 @@ public class DicVip extends BaseBean {
     private String dailyReward;
 
     /** VIP卡道具ItemId (dic_item.id) */
-    private Integer cardItemId;
+    private Long cardItemId;
 
     /** 状态 0禁用 1启用 */
     private Integer status;
@@ -102,11 +102,11 @@ public class DicVip extends BaseBean {
         this.dailyReward = dailyReward;
     }
 
-    public Integer getCardItemId() {
+    public Long getCardItemId() {
         return cardItemId;
     }
 
-    public void setCardItemId(Integer cardItemId) {
+    public void setCardItemId(Long cardItemId) {
         this.cardItemId = cardItemId;
     }
 

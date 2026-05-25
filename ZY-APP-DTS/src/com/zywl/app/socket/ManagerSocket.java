@@ -98,6 +98,9 @@ public class ManagerSocket extends BaseClientSocket {
 				if (config.getKey().equals(Config.DTS_KILL_RATE)){
 					BattleRoyaleService.KILL_RATE= Integer.parseInt(config.getValue());
 				}
+				if (config.getKey().equals(Config.GAME_TABLE_VERSION)){
+					battleRoyaleService.reloadGameSetting();
+				}
 
 			}
 		}, this);

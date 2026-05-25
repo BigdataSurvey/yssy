@@ -82,9 +82,11 @@ public class Config extends BaseBean {
 	public static final String DTS_BOT_MONEY = "GAME_DTS_BOT_MONEY";
 
 	//消失的兔子 大逃杀多杀
+	public static final String DTS3_STATUS = "GAME_DTS3_STATUS";
 	public static final String GAME_DTS3_NEED_BOT = "GAME_DTS3_NEED_BOT";
 	public static final String DTS3_KILL_RATE = "GAME_DTS3_KILL_RATE";
 	public static final String DTS3_BOT_MONEY = "GAME_DTS3_BOT_MONEY";
+	public static final String GAME_TABLE_VERSION = "VERSION_GAME";
 
 	public static final String DAILY_STOLEN_COUNT = "DAILY_STOLEN_COUNT";
 	public static final String GAME_LHD_NEED_BOT="GAME_LHD_NEED_BOT";
@@ -126,6 +128,9 @@ public class Config extends BaseBean {
 
 
 	public static final String REFRESH_USER_CAPITAL="REFRESH_USER_CAPITAL";
+	public static final String REFRESH_USER_CAPITAL_HXJF="REFRESH_USER_CAPITAL_HXJF";
+	public static final String REFRESH_USER_CAPITAL_XXXHHB="REFRESH_USER_CAPITAL_XXXHHB";
+	public static final String REFRESH_USER_CAPITAL_EJJF="REFRESH_USER_CAPITAL_EJJF";
 	public static final String REFRESH_USER_COIN="REFRESH_USER_COIN";
 	public static final String REFRESH_USER_ITEM="REFRESH_USER_ITEM";
 	//苹果版本
@@ -299,6 +304,8 @@ public class Config extends BaseBean {
 
 	private String value;
 
+	private String text;
+
 	public String getKey() {
 		return key;
 	}
@@ -313,5 +320,13 @@ public class Config extends BaseBean {
 
 	public void setValue(String value) {
 		this.value = value;
+	}
+
+	public String getText() {
+		return text;
+	}
+
+	public void setText(String text) {
+		this.text = text;
 	}
 }

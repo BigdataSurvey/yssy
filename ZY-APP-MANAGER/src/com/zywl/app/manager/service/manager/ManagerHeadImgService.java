@@ -69,6 +69,7 @@ public class ManagerHeadImgService extends BaseService {
 			headImgStr = JSON.toJSONString(parseArray);
 		}
 		managerConfigService.updateConfigData(Config.APP_HOME_HEAD_IMG, headImgStr);
+		managerConfigService.updateGameKey(Config.APP_HOME_HEAD_IMG, headImgStr);
 	}
 	
 	@Transactional
@@ -85,6 +86,7 @@ public class ManagerHeadImgService extends BaseService {
 		
 		String headImgStr = JSON.toJSONString(parseArray);
 		managerConfigService.updateConfigData(Config.APP_HOME_HEAD_IMG, headImgStr);
+		managerConfigService.updateGameKey(Config.APP_HOME_HEAD_IMG, headImgStr);
 		
 		if(headImg != null) {
 			if(isNotNull(headImg.getImg3_1())) {

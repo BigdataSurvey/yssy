@@ -169,6 +169,8 @@ public class PbxService extends BaseService {
     private volatile long lastHistoryPushMs = 0L;
     /** 机器人下注概率（0~100） */
     private volatile int NEED_BOT = 0;
+    /** 游戏营业状态，0 为维护中，1 为可进入及下注 */
+    private volatile int GAME_STATUS = 1;
     /** 机器人可用筹码 */
     private final List<BigDecimal> BOT_CHIPS = new ArrayList<>();
     /** 本期机器人下注总额 (仅展示用) */
@@ -502,6 +504,9 @@ public class PbxService extends BaseService {
     public Object joinRoom(BattleRoyaleSocketServer2 adminSocketServer, Command lotteryCommand, JSONObject data) {
         long nowMs = System.currentTimeMillis();
         checkNull(data);
+        if (GAME_STATUS == 0) {
+            throwExp("翻牌牌正在维护，暂时不能进入游戏");
+        }
 
         String userId = data.getString("userId");
         if (isBlank(userId)) {
@@ -586,6 +591,9 @@ public class PbxService extends BaseService {
     @ServiceMethod(code = "103", description = "推箱子-下注/操作")
     public Object operate(BattleRoyaleSocketServer2 adminSocketServer, Command lotteryCommand, JSONObject data) {
         checkNull(data);
+        if (GAME_STATUS == 0) {
+            throwExp("翻牌牌正在维护，暂时不能下注");
+        }
         String userId = data.getString("userId");
         if (isBlank(userId))
             throwExp("参数错误");
@@ -2896,6 +2904,7 @@ public class PbxService extends BaseService {
             Game game = gameService.findGameById((long) PBX_GAME_ID);
             if (game != null && game.getGameSetting() != null) {
                 setting = JSON.parseObject(game.getGameSetting());
+                GAME_STATUS = game.getStatus() == null ? 1 : game.getStatus();
             }
         } catch (Exception e) {
             log.error("[PBX] initGameSetting parse db json error", e);
@@ -2974,6 +2983,21 @@ public class PbxService extends BaseService {
                 + ", FEE_RATE=" + FEE_RATE
                 + ", ELEMENT_COUNT=" + ELEMENT_COUNT
                 + ", MULT=(" + MULT_TRIPLE + "," + MULT_DOUBLE + "," + MULT_ALL_DIFF + ")");
+    }
+
+    public void reloadGameSetting() {
+        initGameSetting();
+        pushPbxInfo(lastPoolBalance);
+    }
+
+    public void reloadBotConfig() {
+        initBotConfig();
+    }
+
+    public void updateGameStatus(int status) {
+        GAME_STATUS = status;
+        gameService.updateGameStatus(PBX_GAME_ID, status);
+        pushPbxInfo(lastPoolBalance);
     }
 
     /**

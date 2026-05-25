@@ -60,4 +60,29 @@
 		</where>
 	</select>
 
+	<!-- 查询所有VIP配置（含禁用状态，后台管理用） -->
+	<select id="findAllForAdmin" resultMap="BaseResultMap">
+		select
+		<include refid="Base_Column_List"/>
+		from dic_vip
+		order by vip_type asc
+	</select>
+
+	<!-- 后台更新VIP配置 -->
+	<update id="updateVip" parameterType="com.zywl.app.base.bean.DicVip">
+		update dic_vip
+		<set>
+			<if test="name != null">name = #{name},</if>
+			<if test="durationDays != null">duration_days = #{durationDays},</if>
+			<if test="price != null">price = #{price},</if>
+			<if test="capitalTypeId != null">capital_type_id = #{capitalTypeId},</if>
+			<if test="benefitText != null">benefit_text = #{benefitText},</if>
+			<if test="dailyReward != null">daily_reward = #{dailyReward},</if>
+			<if test="cardItemId != null">card_item_id = #{cardItemId},</if>
+			<if test="status != null">status = #{status},</if>
+			<if test="updateTime != null">update_time = #{updateTime},</if>
+		</set>
+		where vip_type = #{vipType}
+	</update>
+
 </mapper>

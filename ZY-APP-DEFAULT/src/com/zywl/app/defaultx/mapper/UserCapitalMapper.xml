@@ -167,20 +167,27 @@
 	</select>
 
 	<select id="countRank" resultType="Long">
-		select count(1) from t_user_capital
+		select count(1)
+		from t_user_capital uc
+		inner join t_user u on u.id = uc.user_id
 		<where>
-			balance > 0
+			uc.balance > 0
+			and ifnull(u.is_bot, 0) != 1
 			<if test="capitalType != null">
-				and capital_type=#{capitalType}
+				and uc.capital_type=#{capitalType}
 			</if>
 		</where>
 	</select>
 
 	<select id="findRank" resultType="UserCapital">
-
-		SELECT `t_user_capital`.* FROM `t_user_capital` INNER JOIN ( SELECT `id` FROM `t_user_capital` WHERE `balance` > 0
-		                                                                                                 AND `capital_type` = #{capitalType} ORDER BY `balance` DESC limit #{start}, #{limit} ) `tmp_0` USING (`id`)
-
+		SELECT uc.*
+		FROM t_user_capital uc
+		INNER JOIN t_user u ON u.id = uc.user_id
+		WHERE uc.balance > 0
+		  AND ifnull(u.is_bot, 0) != 1
+		  AND uc.capital_type = #{capitalType}
+		ORDER BY uc.balance DESC
+		limit #{start}, #{limit}
 	</select>
 
 	<select id="findAll" resultType="UserCapital">

@@ -27,6 +27,7 @@ import com.zywl.app.manager.service.PlayGameService;
 import com.zywl.app.manager.service.manager.ManagerGameBaseService;
 import com.zywl.app.manager.service.manager.ManagerSocketService;
 import com.zywl.app.manager.service.manager.ManagerUserService;
+import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.springframework.transaction.annotation.Transactional;
@@ -36,6 +37,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Properties;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -75,11 +77,28 @@ public class KafkaConsumerService extends BaseService {
     private String CLIENT_ID;
 
     public KafkaConsumerService(String bootstrapServers, String groupId, String clientId) {
+        Properties kafkaProperties = new Properties();
+        kafkaProperties.put("bootstrap.servers", bootstrapServers);
         CLIENT_ID = clientId;
-        this.managerSocketService = new ManagerSocketService();
-        this.consumer = new KafkaConsumer<>(KafkaConsumerConfig.getConsumerProperties(bootstrapServers, groupId));
+        Properties consumerProperties = KafkaConsumerConfig.getConsumerProperties(kafkaProperties, groupId);
+        consumerProperties.put(ConsumerConfig.CLIENT_ID_CONFIG, clientId);
+        this.consumer = new KafkaConsumer<>(consumerProperties);
         this.executorService = Executors.newFixedThreadPool(THREAD_POOL_SIZE);
-        this.consumer.subscribe(Collections.singletonList(TOPIC)); // 订阅主题
+        initServiceDependencies();
+    }
+
+    public KafkaConsumerService(Properties kafkaProperties, String groupId, String clientId) {
+        CLIENT_ID = clientId;
+        Properties consumerProperties = KafkaConsumerConfig.getConsumerProperties(kafkaProperties, groupId);
+        consumerProperties.put(ConsumerConfig.CLIENT_ID_CONFIG, clientId);
+        this.consumer = new KafkaConsumer<>(consumerProperties);
+        this.executorService = Executors.newFixedThreadPool(THREAD_POOL_SIZE);
+        initServiceDependencies();
+    }
+
+    private void initServiceDependencies() {
+        this.managerSocketService = new ManagerSocketService();
+        this.consumer.subscribe(Collections.singletonList(TOPIC));
         this.cardGameCacheService = SpringUtil.getService(CardGameCacheService.class);
         this.userCacheService = SpringUtil.getService(UserCacheService.class);
         this.userDailyTaskService = SpringUtil.getService(UserDailyTaskService.class);

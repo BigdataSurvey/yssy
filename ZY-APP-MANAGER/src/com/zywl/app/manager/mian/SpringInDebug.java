@@ -1618,7 +1618,7 @@ public class SpringInDebug {
             // 先确保发起方存在1张VIP1卡（可注释）
             try {
                 PlayGameService gameService = ctx.getBean(PlayGameService.class);
-                Integer vip1CardItemId = PlayGameService.DIC_VIP_MAP.get("1").getCardItemId();
+                Long vip1CardItemId = PlayGameService.DIC_VIP_MAP.get("1").getCardItemId();
                 gameService.updateUserBackpack(MY_USER_ID, String.valueOf(vip1CardItemId), 1, com.zywl.app.defaultx.enmus.LogUserBackpackTypeEnum.events);
             } catch (Exception ignore) {
             }
@@ -1650,7 +1650,7 @@ public class SpringInDebug {
             // 先确保用户存在1张VIP1卡（可注释）
             try {
                 PlayGameService gameService = ctx.getBean(PlayGameService.class);
-                Integer vip1CardItemId = PlayGameService.DIC_VIP_MAP.get("1").getCardItemId();
+                Long vip1CardItemId = PlayGameService.DIC_VIP_MAP.get("1").getCardItemId();
                 gameService.updateUserBackpack(MY_USER_ID, String.valueOf(vip1CardItemId), 1, com.zywl.app.defaultx.enmus.LogUserBackpackTypeEnum.events);
             } catch (Exception ignore) {
             }

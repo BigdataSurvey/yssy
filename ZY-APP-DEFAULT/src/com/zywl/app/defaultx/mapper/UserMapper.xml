@@ -909,4 +909,218 @@
 	<select id="findByAliUserId" resultType="User">
 		select * from t_user where alipay_id=#{alipayId}
 	</select>
+
+
+	<!-- 弹珠消耗统计：主列表 count -->
+	<select id="countMarbleCostByConditions" resultType="Long">
+		select count(1)
+		from t_user u
+		where u.status = 1
+		  and ifnull(u.is_bot, 0) != 1
+		<if test="keyword != null and keyword != ''">
+			and (
+				u.user_no = #{keyword}
+				or cast(u.id as char) = #{keyword}
+			)
+		</if>
+		<if test="userName != null and userName != ''">
+			and u.name like concat('%', #{userName}, '%')
+		</if>
+	</select>
+
+	<!-- 弹珠消耗统计：主列表 -->
+	<select id="findMarbleCostByConditions" resultType="java.util.Map">
+		select
+			u.id as userId,
+			u.user_no as userNo,
+			u.name as userName,
+			u.parent_id as parentId,
+			ifnull(son.sonCount, 0) as sonCount,
+			ifnull(dts1.cost, 0) as lionCost,
+			ifnull(dts1.gain, 0) as lionGain,
+			ifnull(dts3.cost, 0) as rabbitCost,
+			ifnull(dts3.gain, 0) as rabbitGain,
+			ifnull(dts2.cost, 0) as flipCost,
+			ifnull(dts2.gain, 0) as flipGain,
+			(
+				ifnull(dts1.cost, 0)
+				+ ifnull(dts3.cost, 0)
+				+ ifnull(dts2.cost, 0)
+			) as totalCost,
+			(
+				ifnull(dts1.gain, 0)
+				+ ifnull(dts3.gain, 0)
+				+ ifnull(dts2.gain, 0)
+			) as totalGain
+		from t_user u
+		left join (
+			select parent_id, count(1) as sonCount
+			from t_user
+			where status = 1 and parent_id is not null
+			group by parent_id
+		) son on son.parent_id = u.id
+		left join (
+			select user_id,
+				ifnull(sum(bet_amount), 0) as cost,
+				ifnull(sum(case when profit > 0 then profit else 0 end), 0) as gain
+			from r_battle_royale_record
+			group by user_id
+		) dts1 on dts1.user_id = u.id
+		left join (
+			select user_id,
+				ifnull(sum(bet_amount), 0) as cost,
+				ifnull(sum(case when profit > 0 then profit else 0 end), 0) as gain
+			from r_battle_royale3_record
+			group by user_id
+		) dts3 on dts3.user_id = u.id
+		left join (
+			select user_id,
+				ifnull(sum(bet_amount), 0) as cost,
+				ifnull(sum(case when profit > 0 then profit else 0 end), 0) as gain
+			from r_battle_royale2_record
+			group by user_id
+		) dts2 on dts2.user_id = u.id
+		where u.status = 1
+		  and ifnull(u.is_bot, 0) != 1
+		<if test="keyword != null and keyword != ''">
+			and (
+				u.user_no = #{keyword}
+				or cast(u.id as char) = #{keyword}
+			)
+		</if>
+		<if test="userName != null and userName != ''">
+			and u.name like concat('%', #{userName}, '%')
+		</if>
+		order by totalCost desc, u.id desc
+		<if test="start != null and limit != null">
+			limit #{start}, #{limit}
+		</if>
+	</select>
+
+	<!-- 弹珠消耗统计：下级列表 count -->
+	<select id="countMarbleCostByParent" resultType="Long">
+		select count(1)
+		from t_user u
+		where u.status = 1
+		  and ifnull(u.is_bot, 0) != 1
+		  and u.parent_id = #{parentId}
+		<if test="keyword != null and keyword != ''">
+			and (
+				u.user_no = #{keyword}
+				or cast(u.id as char) = #{keyword}
+			)
+		</if>
+		<if test="userName != null and userName != ''">
+			and u.name like concat('%', #{userName}, '%')
+		</if>
+	</select>
+
+	<!-- 弹珠消耗统计：下级列表 -->
+	<select id="findMarbleCostByParent" resultType="java.util.Map">
+		select
+			u.id as userId,
+			u.user_no as userNo,
+			u.name as userName,
+			u.parent_id as parentId,
+			ifnull(dts1.cost, 0) as lionCost,
+			ifnull(dts1.gain, 0) as lionGain,
+			ifnull(dts3.cost, 0) as rabbitCost,
+			ifnull(dts3.gain, 0) as rabbitGain,
+			ifnull(dts2.cost, 0) as flipCost,
+			ifnull(dts2.gain, 0) as flipGain,
+			(
+				ifnull(dts1.cost, 0)
+				+ ifnull(dts3.cost, 0)
+				+ ifnull(dts2.cost, 0)
+			) as totalCost,
+			(
+				ifnull(dts1.gain, 0)
+				+ ifnull(dts3.gain, 0)
+				+ ifnull(dts2.gain, 0)
+			) as totalGain
+		from t_user u
+		left join (
+			select user_id,
+				ifnull(sum(bet_amount), 0) as cost,
+				ifnull(sum(case when profit > 0 then profit else 0 end), 0) as gain
+			from r_battle_royale_record
+			group by user_id
+		) dts1 on dts1.user_id = u.id
+		left join (
+			select user_id,
+				ifnull(sum(bet_amount), 0) as cost,
+				ifnull(sum(case when profit > 0 then profit else 0 end), 0) as gain
+			from r_battle_royale3_record
+			group by user_id
+		) dts3 on dts3.user_id = u.id
+		left join (
+			select user_id,
+				ifnull(sum(bet_amount), 0) as cost,
+				ifnull(sum(case when profit > 0 then profit else 0 end), 0) as gain
+			from r_battle_royale2_record
+			group by user_id
+		) dts2 on dts2.user_id = u.id
+		where u.status = 1
+		  and ifnull(u.is_bot, 0) != 1
+		  and u.parent_id = #{parentId}
+		<if test="keyword != null and keyword != ''">
+			and (
+				u.user_no = #{keyword}
+				or cast(u.id as char) = #{keyword}
+			)
+		</if>
+		<if test="userName != null and userName != ''">
+			and u.name like concat('%', #{userName}, '%')
+		</if>
+		order by totalCost desc, u.id desc
+		<if test="start != null and limit != null">
+			limit #{start}, #{limit}
+		</if>
+	</select>
+
+	<!-- 弹珠消耗统计：下级汇总（全部下级的总消耗和总获得） -->
+	<select id="sumMarbleCostByParent" resultType="java.util.Map">
+		select
+			ifnull(sum(dts1.cost), 0) as lionCost,
+			ifnull(sum(dts1.gain), 0) as lionGain,
+			ifnull(sum(dts3.cost), 0) as rabbitCost,
+			ifnull(sum(dts3.gain), 0) as rabbitGain,
+			ifnull(sum(dts2.cost), 0) as flipCost,
+			ifnull(sum(dts2.gain), 0) as flipGain,
+			(
+				ifnull(sum(dts1.cost), 0)
+				+ ifnull(sum(dts3.cost), 0)
+				+ ifnull(sum(dts2.cost), 0)
+			) as totalCost,
+			(
+				ifnull(sum(dts1.gain), 0)
+				+ ifnull(sum(dts3.gain), 0)
+				+ ifnull(sum(dts2.gain), 0)
+			) as totalGain
+		from t_user u
+		left join (
+			select user_id,
+				ifnull(sum(bet_amount), 0) as cost,
+				ifnull(sum(case when profit > 0 then profit else 0 end), 0) as gain
+			from r_battle_royale_record
+			group by user_id
+		) dts1 on dts1.user_id = u.id
+		left join (
+			select user_id,
+				ifnull(sum(bet_amount), 0) as cost,
+				ifnull(sum(case when profit > 0 then profit else 0 end), 0) as gain
+			from r_battle_royale3_record
+			group by user_id
+		) dts3 on dts3.user_id = u.id
+		left join (
+			select user_id,
+				ifnull(sum(bet_amount), 0) as cost,
+				ifnull(sum(case when profit > 0 then profit else 0 end), 0) as gain
+			from r_battle_royale2_record
+			group by user_id
+		) dts2 on dts2.user_id = u.id
+		where u.status = 1
+		  and ifnull(u.is_bot, 0) != 1
+		  and u.parent_id = #{parentId}
+	</select>
 </mapper>

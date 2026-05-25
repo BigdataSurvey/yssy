@@ -10,6 +10,7 @@ import com.zywl.app.base.bean.vo.ItemVo;
 import com.zywl.app.base.constant.RedisKeyConstant;
 import com.zywl.app.base.service.BaseService;
 import com.zywl.app.base.util.BeanUtils;
+import com.zywl.app.base.util.DateUtil;
 import com.zywl.app.defaultx.annotation.ServiceClass;
 import com.zywl.app.defaultx.annotation.ServiceMethod;
 import com.zywl.app.defaultx.cache.AppConfigCacheService;
@@ -17,8 +18,10 @@ import com.zywl.app.defaultx.cache.ItemCacheService;
 import com.zywl.app.defaultx.cache.UserCacheService;
 import com.zywl.app.defaultx.cache.UserCapitalCacheService;
 import com.zywl.app.defaultx.cache.card.CardGameCacheService;
+import com.zywl.app.defaultx.enmus.UserCapitalTypeEnum;
 import com.zywl.app.defaultx.service.ConfigService;
 import com.zywl.app.defaultx.service.VersionService;
+import com.zywl.app.defaultx.util.SpringUtil;
 import com.zywl.app.manager.context.MessageCodeContext;
 import com.zywl.app.manager.service.AuthService;
 import com.zywl.app.manager.service.PlayGameService;
@@ -77,6 +80,9 @@ public class ManagerConfigService extends BaseService {
 
 	@Autowired
 	private UserCacheService userCacheService;
+
+	@Autowired
+	private UserCapitalCacheService userCapitalCacheService;
 
 
 	//容器启动后创建该bend 推送配置信息
@@ -143,9 +149,20 @@ public class ManagerConfigService extends BaseService {
 	 * 获取所有系统配置
 	 **/
 	@ServiceMethod(code = "001", description = "获取系统配置")
-	public Map<String, String> getConfigData(AdminSocketServer adminSocketServer, Command command) {
-		Map<String, String> configData = new HashMap<String, String>(getConfigData());
-		return configData;
+	public Map<String, JSONObject> getConfigData(AdminSocketServer adminSocketServer, Command command) {
+		List<Config> configs = configService.findAll();
+		Map<String, JSONObject> data = new HashMap<String, JSONObject>();
+		if (configs == null) {
+			return data;
+		}
+		for (Config config : configs) {
+			JSONObject row = new JSONObject();
+			row.put("key", config.getKey());
+			row.put("value", config.getValue());
+			row.put("text", config.getText());
+			data.put(config.getKey(), row);
+		}
+		return data;
 	}
 
 	/**
@@ -208,6 +225,54 @@ public class ManagerConfigService extends BaseService {
 	}
 
 	/**
+	 * Mini-game configuration adds isolated keys during rollout. Existing keys are
+	 * updated in place; new keys are created once and use the same live push path.
+	 */
+	@Transactional
+	public void upsertConfigData(String key, String value) {
+		Config config = configService.getConfigByKey(key);
+		if (config == null) {
+			config = new Config();
+			config.setKey(key);
+			config.setValue(value);
+			configService.save(config);
+		} else {
+			config.setValue(value);
+			configService.updateConfig(config);
+		}
+		Push.push(PushCode.updateConfig, null, config);
+		setConfigCache(config);
+	}
+
+	private void refreshUserCapitalAndPush(int capitalType) {
+		userCapitalCacheService.clearCapitalTypeCache(capitalType);
+		ManagerSocketService socketService = SpringUtil.getService(ManagerSocketService.class);
+		if (socketService == null) {
+			return;
+		}
+		Set<String> onlineUserIds = socketService.getOnlineUserIds();
+		for (String userId : onlineUserIds) {
+			if (StringUtils.isEmpty(userId)) {
+				continue;
+			}
+			try {
+				Long uid = Long.parseLong(userId);
+				UserCapital userCapital = userCapitalCacheService.getUserCapitalCacheByType(uid, capitalType);
+				JSONObject pushData = new JSONObject();
+				pushData.put("userId", uid);
+				pushData.put("capitalType", capitalType);
+				pushData.put("balance", userCapital.getBalance());
+				String serverId = socketService.getServerIdByUserId(uid);
+				if (!StringUtils.isEmpty(serverId)) {
+					Push.push(PushCode.updateUserCapital, serverId, pushData);
+				}
+			} catch (Exception e) {
+				logger.error("refresh user capital failed. userId=" + userId + ", capitalType=" + capitalType, e);
+			}
+		}
+	}
+
+	/**
 	 * 修改系统配置时根据不同的Key做差异化的联动操作；
 	 * 清缓存、重载表、推送公告等；
 	 * 重载表init 是因为本来在gameService中@PostConstruct在服务启动的时候执行了一次，后来如果表改了、版本变了、数据在DB更新了这些那就必须主动调用init才能把最新配置加载进来。
@@ -229,6 +294,25 @@ public class ManagerConfigService extends BaseService {
 		} else if (key.equals(Config.TRADING_FEE)) {
 			//清除缓存中的交易行手续费
 			appConfigCacheService.removeTradingRate();
+        } else if (key.equals(Config.BOUNTY_FEE_RATE)) {
+            // updateConfigData pushes updateConfig and refreshes in-memory Config; bounty publish reads this key per request.
+		} else if (key.equals(Config.DTS_STATUS) || key.equals(Config.DTS2_STATUS) || key.equals(Config.DTS3_STATUS)
+				|| key.equals(Config.DTS_KILL_RATE) || key.equals(Config.GAME_DTS_NEED_BOT) || key.equals(Config.DTS_BOT_MONEY)
+				|| key.equals(Config.GAME_DTS2_NEED_BOT) || key.equals(Config.GAME_DTS3_NEED_BOT)
+				|| key.equals(Config.DTS3_KILL_RATE) || key.equals(Config.DTS3_BOT_MONEY)
+				|| key.equals(Config.SZHT_RATE) || key.equals(Config.GAME_TABLE_VERSION)) {
+			// Dedicated DTS processes subscribe to updateConfig and apply these values without restart.
+		} else if (key.equals(Config.JOY_EXCHANGE_RATE) || key.equals(Config.JOY_LEVEL_PERCENT) || key.equals(Config.JOY_PER_LEVEL)) {
+			// 气球树配置按请求读取 t_config 缓存；updateConfigData 已刷新 CONFIG 并推送 updateConfig。
+		} else if (key.equals(Config.SEED_EXCHANGE_CONFIG) || key.equals(Config.SEED_SYN_DARK_SWITCH)
+				|| key.equals(Config.SEED_SYN_DARK_RATE_LV2) || key.equals(Config.SEED_SYN_DARK_RATE_LV3)
+				|| key.equals(Config.SEED_SYN_DARK_RATE_LV4) || key.equals(Config.SEED_SYN_DARK_RATE_LV5)
+				|| key.equals(Config.SEED_SYN_FAIL_POOL_RATE)) {
+			// 种子兑换/合成配置无局部字段缓存；updateConfigData 已负责刷新并通知在线客户端。
+		} else if (key.equals(Config.UNLOCK_FARM)) {
+			// 解锁土地配置按请求读取 CONFIG；updateConfigData 已刷新 Manager/Server 内存并通过客户端白名单推送。
+		} else if (key.equals(Config.APP_HOME_HEAD_IMG) || key.equals(Config.APP_SHOP_MANAGER)) {
+			// 头像/店长展示配置是 t_config JSON；updateConfigData 已刷新缓存并通过客户端白名单推送。
 		} else if (key.equals(Config.REGISTER_NUM)) {
 			appConfigCacheService.removeKey(RedisKeyConstant.APP_CONFIG_REGISTER_NUMBER);
 		} else if (key.equals(Config.BAI_IP)) {
@@ -239,11 +323,24 @@ public class ManagerConfigService extends BaseService {
 			//清Map缓存中的的玩家背包缓存
 			PlayGameService.playerItems.clear();
 		} else if (key.equals(Config.REFRESH_USER_CAPITAL)) {
-			//清除Map缓存中的玩家资产缓存
-			UserCapitalCacheService.userCapitals.clear();
+			refreshUserCapitalAndPush(UserCapitalTypeEnum.hxjf.getValue());
+			refreshUserCapitalAndPush(UserCapitalTypeEnum.xxxhhb.getValue());
+			refreshUserCapitalAndPush(UserCapitalTypeEnum.ejjf.getValue());
+		} else if (key.equals(Config.REFRESH_USER_CAPITAL_HXJF)) {
+			refreshUserCapitalAndPush(UserCapitalTypeEnum.hxjf.getValue());
+		} else if (key.equals(Config.REFRESH_USER_CAPITAL_XXXHHB)) {
+			refreshUserCapitalAndPush(UserCapitalTypeEnum.xxxhhb.getValue());
+		} else if (key.equals(Config.REFRESH_USER_CAPITAL_EJJF)) {
+			refreshUserCapitalAndPush(UserCapitalTypeEnum.ejjf.getValue());
 		} else if (key.equals(Config.REFRESH_USER_COIN)) {
 			//清除Map缓存中的货币缓存
 			PlayGameService.playercoins.clear();
+		} else if (key.equals(Config.DAILY_TASK_BOX_CONFIG)) {
+			//每日任务/宝箱配置热更：重载内存任务表，清理任务相关 Redis，避免改配置后仍读旧缓存。
+			gameService.initDailyTask();
+			appConfigCacheService.del(RedisKeyConstant.APP_DAILY_TASK, RedisKeyConstant.APP_DAILY_TASK_LIST);
+			appConfigCacheService.deleteByLikeKey(RedisKeyConstant.APP_USER_DAILY_TASK + DateUtil.format2(new Date()) + ":*");
+			appConfigCacheService.deleteByLikeKey(RedisKeyConstant.APP_USER_DAILY_TASK_LIST + DateUtil.getCurrent2() + ":*");
 		} else if (key.equals(Config.SHOP_VERSION)) {
 			//商城版本更新
 			PlayGameService.DIC_SHOP_LIST.clear();
@@ -371,7 +468,12 @@ public class ManagerConfigService extends BaseService {
 			appConfigCacheService.del(RedisKeyConstant.VIP_MONTH_PRICE);
 		} else if (key.equals(Config.VIP_WEEK_PRICE)) {
 			appConfigCacheService.del(RedisKeyConstant.VIP_WEEK_PRICE);
-
+		} else if (key.equals(Config.GUILD_FEE) || key.equals(Config.GUILD_MEMBER_FEE) || key.equals(Config.GUILD_CREATE_FEE_RATE)) {
+			// 公会配置热更：通知 ManagerGuildService 重载局部变量
+			com.zywl.app.manager.service.manager.ManagerGuildService guildService = SpringUtil.getService(com.zywl.app.manager.service.manager.ManagerGuildService.class);
+			if (guildService != null) {
+				guildService.reloadGuildConfig();
+			}
 		}
 	}
 }

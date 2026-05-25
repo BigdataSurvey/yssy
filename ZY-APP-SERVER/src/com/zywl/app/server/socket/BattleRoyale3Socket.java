@@ -133,6 +133,9 @@ public class BattleRoyale3Socket extends BaseClientSocket {
                         }
                         result.put("allLoseAmount", obj.get("allLoseAmount"));
                         result.put("roomIds", obj.get("roomIds"));
+                        result.put("gameSetting", obj.get("gameSetting"));
+                        result.put("capitalType", obj.get("capitalType"));
+                        result.put("configUpdated", obj.get("configUpdated"));
                         result.put("status", obj.get("status"));
                         result.put("userId", userId);
                         Push.push(PushCode.updateDts2Status, userId, result);

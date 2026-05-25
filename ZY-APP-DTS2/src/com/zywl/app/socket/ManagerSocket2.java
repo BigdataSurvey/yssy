@@ -31,6 +31,7 @@ public class ManagerSocket2 extends BaseClientSocket {
 
 	private VersionService versionService;
 	//private BattleRoyaleService2 battleRoyaleService2;
+	private PbxService pbxService;
 	private GameService gameService;
 	private IncomeRecordService incomeRecordService;
 
@@ -39,6 +40,7 @@ public class ManagerSocket2 extends BaseClientSocket {
 		versionService = SpringUtil.getService(VersionService.class);
 		incomeRecordService = SpringUtil.getService(IncomeRecordService.class);
 		//battleRoyaleService2 = SpringUtil.getService(BattleRoyaleService2.class);
+		pbxService = SpringUtil.getService(PbxService.class);
 		gameService = SpringUtil.getService(GameService.class);
 		Push.addPushSuport(PushCode.cancelBet, new DefaultPushHandler() {
 			public void onRegist(BaseSocket baseSocket, PushBean pushBean) {
@@ -74,8 +76,13 @@ public class ManagerSocket2 extends BaseClientSocket {
 					Config config = pushData.toJavaObject(Config.class);
 					if (config.getKey().equals(Config.DTS2_STATUS)){
 						int status = Integer.parseInt(config.getValue());
-						//BattleRoyaleService2.STATUS=status;
-						gameService.updateGameStatus(GameTypeEnum.battleRoyale.getValue(),status);
+						pbxService.updateGameStatus(status);
+					}
+					if (config.getKey().equals(Config.GAME_DTS2_NEED_BOT)){
+						pbxService.reloadBotConfig();
+					}
+					if (config.getKey().equals(Config.GAME_TABLE_VERSION)){
+						pbxService.reloadGameSetting();
 					}
 					if (config.getKey().equals(Config.DAILY_STOLEN_COUNT)){
 						BigDecimal status = new BigDecimal(config.getValue());

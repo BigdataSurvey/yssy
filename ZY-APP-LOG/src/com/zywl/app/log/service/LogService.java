@@ -73,17 +73,19 @@ public class LogService extends BaseService {
         }
 
 
+        long staticsDelay = DateUtil.getAddStaticsDate();
+        if (staticsDelay < 0) staticsDelay = staticsDelay + 1000L * 60 * 60 * 24; // 已过今天23:50，改到明天
         new Timer("定时增加每日报表数据").schedule(new TimerTask() {
-            Long time = DateUtil.getAddStaticsDate();
-
             public void run() {
                 platformStatementService.addStatement();
                 for (Item item : items) {
                     backpackStatementService.addStatement(item.getId());
                 }
             }
-        }, DateUtil.getAddStaticsDate(), 1000 * 60 * 60 * 24);
+        }, staticsDelay, 1000 * 60 * 60 * 24);
 
+        long taskNeedDelay = DateUtil.getTaskNeed();
+        if (taskNeedDelay < 0) taskNeedDelay = taskNeedDelay + 1000L * 60 * 60 * 24;
         new Timer("日志定时删除").schedule(new TimerTask() {
             public void run() {
                 try {

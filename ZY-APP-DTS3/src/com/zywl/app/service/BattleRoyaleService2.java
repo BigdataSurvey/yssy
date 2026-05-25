@@ -402,7 +402,10 @@ public class BattleRoyaleService2 extends BaseService {
                 ROOM.setLastWeekTopThree(gameCacheService.getLastWeekTopList(GameTypeEnum.dts2.getValue(), 10));
             }
         }
-        return ROOM.getReturnInfo();
+        JSONObject result = ROOM.getReturnInfo();
+        result.put("gameSetting", GAME_SETTING);
+        result.put("capitalType", CAPITAL_TYPE);
+        return result;
     }
 
     @Transactional
@@ -582,6 +585,10 @@ public class BattleRoyaleService2 extends BaseService {
                                  JSONObject params) {
         if (STATUS == 0) {
             throwExp("消失的兔子即将维护，暂时不能进行游戏！");
+        }
+        if (amount == null || amount.compareTo(MIN_BET) < 0 || amount.compareTo(MAX_BET) > 0) {
+            throwExp("下注金额必须在 " + MIN_BET.stripTrailingZeros().toPlainString() + " 至 "
+                    + MAX_BET.stripTrailingZeros().toPlainString() + " 之间");
         }
         if (ROOM.getStatus() == LotteryGameStatusEnum.settle.getValue()) {
             throwExp("上局结算中,请等待结算完成重新渡劫 ~");
@@ -1421,6 +1428,17 @@ public class BattleRoyaleService2 extends BaseService {
         }
         initRateList();
         logger.info("初始化大逃杀游戏配置完成");
+    }
+
+    public void reloadGameSetting() {
+        initGameSetting();
+        JSONObject data = ROOM.getReturnInfo();
+        data.put("userIds", ROOM.getPlayers().keySet());
+        data.put("gameId", GameTypeEnum.dts2.getValue());
+        data.put("gameSetting", GAME_SETTING);
+        data.put("capitalType", CAPITAL_TYPE);
+        data.put("configUpdated", 1);
+        Push.push(PushCode.updateDts2Status, null, data);
     }
 
     public void initRateList() {

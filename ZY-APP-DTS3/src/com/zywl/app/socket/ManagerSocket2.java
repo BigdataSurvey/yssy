@@ -74,10 +74,10 @@ public class ManagerSocket2 extends BaseClientSocket {
 				logger.info("收到系统参数修改推送：" + data);
 				JSONObject object = (JSONObject) data;
 				Config config = object.toJavaObject(Config.class);
-				if (config.getKey().equals(Config.DTS2_STATUS)){
+				if (config.getKey().equals(Config.DTS3_STATUS)){
 					int status = Integer.parseInt(config.getValue());
 					BattleRoyaleService2.STATUS=status;
-					gameService.updateGameStatus(GameTypeEnum.battleRoyale.getValue(),status);
+					gameService.updateGameStatus(GameTypeEnum.dts2.getValue(),status);
 				}
 				if (config.getKey().equals(Config.DAILY_STOLEN_COUNT)){
 					BigDecimal status = new BigDecimal(config.getValue());
@@ -96,6 +96,9 @@ public class ManagerSocket2 extends BaseClientSocket {
 				}
 				if (config.getKey().equals(Config.SZHT_RATE)){
 					battleRoyaleService2.initRateList();
+				}
+				if (config.getKey().equals(Config.GAME_TABLE_VERSION)){
+					battleRoyaleService2.reloadGameSetting();
 				}
 
 			}

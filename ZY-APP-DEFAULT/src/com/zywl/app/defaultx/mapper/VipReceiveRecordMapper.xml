@@ -134,4 +134,59 @@
         </where>
     </select>
 
+    <!-- 后台查询：统计VIP领取记录（关联用户表支持按用户筛选） -->
+    <select id="countForAdmin" resultType="long">
+        select count(1)
+        from r_vip_receive_record r
+        left join t_user u on u.id = r.user_id
+        <where>
+            <if test="userId != null and userId > 0">
+                and r.user_id = #{userId}
+            </if>
+            <if test="userNo != null and userNo != ''">
+                and u.user_no = #{userNo}
+            </if>
+            <if test="userName != null and userName != ''">
+                and u.name like concat('%', #{userName}, '%')
+            </if>
+            <if test="vipType != null">
+                and r.vip_type = #{vipType}
+            </if>
+        </where>
+    </select>
+
+    <!-- 后台查询：VIP领取记录列表（关联用户表） -->
+    <select id="findListForAdmin" resultType="java.util.Map">
+        select
+            r.id as id,
+            r.user_id as userId,
+            u.name as userName,
+            u.user_no as userNo,
+            r.vip_type as vipType,
+            r.claim_date as claimDate,
+            r.reward as reward,
+            r.order_no as orderNo,
+            r.create_time as createTime
+        from r_vip_receive_record r
+        left join t_user u on u.id = r.user_id
+        <where>
+            <if test="userId != null and userId > 0">
+                and r.user_id = #{userId}
+            </if>
+            <if test="userNo != null and userNo != ''">
+                and u.user_no = #{userNo}
+            </if>
+            <if test="userName != null and userName != ''">
+                and u.name like concat('%', #{userName}, '%')
+            </if>
+            <if test="vipType != null">
+                and r.vip_type = #{vipType}
+            </if>
+        </where>
+        order by r.create_time desc
+        <if test="start != null and limit != null">
+            limit #{start}, #{limit}
+        </if>
+    </select>
+
 </mapper>

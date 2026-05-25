@@ -50,6 +50,29 @@ public class ServerConfigService extends BaseService {
 	static {
 		WHITE_LIST.add(Config.TRAD_MIN);
 		WHITE_LIST.add(Config.TRAD_MAX);
+		WHITE_LIST.add(Config.CONVERT_RATE);
+		WHITE_LIST.add(Config.DAILY_TASK_BOX_CONFIG);
+		WHITE_LIST.add(Config.BOUNTY_FEE_RATE);
+		WHITE_LIST.add(Config.GUILD_FEE);
+		WHITE_LIST.add(Config.GUILD_MEMBER_FEE);
+		WHITE_LIST.add(Config.GUILD_CREATE_FEE_RATE);
+		WHITE_LIST.add(Config.JOY_EXCHANGE_RATE);
+		WHITE_LIST.add(Config.JOY_LEVEL_PERCENT);
+		WHITE_LIST.add(Config.JOY_PER_LEVEL);
+		WHITE_LIST.add(Config.SEED_EXCHANGE_CONFIG);
+		WHITE_LIST.add(Config.SEED_SYN_DARK_SWITCH);
+		WHITE_LIST.add(Config.SEED_SYN_DARK_RATE_LV2);
+		WHITE_LIST.add(Config.SEED_SYN_DARK_RATE_LV3);
+		WHITE_LIST.add(Config.SEED_SYN_DARK_RATE_LV4);
+		WHITE_LIST.add(Config.SEED_SYN_DARK_RATE_LV5);
+		WHITE_LIST.add(Config.SEED_SYN_FAIL_POOL_RATE);
+		WHITE_LIST.add(Config.UNLOCK_FARM);
+		WHITE_LIST.add(Config.APP_HOME_HEAD_IMG);
+		WHITE_LIST.add(Config.APP_SHOP_MANAGER);
+		WHITE_LIST.add(Config.DTS_STATUS);
+		WHITE_LIST.add(Config.DTS2_STATUS);
+		WHITE_LIST.add(Config.DTS3_STATUS);
+		WHITE_LIST.add(Config.GAME_TABLE_VERSION);
 	}
 
 	public void setConfigCache(Config config){

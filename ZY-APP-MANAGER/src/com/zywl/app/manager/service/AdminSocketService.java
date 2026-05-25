@@ -208,6 +208,8 @@ public class AdminSocketService extends BaseService {
 		data.put("cashCount", allBalance.getOrDefault("cashCount", BigDecimal.ZERO));
 		data.put("cashAmount", allBalance.getOrDefault("cashAmount", BigDecimal.ZERO));
 
+		// 留存数据（实时计算）
+		initKeepAlive();
 		data.put("oneKeepAlive", keepAlive.getOrDefault("one", "未查询到结果"));
 		data.put("threeKeepAlive", keepAlive.getOrDefault("three", "未查询到结果"));
 		data.put("sevenKeepAlive", keepAlive.getOrDefault("seven", "未查询到结果"));

@@ -71,6 +71,7 @@ public class ManagerBannerService extends BaseService {
 			bannerStr = JSON.toJSONString(parseArray);
 		}
 		managerConfigService.updateConfigData(Config.APP_SHOP_MANAGER, bannerStr);
+		managerConfigService.updateGameKey(Config.APP_SHOP_MANAGER, bannerStr);
 	}
 	
 	@Transactional
@@ -87,6 +88,7 @@ public class ManagerBannerService extends BaseService {
 		
 		String bannerStr = JSON.toJSONString(parseArray);
 		managerConfigService.updateConfigData(Config.APP_SHOP_MANAGER, bannerStr);
+		managerConfigService.updateGameKey(Config.APP_SHOP_MANAGER, bannerStr);
 		
 		if(banner != null) {
 			if(isNotNull(banner.getImg3_1())) {

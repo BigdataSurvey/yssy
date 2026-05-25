@@ -350,7 +350,10 @@ public class BattleRoyaleService extends BaseService {
             Map<String, Double> lastWeekTopList = gameCacheService.getLastWeekTopList(GameTypeEnum.battleRoyale.getValue(), 10);
             ROOM.setLastWeekTopThree(lastWeekTopList);
         }
-        return ROOM.getReturnInfo();
+        JSONObject result = ROOM.getReturnInfo();
+        result.put("gameSetting", GAME_SETTING);
+        result.put("capitalType", CAPITAL_TYPE);
+        return result;
     }
 
     @Transactional
@@ -518,6 +521,10 @@ public class BattleRoyaleService extends BaseService {
     public JSONObject userBetBet(String userId, String userBet, BigDecimal amount, Command lotteryCommand, JSONObject params) {
         if (STATUS == 0) {
             throwExp("疯狂的狮子即将维护，暂时不能进行游戏！");
+        }
+        if (amount == null || amount.compareTo(MIN_BET) < 0 || amount.compareTo(MAX_BET) > 0) {
+            throwExp("下注金额必须在 " + MIN_BET.stripTrailingZeros().toPlainString() + " 至 "
+                    + MAX_BET.stripTrailingZeros().toPlainString() + " 之间");
         }
         if (ROOM.getStatus() == LotteryGameStatusEnum.settle.getValue()) {
             throwExp("上局结算中");
@@ -1087,7 +1094,7 @@ public class BattleRoyaleService extends BaseService {
         return String.valueOf(result);
     }
 
-    void initGameSetting() {
+    public void initGameSetting() {
         logger.info("初始化大逃杀游戏配置");
         // 疯狂的狮子：game_id = 7
         Game game = gameService.findGameById(7L);
@@ -1102,6 +1109,17 @@ public class BattleRoyaleService extends BaseService {
             CAPITAL_TYPE = GAME_SETTING.getIntValue("capitalType");
         }
         logger.info("初始化大逃杀游戏配置完成");
+    }
+
+    public void reloadGameSetting() {
+        initGameSetting();
+        JSONObject data = ROOM.getReturnInfo();
+        data.put("userIds", ROOM.getPlayers().keySet());
+        data.put("gameId", GameTypeEnum.battleRoyale.getValue());
+        data.put("gameSetting", GAME_SETTING);
+        data.put("capitalType", CAPITAL_TYPE);
+        data.put("configUpdated", 1);
+        Push.push(PushCode.updateGameStatus, null, data);
     }
 
 

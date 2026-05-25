@@ -140,6 +140,9 @@ public class BattleRoyaleSocket extends BaseClientSocket {
 						}
 						result.put("allLoseAmount", obj.get("allLoseAmount"));
 						result.put("roomIds", obj.get("roomIds"));
+						result.put("gameSetting", obj.get("gameSetting"));
+						result.put("capitalType", obj.get("capitalType"));
+						result.put("configUpdated", obj.get("configUpdated"));
 						result.put("status", obj.get("status"));
 						result.put("userId", userId);
 

@@ -180,6 +180,22 @@ public class UserCapitalCacheService extends RedisService {
     }
 
     //通过资产类型获取资产枚举
+    public void clearCapitalTypeCache(int capitalType) {
+        String suffix = "-" + capitalType;
+        for (String key : userCapitals.keySet()) {
+            if (key.endsWith(suffix)) {
+                userCapitals.remove(key);
+            }
+        }
+        data.clear();
+        data.put("userCapitals", userCapitals);
+    }
+
+    public void clearAllCapitalCache() {
+        userCapitals.clear();
+        data.clear();
+        data.put("userCapitals", userCapitals);
+    }
     public UserCapitalTypeEnum getCapitalEnum(int value) {
         UserCapitalTypeEnum[] enums = UserCapitalTypeEnum.values();
         for (UserCapitalTypeEnum e : enums) {

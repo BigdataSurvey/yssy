@@ -423,6 +423,10 @@ public class ManagerSocketService extends BaseService {
         return userOnlineCache.size();
     }
 
+    public Set<String> getOnlineUserIds() {
+        return new HashSet<String>(userOnlineCache.keySet());
+    }
+
     public void updateServerTask(ManagerSocketServer server, int task, int qps) {
         List<ServerTaskBean> taskItems = serverTaskData.get(server);
         if (taskItems == null) {
